@@ -1,0 +1,585 @@
+#!/usr/bin/env python3.11
+
+# Kanboard JSON-RPC 2.0 API helper
+# stdlib only, no pip dependencies
+
+import argparse
+import base64
+import json
+import os
+import sys
+import urllib.request
+
+ENV_FILE = os.environ.get("KANBOARD_ENV", os.path.join(os.getcwd(), ".env"))
+
+_request_id = 0
+
+
+def load_env():
+    """Read KANBOARD_URL and KANBOARD_TOKEN from .env"""
+    config = {}
+    if not os.path.exists(ENV_FILE):
+        print(f"Error: {ENV_FILE} not found", file=sys.stderr)
+        sys.exit(1)
+    with open(ENV_FILE) as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if "=" in line:
+                key, val = line.split("=", 1)
+                config[key.strip()] = val.strip()
+    for key in ("KANBOARD_URL", "KANBOARD_TOKEN"):
+        if key not in config:
+            print(f"Error: {key} not set in {ENV_FILE}", file=sys.stderr)
+            sys.exit(1)
+    return config
+
+
+def rpc_call(method, params=None):
+    """Make a JSON-RPC 2.0 call to Kanboard"""
+    global _request_id
+    _request_id += 1
+    config = load_env()
+    payload = json.dumps({
+        "jsonrpc": "2.0",
+        "method": method,
+        "id": _request_id,
+        "params": params or {}
+    }).encode("utf-8")
+
+    credentials = base64.b64encode(
+        f"jsonrpc:{config['KANBOARD_TOKEN']}".encode()
+    ).decode()
+
+    req = urllib.request.Request(
+        config["KANBOARD_URL"],
+        data=payload,
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Basic {credentials}"
+        }
+    )
+
+    try:
+        with urllib.request.urlopen(req) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.URLError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    if "error" in data and data["error"]:
+        print(f"API error: {json.dumps(data['error'])}", file=sys.stderr)
+        sys.exit(1)
+
+    return data.get("result")
+
+
+# Resolver helpers
+
+def resolve_project(project):
+    """Resolve project name or ID to numeric ID"""
+    if project.isdigit():
+        return int(project)
+    result = rpc_call("getProjectByName", {"name": project})
+    if not result:
+        print(f"Error: project '{project}' not found", file=sys.stderr)
+        sys.exit(1)
+    return int(result["id"])
+
+
+def resolve_column(project_id, column_name):
+    """Resolve column name to ID within a project"""
+    columns = rpc_call("getColumns", {"project_id": project_id})
+    for col in columns:
+        if col["title"].lower() == column_name.lower():
+            return int(col["id"])
+    names = [c["title"] for c in columns]
+    print(f"Error: column '{column_name}' not found (available: {', '.join(names)})", file=sys.stderr)
+    sys.exit(1)
+
+
+def resolve_user(username):
+    """Resolve username to user ID"""
+    result = rpc_call("getUserByName", {"username": username})
+    if not result:
+        print(f"Error: user '{username}' not found", file=sys.stderr)
+        sys.exit(1)
+    return int(result["id"])
+
+
+def resolve_swimlane(project_id, swimlane_name):
+    """Resolve swimlane name to ID"""
+    swimlanes = rpc_call("getActiveSwimlanes", {"project_id": project_id})
+    for sl in swimlanes:
+        if sl["name"].lower() == swimlane_name.lower():
+            return int(sl["id"])
+    names = [s["name"] for s in swimlanes]
+    print(f"Error: swimlane '{swimlane_name}' not found (available: {', '.join(names)})", file=sys.stderr)
+    sys.exit(1)
+
+
+def output(data):
+    """Print result as formatted JSON"""
+    print(json.dumps(data, indent=2, ensure_ascii=False))
+
+
+# Subcommands
+
+def cmd_create_task(args):
+    project_id = resolve_project(args.project)
+    params = {
+        "project_id": project_id,
+        "title": args.title,
+    }
+    if args.description:
+        params["description"] = args.description
+    if args.column:
+        params["column_id"] = resolve_column(project_id, args.column)
+    if args.owner:
+        params["owner_id"] = resolve_user(args.owner)
+    if args.swimlane:
+        params["swimlane_id"] = resolve_swimlane(project_id, args.swimlane)
+
+    task_id = rpc_call("createTask", params)
+    if not task_id:
+        print("Error: task creation failed", file=sys.stderr)
+        sys.exit(1)
+    output({"task_id": task_id, "project_id": project_id})
+
+
+def cmd_get_task(args):
+    result = rpc_call("getTask", {"task_id": int(args.task_id)})
+    if not result:
+        print(f"Error: task {args.task_id} not found", file=sys.stderr)
+        sys.exit(1)
+    output(result)
+
+
+def cmd_update_task(args):
+    params = {"id": int(args.task_id)}
+    if args.title:
+        params["title"] = args.title
+    if args.description:
+        params["description"] = args.description
+    if args.owner:
+        params["owner_id"] = resolve_user(args.owner)
+
+    if len(params) == 1:
+        print("Error: nothing to update (specify --title, --description, or --owner)", file=sys.stderr)
+        sys.exit(1)
+
+    result = rpc_call("updateTask", params)
+    output({"success": result})
+
+
+def cmd_move_task(args):
+    task = rpc_call("getTask", {"task_id": int(args.task_id)})
+    if not task:
+        print(f"Error: task {args.task_id} not found", file=sys.stderr)
+        sys.exit(1)
+
+    project_id = int(task["project_id"])
+    if args.project:
+        project_id = resolve_project(args.project)
+
+    column_id = resolve_column(project_id, args.column)
+    if args.swimlane:
+        swimlane_id = resolve_swimlane(project_id, args.swimlane)
+    else:
+        swimlane_id = int(task["swimlane_id"])
+
+    # Position 9999: Kanboard clampt auf die letzte Position
+    result = rpc_call("moveTaskPosition", {
+        "project_id": project_id,
+        "task_id": int(args.task_id),
+        "column_id": column_id,
+        "position": 9999,
+        "swimlane_id": swimlane_id
+    })
+    output({"success": result})
+
+
+def cmd_open_task(args):
+    result = rpc_call("openTask", {"task_id": int(args.task_id)})
+    output({"success": result})
+
+
+def cmd_close_task(args):
+    result = rpc_call("closeTask", {"task_id": int(args.task_id)})
+    output({"success": result})
+
+
+def cmd_attach_file(args):
+    filepath = os.path.abspath(args.file)
+    if not os.path.exists(filepath):
+        print(f"Error: file '{filepath}' not found", file=sys.stderr)
+        sys.exit(1)
+
+    size = os.path.getsize(filepath)
+    if size > 10 * 1024 * 1024:
+        print(f"Warning: file is {size // (1024*1024)} MB, upload may be slow", file=sys.stderr)
+
+    task = rpc_call("getTask", {"task_id": int(args.task_id)})
+    if not task:
+        print(f"Error: task {args.task_id} not found", file=sys.stderr)
+        sys.exit(1)
+
+    with open(filepath, "rb") as f:
+        blob = base64.b64encode(f.read()).decode("ascii")
+
+    filename = os.path.basename(filepath)
+    result = rpc_call("createTaskFile", {
+        "project_id": int(task["project_id"]),
+        "task_id": int(args.task_id),
+        "filename": filename,
+        "blob": blob
+    })
+    output({"file_id": result, "filename": filename})
+
+
+def cmd_list_tasks(args):
+    project_id = resolve_project(args.project)
+    status = 1 if not args.closed else 0
+    tasks = rpc_call("getAllTasks", {
+        "project_id": project_id,
+        "status_id": status
+    })
+
+    if args.column:
+        column_id = resolve_column(project_id, args.column)
+        tasks = [t for t in tasks if int(t["column_id"]) == column_id]
+
+    summary = []
+    for t in tasks:
+        summary.append({
+            "id": t["id"],
+            "title": t["title"],
+            "column_name": t.get("column_name", ""),
+            "owner_username": t.get("owner_username", ""),
+            "date_due": t.get("date_due", ""),
+            "is_active": t.get("is_active", "")
+        })
+    output(summary)
+
+
+def cmd_list_projects(args):
+    result = rpc_call("getAllProjects")
+    summary = []
+    for p in result:
+        summary.append({
+            "id": p["id"],
+            "name": p["name"],
+            "is_active": p.get("is_active", "")
+        })
+    output(summary)
+
+
+def cmd_list_columns(args):
+    project_id = resolve_project(args.project)
+    result = rpc_call("getColumns", {"project_id": project_id})
+    output(result)
+
+
+def cmd_list_users(args):
+    result = rpc_call("getAllUsers")
+    summary = []
+    for u in result:
+        summary.append({
+            "id": u["id"],
+            "username": u["username"],
+            "name": u.get("name", ""),
+            "role": u.get("role", ""),
+            "is_active": u.get("is_active", "")
+        })
+    output(summary)
+
+
+def cmd_get_comments(args):
+    result = rpc_call("getAllComments", {"task_id": int(args.task_id)})
+    output(result if result else [])
+
+
+def cmd_add_comment(args):
+    user_id = resolve_user(args.user) if args.user else resolve_user("mmuster")
+    result = rpc_call("createComment", {
+        "task_id": int(args.task_id),
+        "user_id": user_id,
+        "content": args.text
+    })
+    output({"comment_id": result})
+
+
+def cmd_update_comment(args):
+    result = rpc_call("updateComment", {
+        "id": int(args.comment_id),
+        "content": args.text
+    })
+    output({"success": result})
+
+
+def cmd_remove_comment(args):
+    result = rpc_call("removeComment", {"comment_id": int(args.comment_id)})
+    output({"success": result})
+
+
+def cmd_remove_file(args):
+    result = rpc_call("removeTaskFile", {"file_id": int(args.file_id)})
+    output({"success": result})
+
+
+def cmd_list_files(args):
+    result = rpc_call("getAllTaskFiles", {"task_id": int(args.task_id)})
+    output(result if result else [])
+
+
+def cmd_download_file(args):
+    result = rpc_call("downloadTaskFile", {"file_id": int(args.file_id)})
+    if not result:
+        print(f"Error: file {args.file_id} not found or empty", file=sys.stderr)
+        sys.exit(1)
+
+    content = base64.b64decode(result)
+
+    if args.output:
+        outpath = os.path.abspath(args.output)
+    else:
+        tmpdir = os.path.join(os.getcwd(), ".tmp")
+        os.makedirs(tmpdir, exist_ok=True)
+        outpath = os.path.join(tmpdir, f"kanboard_file_{args.file_id}")
+
+    with open(outpath, "wb") as f:
+        f.write(content)
+    output({"path": outpath, "size": len(content)})
+
+
+def cmd_list_subtasks(args):
+    result = rpc_call("getAllSubtasks", {"task_id": int(args.task_id)})
+    output(result if result else [])
+
+
+def cmd_create_subtask(args):
+    params = {
+        "task_id": int(args.task_id),
+        "title": args.title,
+    }
+    if args.owner:
+        params["user_id"] = resolve_user(args.owner)
+
+    result = rpc_call("createSubtask", params)
+    if not result:
+        print("Error: subtask creation failed", file=sys.stderr)
+        sys.exit(1)
+    output({"subtask_id": result})
+
+
+def cmd_update_subtask(args):
+    params = {"id": int(args.subtask_id), "task_id": int(args.task_id)}
+    if args.title:
+        params["title"] = args.title
+    if args.owner:
+        params["user_id"] = resolve_user(args.owner)
+    if args.status is not None:
+        params["status"] = int(args.status)
+
+    if len(params) == 2:
+        print("Error: nothing to update (specify --title, --owner, or --status)", file=sys.stderr)
+        sys.exit(1)
+
+    result = rpc_call("updateSubtask", params)
+    output({"success": result})
+
+
+def cmd_remove_subtask(args):
+    result = rpc_call("removeSubtask", {"subtask_id": int(args.subtask_id)})
+    output({"success": result})
+
+
+def cmd_setup(args):
+    """Query instance for projects, swimlanes, columns, users and write instance.json"""
+    skill_dir = os.path.dirname(os.path.abspath(__file__))
+    out_path = os.path.join(skill_dir, "instance.json")
+
+    projects_raw = rpc_call("getAllProjects")
+    projects = []
+    for p in projects_raw:
+        if int(p.get("is_active", 0)) != 1:
+            continue
+        pid = int(p["id"])
+        swimlanes = rpc_call("getActiveSwimlanes", {"project_id": pid})
+        columns = rpc_call("getColumns", {"project_id": pid})
+        projects.append({
+            "id": pid,
+            "name": p["name"],
+            "swimlanes": [s["name"] for s in swimlanes],
+            "columns": [c["title"] for c in columns],
+        })
+
+    users_raw = rpc_call("getAllUsers")
+    users = []
+    for u in users_raw:
+        if int(u.get("is_active", 0)) != 1:
+            continue
+        users.append({
+            "username": u["username"],
+            "name": u.get("name", ""),
+        })
+
+    instance = {"projects": projects, "users": users}
+
+    with open(out_path, "w") as f:
+        json.dump(instance, f, indent=2, ensure_ascii=False)
+
+    print(f"Written to {out_path}")
+    output(instance)
+
+
+# CLI setup
+
+def main():
+    parser = argparse.ArgumentParser(description="Kanboard JSON-RPC API helper")
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    # setup
+    p = sub.add_parser("setup")
+    p.set_defaults(func=cmd_setup)
+
+    # create-task
+    p = sub.add_parser("create-task")
+    p.add_argument("--project", required=True)
+    p.add_argument("--title", required=True)
+    p.add_argument("--description")
+    p.add_argument("--column")
+    p.add_argument("--owner")
+    p.add_argument("--swimlane")
+    p.set_defaults(func=cmd_create_task)
+
+    # get-task
+    p = sub.add_parser("get-task")
+    p.add_argument("task_id")
+    p.set_defaults(func=cmd_get_task)
+
+    # update-task
+    p = sub.add_parser("update-task")
+    p.add_argument("task_id")
+    p.add_argument("--title")
+    p.add_argument("--description")
+    p.add_argument("--owner")
+    p.set_defaults(func=cmd_update_task)
+
+    # move-task
+    p = sub.add_parser("move-task")
+    p.add_argument("task_id")
+    p.add_argument("--column", required=True)
+    p.add_argument("--swimlane")
+    p.add_argument("--project")
+    p.set_defaults(func=cmd_move_task)
+
+    # open-task
+    p = sub.add_parser("open-task")
+    p.add_argument("task_id")
+    p.set_defaults(func=cmd_open_task)
+
+    # close-task
+    p = sub.add_parser("close-task")
+    p.add_argument("task_id")
+    p.set_defaults(func=cmd_close_task)
+
+    # attach-file
+    p = sub.add_parser("attach-file")
+    p.add_argument("task_id")
+    p.add_argument("--file", required=True)
+    p.set_defaults(func=cmd_attach_file)
+
+    # list-tasks
+    p = sub.add_parser("list-tasks")
+    p.add_argument("--project", required=True)
+    p.add_argument("--column")
+    p.add_argument("--closed", action="store_true")
+    p.set_defaults(func=cmd_list_tasks)
+
+    # list-projects
+    p = sub.add_parser("list-projects")
+    p.set_defaults(func=cmd_list_projects)
+
+    # list-columns
+    p = sub.add_parser("list-columns")
+    p.add_argument("--project", required=True)
+    p.set_defaults(func=cmd_list_columns)
+
+    # list-users
+    p = sub.add_parser("list-users")
+    p.set_defaults(func=cmd_list_users)
+
+    # get-comments
+    p = sub.add_parser("get-comments")
+    p.add_argument("task_id")
+    p.set_defaults(func=cmd_get_comments)
+
+    # add-comment
+    p = sub.add_parser("add-comment")
+    p.add_argument("task_id")
+    p.add_argument("--text", required=True)
+    p.add_argument("--user")
+    p.set_defaults(func=cmd_add_comment)
+
+    # update-comment
+    p = sub.add_parser("update-comment")
+    p.add_argument("comment_id")
+    p.add_argument("--text", required=True)
+    p.set_defaults(func=cmd_update_comment)
+
+    # remove-comment
+    p = sub.add_parser("remove-comment")
+    p.add_argument("comment_id")
+    p.set_defaults(func=cmd_remove_comment)
+
+    # remove-file
+    p = sub.add_parser("remove-file")
+    p.add_argument("file_id")
+    p.set_defaults(func=cmd_remove_file)
+
+    # list-files
+    p = sub.add_parser("list-files")
+    p.add_argument("task_id")
+    p.set_defaults(func=cmd_list_files)
+
+    # download-file
+    p = sub.add_parser("download-file")
+    p.add_argument("file_id")
+    p.add_argument("--output")
+    p.set_defaults(func=cmd_download_file)
+
+    # list-subtasks
+    p = sub.add_parser("list-subtasks")
+    p.add_argument("task_id")
+    p.set_defaults(func=cmd_list_subtasks)
+
+    # create-subtask
+    p = sub.add_parser("create-subtask")
+    p.add_argument("task_id")
+    p.add_argument("--title", required=True)
+    p.add_argument("--owner")
+    p.set_defaults(func=cmd_create_subtask)
+
+    # update-subtask
+    p = sub.add_parser("update-subtask")
+    p.add_argument("subtask_id")
+    p.add_argument("--task-id", dest="task_id", required=True)
+    p.add_argument("--title")
+    p.add_argument("--owner")
+    p.add_argument("--status", type=int, choices=[0, 1, 2],
+                   help="0=todo, 1=in progress, 2=done")
+    p.set_defaults(func=cmd_update_subtask)
+
+    # remove-subtask
+    p = sub.add_parser("remove-subtask")
+    p.add_argument("subtask_id")
+    p.set_defaults(func=cmd_remove_subtask)
+
+    args = parser.parse_args()
+    args.func(args)
+
+
+if __name__ == "__main__":
+    main()
