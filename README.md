@@ -12,6 +12,7 @@ Danach pro Skill einen Symlink anlegen:
 
 ```bash
 ln -s ~/.claude/azedo-skills/kanboard ~/.claude/skills/kanboard
+ln -s ~/.claude/azedo-skills/swaks ~/.claude/skills/swaks
 ```
 
 ## Update
@@ -48,3 +49,15 @@ python3 "$SKILL_DIR/kanboard" setup
 ```
 
 **Trigger:** `/kanboard` oder natürliche Sprache wie "leg mir ein Ticket an", "ins Kanboard eintragen".
+
+### swaks
+
+Versendet E-Mails via `swaks` über den lokalen Postfix auf `mom.azedo.at`. Unterstützt:
+
+- Plain-Text und HTML Body
+- Dateianhänge (beliebiger MIME-Type)
+- Mehrere Anhänge pro Mail
+
+**Voraussetzungen:** `swaks` installiert, Zugang zu `mom.azedo.at`
+
+**Trigger:** `/swaks` oder natürliche Sprache wie "schick mir das per Mail", "send this to X".
