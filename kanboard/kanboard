@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.11
+#!/usr/bin/env python3
 
 # Kanboard JSON-RPC 2.0 API helper
 # stdlib only, no pip dependencies
