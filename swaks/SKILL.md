@@ -25,6 +25,17 @@ E-Mails werden über `swaks` via `mom.azedo.at` (Postfix) versendet.
 
 Abweichende Werte übernimmst du aus der Nutzeranfrage.
 
+## Encoding
+
+Immer UTF-8 Header mitgeben, damit Umlaute korrekt ankommen:
+
+```
+--header "Content-Type: text/plain; charset=utf-8" \
+--header "Content-Transfer-Encoding: 8bit"
+```
+
+Für HTML-Mails stattdessen `text/html; charset=utf-8` (siehe Abschnitt HTML-Body).
+
 ## Grundbefehl
 
 ```bash
@@ -32,7 +43,9 @@ swaks \
   --server mom.azedo.at \
   --to <empfänger> \
   --from <absender> \
-  --header "Subject: <betreff>"
+  --header "Subject: <betreff>" \
+  --header "Content-Type: text/plain; charset=utf-8" \
+  --header "Content-Transfer-Encoding: 8bit"
 ```
 
 ## Body (Freitext)
@@ -43,7 +56,39 @@ swaks \
   --to ich@example.org \
   --from claude@azedo.at \
   --header "Subject: Betreff" \
+  --header "Content-Type: text/plain; charset=utf-8" \
+  --header "Content-Transfer-Encoding: 8bit" \
   --body "Nachrichtentext hier"
+```
+
+## Mehrere Empfänger
+
+Mehrere Adressen kommasepariert an `--to` übergeben:
+
+```bash
+swaks \
+  --server mom.azedo.at \
+  --to "alice@example.com,bob@example.com" \
+  --from claude@azedo.at \
+  --header "Subject: Betreff" \
+  --header "Content-Type: text/plain; charset=utf-8" \
+  --header "Content-Transfer-Encoding: 8bit" \
+  --body "Nachricht an mehrere Empfänger."
+```
+
+## HTML-Body
+
+Für HTML-Mails `Content-Type: text/html` setzen:
+
+```bash
+swaks \
+  --server mom.azedo.at \
+  --to ich@example.org \
+  --from claude@azedo.at \
+  --header "Subject: Betreff" \
+  --header "Content-Type: text/html; charset=utf-8" \
+  --header "Content-Transfer-Encoding: 8bit" \
+  --body "<html><body><h1>Titel</h1><p>Inhalt</p></body></html>"
 ```
 
 ## Dateianhang
