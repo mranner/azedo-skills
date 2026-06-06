@@ -12,6 +12,7 @@ Danach pro Skill einen Symlink anlegen:
 
 ```bash
 ln -s ~/.claude/azedo-skills/kanboard ~/.claude/skills/kanboard
+ln -s ~/.claude/azedo-skills/kimai ~/.claude/skills/kimai
 ln -s ~/.claude/azedo-skills/swaks ~/.claude/skills/swaks
 ```
 
@@ -49,6 +50,34 @@ python3 "$SKILL_DIR/kanboard" setup
 ```
 
 **Trigger:** `/kanboard` oder natürliche Sprache wie "leg mir ein Ticket an", "ins Kanboard eintragen".
+
+### kimai
+
+Zeiterfassung über die Kimai REST API. Unterstützt:
+
+- Zeiteinträge: auflisten, anzeigen, anlegen, ändern, löschen, duplizieren, exportieren
+- Laufende Timer: starten, stoppen, neustarten, aktive anzeigen
+- Projekte, Aktivitäten, Kunden: CRUD (anlegen, anzeigen, ändern, löschen)
+- User und Tags auflisten/verwalten
+- Teams: anlegen, ändern, löschen
+- Externe Stunden importieren (ersetzt `kimai_stunden.py`)
+
+**Voraussetzungen:** Python ≥ 3.11
+
+**Setup:** Eine `.env`-Datei mit `KIMAI_HOST` und `KIMAI_TOKEN` im Arbeitsverzeichnis anlegen (oder Pfad via `KIMAI_ENV` setzen). Vorlage:
+
+```
+KIMAI_HOST=https://kimai2.example.com
+KIMAI_TOKEN=dein-api-token
+```
+
+Dann einmalig `setup` ausführen:
+
+```bash
+python3 "$SKILL_DIR/kimai" setup
+```
+
+**Trigger:** `/kimai` oder natürliche Sprache wie "wieviele Stunden habe ich diese Woche", "Zeiteintrag anlegen".
 
 ### swaks
 
