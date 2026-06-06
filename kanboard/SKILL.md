@@ -15,8 +15,6 @@ Tasks werden ueber das gebundelte Script `kanboard` (Python ≥3.11, im Skill-Ve
 
 **Aufruf:** `python3 "$SKILL_DIR/kanboard" <subcommand> [options]`
 
-Auf FreeBSD ggf. `python3.11` statt `python3` verwenden, falls `python3` nicht im PATH ist.
-
 `$SKILL_DIR` ist das Base Directory dieses Skills (dort wo diese SKILL.md liegt).
 
 ## Setup
