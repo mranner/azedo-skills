@@ -1,0 +1,1103 @@
+#!/usr/bin/env python3
+
+# Kimai REST API helper
+# stdlib only, no pip dependencies
+
+import argparse
+import json
+import math
+import os
+import sys
+import urllib.request
+import urllib.error
+from datetime import date, datetime, timedelta
+
+ENV_FILE = os.environ.get("KIMAI_ENV", os.path.join(os.getcwd(), ".env"))
+
+_config = None
+
+RATE_KH = 55
+RATE_KIMAI = 77
+MAX_PER_DAY = 7
+
+
+def load_env():
+    """Read KIMAI_HOST and KIMAI_TOKEN from .env (cached)"""
+    global _config
+    if _config is not None:
+        return _config
+
+    config = {}
+    if not os.path.exists(ENV_FILE):
+        print(f"Error: {ENV_FILE} not found", file=sys.stderr)
+        sys.exit(1)
+    with open(ENV_FILE) as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if "=" in line:
+                key, val = line.split("=", 1)
+                config[key.strip()] = val.strip().strip('"').strip("'")
+    for key in ("KIMAI_HOST", "KIMAI_TOKEN"):
+        if key not in config:
+            print(f"Error: {key} not set in {ENV_FILE}", file=sys.stderr)
+            sys.exit(1)
+
+    config["KIMAI_HOST"] = config["KIMAI_HOST"].rstrip("/")
+    _config = config
+    return _config
+
+
+def api_call(method, path, data=None, params=None):
+    """Make an HTTP request to Kimai API"""
+    config = load_env()
+    url = f"{config['KIMAI_HOST']}/api/{path.lstrip('/')}"
+
+    if params:
+        qs = "&".join(f"{k}={v}" for k, v in params.items() if v is not None)
+        if qs:
+            url += f"?{qs}"
+
+    body = json.dumps(data).encode("utf-8") if data else None
+    req = urllib.request.Request(
+        url,
+        data=body,
+        headers={
+            "Authorization": f"Bearer {config['KIMAI_TOKEN']}",
+            "Content-Type": "application/json",
+        },
+        method=method,
+    )
+
+    try:
+        with urllib.request.urlopen(req) as resp:
+            raw = resp.read()
+            if not raw:
+                return None
+            return json.loads(raw.decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        err_body = e.read().decode("utf-8", errors="replace")
+        print(f"API error {e.code}: {err_body}", file=sys.stderr)
+        sys.exit(1)
+
+
+def output(data):
+    """Print result as formatted JSON"""
+    print(json.dumps(data, indent=2, ensure_ascii=False))
+
+
+# ── Feiertage & Werktage ──────────────────────────────────────────────────
+
+
+def easter(year):
+    a = year % 19
+    b, c = divmod(year, 100)
+    d, e = divmod(b, 4)
+    f = (b + 8) // 25
+    g = (b - f + 1) // 3
+    h = (19 * a + b - d - g + 15) % 30
+    i, k = divmod(c, 4)
+    l = (32 + 2 * e + 2 * i - h - k) % 7
+    m = (a + 11 * h + 22 * l) // 451
+    month = (h + l - 7 * m + 114) // 31
+    day = (h + l - 7 * m + 114) % 31 + 1
+    return date(year, month, day)
+
+
+def at_holidays(year):
+    e = easter(year)
+    return {
+        date(year, 1, 1),
+        date(year, 1, 6),
+        e + timedelta(days=1),
+        date(year, 5, 1),
+        e + timedelta(days=39),
+        e + timedelta(days=50),
+        e + timedelta(days=60),
+        date(year, 8, 15),
+        date(year, 10, 26),
+        date(year, 11, 1),
+        date(year, 12, 8),
+        date(year, 12, 25),
+        date(year, 12, 26),
+    }
+
+
+def working_days(year, month):
+    holidays = at_holidays(year)
+    days, d = [], date(year, month, 1)
+    while d.month == month:
+        if d.weekday() < 5 and d not in holidays:
+            days.append(d)
+        d += timedelta(days=1)
+    return days
+
+
+# ── Stundenverteilung ─────────────────────────────────────────────────────
+
+
+def to_kimai_hours(actual_h):
+    """Konvertiert tatsächliche Stunden in Kimai-Stunden (aufgerundet)."""
+    return math.ceil(actual_h * RATE_KH / RATE_KIMAI)
+
+
+def distribute_hours(total, num_days):
+    """Verteilt total Stunden gleichmäßig auf num_days Tage (Rest vorne)."""
+    base, extra = divmod(total, num_days)
+    return [base + (1 if i < extra else 0) for i in range(num_days)]
+
+
+def pick_evenly(days, n):
+    """Wählt n Tage gleichmäßig über die verfügbare Liste verteilt."""
+    if n >= len(days):
+        return list(days[:n])
+    if n == 1:
+        return [days[len(days) // 2]]
+    step = (len(days) - 1) / (n - 1)
+    return [days[round(i * step)] for i in range(n)]
+
+
+def assign_days(all_days, needs):
+    """Verteilt Tage gleichmäßig über den Monat."""
+    result = {}
+    available = list(all_days)
+    for pk, n in sorted(needs, key=lambda x: -x[1]):
+        picked = pick_evenly(available, n)
+        result[pk] = picked
+        for d in picked:
+            available.remove(d)
+    return result
+
+
+def start_hour(index):
+    """Abwechselnd 08:00 / 09:00 für realistische Variation."""
+    return 8 if index % 2 == 0 else 9
+
+
+def fmt(n):
+    """Österreichisches Zahlenformat: Tausenderpunkt, kein Dezimal."""
+    return f"{n:,.0f}".replace(",", ".")
+
+
+# ── Timesheets ────────────────────────────────────────────────────────────
+
+
+def cmd_list_timesheets(args):
+    params = {"size": str(args.size), "page": str(args.page)}
+    if args.user:
+        params["user"] = args.user
+    if args.project:
+        params["project"] = args.project
+    if args.activity:
+        params["activity"] = args.activity
+    if args.begin:
+        params["begin"] = args.begin
+    if args.end:
+        params["end"] = args.end
+    if args.exported is not None:
+        params["exported"] = args.exported
+
+    result = api_call("GET", "timesheets", params=params)
+    summary = []
+    for t in result:
+        summary.append({
+            "id": t["id"],
+            "begin": t["begin"],
+            "end": t["end"],
+            "duration": t["duration"],
+            "project": t["project"],
+            "activity": t["activity"],
+            "user": t["user"],
+            "description": t.get("description", ""),
+            "rate": t.get("rate", 0),
+            "exported": t.get("exported", False),
+        })
+    output(summary)
+
+
+def cmd_get_timesheet(args):
+    result = api_call("GET", f"timesheets/{args.timesheet_id}")
+    if not result:
+        print(f"Error: timesheet {args.timesheet_id} not found", file=sys.stderr)
+        sys.exit(1)
+    output(result)
+
+
+def cmd_create_timesheet(args):
+    data = {
+        "begin": args.begin,
+        "project": int(args.project),
+        "activity": int(args.activity),
+    }
+    if args.end:
+        data["end"] = args.end
+    if args.description:
+        data["description"] = args.description
+    if args.user:
+        data["user"] = int(args.user)
+    if args.tags:
+        data["tags"] = args.tags.split(",")
+    if args.billable is not None:
+        data["billable"] = args.billable == "1"
+
+    result = api_call("POST", "timesheets", data=data)
+    output(result)
+
+
+def cmd_update_timesheet(args):
+    data = {}
+    if args.begin:
+        data["begin"] = args.begin
+    if args.end:
+        data["end"] = args.end
+    if args.project:
+        data["project"] = int(args.project)
+    if args.activity:
+        data["activity"] = int(args.activity)
+    if args.description is not None:
+        data["description"] = args.description
+    if args.user:
+        data["user"] = int(args.user)
+    if args.tags:
+        data["tags"] = args.tags.split(",")
+    if args.exported is not None:
+        data["exported"] = args.exported == "1"
+    if args.billable is not None:
+        data["billable"] = args.billable == "1"
+
+    if not data:
+        print("Error: nothing to update", file=sys.stderr)
+        sys.exit(1)
+
+    result = api_call("PATCH", f"timesheets/{args.timesheet_id}", data=data)
+    output(result)
+
+
+def cmd_delete_timesheet(args):
+    api_call("DELETE", f"timesheets/{args.timesheet_id}")
+    output({"success": True, "deleted_id": int(args.timesheet_id)})
+
+
+def cmd_recent_timesheets(args):
+    params = {"size": str(args.size)}
+    if args.user:
+        params["user"] = args.user
+    if args.begin:
+        params["begin"] = args.begin
+    result = api_call("GET", "timesheets/recent", params=params)
+    output(result)
+
+
+def cmd_active_timesheets(args):
+    result = api_call("GET", "timesheets/active")
+    output(result)
+
+
+def cmd_stop_timesheet(args):
+    result = api_call("PATCH", f"timesheets/{args.timesheet_id}/stop")
+    output(result)
+
+
+def cmd_restart_timesheet(args):
+    result = api_call("PATCH", f"timesheets/{args.timesheet_id}/restart")
+    output(result)
+
+
+def cmd_duplicate_timesheet(args):
+    result = api_call("PATCH", f"timesheets/{args.timesheet_id}/duplicate")
+    output(result)
+
+
+def cmd_export_timesheet(args):
+    result = api_call("PATCH", f"timesheets/{args.timesheet_id}/export")
+    output(result)
+
+
+# ── Projects ──────────────────────────────────────────────────────────────
+
+
+def cmd_list_projects(args):
+    result = api_call("GET", "projects")
+    summary = []
+    for p in result:
+        summary.append({
+            "id": p["id"],
+            "name": p["name"],
+            "customer": p.get("parentTitle", ""),
+            "visible": p.get("visible", True),
+        })
+    output(summary)
+
+
+def cmd_get_project(args):
+    result = api_call("GET", f"projects/{args.project_id}")
+    if not result:
+        print(f"Error: project {args.project_id} not found", file=sys.stderr)
+        sys.exit(1)
+    output(result)
+
+
+def cmd_create_project(args):
+    data = {
+        "name": args.name,
+        "customer": int(args.customer),
+    }
+    if args.comment:
+        data["comment"] = args.comment
+    if args.color:
+        data["color"] = args.color
+    if args.visible is not None:
+        data["visible"] = args.visible == "1"
+    if args.billable is not None:
+        data["billable"] = args.billable == "1"
+
+    result = api_call("POST", "projects", data=data)
+    output(result)
+
+
+def cmd_update_project(args):
+    data = {}
+    if args.name:
+        data["name"] = args.name
+    if args.customer:
+        data["customer"] = int(args.customer)
+    if args.comment is not None:
+        data["comment"] = args.comment
+    if args.color:
+        data["color"] = args.color
+    if args.visible is not None:
+        data["visible"] = args.visible == "1"
+    if args.billable is not None:
+        data["billable"] = args.billable == "1"
+
+    if not data:
+        print("Error: nothing to update", file=sys.stderr)
+        sys.exit(1)
+
+    result = api_call("PATCH", f"projects/{args.project_id}", data=data)
+    output(result)
+
+
+def cmd_delete_project(args):
+    api_call("DELETE", f"projects/{args.project_id}")
+    output({"success": True, "deleted_id": int(args.project_id)})
+
+
+# ── Activities ────────────────────────────────────────────────────────────
+
+
+def cmd_list_activities(args):
+    params = {}
+    if args.project:
+        params["project"] = args.project
+    result = api_call("GET", "activities", params=params)
+    summary = []
+    for a in result:
+        summary.append({
+            "id": a["id"],
+            "name": a["name"],
+            "project": a.get("project"),
+            "parentTitle": a.get("parentTitle", ""),
+            "visible": a.get("visible", True),
+        })
+    output(summary)
+
+
+def cmd_get_activity(args):
+    result = api_call("GET", f"activities/{args.activity_id}")
+    if not result:
+        print(f"Error: activity {args.activity_id} not found", file=sys.stderr)
+        sys.exit(1)
+    output(result)
+
+
+def cmd_create_activity(args):
+    data = {"name": args.name}
+    if args.project:
+        data["project"] = int(args.project)
+    if args.comment:
+        data["comment"] = args.comment
+    if args.color:
+        data["color"] = args.color
+    if args.visible is not None:
+        data["visible"] = args.visible == "1"
+    if args.billable is not None:
+        data["billable"] = args.billable == "1"
+
+    result = api_call("POST", "activities", data=data)
+    output(result)
+
+
+def cmd_update_activity(args):
+    data = {}
+    if args.name:
+        data["name"] = args.name
+    if args.project:
+        data["project"] = int(args.project)
+    if args.comment is not None:
+        data["comment"] = args.comment
+    if args.color:
+        data["color"] = args.color
+    if args.visible is not None:
+        data["visible"] = args.visible == "1"
+    if args.billable is not None:
+        data["billable"] = args.billable == "1"
+
+    if not data:
+        print("Error: nothing to update", file=sys.stderr)
+        sys.exit(1)
+
+    result = api_call("PATCH", f"activities/{args.activity_id}", data=data)
+    output(result)
+
+
+def cmd_delete_activity(args):
+    api_call("DELETE", f"activities/{args.activity_id}")
+    output({"success": True, "deleted_id": int(args.activity_id)})
+
+
+# ── Customers ─────────────────────────────────────────────────────────────
+
+
+def cmd_list_customers(args):
+    result = api_call("GET", "customers")
+    summary = []
+    for c in result:
+        summary.append({
+            "id": c["id"],
+            "name": c["name"],
+            "country": c.get("country", ""),
+            "visible": c.get("visible", True),
+        })
+    output(summary)
+
+
+def cmd_get_customer(args):
+    result = api_call("GET", f"customers/{args.customer_id}")
+    if not result:
+        print(f"Error: customer {args.customer_id} not found", file=sys.stderr)
+        sys.exit(1)
+    output(result)
+
+
+def cmd_create_customer(args):
+    data = {
+        "name": args.name,
+        "country": args.country or "AT",
+        "currency": args.currency or "EUR",
+        "timezone": args.timezone or "Europe/Vienna",
+    }
+    if args.company:
+        data["company"] = args.company
+    if args.comment:
+        data["comment"] = args.comment
+    if args.color:
+        data["color"] = args.color
+    if args.visible is not None:
+        data["visible"] = args.visible == "1"
+    if args.billable is not None:
+        data["billable"] = args.billable == "1"
+
+    result = api_call("POST", "customers", data=data)
+    output(result)
+
+
+def cmd_update_customer(args):
+    data = {}
+    if args.name:
+        data["name"] = args.name
+    if args.country:
+        data["country"] = args.country
+    if args.currency:
+        data["currency"] = args.currency
+    if args.timezone:
+        data["timezone"] = args.timezone
+    if args.company:
+        data["company"] = args.company
+    if args.comment is not None:
+        data["comment"] = args.comment
+    if args.color:
+        data["color"] = args.color
+    if args.visible is not None:
+        data["visible"] = args.visible == "1"
+    if args.billable is not None:
+        data["billable"] = args.billable == "1"
+
+    if not data:
+        print("Error: nothing to update", file=sys.stderr)
+        sys.exit(1)
+
+    result = api_call("PATCH", f"customers/{args.customer_id}", data=data)
+    output(result)
+
+
+def cmd_delete_customer(args):
+    api_call("DELETE", f"customers/{args.customer_id}")
+    output({"success": True, "deleted_id": int(args.customer_id)})
+
+
+# ── Users ─────────────────────────────────────────────────────────────────
+
+
+def cmd_list_users(args):
+    result = api_call("GET", "users")
+    summary = []
+    for u in result:
+        summary.append({
+            "id": u["id"],
+            "username": u["username"],
+            "alias": u.get("alias", ""),
+            "enabled": u.get("enabled", True),
+        })
+    output(summary)
+
+
+def cmd_get_user(args):
+    result = api_call("GET", f"users/{args.user_id}")
+    if not result:
+        print(f"Error: user {args.user_id} not found", file=sys.stderr)
+        sys.exit(1)
+    output(result)
+
+
+# ── Tags ──────────────────────────────────────────────────────────────────
+
+
+def cmd_list_tags(args):
+    result = api_call("GET", "tags")
+    output(result)
+
+
+def cmd_create_tag(args):
+    result = api_call("POST", "tags", data={"name": args.name})
+    output(result)
+
+
+def cmd_delete_tag(args):
+    api_call("DELETE", f"tags/{args.tag_id}")
+    output({"success": True, "deleted_id": int(args.tag_id)})
+
+
+# ── Teams ─────────────────────────────────────────────────────────────────
+
+
+def cmd_list_teams(args):
+    result = api_call("GET", "teams")
+    output(result)
+
+
+def cmd_get_team(args):
+    result = api_call("GET", f"teams/{args.team_id}")
+    if not result:
+        print(f"Error: team {args.team_id} not found", file=sys.stderr)
+        sys.exit(1)
+    output(result)
+
+
+def cmd_create_team(args):
+    data = {
+        "name": args.name,
+        "members": [{"user": int(uid), "teamlead": uid == args.members.split(",")[0]}
+                     for uid in args.members.split(",")],
+    }
+    if args.color:
+        data["color"] = args.color
+
+    result = api_call("POST", "teams", data=data)
+    output(result)
+
+
+def cmd_update_team(args):
+    data = {}
+    if args.name:
+        data["name"] = args.name
+    if args.members:
+        data["members"] = [{"user": int(uid), "teamlead": uid == args.members.split(",")[0]}
+                           for uid in args.members.split(",")]
+    if args.color:
+        data["color"] = args.color
+
+    if not data:
+        print("Error: nothing to update", file=sys.stderr)
+        sys.exit(1)
+
+    result = api_call("PATCH", f"teams/{args.team_id}", data=data)
+    output(result)
+
+
+def cmd_delete_team(args):
+    api_call("DELETE", f"teams/{args.team_id}")
+    output({"success": True, "deleted_id": int(args.team_id)})
+
+
+# ── Version & Ping ────────────────────────────────────────────────────────
+
+
+def cmd_version(args):
+    result = api_call("GET", "version")
+    output(result)
+
+
+def cmd_ping(args):
+    result = api_call("GET", "ping")
+    output(result)
+
+
+# ── Setup ─────────────────────────────────────────────────────────────────
+
+
+def cmd_setup(args):
+    """Query instance for projects, activities, customers, users and write instance.json"""
+    skill_dir = os.path.dirname(os.path.abspath(__file__))
+    out_path = os.path.join(skill_dir, "instance.json")
+
+    projects = api_call("GET", "projects")
+    proj_list = []
+    for p in projects:
+        if not p.get("visible", True):
+            continue
+        proj_list.append({
+            "id": p["id"],
+            "name": p["name"],
+            "customer": p.get("parentTitle", ""),
+        })
+
+    activities = api_call("GET", "activities")
+    act_list = []
+    for a in activities:
+        if not a.get("visible", True):
+            continue
+        act_list.append({
+            "id": a["id"],
+            "name": a["name"],
+            "project": a.get("project"),
+            "parentTitle": a.get("parentTitle", ""),
+        })
+
+    customers = api_call("GET", "customers")
+    cust_list = []
+    for c in customers:
+        if not c.get("visible", True):
+            continue
+        cust_list.append({
+            "id": c["id"],
+            "name": c["name"],
+        })
+
+    users = api_call("GET", "users")
+    user_list = []
+    for u in users:
+        if not u.get("enabled", True):
+            continue
+        user_list.append({
+            "id": u["id"],
+            "username": u["username"],
+        })
+
+    instance = {
+        "projects": proj_list,
+        "activities": act_list,
+        "customers": cust_list,
+        "users": user_list,
+    }
+
+    with open(out_path, "w") as f:
+        json.dump(instance, f, indent=2, ensure_ascii=False)
+
+    print(f"Written to {out_path}")
+    output(instance)
+
+
+# ── Import Hours (replaces kimai_stunden.py) ──────────────────────────────
+
+
+def cmd_import_hours(args):
+    """Import external hours from JSON file"""
+
+    PROJEKTE = {
+        "myglobex": {"id": 107, "activity_id": 230, "name": "myglobex Entwicklung"},
+        "myacme": {"id": 108, "activity_id": 239, "name": "myacme Entwicklung (BBT)"},
+    }
+    USER_ID = 9  # khpongratz
+
+    with open(args.file, encoding="utf-8") as f:
+        data = json.load(f)
+
+    year, month = map(int, data["monat"].split("-"))
+    wdays = working_days(year, month)
+
+    # Einträge aufbereiten
+    proj_kimai = {pk: 0 for pk in PROJEKTE}
+    proj_actual = {pk: 0.0 for pk in PROJEKTE}
+    proj_descs = {pk: [] for pk in PROJEKTE}
+
+    for e in data["eintraege"]:
+        proj = e["projekt"].lower()
+        h = e["stunden"]
+        desc = e["beschreibung"]
+        if proj == "beide":
+            half = h / 2
+            for pk in PROJEKTE:
+                proj_actual[pk] += half
+                proj_kimai[pk] += to_kimai_hours(half)
+                proj_descs[pk].append(desc)
+        elif proj in PROJEKTE:
+            proj_actual[proj] += h
+            proj_kimai[proj] += to_kimai_hours(h)
+            proj_descs[proj].append(desc)
+        else:
+            sys.exit(f"Unbekanntes Projekt: {proj!r}  (erlaubt: {', '.join(PROJEKTE)}, beide)")
+
+    active = {pk: h for pk, h in proj_kimai.items() if h > 0}
+
+    # Tage je Projekt
+    needs = [(pk, math.ceil(h / MAX_PER_DAY)) for pk, h in active.items()]
+    total_days_needed = sum(n for _, n in needs)
+    if total_days_needed > len(wdays):
+        sys.exit(f"Fehler: {total_days_needed} Tage benötigt, nur {len(wdays)} Werktage verfügbar.")
+
+    day_assignments = assign_days(wdays, needs)
+
+    # Zeiteinträge zusammenstellen
+    all_entries = []
+    for pk, kimai_h in active.items():
+        days = day_assignments[pk]
+        h_per_day = distribute_hours(kimai_h, len(days))
+        beschreibung = "; ".join(proj_descs[pk])
+        for i, (day, h) in enumerate(zip(days, h_per_day)):
+            sh = start_hour(i)
+            begin_dt = datetime(day.year, day.month, day.day, sh, 0)
+            end_dt = begin_dt + timedelta(hours=h)
+            all_entries.append({
+                "begin": begin_dt.strftime("%Y-%m-%dT%H:%M:%S"),
+                "end": end_dt.strftime("%Y-%m-%dT%H:%M:%S"),
+                "project": PROJEKTE[pk]["id"],
+                "activity": PROJEKTE[pk]["activity_id"],
+                "user": USER_ID,
+                "description": beschreibung,
+                "_proj_name": PROJEKTE[pk]["name"],
+                "_actual_h": proj_actual[pk],
+                "_kimai_h": kimai_h,
+            })
+
+    all_entries.sort(key=lambda e: e["begin"])
+
+    # Vorschau
+    MONATE_DE = [
+        "", "Jänner", "Februar", "März", "April", "Mai", "Juni",
+        "Juli", "August", "September", "Oktober", "November", "Dezember",
+    ]
+    monat_label = f"{MONATE_DE[month]} {year}"
+    W = 62
+    print(f"\n{'═' * W}")
+    print(f"  Externe Stunden {monat_label} — khpongratz")
+    print(f"{'═' * W}")
+    print(f"  {'Projekt':<32} {'tats.h':>6}  {'Kimai h':>7}  {'€ Kimai':>8}  {'€ KH':>7}")
+    print(f"  {'─' * 32}  {'─' * 6}  {'─' * 7}  {'─' * 8}  {'─' * 7}")
+
+    g_actual = g_kimai = g_eur_k = g_eur_kh = 0
+    for pk, kimai_h in active.items():
+        actual_h = proj_actual[pk]
+        eur_k = kimai_h * RATE_KIMAI
+        eur_kh = actual_h * RATE_KH
+        g_actual += actual_h
+        g_kimai += kimai_h
+        g_eur_k += eur_k
+        g_eur_kh += eur_kh
+        print(f"  {PROJEKTE[pk]['name']:<32} {actual_h:>6.1f}  {kimai_h:>7}  {fmt(eur_k):>8}  {fmt(eur_kh):>7}")
+
+    print(f"  {'─' * 32}  {'─' * 6}  {'─' * 7}  {'─' * 8}  {'─' * 7}")
+    print(f"  {'Gesamt':<32} {g_actual:>6.1f}  {g_kimai:>7}  {fmt(g_eur_k):>8}  {fmt(g_eur_kh):>7}")
+    print(f"  Differenz durch Aufrundung: € {fmt(g_eur_k - g_eur_kh)}")
+    print()
+
+    print(f"  {'Datum':<12} {'Zeit':<13} {'h':>2}  Projekt")
+    print(f"  {'─' * 12}  {'─' * 13}  {'─' * 2}  {'─' * 32}")
+    for e in all_entries:
+        begin = e["begin"][11:16]
+        end = e["end"][11:16]
+        day = e["begin"][:10]
+        h = round(
+            (datetime.fromisoformat(e["end"]) - datetime.fromisoformat(e["begin"])).seconds / 3600
+        )
+        print(f"  {day}  {begin}–{end}   {h:>2}h  {e['_proj_name']}")
+
+    print(f"{'═' * W}\n")
+
+    if not args.execute:
+        print("Vorschau — mit --execute tatsächlich in Kimai eintragen.\n")
+        return
+
+    print("Trage ein …")
+    for e in all_entries:
+        payload = {
+            "begin": e["begin"],
+            "end": e["end"],
+            "project": e["project"],
+            "activity": e["activity"],
+            "user": e["user"],
+            "description": e["description"],
+        }
+        result = api_call("POST", "timesheets", data=payload)
+        print(
+            f"  ✓ ID {result['id']}  {e['begin'][:10]}  "
+            f"{e['begin'][11:16]}–{e['end'][11:16]}  {e['_proj_name']}"
+        )
+    print(f"\nFertig: {len(all_entries)} Einträge angelegt.\n")
+
+
+# ── CLI ───────────────────────────────────────────────────────────────────
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Kimai REST API helper")
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    # ── setup ──
+
+    p = sub.add_parser("setup")
+    p.set_defaults(func=cmd_setup)
+
+    # ── version / ping ──
+
+    p = sub.add_parser("version")
+    p.set_defaults(func=cmd_version)
+
+    p = sub.add_parser("ping")
+    p.set_defaults(func=cmd_ping)
+
+    # ── timesheets ──
+
+    p = sub.add_parser("list-timesheets")
+    p.add_argument("--user", help="Filter by user ID")
+    p.add_argument("--project", help="Filter by project ID")
+    p.add_argument("--activity", help="Filter by activity ID")
+    p.add_argument("--begin", help="Filter: begin >= (ISO datetime)")
+    p.add_argument("--end", help="Filter: begin <= (ISO datetime)")
+    p.add_argument("--exported", help="Filter by exported status (0 or 1)")
+    p.add_argument("--size", type=int, default=50, help="Results per page (default 50)")
+    p.add_argument("--page", type=int, default=1, help="Page number (default 1)")
+    p.set_defaults(func=cmd_list_timesheets)
+
+    p = sub.add_parser("get-timesheet")
+    p.add_argument("timesheet_id")
+    p.set_defaults(func=cmd_get_timesheet)
+
+    p = sub.add_parser("create-timesheet")
+    p.add_argument("--begin", required=True, help="Start time (ISO datetime)")
+    p.add_argument("--end", help="End time (ISO datetime, omit to start timer)")
+    p.add_argument("--project", required=True, help="Project ID")
+    p.add_argument("--activity", required=True, help="Activity ID")
+    p.add_argument("--description", help="Description text")
+    p.add_argument("--user", help="User ID (default: API user)")
+    p.add_argument("--tags", help="Comma-separated tag names")
+    p.add_argument("--billable", help="Billable (0 or 1)")
+    p.set_defaults(func=cmd_create_timesheet)
+
+    p = sub.add_parser("update-timesheet")
+    p.add_argument("timesheet_id")
+    p.add_argument("--begin", help="Start time (ISO datetime)")
+    p.add_argument("--end", help="End time (ISO datetime)")
+    p.add_argument("--project", help="Project ID")
+    p.add_argument("--activity", help="Activity ID")
+    p.add_argument("--description", help="Description text")
+    p.add_argument("--user", help="User ID")
+    p.add_argument("--tags", help="Comma-separated tag names")
+    p.add_argument("--exported", help="Exported status (0 or 1)")
+    p.add_argument("--billable", help="Billable (0 or 1)")
+    p.set_defaults(func=cmd_update_timesheet)
+
+    p = sub.add_parser("delete-timesheet")
+    p.add_argument("timesheet_id")
+    p.set_defaults(func=cmd_delete_timesheet)
+
+    p = sub.add_parser("recent-timesheets")
+    p.add_argument("--user", help="Filter by user ID")
+    p.add_argument("--begin", help="Filter: begin >= (ISO datetime)")
+    p.add_argument("--size", type=int, default=10, help="Number of results (default 10)")
+    p.set_defaults(func=cmd_recent_timesheets)
+
+    p = sub.add_parser("active-timesheets")
+    p.set_defaults(func=cmd_active_timesheets)
+
+    p = sub.add_parser("stop-timesheet")
+    p.add_argument("timesheet_id")
+    p.set_defaults(func=cmd_stop_timesheet)
+
+    p = sub.add_parser("restart-timesheet")
+    p.add_argument("timesheet_id")
+    p.set_defaults(func=cmd_restart_timesheet)
+
+    p = sub.add_parser("duplicate-timesheet")
+    p.add_argument("timesheet_id")
+    p.set_defaults(func=cmd_duplicate_timesheet)
+
+    p = sub.add_parser("export-timesheet")
+    p.add_argument("timesheet_id")
+    p.set_defaults(func=cmd_export_timesheet)
+
+    # ── projects ──
+
+    p = sub.add_parser("list-projects")
+    p.set_defaults(func=cmd_list_projects)
+
+    p = sub.add_parser("get-project")
+    p.add_argument("project_id")
+    p.set_defaults(func=cmd_get_project)
+
+    p = sub.add_parser("create-project")
+    p.add_argument("--name", required=True)
+    p.add_argument("--customer", required=True, help="Customer ID")
+    p.add_argument("--comment")
+    p.add_argument("--color")
+    p.add_argument("--visible", help="0 or 1")
+    p.add_argument("--billable", help="0 or 1")
+    p.set_defaults(func=cmd_create_project)
+
+    p = sub.add_parser("update-project")
+    p.add_argument("project_id")
+    p.add_argument("--name")
+    p.add_argument("--customer", help="Customer ID")
+    p.add_argument("--comment")
+    p.add_argument("--color")
+    p.add_argument("--visible", help="0 or 1")
+    p.add_argument("--billable", help="0 or 1")
+    p.set_defaults(func=cmd_update_project)
+
+    p = sub.add_parser("delete-project")
+    p.add_argument("project_id")
+    p.set_defaults(func=cmd_delete_project)
+
+    # ── activities ──
+
+    p = sub.add_parser("list-activities")
+    p.add_argument("--project", help="Filter by project ID")
+    p.set_defaults(func=cmd_list_activities)
+
+    p = sub.add_parser("get-activity")
+    p.add_argument("activity_id")
+    p.set_defaults(func=cmd_get_activity)
+
+    p = sub.add_parser("create-activity")
+    p.add_argument("--name", required=True)
+    p.add_argument("--project", help="Project ID (omit for global activity)")
+    p.add_argument("--comment")
+    p.add_argument("--color")
+    p.add_argument("--visible", help="0 or 1")
+    p.add_argument("--billable", help="0 or 1")
+    p.set_defaults(func=cmd_create_activity)
+
+    p = sub.add_parser("update-activity")
+    p.add_argument("activity_id")
+    p.add_argument("--name")
+    p.add_argument("--project", help="Project ID")
+    p.add_argument("--comment")
+    p.add_argument("--color")
+    p.add_argument("--visible", help="0 or 1")
+    p.add_argument("--billable", help="0 or 1")
+    p.set_defaults(func=cmd_update_activity)
+
+    p = sub.add_parser("delete-activity")
+    p.add_argument("activity_id")
+    p.set_defaults(func=cmd_delete_activity)
+
+    # ── customers ──
+
+    p = sub.add_parser("list-customers")
+    p.set_defaults(func=cmd_list_customers)
+
+    p = sub.add_parser("get-customer")
+    p.add_argument("customer_id")
+    p.set_defaults(func=cmd_get_customer)
+
+    p = sub.add_parser("create-customer")
+    p.add_argument("--name", required=True)
+    p.add_argument("--country", default="AT")
+    p.add_argument("--currency", default="EUR")
+    p.add_argument("--timezone", default="Europe/Vienna")
+    p.add_argument("--company")
+    p.add_argument("--comment")
+    p.add_argument("--color")
+    p.add_argument("--visible", help="0 or 1")
+    p.add_argument("--billable", help="0 or 1")
+    p.set_defaults(func=cmd_create_customer)
+
+    p = sub.add_parser("update-customer")
+    p.add_argument("customer_id")
+    p.add_argument("--name")
+    p.add_argument("--country")
+    p.add_argument("--currency")
+    p.add_argument("--timezone")
+    p.add_argument("--company")
+    p.add_argument("--comment")
+    p.add_argument("--color")
+    p.add_argument("--visible", help="0 or 1")
+    p.add_argument("--billable", help="0 or 1")
+    p.set_defaults(func=cmd_update_customer)
+
+    p = sub.add_parser("delete-customer")
+    p.add_argument("customer_id")
+    p.set_defaults(func=cmd_delete_customer)
+
+    # ── users ──
+
+    p = sub.add_parser("list-users")
+    p.set_defaults(func=cmd_list_users)
+
+    p = sub.add_parser("get-user")
+    p.add_argument("user_id")
+    p.set_defaults(func=cmd_get_user)
+
+    # ── tags ──
+
+    p = sub.add_parser("list-tags")
+    p.set_defaults(func=cmd_list_tags)
+
+    p = sub.add_parser("create-tag")
+    p.add_argument("--name", required=True)
+    p.set_defaults(func=cmd_create_tag)
+
+    p = sub.add_parser("delete-tag")
+    p.add_argument("tag_id")
+    p.set_defaults(func=cmd_delete_tag)
+
+    # ── teams ──
+
+    p = sub.add_parser("list-teams")
+    p.set_defaults(func=cmd_list_teams)
+
+    p = sub.add_parser("get-team")
+    p.add_argument("team_id")
+    p.set_defaults(func=cmd_get_team)
+
+    p = sub.add_parser("create-team")
+    p.add_argument("--name", required=True)
+    p.add_argument("--members", required=True, help="Comma-separated user IDs (first = teamlead)")
+    p.add_argument("--color")
+    p.set_defaults(func=cmd_create_team)
+
+    p = sub.add_parser("update-team")
+    p.add_argument("team_id")
+    p.add_argument("--name")
+    p.add_argument("--members", help="Comma-separated user IDs (first = teamlead)")
+    p.add_argument("--color")
+    p.set_defaults(func=cmd_update_team)
+
+    p = sub.add_parser("delete-team")
+    p.add_argument("team_id")
+    p.set_defaults(func=cmd_delete_team)
+
+    # ── import-hours ──
+
+    p = sub.add_parser("import-hours")
+    p.add_argument("file", help="JSON input file (e.g. kimai/stunden_2026-05.json)")
+    p.add_argument("--execute", action="store_true", help="Actually create entries in Kimai")
+    p.set_defaults(func=cmd_import_hours)
+
+    args = parser.parse_args()
+    args.func(args)
+
+
+if __name__ == "__main__":
+    main()
