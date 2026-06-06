@@ -22,10 +22,10 @@ Tasks werden ueber das gebundelte Script `kanboard` (Python ≥3.11, im Skill-Ve
 Beim ersten Einsatz (oder wenn sich Projekte/User aendern) `setup` ausfuehren:
 
 ```bash
-python3 "$SKILL_DIR/kanboard" setup
+python3 "$SKILL_DIR/kanboard" setup --default-user <username>
 ```
 
-Das schreibt `instance.json` ins Skill-Verzeichnis mit allen Projekten, Swimlanes, Spalten und Usern. **Vor jeder Task-Operation `$SKILL_DIR/instance.json` lesen**, um Projekt-IDs, Swimlane-Namen und Spalten zu kennen.
+Das schreibt `instance.json` ins Skill-Verzeichnis mit allen Projekten, Swimlanes, Spalten und Usern. `--default-user` legt fest, welcher Kanboard-User als Absender fuer Kommentare verwendet wird (wenn kein `--user` angegeben). **Vor jeder Task-Operation `$SKILL_DIR/instance.json` lesen**, um Projekt-IDs, Swimlane-Namen und Spalten zu kennen.
 
 Falls `instance.json` nicht existiert, zuerst `setup` ausfuehren.
 
@@ -98,7 +98,7 @@ python3 "$SKILL_DIR/kanboard" get-comments <task_id>
 python3 "$SKILL_DIR/kanboard" add-comment <task_id> --text "<text>" [--user <username>]
 ```
 
-Default-User fuer Kommentare: `mmuster`
+Ohne `--user` wird der `default_user` aus `instance.json` verwendet (gesetzt via `setup --default-user`).
 
 ### Kommentar aendern
 

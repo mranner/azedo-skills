@@ -300,8 +300,27 @@ def cmd_get_comments(args):
     output(result if result else [])
 
 
+def get_default_user():
+    """Read default_user from instance.json"""
+    skill_dir = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(skill_dir, "instance.json")
+    if not os.path.exists(path):
+        return None
+    with open(path) as f:
+        data = json.load(f)
+    return data.get("default_user")
+
+
 def cmd_add_comment(args):
-    user_id = resolve_user(args.user) if args.user else resolve_user("mmuster")
+    if args.user:
+        username = args.user
+    else:
+        username = get_default_user()
+        if not username:
+            print("Error: no --user given and no default_user in instance.json (run: setup --default-user <username>)", file=sys.stderr)
+            sys.exit(1)
+
+    user_id = resolve_user(username)
     result = rpc_call("createComment", {
         "task_id": int(args.task_id),
         "user_id": user_id,
@@ -427,6 +446,13 @@ def cmd_setup(args):
 
     instance = {"projects": projects, "users": users}
 
+    if args.default_user:
+        usernames = [u["username"] for u in users]
+        if args.default_user not in usernames:
+            print(f"Error: user '{args.default_user}' not found (available: {', '.join(usernames)})", file=sys.stderr)
+            sys.exit(1)
+        instance["default_user"] = args.default_user
+
     with open(out_path, "w") as f:
         json.dump(instance, f, indent=2, ensure_ascii=False)
 
@@ -442,6 +468,7 @@ def main():
 
     # setup
     p = sub.add_parser("setup")
+    p.add_argument("--default-user", dest="default_user")
     p.set_defaults(func=cmd_setup)
 
     # create-task
