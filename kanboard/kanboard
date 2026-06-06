@@ -13,10 +13,15 @@ import urllib.request
 ENV_FILE = os.environ.get("KANBOARD_ENV", os.path.join(os.getcwd(), ".env"))
 
 _request_id = 0
+_config = None
 
 
 def load_env():
-    """Read KANBOARD_URL and KANBOARD_TOKEN from .env"""
+    """Read KANBOARD_URL and KANBOARD_TOKEN from .env (cached)"""
+    global _config
+    if _config is not None:
+        return _config
+
     config = {}
     if not os.path.exists(ENV_FILE):
         print(f"Error: {ENV_FILE} not found", file=sys.stderr)
@@ -33,7 +38,9 @@ def load_env():
         if key not in config:
             print(f"Error: {key} not set in {ENV_FILE}", file=sys.stderr)
             sys.exit(1)
-    return config
+
+    _config = config
+    return _config
 
 
 def rpc_call(method, params=None):
