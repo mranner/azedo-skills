@@ -1,3 +1,14 @@
+---
+name: kimai
+description: >
+  Kimai Zeiterfassung: Timesheets, Projekte, Kunden, Aktivitaeten, Tags und
+  Teams verwalten. Nutze diesen Skill wenn der User Zeiten erfassen, Stunden
+  auswerten, Projekte oder Kunden anlegen/aendern will.
+  Auch aktiv verwenden wenn der User sagt "trag die Stunden ein",
+  "wie viele Stunden diese Woche", "Zeitauswertung", o.ae.
+  Trigger: /kimai.
+---
+
 # kimai -- Kimai Zeiterfassung
 
 Zeiterfassung, Projekte, Kunden, Aktivitaeten, Tags und Teams werden ueber das gebundelte Script `kimai` (Python >=3.11, im Skill-Verzeichnis) verwaltet.
