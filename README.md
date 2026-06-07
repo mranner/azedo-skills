@@ -14,6 +14,7 @@ Danach pro Skill einen Symlink anlegen:
 ln -s ~/.claude/azedo-skills/kanboard ~/.claude/skills/kanboard
 ln -s ~/.claude/azedo-skills/kimai ~/.claude/skills/kimai
 ln -s ~/.claude/azedo-skills/swaks ~/.claude/skills/swaks
+ln -s ~/.claude/azedo-skills/image-optimize ~/.claude/skills/image-optimize
 ```
 
 ## Update
@@ -90,3 +91,17 @@ Versendet E-Mails via `swaks` über den lokalen Postfix auf `mom.azedo.at`. Unte
 **Voraussetzungen:** `swaks` installiert, Zugang zu `mom.azedo.at`
 
 **Trigger:** `/swaks` oder natürliche Sprache wie "schick mir das per Mail", "send this to X".
+
+### image-optimize
+
+Optimiert Bilder für Web-Verwendung. Unterstützt:
+
+- Analyse: Auflösung, Dateigröße und Dateinamen prüfen
+- Optimierung: PNG verlustfrei (optipng), JPEG quality-basiert (jpegoptim)
+- Resize: Auflösung skalieren via GraphicsMagick (Seitenverhältnis bleibt erhalten)
+- Rename: Dateinamen SEO-freundlich umbenennen (Umlaute, Leerzeichen, Sonderzeichen)
+- Web-Pipeline: alle Schritte in einem Durchgang
+
+**Voraussetzungen:** Python ≥ 3.11, `optipng`, `jpegoptim`, optional `GraphicsMagick` (für Resize)
+
+**Trigger:** `/image-optimize` oder natürliche Sprache wie "Bilder für Web optimieren", "Bilder komprimieren".

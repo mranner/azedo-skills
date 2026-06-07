@@ -1,0 +1,533 @@
+#!/usr/bin/env python3
+
+# Image optimization for web usage
+# Tools: optipng, jpegoptim, GraphicsMagick (gm)
+
+import argparse
+import os
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+# Max dimensions for web usage (width x height)
+WEB_MAX_WIDTH = 1920
+WEB_MAX_HEIGHT = 1920
+# Thresholds for suggesting resize
+SUGGEST_RESIZE_WIDTH = 2500
+SUGGEST_RESIZE_HEIGHT = 2500
+
+JPEG_QUALITY = 85
+PNG_OPTLEVEL = 2
+
+
+def check_tool(name):
+    """Check if a tool is available in PATH."""
+    try:
+        subprocess.run([name, "--version"], capture_output=True, timeout=5)
+        return True
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return False
+
+
+def get_image_info(filepath):
+    """Get image dimensions and format using 'identify' (gm or file)."""
+    # Try GraphicsMagick first
+    if check_tool("gm"):
+        try:
+            r = subprocess.run(
+                ["gm", "identify", "-format", "%w %h %m", filepath],
+                capture_output=True, text=True, timeout=10
+            )
+            if r.returncode == 0:
+                parts = r.stdout.strip().split()
+                if len(parts) >= 3:
+                    return {
+                        "width": int(parts[0]),
+                        "height": int(parts[1]),
+                        "format": parts[2].upper(),
+                    }
+        except (subprocess.TimeoutExpired, ValueError):
+            pass
+
+    # Fallback: file command + basic parsing
+    try:
+        r = subprocess.run(
+            ["file", "--brief", filepath],
+            capture_output=True, text=True, timeout=5
+        )
+        info = r.stdout.strip()
+        fmt = "UNKNOWN"
+        if "PNG" in info:
+            fmt = "PNG"
+        elif "JPEG" in info:
+            fmt = "JPEG"
+        elif "GIF" in info:
+            fmt = "GIF"
+        elif "WebP" in info:
+            fmt = "WEBP"
+
+        # Try to extract dimensions from file output
+        m = re.search(r'(\d+)\s*x\s*(\d+)', info)
+        w, h = (int(m.group(1)), int(m.group(2))) if m else (0, 0)
+
+        return {"width": w, "height": h, "format": fmt}
+    except (subprocess.TimeoutExpired, ValueError):
+        return {"width": 0, "height": 0, "format": "UNKNOWN"}
+
+
+def filesize_human(size_bytes):
+    """Format file size for human reading."""
+    if size_bytes < 1024:
+        return f"{size_bytes} B"
+    elif size_bytes < 1024 * 1024:
+        return f"{size_bytes / 1024:.1f} KB"
+    else:
+        return f"{size_bytes / (1024 * 1024):.2f} MB"
+
+
+def slugify_filename(name):
+    """Convert filename to SEO-friendly slug.
+
+    - lowercase
+    - umlauts and special chars converted
+    - spaces/underscores to hyphens
+    - no double hyphens
+    - no leading/trailing hyphens
+    """
+    # Keep the extension separate
+    base, ext = os.path.splitext(name)
+    ext = ext.lower()
+
+    s = base.lower()
+
+    # German umlauts
+    replacements = {
+        "ae": "ae", "oe": "oe", "ue": "ue", "ss": "ss",
+        "\u00e4": "ae", "\u00f6": "oe", "\u00fc": "ue", "\u00df": "ss",
+        "\u00c4": "ae", "\u00d6": "oe", "\u00dc": "ue",
+    }
+    for old, new in replacements.items():
+        s = s.replace(old, new)
+
+    # Replace spaces, underscores, dots with hyphens
+    s = re.sub(r'[\s_\.]+', '-', s)
+
+    # Remove anything that's not alphanumeric or hyphen
+    s = re.sub(r'[^a-z0-9-]', '', s)
+
+    # Collapse multiple hyphens
+    s = re.sub(r'-{2,}', '-', s)
+
+    # Strip leading/trailing hyphens
+    s = s.strip('-')
+
+    if not s:
+        s = "image"
+
+    return s + ext
+
+
+def cmd_analyze(args):
+    """Analyze images and report optimization potential."""
+    files = collect_images(args.files)
+    if not files:
+        print("No image files found.", file=sys.stderr)
+        sys.exit(1)
+
+    has_gm = check_tool("gm")
+    issues_found = False
+
+    for f in files:
+        fpath = Path(f)
+        size = fpath.stat().st_size
+        info = get_image_info(str(fpath))
+        w, h = info["width"], info["height"]
+        fmt = info["format"]
+
+        print(f"\n{'=' * 60}")
+        print(f"File:       {fpath.name}")
+        print(f"Path:       {fpath}")
+        print(f"Format:     {fmt}")
+        print(f"Size:       {filesize_human(size)}")
+        if w > 0 and h > 0:
+            print(f"Dimensions: {w} x {h} px")
+
+        issues = []
+
+        # Check dimensions
+        if w > SUGGEST_RESIZE_WIDTH or h > SUGGEST_RESIZE_HEIGHT:
+            issues.append(
+                f"Resolution very high ({w}x{h}). "
+                f"Consider resizing to max {WEB_MAX_WIDTH}x{WEB_MAX_HEIGHT} for web usage."
+            )
+        elif w > WEB_MAX_WIDTH or h > WEB_MAX_HEIGHT:
+            issues.append(
+                f"Resolution above typical web size ({w}x{h}). "
+                f"Resize recommended for faster loading."
+            )
+
+        # Check file size relative to dimensions
+        if fmt == "JPEG" and size > 500_000:
+            issues.append("JPEG over 500 KB - jpegoptim can reduce this.")
+        elif fmt == "JPEG" and size > 200_000 and w < 1200:
+            issues.append("JPEG over 200 KB at moderate resolution - likely over-quality.")
+
+        if fmt == "PNG" and size > 1_000_000:
+            issues.append("PNG over 1 MB - consider optipng or converting to JPEG if no transparency needed.")
+        elif fmt == "PNG" and size > 300_000:
+            issues.append("PNG over 300 KB - optipng may help.")
+
+        # Check filename
+        slug = slugify_filename(fpath.name)
+        if slug != fpath.name.lower():
+            issues.append(f"Filename not SEO-friendly. Suggestion: {slug}")
+
+        if issues:
+            issues_found = True
+            print("Issues:")
+            for issue in issues:
+                print(f"  - {issue}")
+        else:
+            print("Status:     OK (web-ready)")
+
+    print(f"\n{'=' * 60}")
+    if not issues_found:
+        print("All images appear web-ready.")
+
+
+def cmd_optimize(args):
+    """Optimize images (lossless for PNG, quality-based for JPEG)."""
+    files = collect_images(args.files)
+    if not files:
+        print("No image files found.", file=sys.stderr)
+        sys.exit(1)
+
+    quality = args.quality if args.quality else JPEG_QUALITY
+    png_level = args.png_level if args.png_level else PNG_OPTLEVEL
+
+    has_optipng = check_tool("optipng")
+    has_jpegoptim = check_tool("jpegoptim")
+
+    for f in files:
+        fpath = Path(f)
+        info = get_image_info(str(fpath))
+        fmt = info["format"]
+        size_before = fpath.stat().st_size
+
+        if fmt == "PNG":
+            if not has_optipng:
+                print(f"SKIP {fpath.name}: optipng not installed", file=sys.stderr)
+                continue
+            print(f"Optimizing PNG: {fpath.name} ({filesize_human(size_before)})")
+            cmd = ["optipng", f"-o{png_level}", str(fpath)]
+            if args.dry_run:
+                print(f"  DRY RUN: {' '.join(cmd)}")
+                continue
+            subprocess.run(cmd, capture_output=True)
+
+        elif fmt == "JPEG":
+            if not has_jpegoptim:
+                print(f"SKIP {fpath.name}: jpegoptim not installed", file=sys.stderr)
+                continue
+            print(f"Optimizing JPEG: {fpath.name} ({filesize_human(size_before)})")
+            cmd = ["jpegoptim", f"--max={quality}", "--strip-all", str(fpath)]
+            if args.dry_run:
+                print(f"  DRY RUN: {' '.join(cmd)}")
+                continue
+            subprocess.run(cmd, capture_output=True)
+
+        else:
+            print(f"SKIP {fpath.name}: unsupported format ({fmt})")
+            continue
+
+        size_after = fpath.stat().st_size
+        saved = size_before - size_after
+        if saved > 0:
+            pct = (saved / size_before) * 100
+            print(f"  {filesize_human(size_before)} -> {filesize_human(size_after)} (saved {filesize_human(saved)}, {pct:.1f}%)")
+        else:
+            print(f"  Already optimal ({filesize_human(size_after)})")
+
+
+def cmd_resize(args):
+    """Resize images using GraphicsMagick."""
+    if not check_tool("gm"):
+        print("Error: GraphicsMagick (gm) is not installed.", file=sys.stderr)
+        print("Install: pkg install GraphicsMagick", file=sys.stderr)
+        sys.exit(1)
+
+    files = collect_images(args.files)
+    if not files:
+        print("No image files found.", file=sys.stderr)
+        sys.exit(1)
+
+    max_w = args.width if args.width else WEB_MAX_WIDTH
+    max_h = args.height if args.height else WEB_MAX_HEIGHT
+
+    for f in files:
+        fpath = Path(f)
+        info = get_image_info(str(fpath))
+        w, h = info["width"], info["height"]
+
+        if w == 0 or h == 0:
+            print(f"SKIP {fpath.name}: cannot determine dimensions")
+            continue
+
+        if w <= max_w and h <= max_h:
+            print(f"SKIP {fpath.name}: already within {max_w}x{max_h} ({w}x{h})")
+            continue
+
+        size_before = fpath.stat().st_size
+        geometry = f"{max_w}x{max_h}"
+
+        if args.output:
+            outpath = args.output
+        else:
+            outpath = str(fpath)
+
+        print(f"Resizing: {fpath.name} ({w}x{h}, {filesize_human(size_before)}) -> max {geometry}")
+
+        cmd = ["gm", "convert", str(fpath), "-resize", geometry, "-quality", str(args.quality), outpath]
+
+        if args.dry_run:
+            print(f"  DRY RUN: {' '.join(cmd)}")
+            continue
+
+        r = subprocess.run(cmd, capture_output=True, text=True)
+        if r.returncode != 0:
+            print(f"  ERROR: {r.stderr.strip()}", file=sys.stderr)
+            continue
+
+        out = Path(outpath)
+        size_after = out.stat().st_size
+        new_info = get_image_info(outpath)
+        print(f"  -> {new_info['width']}x{new_info['height']}, {filesize_human(size_after)}")
+
+
+def cmd_rename(args):
+    """Rename image files to SEO-friendly names."""
+    files = collect_images(args.files)
+    if not files:
+        print("No image files found.", file=sys.stderr)
+        sys.exit(1)
+
+    renames = []
+    for f in files:
+        fpath = Path(f)
+        old_name = fpath.name
+        new_name = slugify_filename(old_name)
+
+        # Add prefix if provided
+        if args.prefix:
+            base, ext = os.path.splitext(new_name)
+            new_name = f"{slugify_filename(args.prefix)}-{base}{ext}"
+
+        if old_name == new_name:
+            print(f"OK    {old_name} (already SEO-friendly)")
+            continue
+
+        new_path = fpath.parent / new_name
+
+        # Handle conflicts
+        if new_path.exists() and str(new_path) != str(fpath):
+            base, ext = os.path.splitext(new_name)
+            counter = 1
+            while new_path.exists():
+                new_name = f"{base}-{counter}{ext}"
+                new_path = fpath.parent / new_name
+                counter += 1
+
+        renames.append((fpath, new_path, old_name, new_name))
+
+    if not renames:
+        print("All filenames are already SEO-friendly.")
+        return
+
+    print(f"\nPlanned renames ({len(renames)}):")
+    for fpath, new_path, old_name, new_name in renames:
+        print(f"  {old_name} -> {new_name}")
+
+    if args.dry_run:
+        print("\nDRY RUN - no files renamed.")
+        return
+
+    if not args.yes:
+        print("\nExecute renames? This cannot be undone.")
+        print("Re-run with --yes to confirm, or --dry-run to preview.")
+        return
+
+    for fpath, new_path, old_name, new_name in renames:
+        fpath.rename(new_path)
+        print(f"  RENAMED {old_name} -> {new_name}")
+
+    print(f"\n{len(renames)} file(s) renamed.")
+
+
+def cmd_web(args):
+    """Full web optimization pipeline: analyze, resize if needed, optimize, rename."""
+    files = collect_images(args.files)
+    if not files:
+        print("No image files found.", file=sys.stderr)
+        sys.exit(1)
+
+    has_gm = check_tool("gm")
+    has_optipng = check_tool("optipng")
+    has_jpegoptim = check_tool("jpegoptim")
+
+    max_w = args.width if args.width else WEB_MAX_WIDTH
+    max_h = args.height if args.height else WEB_MAX_HEIGHT
+    quality = args.quality if args.quality else JPEG_QUALITY
+
+    for f in files:
+        fpath = Path(f)
+        if not fpath.exists():
+            print(f"SKIP {f}: file not found")
+            continue
+
+        info = get_image_info(str(fpath))
+        w, h = info["width"], info["height"]
+        fmt = info["format"]
+        size_before = fpath.stat().st_size
+
+        print(f"\n--- {fpath.name} ({fmt}, {w}x{h}, {filesize_human(size_before)}) ---")
+
+        # Step 1: Resize if too large
+        if has_gm and (w > max_w or h > max_h):
+            if args.dry_run:
+                print(f"  WOULD RESIZE to max {max_w}x{max_h}")
+            else:
+                geometry = f"{max_w}x{max_h}"
+                cmd = ["gm", "convert", str(fpath), "-resize", geometry, "-quality", str(quality), str(fpath)]
+                r = subprocess.run(cmd, capture_output=True, text=True)
+                if r.returncode == 0:
+                    new_info = get_image_info(str(fpath))
+                    print(f"  RESIZED {w}x{h} -> {new_info['width']}x{new_info['height']}")
+                else:
+                    print(f"  RESIZE FAILED: {r.stderr.strip()}")
+        elif not has_gm and (w > max_w or h > max_h):
+            print(f"  WARNING: Image too large ({w}x{h}) but gm not installed for resize")
+
+        # Step 2: Optimize
+        if fmt == "PNG" and has_optipng:
+            if args.dry_run:
+                print(f"  WOULD RUN optipng -o{PNG_OPTLEVEL}")
+            else:
+                subprocess.run(["optipng", f"-o{PNG_OPTLEVEL}", str(fpath)], capture_output=True)
+                print(f"  OPTIMIZED with optipng")
+        elif fmt == "JPEG" and has_jpegoptim:
+            if args.dry_run:
+                print(f"  WOULD RUN jpegoptim --max={quality}")
+            else:
+                subprocess.run(["jpegoptim", f"--max={quality}", "--strip-all", str(fpath)], capture_output=True)
+                print(f"  OPTIMIZED with jpegoptim")
+
+        # Step 3: Rename check
+        slug = slugify_filename(fpath.name)
+        if slug != fpath.name:
+            if args.dry_run:
+                print(f"  WOULD RENAME -> {slug}")
+            elif args.rename:
+                new_path = fpath.parent / slug
+                if not new_path.exists():
+                    fpath.rename(new_path)
+                    fpath = new_path
+                    print(f"  RENAMED -> {slug}")
+                else:
+                    print(f"  RENAME SKIPPED: {slug} already exists")
+            else:
+                print(f"  RENAME SUGGESTED: {slug} (use --rename to apply)")
+
+        # Final stats
+        if not args.dry_run:
+            size_after = fpath.stat().st_size
+            saved = size_before - size_after
+            if saved > 0:
+                pct = (saved / size_before) * 100
+                print(f"  RESULT: {filesize_human(size_before)} -> {filesize_human(size_after)} (saved {pct:.1f}%)")
+            elif saved < 0:
+                print(f"  RESULT: {filesize_human(size_before)} -> {filesize_human(size_after)} (size increased, resize added data)")
+            else:
+                print(f"  RESULT: {filesize_human(size_after)} (no change)")
+
+
+def collect_images(file_args):
+    """Collect image files from arguments (files and directories)."""
+    extensions = {'.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.tiff', '.tif'}
+    result = []
+
+    for f in file_args:
+        p = Path(f)
+        if p.is_dir():
+            for child in sorted(p.iterdir()):
+                if child.is_file() and child.suffix.lower() in extensions:
+                    result.append(str(child))
+        elif p.is_file():
+            if p.suffix.lower() in extensions:
+                result.append(str(p))
+            else:
+                print(f"SKIP {p.name}: not a recognized image format", file=sys.stderr)
+        else:
+            print(f"SKIP {f}: not found", file=sys.stderr)
+
+    return result
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        prog="image-optimize",
+        description="Optimize images for web usage (size, dimensions, filenames)"
+    )
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    # analyze
+    p_analyze = sub.add_parser("analyze", help="Analyze images and report issues")
+    p_analyze.add_argument("files", nargs="+", help="Image files or directories")
+
+    # optimize
+    p_opt = sub.add_parser("optimize", help="Optimize file size (optipng/jpegoptim)")
+    p_opt.add_argument("files", nargs="+", help="Image files or directories")
+    p_opt.add_argument("--quality", type=int, help=f"JPEG quality (default: {JPEG_QUALITY})")
+    p_opt.add_argument("--png-level", type=int, choices=range(0, 8), help=f"optipng level 0-7 (default: {PNG_OPTLEVEL})")
+    p_opt.add_argument("--dry-run", action="store_true", help="Show what would be done")
+
+    # resize
+    p_resize = sub.add_parser("resize", help="Resize images (GraphicsMagick)")
+    p_resize.add_argument("files", nargs="+", help="Image files or directories")
+    p_resize.add_argument("--width", type=int, help=f"Max width (default: {WEB_MAX_WIDTH})")
+    p_resize.add_argument("--height", type=int, help=f"Max height (default: {WEB_MAX_HEIGHT})")
+    p_resize.add_argument("--quality", type=int, default=JPEG_QUALITY, help=f"Output quality (default: {JPEG_QUALITY})")
+    p_resize.add_argument("--output", help="Output path (default: overwrite original)")
+    p_resize.add_argument("--dry-run", action="store_true", help="Show what would be done")
+
+    # rename
+    p_rename = sub.add_parser("rename", help="Rename files to SEO-friendly names")
+    p_rename.add_argument("files", nargs="+", help="Image files or directories")
+    p_rename.add_argument("--prefix", help="Prefix for all filenames (e.g. 'hotel-alpenblick')")
+    p_rename.add_argument("--dry-run", action="store_true", help="Show renames without executing")
+    p_rename.add_argument("--yes", action="store_true", help="Execute renames without confirmation")
+
+    # web (full pipeline)
+    p_web = sub.add_parser("web", help="Full pipeline: resize + optimize + rename suggestion")
+    p_web.add_argument("files", nargs="+", help="Image files or directories")
+    p_web.add_argument("--width", type=int, help=f"Max width (default: {WEB_MAX_WIDTH})")
+    p_web.add_argument("--height", type=int, help=f"Max height (default: {WEB_MAX_HEIGHT})")
+    p_web.add_argument("--quality", type=int, help=f"JPEG quality (default: {JPEG_QUALITY})")
+    p_web.add_argument("--rename", action="store_true", help="Also rename files to SEO-friendly names")
+    p_web.add_argument("--dry-run", action="store_true", help="Show what would be done")
+
+    args = parser.parse_args()
+
+    commands = {
+        "analyze": cmd_analyze,
+        "optimize": cmd_optimize,
+        "resize": cmd_resize,
+        "rename": cmd_rename,
+        "web": cmd_web,
+    }
+
+    commands[args.command](args)
+
+
+if __name__ == "__main__":
+    main()
