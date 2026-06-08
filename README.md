@@ -17,6 +17,8 @@ Das Install-Script legt Symlinks an und traegt die nötigen Permissions in `~/.c
 cd ~/.claude/azedo-skills && git pull
 ```
 
+Nach einem Update ggf. `setup` erneut ausfuehren, damit `instance.json` aktualisiert wird.
+
 ## Skills
 
 ### kanboard
@@ -41,7 +43,7 @@ KANBOARD_TOKEN=dein-api-token
 Dann einmalig `setup` ausführen:
 
 ```bash
-python3 "$SKILL_DIR/kanboard" setup
+python3 "$SKILL_DIR/kanboard" setup --default-user <username>
 ```
 
 **Trigger:** `/kanboard` oder natürliche Sprache wie "leg mir ein Ticket an", "ins Kanboard eintragen".
