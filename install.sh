@@ -43,6 +43,7 @@ settings_path = os.path.expanduser('$SETTINGS')
 home = os.path.expanduser('~')
 
 needed = [
+    'Bash(python3:*)',
     'Read(' + home + '/.claude/azedo-skills/**)',
     'Write(' + home + '/.claude/azedo-skills/**)',
     'Read(' + home + '/.claude/skills/**)',
