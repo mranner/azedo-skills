@@ -28,9 +28,13 @@ if ! command -v python3 >/dev/null 2>&1 && ! command -v python3.11 >/dev/null 2>
     echo "WARNUNG: python3 nicht gefunden. Permissions muessen manuell eingetragen werden."
     echo "Folgende Eintraege in $SETTINGS unter permissions.allow ergaenzen:"
     echo "  Read($HOME/.claude/azedo-skills/**)"
+    echo "  Read(~/.claude/azedo-skills/**)"
     echo "  Write($HOME/.claude/azedo-skills/**)"
+    echo "  Write(~/.claude/azedo-skills/**)"
     echo "  Read($HOME/.claude/skills/**)"
+    echo "  Read(~/.claude/skills/**)"
     echo "  Write($HOME/.claude/skills/**)"
+    echo "  Write(~/.claude/skills/**)"
     exit 0
 fi
 
@@ -45,9 +49,13 @@ home = os.path.expanduser('~')
 needed = [
     'Bash(python3:*)',
     'Read(' + home + '/.claude/azedo-skills/**)',
+    'Read(~/.claude/azedo-skills/**)',
     'Write(' + home + '/.claude/azedo-skills/**)',
+    'Write(~/.claude/azedo-skills/**)',
     'Read(' + home + '/.claude/skills/**)',
+    'Read(~/.claude/skills/**)',
     'Write(' + home + '/.claude/skills/**)',
+    'Write(~/.claude/skills/**)',
 ]
 
 if not os.path.exists(settings_path):
