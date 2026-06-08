@@ -6,16 +6,10 @@ Claude Code Skills für das azedo-Team.
 
 ```bash
 git clone https://github.com/mranner/azedo-skills.git ~/.claude/azedo-skills
+sh ~/.claude/azedo-skills/install.sh
 ```
 
-Danach pro Skill einen Symlink anlegen:
-
-```bash
-ln -s ~/.claude/azedo-skills/kanboard ~/.claude/skills/kanboard
-ln -s ~/.claude/azedo-skills/kimai ~/.claude/skills/kimai
-ln -s ~/.claude/azedo-skills/swaks ~/.claude/skills/swaks
-ln -s ~/.claude/azedo-skills/image-optimize ~/.claude/skills/image-optimize
-```
+Das Install-Script legt Symlinks an und traegt die nötigen Permissions in `~/.claude/settings.json` ein (Read/Write auf den Skills-Ordner).
 
 ## Update
 
