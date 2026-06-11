@@ -13,7 +13,16 @@ import urllib.request
 import urllib.error
 from datetime import date, datetime, timedelta
 
-ENV_FILE = os.environ.get("KIMAI_ENV", os.path.join(os.getcwd(), ".env"))
+def _find_env():
+    override = os.environ.get("KIMAI_ENV")
+    if override:
+        return override
+    cwd_env = os.path.join(os.getcwd(), ".env")
+    if os.path.exists(cwd_env):
+        return cwd_env
+    return os.path.join(os.path.expanduser("~"), ".env")
+
+ENV_FILE = _find_env()
 
 _config = None
 
