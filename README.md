@@ -45,10 +45,10 @@ KANBOARD_USER=dein-username
 
 `KANBOARD_USER` ist optional — ohne Angabe wird `jsonrpc` (Admin-API-User) verwendet. Fuer persoenliche API-Tokens den eigenen Kanboard-Usernamen eintragen.
 
-Dann einmalig `setup` ausführen:
+Dann einmalig `setup` ausfuehren (aus dem Arbeitsverzeichnis mit der `.env`):
 
 ```bash
-python3 "$SKILL_DIR/kanboard" setup --default-user <username>
+python3 ~/.claude/azedo-skills/kanboard/kanboard setup --default-user <username>
 ```
 
 **Trigger:** `/kanboard` oder natürliche Sprache wie "leg mir ein Ticket an", "ins Kanboard eintragen".
@@ -73,10 +73,10 @@ KIMAI_HOST=https://kimai2.example.com
 KIMAI_TOKEN=dein-api-token
 ```
 
-Dann einmalig `setup` ausführen:
+Dann einmalig `setup` ausfuehren (aus dem Arbeitsverzeichnis mit der `.env`):
 
 ```bash
-python3 "$SKILL_DIR/kimai" setup
+python3 ~/.claude/azedo-skills/kimai/kimai setup
 ```
 
 **Trigger:** `/kimai` oder natürliche Sprache wie "wieviele Stunden habe ich diese Woche", "Zeiteintrag anlegen".
@@ -120,7 +120,13 @@ Optimiert Bilder für Web-Verwendung. Unterstützt:
 - **Kimai:** Non-Admins: `GET /users/me` statt `GET /users`
 - **Versionierung** eingefuehrt: `VERSION`-Datei im Repo-Root, `# version` Kommentar in Scripts
 
-**Update:** Nach `git pull` einmal `setup` fuer Kanboard und Kimai ausfuehren.
+**Update:** Nach `git pull` einmal `setup` fuer Kanboard und Kimai ausfuehren:
+
+```bash
+cd ~/.claude/azedo-skills && git pull
+python3 ~/.claude/azedo-skills/kanboard/kanboard setup --default-user <username>
+python3 ~/.claude/azedo-skills/kimai/kimai setup
+```
 
 ### 1.0.0
 
