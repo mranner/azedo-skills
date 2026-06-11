@@ -120,10 +120,11 @@ Optimiert Bilder für Web-Verwendung. Unterstützt:
 - **Kimai:** Non-Admins: `GET /users/me` statt `GET /users`
 - **Versionierung** eingefuehrt: `VERSION`-Datei im Repo-Root, `# version` Kommentar in Scripts
 
-**Update:** Nach `git pull` einmal `setup` fuer Kanboard und Kimai ausfuehren:
+**Update:** Nach `git pull` einmal `setup` fuer Kanboard und Kimai ausfuehren. Die Setup-Befehle muessen aus dem Arbeitsverzeichnis mit der `.env` ausgefuehrt werden:
 
 ```bash
 cd ~/.claude/azedo-skills && git pull
+cd /pfad/zum/arbeitsverzeichnis   # dort wo die .env liegt
 python3 ~/.claude/skills/kanboard/kanboard setup --default-user <username>
 python3 ~/.claude/skills/kimai/kimai setup
 ```
