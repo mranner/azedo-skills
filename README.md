@@ -48,7 +48,7 @@ KANBOARD_USER=dein-username
 Dann einmalig `setup` ausfuehren (aus dem Arbeitsverzeichnis mit der `.env`):
 
 ```bash
-python3 ~/.claude/azedo-skills/kanboard/kanboard setup --default-user <username>
+python3 ~/.claude/skills/kanboard/kanboard setup --default-user <username>
 ```
 
 **Trigger:** `/kanboard` oder natürliche Sprache wie "leg mir ein Ticket an", "ins Kanboard eintragen".
@@ -76,7 +76,7 @@ KIMAI_TOKEN=dein-api-token
 Dann einmalig `setup` ausfuehren (aus dem Arbeitsverzeichnis mit der `.env`):
 
 ```bash
-python3 ~/.claude/azedo-skills/kimai/kimai setup
+python3 ~/.claude/skills/kimai/kimai setup
 ```
 
 **Trigger:** `/kimai` oder natürliche Sprache wie "wieviele Stunden habe ich diese Woche", "Zeiteintrag anlegen".
@@ -124,8 +124,8 @@ Optimiert Bilder für Web-Verwendung. Unterstützt:
 
 ```bash
 cd ~/.claude/azedo-skills && git pull
-python3 ~/.claude/azedo-skills/kanboard/kanboard setup --default-user <username>
-python3 ~/.claude/azedo-skills/kimai/kimai setup
+python3 ~/.claude/skills/kanboard/kanboard setup --default-user <username>
+python3 ~/.claude/skills/kimai/kimai setup
 ```
 
 ### 1.0.0
