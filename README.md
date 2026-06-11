@@ -19,6 +19,8 @@ cd ~/.claude/azedo-skills && git pull
 
 Nach einem Update ggf. `setup` erneut ausfuehren, damit `instance.json` aktualisiert wird.
 
+**Ab v1.1.0:** `setup` muss nach dem Update einmal ausgefuehrt werden — die `instance.json` enthaelt jetzt die Benutzerrolle (Admin/Non-Admin) fuer die API-Aufrufe.
+
 ## Skills
 
 ### kanboard
@@ -38,7 +40,10 @@ Verwaltet Tasks auf einer Kanboard-Instanz via JSON-RPC API. Unterstützt:
 ```
 KANBOARD_URL=https://example.com/kanboard/jsonrpc.php
 KANBOARD_TOKEN=dein-api-token
+KANBOARD_USER=dein-username
 ```
+
+`KANBOARD_USER` ist optional — ohne Angabe wird `jsonrpc` (Admin-API-User) verwendet. Fuer persoenliche API-Tokens den eigenen Kanboard-Usernamen eintragen.
 
 Dann einmalig `setup` ausführen:
 
@@ -101,3 +106,22 @@ Optimiert Bilder für Web-Verwendung. Unterstützt:
 **Voraussetzungen:** Python ≥ 3.11, `optipng`, `jpegoptim`, optional `GraphicsMagick` (für Resize)
 
 **Trigger:** `/image-optimize` oder natürliche Sprache wie "Bilder für Web optimieren", "Bilder komprimieren".
+
+## Changelog
+
+### 1.1.0
+
+- **Non-Admin-Support:** Kanboard und Kimai funktionieren jetzt mit persoenlichen API-Tokens (ohne Admin-Rechte)
+- **Kanboard:** Auth-User konfigurierbar via `KANBOARD_USER` in `.env` (Default: `jsonrpc`)
+- **Kanboard:** `setup` erkennt die Benutzerrolle (`getMe`) und speichert sie in `instance.json`
+- **Kanboard:** Non-Admins: `getMyProjects` statt `getAllProjects`, Projektmitglieder via `getProjectUsers`
+- **Kanboard:** `resolve_user` nutzt `instance.json`-Cache statt Admin-API-Call `getUserByName`
+- **Kimai:** `setup` erkennt Admin-Rolle via `/users/me` und speichert `is_admin` in `instance.json`
+- **Kimai:** Non-Admins: `GET /users/me` statt `GET /users`
+- **Versionierung** eingefuehrt: `VERSION`-Datei im Repo-Root, `# version` Kommentar in Scripts
+
+**Update:** Nach `git pull` einmal `setup` fuer Kanboard und Kimai ausfuehren.
+
+### 1.0.0
+
+Initiale Version mit Kanboard, Kimai, Swaks und Image-Optimize Skills.

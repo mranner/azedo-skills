@@ -2,6 +2,7 @@
 
 # Kanboard JSON-RPC 2.0 API helper
 # stdlib only, no pip dependencies
+# version 1.1.0
 
 import argparse
 import base64
@@ -55,8 +56,9 @@ def rpc_call(method, params=None):
         "params": params or {}
     }).encode("utf-8")
 
+    api_user = config.get("KANBOARD_USER", "jsonrpc")
     credentials = base64.b64encode(
-        f"jsonrpc:{config['KANBOARD_TOKEN']}".encode()
+        f"{api_user}:{config['KANBOARD_TOKEN']}".encode()
     ).decode()
 
     req = urllib.request.Request(
@@ -107,12 +109,13 @@ def resolve_column(project_id, column_name):
 
 
 def resolve_user(username):
-    """Resolve username to user ID"""
-    result = rpc_call("getUserByName", {"username": username})
-    if not result:
-        print(f"Error: user '{username}' not found", file=sys.stderr)
-        sys.exit(1)
-    return int(result["id"])
+    """Resolve username to user ID via instance.json cache"""
+    data = load_instance()
+    for u in data.get("users", []):
+        if u["username"] == username:
+            return int(u["id"])
+    print(f"Error: user '{username}' not found in instance.json (run: setup --default-user {username})", file=sys.stderr)
+    sys.exit(1)
 
 
 def resolve_swimlane(project_id, swimlane_name):
@@ -271,7 +274,7 @@ def cmd_list_tasks(args):
 
 
 def cmd_list_projects(args):
-    result = rpc_call("getAllProjects")
+    result = rpc_call("getAllProjects") if is_admin() else rpc_call("getMyProjects")
     summary = []
     for p in result:
         summary.append({
@@ -289,16 +292,19 @@ def cmd_list_columns(args):
 
 
 def cmd_list_users(args):
-    result = rpc_call("getAllUsers")
-    summary = []
-    for u in result:
-        summary.append({
-            "id": u["id"],
-            "username": u["username"],
-            "name": u.get("name", ""),
-            "role": u.get("role", ""),
-            "is_active": u.get("is_active", "")
-        })
+    if is_admin():
+        result = rpc_call("getAllUsers")
+        summary = []
+        for u in result:
+            summary.append({
+                "id": u["id"],
+                "username": u["username"],
+                "name": u.get("name", ""),
+                "role": u.get("role", ""),
+                "is_active": u.get("is_active", "")
+            })
+    else:
+        summary = load_instance().get("users", [])
     output(summary)
 
 
@@ -307,15 +313,31 @@ def cmd_get_comments(args):
     output(result if result else [])
 
 
-def get_default_user():
-    """Read default_user from instance.json"""
+_instance = None
+
+
+def load_instance():
+    """Read instance.json (cached)"""
+    global _instance
+    if _instance is not None:
+        return _instance
     skill_dir = os.path.dirname(os.path.abspath(__file__))
     path = os.path.join(skill_dir, "instance.json")
     if not os.path.exists(path):
-        return None
+        return {}
     with open(path) as f:
-        data = json.load(f)
-    return data.get("default_user")
+        _instance = json.load(f)
+    return _instance
+
+
+def is_admin():
+    """Check if cached role is app-admin"""
+    return load_instance().get("role") == "app-admin"
+
+
+def get_default_user():
+    """Read default_user from instance.json"""
+    return load_instance().get("default_user")
 
 
 def cmd_add_comment(args):
@@ -426,7 +448,13 @@ def cmd_setup(args):
     skill_dir = os.path.dirname(os.path.abspath(__file__))
     out_path = os.path.join(skill_dir, "instance.json")
 
-    projects_raw = rpc_call("getAllProjects")
+    # Detect role via getMe
+    me = rpc_call("getMe")
+    role = me.get("role", "app-user")
+    admin = role == "app-admin"
+
+    # Projects: admin sees all, non-admin only own
+    projects_raw = rpc_call("getAllProjects") if admin else rpc_call("getMyProjects")
     projects = []
     for p in projects_raw:
         if int(p.get("is_active", 0)) != 1:
@@ -441,18 +469,37 @@ def cmd_setup(args):
             "columns": [c["title"] for c in columns],
         })
 
-    users_raw = rpc_call("getAllUsers")
-    users = []
-    for u in users_raw:
-        if int(u.get("is_active", 0)) != 1:
-            continue
-        users.append({
-            "id": int(u["id"]),
-            "username": u["username"],
-            "name": u.get("name", ""),
-        })
+    # Users: admin gets all, non-admin collects project members
+    if admin:
+        users_raw = rpc_call("getAllUsers")
+        users = []
+        for u in users_raw:
+            if int(u.get("is_active", 0)) != 1:
+                continue
+            users.append({
+                "id": int(u["id"]),
+                "username": u["username"],
+                "name": u.get("name", ""),
+            })
+    else:
+        seen_ids = set()
+        users = []
+        # Own user first
+        own = {"id": int(me["id"]), "username": me["username"], "name": me.get("name", me["username"])}
+        users.append(own)
+        seen_ids.add(own["id"])
+        # Collect members from all accessible projects
+        for p in projects:
+            members = rpc_call("getProjectUsers", {"project_id": p["id"]})
+            # getProjectUsers returns {id: username, ...}
+            if isinstance(members, dict):
+                for uid, uname in members.items():
+                    uid = int(uid)
+                    if uid not in seen_ids:
+                        users.append({"id": uid, "username": uname, "name": uname})
+                        seen_ids.add(uid)
 
-    instance = {"projects": projects, "users": users}
+    instance = {"role": role, "projects": projects, "users": users}
 
     if args.default_user:
         usernames = [u["username"] for u in users]
