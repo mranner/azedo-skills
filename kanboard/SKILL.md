@@ -31,6 +31,21 @@ Falls `instance.json` nicht existiert, zuerst `setup` ausfuehren.
 
 ## Subcommands
 
+### CR-Kontext laden
+
+```bash
+python3 "$SKILL_DIR/kanboard" cr <task_ref> [<task_ref2> ...]
+```
+
+Laedt einen oder mehrere Tasks als aktiven CR-Kontext. Akzeptiert alle gaengigen Schreibweisen: `4326`, `CR4326`, `cr4326`, `CR 4326`, `#4326`.
+
+Beispiele:
+
+```bash
+python3 "$SKILL_DIR/kanboard" cr 4326
+python3 "$SKILL_DIR/kanboard" cr CR4326 CR4330
+```
+
 ### Task erstellen
 
 ```bash
@@ -184,3 +199,42 @@ Nach Anlage oder Aenderung dem User die URL anzeigen. Die Basis-URL ergibt sich 
 - Output ist JSON -- relevante Felder extrahieren und lesbar darstellen.
 - Beschreibungen unterstuetzen Markdown-Syntax.
 - Neue und verschobene Tasks werden am Ende (unten) der Spalte eingefuegt.
+
+## CR-Kontext (Change Request)
+
+Der CR-Kontext verknuepft Kanboard-Tasks mit Commits und Zeiterfassung. Die Schreibweise `CR{id}` (z.B. `CR4326`) bezieht sich immer auf einen Kanboard-Task.
+
+### Erkennung
+
+Wenn der User irgendwo eine CR-Referenz verwendet, wird das als Kanboard-Task interpretiert. Alle Schreibweisen werden erkannt und auf die kanonische Form normalisiert:
+
+- `CR4326`, `cr4326`, `CR 4326`, `cr 4326`, `#4326` → **CR4326**
+
+### Aktivierung
+
+- **Explizit:** Der User fuehrt `cr <id>` aus oder sagt "ich arbeite an CR4326"
+- **Mehrere CRs:** `cr 4326 4330` aktiviert beide Tasks als Kontext
+- Der aktive CR-Kontext gilt fuer die gesamte Session, bis der User ihn aendert oder beendet ("CR fertig", "kein CR mehr")
+
+### Commit-Prefixing
+
+Wenn ein CR-Kontext aktiv ist und der User einen Commit macht (`git commit`, `svn commit`):
+
+- Commit-Message immer mit `CR{id}: ` prefixen
+- Beispiel: `git commit -m "CR4326: Login-Formular validiert jetzt E-Mail-Adressen"`
+- Beispiel: `svn commit -m "CR4326: Timeout auf 30s erhoeht"`
+
+### Kimai-Prefixing
+
+Wenn ein CR-Kontext aktiv ist und der User Zeit erfasst (via `/kimai`):
+
+- Beschreibung (`--description`) immer mit `CR{id}: ` prefixen
+- Beispiel: `--description "CR4326: Login-Validierung implementiert"`
+
+### Mehrere aktive CRs
+
+Wenn mehrere CRs aktiv sind, **vor dem Commit oder der Zeiterfassung nachfragen**, welcher CR zutrifft. Nicht raten.
+
+### Ohne aktiven CR-Kontext
+
+Wenn kein CR aktiv ist, Commits und Kimai-Eintraege ganz normal ohne Prefix erstellen.

@@ -490,6 +490,39 @@ def cmd_remove_subtask(args):
     output({"success": result})
 
 
+def parse_cr_id(raw):
+    """Normalize CR input: CR4326, cr4326, CR 4326, #4326, 4326 -> 4326"""
+    s = raw.strip().lstrip("#")
+    if s.lower().startswith("cr"):
+        s = s[2:].strip()
+    if not s.isdigit():
+        print(f"Error: '{raw}' is not a valid task reference", file=sys.stderr)
+        sys.exit(1)
+    return int(s)
+
+
+def cmd_cr(args):
+    """Load one or more tasks as CR context"""
+    results = []
+    for raw_id in args.task_ids:
+        task_id = parse_cr_id(raw_id)
+        task = rpc_call("getTask", {"task_id": task_id})
+        if not task:
+            print(f"Error: task {task_id} not found", file=sys.stderr)
+            sys.exit(1)
+        results.append({
+            "cr": f"CR{task_id}",
+            "task_id": task_id,
+            "title": task["title"],
+            "project_id": int(task["project_id"]),
+            "project_name": task.get("project_name", ""),
+            "column": task.get("column_name", ""),
+            "owner": task.get("owner_username", ""),
+        })
+
+    output(results if len(results) > 1 else results[0])
+
+
 def cmd_setup(args):
     """Query instance for projects, swimlanes, columns, users and write instance.json"""
     skill_dir = os.path.dirname(os.path.abspath(__file__))
@@ -570,6 +603,11 @@ def cmd_setup(args):
 def main():
     parser = argparse.ArgumentParser(description="Kanboard JSON-RPC API helper")
     sub = parser.add_subparsers(dest="command", required=True)
+
+    # cr (context)
+    p = sub.add_parser("cr")
+    p.add_argument("task_ids", nargs="+")
+    p.set_defaults(func=cmd_cr)
 
     # setup
     p = sub.add_parser("setup")

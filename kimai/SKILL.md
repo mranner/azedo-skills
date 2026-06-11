@@ -191,6 +191,7 @@ Stundensatz-Konversion: `ceil(actual * 55 / 77)` pro Eintrag, max 7h/Tag.
 ## Hinweise
 
 - **Neue Eintraege zeitlich anschliessen:** Wenn der User keinen expliziten Zeitpunkt angibt, zuerst die heutigen Eintraege des Users abfragen (`recent-timesheets`). Den neuen Eintrag direkt am Ende des letzten heutigen Eintrags beginnen lassen (`--begin` = `--end` des letzten Eintrags). Falls heute noch kein Eintrag existiert, ab 08:00 Uhr beginnen.
+- **CR-Kontext beachten:** Wenn ein CR-Kontext aktiv ist (gesetzt via `/kanboard cr <id>`), die Beschreibung (`--description`) immer mit `CR{id}: ` prefixen. Bei mehreren aktiven CRs nachfragen. Details siehe Kanboard SKILL.md, Abschnitt "CR-Kontext".
 - Config (`KIMAI_HOST` und `KIMAI_TOKEN`) wird aus `.env` im aktuellen Arbeitsverzeichnis gelesen (oder via `KIMAI_ENV` Environment-Variable).
 - Temporaere Dateien gehoeren ins Projekt-Verzeichnis `.tmp/`, **nicht** in `$SKILL_DIR/.tmp/`.
 - Output ist JSON — relevante Felder extrahieren und lesbar darstellen.
