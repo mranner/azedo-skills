@@ -13,12 +13,24 @@ import urllib.request
 import urllib.error
 from datetime import date, datetime, timedelta
 
+def _env_has_kimai(path):
+    """Check if .env file contains KIMAI_HOST"""
+    try:
+        with open(path) as f:
+            for line in f:
+                if line.strip().startswith("KIMAI_HOST"):
+                    return True
+    except OSError:
+        pass
+    return False
+
+
 def _find_env():
     override = os.environ.get("KIMAI_ENV")
     if override:
         return override
     cwd_env = os.path.join(os.getcwd(), ".env")
-    if os.path.exists(cwd_env):
+    if os.path.exists(cwd_env) and _env_has_kimai(cwd_env):
         return cwd_env
     return os.path.join(os.path.expanduser("~"), ".env")
 
