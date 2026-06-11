@@ -84,6 +84,44 @@ def rpc_call(method, params=None):
     return data.get("result")
 
 
+def rpc_try(method, params=None):
+    """Like rpc_call but returns None on error instead of exiting"""
+    global _request_id
+    _request_id += 1
+    config = load_env()
+    payload = json.dumps({
+        "jsonrpc": "2.0",
+        "method": method,
+        "id": _request_id,
+        "params": params or {}
+    }).encode("utf-8")
+
+    api_user = config.get("KANBOARD_USER", "jsonrpc")
+    credentials = base64.b64encode(
+        f"{api_user}:{config['KANBOARD_TOKEN']}".encode()
+    ).decode()
+
+    req = urllib.request.Request(
+        config["KANBOARD_URL"],
+        data=payload,
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Basic {credentials}"
+        }
+    )
+
+    try:
+        with urllib.request.urlopen(req) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.URLError:
+        return None
+
+    if "error" in data and data["error"]:
+        return None
+
+    return data.get("result")
+
+
 # Resolver helpers
 
 def resolve_project(project):
@@ -448,9 +486,12 @@ def cmd_setup(args):
     skill_dir = os.path.dirname(os.path.abspath(__file__))
     out_path = os.path.join(skill_dir, "instance.json")
 
-    # Detect role via getMe
-    me = rpc_call("getMe")
-    role = me.get("role", "app-user")
+    # Detect role via getMe (fails with 403 for jsonrpc API user)
+    me = rpc_try("getMe")
+    if me:
+        role = me.get("role", "app-user")
+    else:
+        role = "app-admin"
     admin = role == "app-admin"
 
     # Projects: admin sees all, non-admin only own
