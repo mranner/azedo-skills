@@ -199,8 +199,9 @@ def cmd_ping(args):
     """Test API connection"""
     result = api_call("/v1/market/private/user/account.json")
     if result:
-        username = result.get("account", {}).get("username", "unknown")
-        print(f"OK — connected as: {username}")
+        acct = result.get("account", {})
+        name = f'{acct.get("firstname", "")} {acct.get("surname", "")}'.strip() or "unknown"
+        print(f"OK — connected as: {name}")
     else:
         print("Error: no response", file=sys.stderr)
         sys.exit(1)
