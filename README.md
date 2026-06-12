@@ -128,7 +128,24 @@ Optimiert Bilder für Web-Verwendung. Unterstützt:
 
 **Trigger:** `/image-optimize` oder natürliche Sprache wie "Bilder für Web optimieren", "Bilder komprimieren".
 
+### ripgrep
+
+Referenz-Skill fuer `rg` (ripgrep) — schnelle Textsuche in Dateien und Verzeichnissen. Kein eigenes Script, reine SKILL.md mit:
+
+- Quick Reference: alle wichtigen Flags und Optionen
+- Regex-Patterns, Multiline-Matching, File-Filtering
+- Common Patterns: Funktionen, Imports, TODOs finden
+- Performance-Tipps und haeufige Fehler
+
+Quelle: [ratacat/claude-skills](https://github.com/ratacat/claude-skills/tree/main/skills/ripgrep)
+
+**Trigger:** Wird automatisch als Kontext geladen, kein expliziter Aufruf noetig.
+
 ## Changelog
+
+### 1.3.0
+
+- **Ripgrep-Skill:** Referenz-Skill fuer `rg` uebernommen von [ratacat/claude-skills](https://github.com/ratacat/claude-skills). Quick Reference, Regex-Patterns, Common Patterns, Performance-Tipps.
 
 ### 1.2.0
 
