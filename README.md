@@ -93,6 +93,27 @@ Versendet E-Mails via `swaks` über den lokalen Postfix auf `mom.azedo.at`. Unte
 
 **Trigger:** `/swaks` oder natürliche Sprache wie "schick mir das per Mail", "send this to X".
 
+### envato
+
+Envato Market API (ThemeForest, CodeCanyon). Unterstützt:
+
+- Käufe auflisten und filtern
+- Kaufdetails via Purchase-Code abrufen
+- Gekaufte Items herunterladen (via Item-ID oder Purchase-Code)
+- Items auf dem Marktplatz suchen
+- Item-Details anzeigen
+- Account-Infos abfragen
+
+**Voraussetzungen:** Python ≥ 3.11
+
+**Setup:** Token auf https://build.envato.com/create-token/ erstellen (Berechtigungen: Download purchased items, List purchases). In `.env` eintragen:
+
+```
+ENVATO_TOKEN=dein-personal-token
+```
+
+**Trigger:** `/envato` oder natürliche Sprache wie "lade das Theme herunter", "zeig meine Envato-Käufe".
+
 ### image-optimize
 
 Optimiert Bilder für Web-Verwendung. Unterstützt:
