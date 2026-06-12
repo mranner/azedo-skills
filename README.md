@@ -130,6 +130,13 @@ Optimiert Bilder für Web-Verwendung. Unterstützt:
 
 ## Changelog
 
+### 1.2.0
+
+- **Envato-Skill:** Neuer Skill fuer Envato Market (ThemeForest, CodeCanyon) — Kaeufe auflisten, Items herunterladen, suchen, Details anzeigen (8 Subcommands)
+- **CR-Kontext:** Kanboard `cr` Subcommand laedt Tasks als aktiven Kontext, Commit-Messages und Kimai-Beschreibungen werden mit `CR{id}: ` prefixed
+- **.env Fallback:** Kanboard und Kimai suchen `.env` jetzt auch im Home-Verzeichnis (`~/.env`) als Fallback
+- **Kimai:** Neue Eintraege werden zeitlich an den letzten heutigen Eintrag angeschlossen
+
 ### 1.1.0
 
 - **Non-Admin-Support:** Kanboard und Kimai funktionieren jetzt mit persoenlichen API-Tokens (ohne Admin-Rechte)
