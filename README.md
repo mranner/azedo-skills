@@ -143,6 +143,10 @@ Quelle: [ratacat/claude-skills](https://github.com/ratacat/claude-skills/tree/ma
 
 ## Changelog
 
+### 1.3.2
+
+- **Kanboard SKILL.md:** Hinweis ergaenzt — "erledigt" = move-task in Spalte "erledigt", close-task nur nach Rueckfrage
+
 ### 1.3.0
 
 - **Ripgrep-Skill:** Referenz-Skill fuer `rg` uebernommen von [ratacat/claude-skills](https://github.com/ratacat/claude-skills). Quick Reference, Regex-Patterns, Common Patterns, Performance-Tipps.

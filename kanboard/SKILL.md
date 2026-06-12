@@ -81,6 +81,8 @@ python3 "$SKILL_DIR/kanboard" open-task <task_id>
 python3 "$SKILL_DIR/kanboard" close-task <task_id>
 ```
 
+**Wichtig:** "Task erledigen" bedeutet: `move-task --column erledigt`. Tasks werden im Regelfall nur in der Spalte "erledigt" geschlossen. `close-task` nur ausfuehren, wenn der User es explizit verlangt — andernfalls nachfragen.
+
 ### Datei anhaengen
 
 ```bash
