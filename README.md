@@ -143,9 +143,9 @@ Quelle: [ratacat/claude-skills](https://github.com/ratacat/claude-skills/tree/ma
 
 ## Changelog
 
-### 1.4.2
+### 1.4.3
 
-- **Kimai SKILL.md:** Aufbau von `instance.json` dokumentiert (Keys, Felder, Beispiel) — verhindert Raten auf neuen Installationen
+- **Kimai SKILL.md:** Aufbau von `kimai-shortcuts.json` dokumentiert (Keys, Felder, Beispiel) — verhindert Raten auf neuen Installationen
 
 ### 1.4.1
 
