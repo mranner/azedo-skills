@@ -27,6 +27,24 @@ python3 "$SKILL_DIR/kimai" setup
 
 Das schreibt `instance.json` ins Skill-Verzeichnis mit allen Projekten, Aktivitaeten, Kunden und Usern.
 
+**Aufbau von `instance.json`:**
+
+```json
+{
+  "is_admin": true,
+  "projects":   [{ "id": 33, "name": "azedo", "customer": "azedo" }],
+  "activities": [{ "id": 51, "name": "SW-Entwicklung", "project": "azedo", "parentTitle": "azedo" }],
+  "customers":  [{ "id": 1, "name": "azedo" }],
+  "users":      [{ "id": 1, "username": "mmuster" }]
+}
+```
+
+- `is_admin` — Admin-Rolle des aktuellen Users (steuert API-Endpunkte)
+- `projects` — alle sichtbaren Projekte mit zugehoerigem Kundennamen
+- `activities` — alle sichtbaren Aktivitaeten mit Projektzuordnung
+- `customers` — alle sichtbaren Kunden
+- `users` — alle User der Instanz (bei Admin) bzw. nur eigener User
+
 Falls `instance.json` nicht existiert, zuerst `setup` ausfuehren.
 
 **ID-Lookup:** Zuerst `.claude/kimai-shortcuts.json` im Arbeitsverzeichnis pruefen (kompakte Zuordnung haeufiger Projekt/Aktivitaets-Kombinationen). Nur bei unbekannten Projekten auf `$SKILL_DIR/instance.json` zurueckfallen.
