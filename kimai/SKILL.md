@@ -25,9 +25,11 @@ Beim ersten Einsatz `setup` ausfuehren:
 python3 "$SKILL_DIR/kimai" setup
 ```
 
-Das schreibt `instance.json` ins Skill-Verzeichnis mit allen Projekten, Aktivitaeten, Kunden und Usern. **Vor jeder Operation `$SKILL_DIR/instance.json` lesen**, um IDs und Namen zu kennen.
+Das schreibt `instance.json` ins Skill-Verzeichnis mit allen Projekten, Aktivitaeten, Kunden und Usern.
 
 Falls `instance.json` nicht existiert, zuerst `setup` ausfuehren.
+
+**ID-Lookup:** Zuerst `kimai-shortcuts.json` im Arbeitsverzeichnis pruefen (kompakte Zuordnung haeufiger Projekt/Aktivitaets-Kombinationen). Nur bei unbekannten Projekten auf `$SKILL_DIR/instance.json` zurueckfallen.
 
 ## Subcommands
 
@@ -183,10 +185,13 @@ Stundensatz-Konversion: `ceil(actual * 55 / 77)` pro Eintrag, max 7h/Tag.
 
 ## Workflow
 
-1. Parameter aus der Nutzeranfrage ableiten (Projekt, Aktivitaet, Zeitraum, User).
-2. Wenn nicht eindeutig: nachfragen.
-3. Befehl zusammenbauen und ausfuehren.
-4. Ergebnis dem User lesbar darstellen.
+1. **Shortcuts pruefen:** Zuerst `kimai-shortcuts.json` im Arbeitsverzeichnis lesen. Projekt/Aktivitaet aus der Nutzeranfrage gegen die Shortcut-Keys und Labels matchen (case-insensitive, Teilmatch genuegt — z.B. "Neuroth" trifft "neuroth", "CRIS Entwicklung" trifft "cris-entwicklung"). Bei Treffer: Projekt- und Aktivitaets-ID direkt aus dem Shortcut verwenden, `instance.json` muss nicht gelesen werden.
+2. **Fallback auf instance.json:** Nur wenn kein Shortcut passt, `instance.json` lesen und dort matchen.
+3. Parameter aus der Nutzeranfrage ableiten (Projekt, Aktivitaet, Zeitraum, User).
+4. Wenn nicht eindeutig: nachfragen.
+5. Befehl zusammenbauen und ausfuehren.
+6. Ergebnis dem User lesbar darstellen.
+7. **Shortcut ergaenzen:** Wenn eine neue Projekt/Aktivitaets-Kombination verwendet wurde, die noch nicht in `kimai-shortcuts.json` steht, diese automatisch ergaenzen.
 
 ## Hinweise
 

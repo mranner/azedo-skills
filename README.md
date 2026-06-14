@@ -143,6 +143,10 @@ Quelle: [ratacat/claude-skills](https://github.com/ratacat/claude-skills/tree/ma
 
 ## Changelog
 
+### 1.4.0
+
+- **Kimai Shortcuts:** Projekt/Aktivitaets-Lookup ueber `kimai-shortcuts.json` im Arbeitsverzeichnis statt vollstaendiger `instance.json`. Haeufige Kombinationen werden als kompakte Key-Value-Paare gespeichert, neue Kombinationen automatisch ergaenzt. Fallback auf `instance.json` bei unbekannten Projekten.
+
 ### 1.3.2
 
 - **Kanboard SKILL.md:** Hinweis ergaenzt — "erledigt" = move-task in Spalte "erledigt", close-task nur nach Rueckfrage
