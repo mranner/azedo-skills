@@ -141,7 +141,23 @@ Quelle: [ratacat/claude-skills](https://github.com/ratacat/claude-skills/tree/ma
 
 **Trigger:** Wird automatisch als Kontext geladen, kein expliziter Aufruf noetig.
 
+### php-formatting
+
+PHP-Code-Formatierung nach PSR-2 mit azedo-spezifischen Anpassungen. Kein eigenes Script, reine SKILL.md mit:
+
+- PSR-2 Grundregeln als Basis
+- Tabs statt Spaces (Ausnahme: bestehende Dateien mit Spaces bleiben bei 4 Spaces)
+- Leerzeilen um Kontrollstrukturen (`if`, `for`, `foreach`, etc.)
+- Leerzeilen um Kommentarbloecke und DocBlocks
+- Leerzeilen nach Methoden-/Funktionsdeklarationen
+
+**Trigger:** `/php-formatting` oder natuerliche Sprache wie "formatiere den PHP Code". Wird automatisch angewendet wenn PHP-Code erstellt oder geaendert wird.
+
 ## Changelog
+
+### 1.5.0
+
+- **PHP-Formatting-Skill:** Neuer Skill fuer PHP-Code-Formatierung nach PSR-2 mit azedo-Anpassungen (Tabs, Leerzeilen um Kontrollstrukturen/Kommentarbloecke/Methoden)
 
 ### 1.4.3
 
