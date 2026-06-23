@@ -48,8 +48,6 @@ Flaches JSON — ein Key pro Zeile, Wert ist `[project_id, activity_id, "Label"]
 - **Lookup per grep:** `grep -i <suchbegriff> .claude/kimai-shortcuts.json` liefert die passende Zeile direkt — die Datei muss nicht komplett gelesen werden
 - Neue Kombinationen werden im Workflow automatisch ergaenzt (Schritt 7)
 
-**Migration vom alten Format:** Falls die grep-Ausgabe `"project":` statt eines Arrays enthaelt, liegt noch das alte Objekt-Format vor. Dann einmalig die Datei lesen und umschreiben: jeden Eintrag von `"key": {"project": P, "activity": A, "label": "L"}` nach `"key": [P, A, "L"]` konvertieren, eine Zeile pro Key, ohne Einrueckung.
-
 ## Subcommands
 
 ### System
@@ -219,6 +217,8 @@ Schluessel `projekt`: `myglobex` | `myacme` | `beide` (50:50-Split).
 Stundensatz-Konversion: `ceil(actual * 55 / 77)` pro Eintrag, max 7h/Tag.
 
 ## Workflow
+
+0. **Format pruefen (einmalig):** Beim ersten grep auf `.claude/kimai-shortcuts.json` die Ausgabe pruefen. Enthaelt sie `"project":` statt eines Arrays → altes Format. **Sofort migrieren** bevor weitergearbeitet wird: Datei lesen, jeden Eintrag von `"key": {"project": P, "activity": A, "label": "L"}` nach `"key": [P, A, "L"]` konvertieren, eine Zeile pro Key, ohne Einrueckung. Erst danach weiter mit Schritt 1.
 
 **Einfache Buchungen** (Dauer + Projekt bekannt) → `log` verwenden. Der Subcommand erledigt Shortcut-Aufloesung, Zeitberechnung und Anlage in einem Call:
 
