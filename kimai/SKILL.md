@@ -106,6 +106,22 @@ python3 "$SKILL_DIR/kimai" duplicate-timesheet <id>
 python3 "$SKILL_DIR/kimai" export-timesheet <id>
 ```
 
+### Log (One-Shot-Buchung)
+
+```bash
+# Mit Shortcut (aus .claude/kimai-shortcuts.json)
+python3 "$SKILL_DIR/kimai" log --duration 0.5 --shortcut initech \
+  [--description "..."]
+
+# Mit expliziten IDs
+python3 "$SKILL_DIR/kimai" log --duration 1h30m --project 84 --activity 196 \
+  [--description "..."]
+```
+
+Erledigt in einem Call: Shortcut aufloesen, letzten heutigen Eintrag finden, `begin` auf dessen Ende setzen (oder 08:00), `end` berechnen, Eintrag anlegen.
+
+**Duration-Formate:** Dezimalstunden (`0.5`, `1.5`), Minuten (`30m`, `90m`), gemischt (`1h30m`, `2h`).
+
 ### Projekte
 
 ```bash
@@ -203,6 +219,14 @@ Schluessel `projekt`: `myglobex` | `myacme` | `beide` (50:50-Split).
 Stundensatz-Konversion: `ceil(actual * 55 / 77)` pro Eintrag, max 7h/Tag.
 
 ## Workflow
+
+**Einfache Buchungen** (Dauer + Projekt bekannt) → `log` verwenden. Der Subcommand erledigt Shortcut-Aufloesung, Zeitberechnung und Anlage in einem Call:
+
+```bash
+python3 "$SKILL_DIR/kimai" log --duration 0.5 --shortcut initech --description "..."
+```
+
+**Komplexere Faelle** (kein Shortcut, spezielle Zeitangaben, Updates, Abfragen) → manueller Workflow:
 
 1. **Shortcuts pruefen:** `grep -i <suchbegriff> .claude/kimai-shortcuts.json` ausfuehren. Jede Zeile hat das Format `"key": [project_id, activity_id, "Label"]`. Grep liefert direkt die passende(n) Zeile(n) — die Datei muss nicht komplett gelesen werden. Bei Treffer: Projekt- und Aktivitaets-ID aus dem Array verwenden, `instance.json` muss nicht gelesen werden.
 2. **Fallback auf instance.json:** Nur wenn kein Shortcut passt, `instance.json` lesen und dort matchen.

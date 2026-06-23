@@ -2,12 +2,13 @@
 
 # Kimai REST API helper
 # stdlib only, no pip dependencies
-# version 1.4.3
+# version 1.5.1
 
 import argparse
 import json
 import math
 import os
+import re
 import sys
 import urllib.request
 import urllib.error
@@ -910,6 +911,142 @@ def cmd_import_hours(args):
     print(f"\nFertig: {len(all_entries)} Einträge angelegt.\n")
 
 
+# ── Log (one-shot booking) ────────────────────────────────────────────────
+
+
+def parse_duration(s):
+    """Parse duration string into minutes.
+
+    Accepts: 0.5 (decimal hours), 30m, 90m, 1h30m, 2h
+    """
+    s = s.strip()
+
+    # 1h30m or 2h
+    m = re.fullmatch(r'(\d+)h(?:(\d+)m)?', s)
+    if m:
+        return int(m.group(1)) * 60 + int(m.group(2) or 0)
+
+    # 30m, 90m
+    m = re.fullmatch(r'(\d+)m', s)
+    if m:
+        return int(m.group(1))
+
+    # Decimal hours: 0.5, 1.5, 2
+    try:
+        return round(float(s) * 60)
+    except ValueError:
+        print(f"Error: invalid duration '{s}' (use e.g. 0.5, 30m, 1h30m)", file=sys.stderr)
+        sys.exit(1)
+
+
+def load_shortcuts():
+    """Read .claude/kimai-shortcuts.json from cwd. Returns dict or {}."""
+    path = os.path.join(os.getcwd(), ".claude", "kimai-shortcuts.json")
+    if not os.path.exists(path):
+        return {}
+    with open(path) as f:
+        data = json.load(f)
+
+    shortcuts = {}
+    for key, val in data.items():
+        if isinstance(val, list) and len(val) >= 3:
+            shortcuts[key] = {"project": val[0], "activity": val[1], "label": val[2]}
+        elif isinstance(val, dict) and "project" in val and "activity" in val:
+            shortcuts[key] = val
+    return shortcuts
+
+
+def resolve_shortcut(name):
+    """Find a shortcut by case-insensitive partial match on key or label."""
+    shortcuts = load_shortcuts()
+    if not shortcuts:
+        return None
+
+    name_lower = name.lower()
+
+    # Exact key match
+    if name_lower in shortcuts:
+        return shortcuts[name_lower]
+
+    # Partial match on key or label
+    matches = []
+    for key, val in shortcuts.items():
+        if name_lower in key or name_lower in val.get("label", "").lower():
+            matches.append((key, val))
+
+    if len(matches) == 1:
+        return matches[0][1]
+    if len(matches) > 1:
+        print(f"Error: ambiguous shortcut '{name}', matches:", file=sys.stderr)
+        for key, val in matches:
+            print(f"  {key}: {val.get('label', '')}", file=sys.stderr)
+        sys.exit(1)
+
+    return None
+
+
+def cmd_log(args):
+    """One-shot timesheet entry: resolve shortcut, find last entry, create."""
+
+    # Resolve project/activity
+    if args.shortcut:
+        sc = resolve_shortcut(args.shortcut)
+        if not sc:
+            print(f"Error: shortcut '{args.shortcut}' not found", file=sys.stderr)
+            sys.exit(1)
+        project_id = sc["project"]
+        activity_id = sc["activity"]
+        label = sc.get("label", args.shortcut)
+    elif args.project and args.activity:
+        project_id = int(args.project)
+        activity_id = int(args.activity)
+        label = f"project {project_id} / activity {activity_id}"
+    else:
+        print("Error: provide --shortcut or both --project and --activity", file=sys.stderr)
+        sys.exit(1)
+
+    # Parse duration
+    minutes = parse_duration(args.duration)
+
+    # Find last today's entry to append
+    today = date.today().isoformat()
+    recent = api_call("GET", "timesheets/recent", params={
+        "begin": f"{today}T00:00:00",
+        "size": "1",
+    })
+
+    if recent and recent[0].get("end"):
+        begin_str = recent[0]["end"]
+    else:
+        begin_str = f"{today}T08:00:00"
+
+    begin_dt = datetime.fromisoformat(begin_str.replace("+00:00", "").replace("Z", ""))
+    end_dt = begin_dt + timedelta(minutes=minutes)
+
+    # Create timesheet
+    data = {
+        "begin": begin_dt.strftime("%Y-%m-%dT%H:%M:%S"),
+        "end": end_dt.strftime("%Y-%m-%dT%H:%M:%S"),
+        "project": int(project_id),
+        "activity": int(activity_id),
+    }
+    if args.description:
+        data["description"] = args.description
+
+    result = api_call("POST", "timesheets", data=data)
+
+    # Compact confirmation
+    h = minutes / 60
+    output({
+        "id": result["id"],
+        "label": label,
+        "begin": data["begin"],
+        "end": data["end"],
+        "duration": f"{h:.1f}h" if h != int(h) else f"{int(h)}h",
+        "description": args.description or "",
+    })
+
+
 # ── CLI ───────────────────────────────────────────────────────────────────
 
 
@@ -1150,6 +1287,16 @@ def main():
     p = sub.add_parser("delete-team")
     p.add_argument("team_id")
     p.set_defaults(func=cmd_delete_team)
+
+    # ── log ──
+
+    p = sub.add_parser("log", help="One-shot timesheet entry")
+    p.add_argument("--duration", required=True, help="Duration (e.g. 0.5, 30m, 1h30m)")
+    p.add_argument("--shortcut", help="Shortcut key from kimai-shortcuts.json")
+    p.add_argument("--project", help="Project ID (alternative to --shortcut)")
+    p.add_argument("--activity", help="Activity ID (alternative to --shortcut)")
+    p.add_argument("--description", help="Description text")
+    p.set_defaults(func=cmd_log)
 
     # ── import-hours ──
 
