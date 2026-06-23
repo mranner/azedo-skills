@@ -2,7 +2,7 @@
 
 # Kimai REST API helper
 # stdlib only, no pip dependencies
-# version 1.5.1
+# version 1.5.2
 
 import argparse
 import json
@@ -1020,7 +1020,9 @@ def cmd_log(args):
     else:
         begin_str = f"{today}T08:00:00"
 
-    begin_dt = datetime.fromisoformat(begin_str.replace("+00:00", "").replace("Z", ""))
+    # Strip timezone suffix — API returns +0200, +02:00, Z, etc.; we work in local time
+    begin_str = re.sub(r'[+-]\d{2}:?\d{2}$|Z$', '', begin_str)
+    begin_dt = datetime.fromisoformat(begin_str)
     end_dt = begin_dt + timedelta(minutes=minutes)
 
     # Create timesheet
