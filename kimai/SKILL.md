@@ -33,26 +33,22 @@ Falls `instance.json` nicht existiert, zuerst `setup` ausfuehren.
 
 **Aufbau von `.claude/kimai-shortcuts.json`:**
 
+Flaches JSON — ein Key pro Zeile, Wert ist `[project_id, activity_id, "Label"]`:
+
 ```json
 {
-  "acme": {
-    "project": 1,
-    "activity": 2,
-    "label": "acme Support (0640) / IT-Support"
-  },
-  "cris-entwicklung": {
-    "project": 55,
-    "activity": 62,
-    "label": "CRIS Entwicklung (BBT) / Entwicklung"
-  }
+"acme": [1, 2, "acme Support (0640) / IT-Support"],
+"cris-entwicklung": [55, 62, "CRIS Entwicklung (BBT) / Entwicklung"]
 }
 ```
 
 - Key: Kurzname (lowercase, Bindestrich-getrennt) — wird case-insensitive und per Teilmatch gegen die Nutzeranfrage geprueft
-- `project`: numerische Projekt-ID in Kimai
-- `activity`: numerische Aktivitaets-ID in Kimai
-- `label`: lesbarer Name (Projekt / Aktivitaet) — dient auch als Match-Ziel
+- Wert: Array `[project_id, activity_id, "Label"]`
+- Label dient auch als Match-Ziel
+- **Lookup per grep:** `grep -i <suchbegriff> .claude/kimai-shortcuts.json` liefert die passende Zeile direkt — die Datei muss nicht komplett gelesen werden
 - Neue Kombinationen werden im Workflow automatisch ergaenzt (Schritt 7)
+
+**Migration vom alten Format:** Falls die grep-Ausgabe `"project":` statt eines Arrays enthaelt, liegt noch das alte Objekt-Format vor. Dann einmalig die Datei lesen und umschreiben: jeden Eintrag von `"key": {"project": P, "activity": A, "label": "L"}` nach `"key": [P, A, "L"]` konvertieren, eine Zeile pro Key, ohne Einrueckung.
 
 ## Subcommands
 
@@ -208,13 +204,18 @@ Stundensatz-Konversion: `ceil(actual * 55 / 77)` pro Eintrag, max 7h/Tag.
 
 ## Workflow
 
-1. **Shortcuts pruefen:** Zuerst `.claude/kimai-shortcuts.json` im Arbeitsverzeichnis lesen. Projekt/Aktivitaet aus der Nutzeranfrage gegen die Shortcut-Keys und Labels matchen (case-insensitive, Teilmatch genuegt — z.B. "Neuroth" trifft "neuroth", "CRIS Entwicklung" trifft "cris-entwicklung"). Bei Treffer: Projekt- und Aktivitaets-ID direkt aus dem Shortcut verwenden, `instance.json` muss nicht gelesen werden.
+1. **Shortcuts pruefen:** `grep -i <suchbegriff> .claude/kimai-shortcuts.json` ausfuehren. Jede Zeile hat das Format `"key": [project_id, activity_id, "Label"]`. Grep liefert direkt die passende(n) Zeile(n) — die Datei muss nicht komplett gelesen werden. Bei Treffer: Projekt- und Aktivitaets-ID aus dem Array verwenden, `instance.json` muss nicht gelesen werden.
 2. **Fallback auf instance.json:** Nur wenn kein Shortcut passt, `instance.json` lesen und dort matchen.
 3. Parameter aus der Nutzeranfrage ableiten (Projekt, Aktivitaet, Zeitraum, User).
 4. Wenn nicht eindeutig: nachfragen.
 5. Befehl zusammenbauen und ausfuehren.
 6. Ergebnis dem User lesbar darstellen.
-7. **Shortcut ergaenzen:** Wenn eine neue Projekt/Aktivitaets-Kombination verwendet wurde, die noch nicht in `.claude/kimai-shortcuts.json` steht, diese automatisch ergaenzen.
+7. **Shortcut ergaenzen:** Wenn eine neue Projekt/Aktivitaets-Kombination verwendet wurde, die noch nicht in `.claude/kimai-shortcuts.json` steht, per sed einfuegen — **nicht** die Datei lesen und als JSON zurueckschreiben:
+   ```bash
+   sed -i~ '$i\
+   ,"key": [project_id, activity_id, "Label"]' .claude/kimai-shortcuts.json
+   ```
+   Fuegt eine Zeile mit fuehrendem Komma vor der schliessenden `}` ein. Key ist lowercase, Bindestrich-getrennt.
 
 ## Hinweise
 
