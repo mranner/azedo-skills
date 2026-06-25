@@ -153,7 +153,23 @@ PHP-Code-Formatierung nach PSR-2 mit azedo-spezifischen Anpassungen. Kein eigene
 
 **Trigger:** `/php-formatting` oder natuerliche Sprache wie "formatiere den PHP Code". Wird automatisch angewendet wenn PHP-Code erstellt oder geaendert wird.
 
+### wp-cli
+
+Referenz-Skill fuer `wp` CLI — WordPress-Administration auf FreeBSD-Servern mit Jails. Kein eigenes Script, reine SKILL.md mit:
+
+- Zugriffsmuster fuer ezjail und iocage (SSH → jexec/iocage exec → sudo -u)
+- Datenbank-Operationen: Export, Import, Query, Search-Replace (mit Safety-Workflow)
+- Code-Ausfuehrung im WordPress-Kontext: `wp eval`, `wp eval-file`, `$wpdb`-Workaround
+- Quick Reference: Plugins, Themes, Users, Options, Cache, Cron, Core, Wartung
+- Bulk-Operationen, Multisite, Performance-Flags, Troubleshooting
+
+**Trigger:** Wird automatisch geladen bei wp-cli-Befehlen und WordPress-Administrations-Aufgaben.
+
 ## Changelog
+
+### 1.6.0
+
+- **wp-cli-Skill:** Neuer Referenz-Skill fuer WordPress-Administration via WP-CLI in FreeBSD-Jails. Zugriffsmuster (ezjail/iocage), DB-Operationen (wp db + $wpdb-Workaround), Code-Ausfuehrung (wp eval/eval-file), Quick Reference, Safety-Workflow, Troubleshooting
 
 ### 1.5.2
 
