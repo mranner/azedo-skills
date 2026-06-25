@@ -165,7 +165,22 @@ Referenz-Skill fuer `wp` CLI — WordPress-Administration auf FreeBSD-Servern mi
 
 **Trigger:** Wird automatisch geladen bei wp-cli-Befehlen und WordPress-Administrations-Aufgaben.
 
+### wp-sync-dev
+
+Synchronisiert WordPress-Plugins und -Themes zwischen Produktions-Installationen (in FreeBSD-Jails) und der DEV-Umgebung (dev.example.at) via rsync. Bidirektional: Prod → DEV und DEV → Prod. Kein eigenes Script, reine SKILL.md mit:
+
+- Pfad-Schema fuer DEV und Prod (iocage/ezjail)
+- rsync-Befehle in beide Richtungen
+- Permissions: DEV immer www:azedo 775/664, Prod an bestehender Installation orientieren
+- Aufraeumen von macOS-Artefakten (._*, .DS*)
+
+**Trigger:** `/wp-sync-dev` oder natuerliche Sprache wie "sync plugin", "plugin von prod holen", "theme auf dev kopieren".
+
 ## Changelog
+
+### 1.7.0
+
+- **wp-sync-dev-Skill:** Neuer Referenz-Skill fuer bidirektionalen WordPress-Plugin/Theme-Sync zwischen Prod-Jails und DEV (dev.example.at). Pfad-Schema (iocage/ezjail), rsync, Permissions, Artefakt-Bereinigung
 
 ### 1.6.0
 

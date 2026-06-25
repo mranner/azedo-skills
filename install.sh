@@ -11,7 +11,7 @@ SETTINGS="$HOME/.claude/settings.json"
 
 # Symlinks anlegen
 mkdir -p "$SKILLS_DIR"
-for skill in kanboard kimai swaks image-optimize envato ripgrep php-formatting wp-cli; do
+for skill in kanboard kimai swaks image-optimize envato ripgrep php-formatting wp-cli wp-sync-dev; do
     if [ -d "$REPO_DIR/$skill" ]; then
         if [ -e "$SKILLS_DIR/$skill" ]; then
             echo "  skip  $skill (existiert bereits)"
