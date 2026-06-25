@@ -42,10 +42,10 @@ Jail-ID per `jls` auf dem Server ermitteln. `jexec` braucht die **JID** (numeris
 sudo ssh -C root@<server> "jexec <JID> sudo -u <wwwuser> wp --path=/www/home/<wwwuser>/<domain> <command>"
 ```
 
-Beispiel (flexo, initech.at, JID 2):
+Beispiel (webhost1, example.at, JID 2):
 
 ```sh
-sudo ssh -C root@webhost1.example.at "jexec 2 sudo -u wwwinitech wp --path=/www/home/wwwinitech/www.initech.at plugin list"
+sudo ssh -C root@webhost1.example.at "jexec 2 sudo -u wwwexample wp --path=/www/home/wwwexample/www.example.at plugin list"
 ```
 
 ### iocage (iocage exec)
@@ -54,10 +54,10 @@ sudo ssh -C root@webhost1.example.at "jexec 2 sudo -u wwwinitech wp --path=/www/
 sudo ssh -C root@<server> "iocage exec <jailname> sudo -u <wwwuser> wp --path=/www/home/<wwwuser>/<domain> <command>"
 ```
 
-Beispiel (jailer.acme.com, apache1.acme.com):
+Beispiel (jailer1, apache1.example.com):
 
 ```sh
-sudo ssh -C root@jailer.acme.com "iocage exec apache1.acme.com sudo -u wwwacme wp --path=/www/home/wwwacme/www.acme.com core version"
+sudo ssh -C root@jailer1.example.at "iocage exec apache1.example.com sudo -u wwwexample wp --path=/www/home/wwwexample/www.example.com core version"
 ```
 
 ### Quoting
