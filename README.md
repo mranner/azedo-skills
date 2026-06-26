@@ -88,6 +88,8 @@ Versendet E-Mails via `swaks` über den lokalen Postfix auf `mom.azedo.at`. Unte
 - Plain-Text und HTML Body
 - Dateianhänge (beliebiger MIME-Type)
 - Mehrere Anhänge pro Mail
+- Kontakt-Shortcuts (`.claude/swaks-contacts.tsv` — Name-zu-Email-Lookup)
+- Optionale Default-Signatur (`.claude/swaks-signature.txt`)
 
 **Voraussetzungen:** `swaks` installiert, Zugang zu `mom.azedo.at`
 
@@ -177,6 +179,11 @@ Synchronisiert WordPress-Plugins und -Themes zwischen Produktions-Installationen
 **Trigger:** `/wp-sync-dev` oder natuerliche Sprache wie "sync plugin", "plugin von prod holen", "theme auf dev kopieren".
 
 ## Changelog
+
+### 1.8.0
+
+- **Swaks: Kontakt-Shortcuts:** Empfaenger-Lookup ueber `.claude/swaks-contacts.tsv` im Arbeitsverzeichnis (TSV: `kurzname<TAB>email`). Namen statt E-Mail-Adressen verwenden, neue Kontakte werden automatisch ergaenzt
+- **Swaks: Default-Signatur:** Optionale Signatur aus `.claude/swaks-signature.txt` wird automatisch an den Mail-Body angehaengt (unterdrueckbar per "ohne Signatur" oder bei anderem Absender)
 
 ### 1.7.0
 

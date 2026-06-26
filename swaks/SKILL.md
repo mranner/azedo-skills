@@ -25,6 +25,27 @@ E-Mails werden über `swaks` via `mom.azedo.at` (Postfix) versendet.
 
 Abweichende Werte übernimmst du aus der Nutzeranfrage.
 
+## Kontakte
+
+Bekannte Empfänger sind in `.claude/swaks-contacts.tsv` im Arbeitsverzeichnis hinterlegt (TSV: `kurzname<TAB>email`, eine Zeile pro Kontakt).
+
+**Lookup:** `grep -i <name> .claude/swaks-contacts.tsv` — liefert direkt die Zeile mit der E-Mail-Adresse (zweites Feld).
+
+Wenn der User einen Namen statt einer E-Mail-Adresse nennt (z.B. "schick das an Dagmar"), zuerst per grep nachschlagen. Nur wenn kein Treffer: nachfragen.
+
+Neue Kontakte nach dem Versand ergänzen:
+
+```bash
+printf '%s\t%s\n' "kurzname" "email@adresse" >> .claude/swaks-contacts.tsv
+```
+
+## Signatur
+
+Wenn `.claude/swaks-signature.txt` im Arbeitsverzeichnis existiert, wird deren Inhalt am Ende des Mail-Body angehängt (mit einer Leerzeile Abstand). Die Signatur wird **nicht** angehängt wenn:
+
+- Der User explizit "ohne Signatur" / "no sig" sagt
+- Die Mail im Namen einer anderen Person verfasst wird (anderer `--from`)
+
 ## Encoding
 
 Immer UTF-8 Header mitgeben, damit Umlaute korrekt ankommen:
@@ -139,10 +160,13 @@ swaks \
 
 ## Ablauf
 
-1. Fehlende Angaben aus dem Kontext ableiten (Empfänger, Betreff, Body, Anhänge).
-2. Befehl zusammenbauen.
-3. Befehl dem Nutzer kurz zeigen und auf Bestätigung warten – außer der Nutzer hat bereits explizit „ja" gesagt oder den Versand klar angeordnet.
-4. Befehl ausführen und Ergebnis (Queue-ID oder Fehler) melden.
+1. **Empfänger auflösen:** Wenn ein Name statt E-Mail-Adresse genannt wird, `grep -i <name> .claude/swaks-contacts.tsv` ausführen. Bei Treffer: E-Mail aus zweitem Feld verwenden. Bei keinem Treffer: nachfragen.
+2. **Signatur:** Wenn `.claude/swaks-signature.txt` existiert und kein Ausschlussgrund vorliegt, Inhalt mit Leerzeile Abstand an den Body anhängen.
+3. Fehlende Angaben aus dem Kontext ableiten (Betreff, Body, Anhänge).
+4. Befehl zusammenbauen.
+5. Befehl dem Nutzer kurz zeigen und auf Bestätigung warten – außer der Nutzer hat bereits explizit „ja" gesagt oder den Versand klar angeordnet.
+6. Befehl ausführen und Ergebnis (Queue-ID oder Fehler) melden.
+7. **Kontakt ergänzen:** Wenn eine neue E-Mail-Adresse verwendet wurde, die noch nicht in `.claude/swaks-contacts.tsv` steht, per `printf` anhängen.
 
 ## Hinweise
 
