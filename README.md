@@ -178,7 +178,40 @@ Synchronisiert WordPress-Plugins und -Themes zwischen Produktions-Installationen
 
 **Trigger:** `/wp-sync-dev` oder natuerliche Sprache wie "sync plugin", "plugin von prod holen", "theme auf dev kopieren".
 
+### mainwp
+
+MainWP Dashboard (office.example.at) — WordPress-Sites netzwerkuebergreifend verwalten.
+Generischer Abilities-Executor: 5 Subcommands fuer beliebige MainWP-Abilities.
+
+- Sites auflisten, Details anzeigen
+- Updates pruefen und installieren
+- Plugins/Themes verwalten (aktivieren, deaktivieren, installieren, loeschen)
+- Clients und Tags organisieren
+- Batch-Operationen mit Job-Polling
+
+**Voraussetzungen:** Python >= 3.11
+
+**Setup:** WordPress Application Password auf office.example.at erstellen. In `.env` eintragen:
+
+```
+MAINWP_HOST=https://office.example.at
+MAINWP_USER=<wp-username>
+MAINWP_APP_PASSWORD=<xxxx xxxx xxxx xxxx>
+```
+
+Dann einmalig:
+
+```bash
+python3 ~/.claude/skills/mainwp/mainwp setup
+```
+
+**Trigger:** `/mainwp` oder natuerliche Sprache wie "welche Sites haben Updates", "installiere Updates auf allen Sites".
+
 ## Changelog
+
+### 1.9.0
+
+- **MainWP-Skill:** Neuer Skill fuer MainWP Dashboard (office.example.at) — generischer Abilities-Executor mit 5 Subcommands (setup, ping, list, info, run). Dynamische Erkennung aller verfuegbaren Abilities via WP Abilities API. Destruktive Operationen erfordern --confirm, --dry-run fuer Vorschau
 
 ### 1.8.0
 

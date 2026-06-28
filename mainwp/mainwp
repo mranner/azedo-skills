@@ -1,0 +1,373 @@
+#!/usr/bin/env python3
+
+# MainWP Abilities API helper
+# stdlib only, no pip dependencies
+# version 1.9.0
+
+import argparse
+import base64
+import json
+import os
+import sys
+import time
+import urllib.request
+import urllib.error
+import urllib.parse
+
+
+def _env_has_mainwp(path):
+    """Check if .env file contains MAINWP_HOST"""
+    try:
+        with open(path) as f:
+            for line in f:
+                if line.strip().startswith("MAINWP_HOST"):
+                    return True
+    except OSError:
+        pass
+    return False
+
+
+def _find_env():
+    override = os.environ.get("MAINWP_ENV")
+    if override:
+        return override
+    cwd_env = os.path.join(os.getcwd(), ".env")
+    if os.path.exists(cwd_env) and _env_has_mainwp(cwd_env):
+        return cwd_env
+    return os.path.join(os.path.expanduser("~"), ".env")
+
+
+ENV_FILE = _find_env()
+
+_config = None
+
+
+def load_env():
+    """Read MAINWP_HOST, MAINWP_USER, MAINWP_APP_PASSWORD from .env (cached)"""
+    global _config
+    if _config is not None:
+        return _config
+
+    config = {}
+    if not os.path.exists(ENV_FILE):
+        print(f"Error: {ENV_FILE} not found", file=sys.stderr)
+        sys.exit(1)
+    with open(ENV_FILE) as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if "=" in line:
+                key, val = line.split("=", 1)
+                config[key.strip()] = val.strip().strip('"').strip("'")
+    for key in ("MAINWP_HOST", "MAINWP_USER", "MAINWP_APP_PASSWORD"):
+        if key not in config:
+            print(f"Error: {key} not set in {ENV_FILE}", file=sys.stderr)
+            sys.exit(1)
+
+    config["MAINWP_HOST"] = config["MAINWP_HOST"].rstrip("/")
+    _config = config
+    return _config
+
+
+def api_call(method, path, data=None, params=None):
+    """Make an HTTP request to MainWP Abilities API"""
+    config = load_env()
+    url = f"{config['MAINWP_HOST']}/wp-json/wp-abilities/v1/{path.lstrip('/')}"
+
+    if params:
+        qs = urllib.parse.urlencode(
+            {k: v for k, v in params.items() if v is not None}
+        )
+        if qs:
+            url += f"?{qs}"
+
+    body = json.dumps(data).encode("utf-8") if data else None
+    creds = f"{config['MAINWP_USER']}:{config['MAINWP_APP_PASSWORD']}"
+    auth = base64.b64encode(creds.encode()).decode()
+    req = urllib.request.Request(
+        url,
+        data=body,
+        headers={
+            "Authorization": f"Basic {auth}",
+            "Content-Type": "application/json",
+        },
+        method=method,
+    )
+
+    try:
+        with urllib.request.urlopen(req) as resp:
+            raw = resp.read()
+            if not raw:
+                return None
+            return json.loads(raw.decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        err_body = e.read().decode("utf-8", errors="replace")
+        print(f"API error {e.code}: {err_body}", file=sys.stderr)
+        sys.exit(1)
+
+
+def output(data):
+    """Print result as formatted JSON"""
+    print(json.dumps(data, indent=2, ensure_ascii=False))
+
+
+# -- instance.json cache --
+
+_instance = None
+
+
+def _instance_path():
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "instance.json")
+
+
+def load_instance():
+    global _instance
+    if _instance is not None:
+        return _instance
+    path = _instance_path()
+    if not os.path.exists(path):
+        return None
+    with open(path) as f:
+        _instance = json.load(f)
+    return _instance
+
+
+def save_instance(data):
+    global _instance
+    _instance = data
+    with open(_instance_path(), "w") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+        f.write("\n")
+
+
+# -- subcommands --
+
+def cmd_setup(args):
+    """Fetch abilities from API and cache in instance.json"""
+    print("Fetching abilities from MainWP Dashboard ...", file=sys.stderr)
+    result = api_call("GET", "abilities")
+
+    abilities = []
+    categories = set()
+    if isinstance(result, list):
+        items = result
+    elif isinstance(result, dict):
+        items = result.get("abilities", result.get("data", []))
+        if not isinstance(items, list):
+            items = [result]
+    else:
+        items = []
+
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        cat = item.get("category", "unknown")
+        categories.add(cat)
+        annotations = item.get("meta", {}).get("annotations", {})
+        abilities.append({
+            "name": item.get("name", ""),
+            "category": cat,
+            "description": item.get("description", ""),
+            "readonly": annotations.get("readonly", True),
+            "destructive": annotations.get("destructive", False),
+        })
+
+    from datetime import datetime
+    instance = {
+        "host": load_env()["MAINWP_HOST"],
+        "fetched_at": datetime.now().isoformat(timespec="seconds"),
+        "categories": sorted(categories),
+        "count": len(abilities),
+        "abilities": abilities,
+    }
+    save_instance(instance)
+
+    print(f"Host: {instance['host']}", file=sys.stderr)
+    print(f"Abilities: {instance['count']}", file=sys.stderr)
+    print(f"Categories: {', '.join(instance['categories'])}", file=sys.stderr)
+    print(f"Saved to {_instance_path()}", file=sys.stderr)
+
+
+def cmd_ping(args):
+    """Quick connectivity check"""
+    result = api_call("GET", "abilities")
+    count = 0
+    if isinstance(result, list):
+        count = len(result)
+    elif isinstance(result, dict):
+        items = result.get("abilities", result.get("data", []))
+        count = len(items) if isinstance(items, list) else 0
+
+    output({"status": "ok", "host": load_env()["MAINWP_HOST"], "abilities_count": count})
+
+
+def cmd_list(args):
+    """List available abilities"""
+    if args.refresh:
+        result = api_call("GET", "abilities")
+        if isinstance(result, list):
+            items = result
+        elif isinstance(result, dict):
+            items = result.get("abilities", result.get("data", []))
+        else:
+            items = []
+    else:
+        inst = load_instance()
+        if inst is None:
+            print("Error: instance.json not found. Run setup first.", file=sys.stderr)
+            sys.exit(1)
+        items = inst.get("abilities", [])
+
+    if args.category:
+        items = [a for a in items if isinstance(a, dict) and a.get("category") == args.category]
+
+    output(items)
+
+
+def cmd_info(args):
+    """Show ability details and parameter schema"""
+    result = api_call("GET", f"abilities/{args.ability_name}")
+    output(result)
+
+
+def _parse_params(param_list):
+    """Parse --param key=value pairs into a dict"""
+    params = {}
+    for p in param_list:
+        if "=" not in p:
+            print(f"Error: invalid param format '{p}' (expected key=value)", file=sys.stderr)
+            sys.exit(1)
+        key, val = p.split("=", 1)
+        # auto-coerce simple types
+        if val.lower() in ("true", "false"):
+            val = val.lower() == "true"
+        else:
+            try:
+                val = int(val)
+            except ValueError:
+                try:
+                    val = float(val)
+                except ValueError:
+                    pass
+        params[key] = val
+    return params
+
+
+def cmd_run(args):
+    """Execute an ability"""
+
+    # fetch ability schema to determine method and destructive flag
+    schema = api_call("GET", f"abilities/{args.ability_name}")
+
+    is_readonly = True
+    is_destructive = False
+    if isinstance(schema, dict):
+        annotations = schema.get("meta", {}).get("annotations", {})
+        is_readonly = annotations.get("readonly", True)
+        is_destructive = annotations.get("destructive", False)
+        # heuristic: names containing destructive verbs
+        name_lower = args.ability_name.lower()
+        for verb in ("delete", "remove", "disconnect", "deactivate", "suspend"):
+            if verb in name_lower:
+                is_destructive = True
+
+    params = _parse_params(args.param)
+
+    # safety check for destructive operations
+    if is_destructive and not args.confirm and not args.dry_run:
+        print(f"Error: '{args.ability_name}' is a destructive operation.", file=sys.stderr)
+        print("Add --confirm to execute or --dry-run to preview.", file=sys.stderr)
+        sys.exit(1)
+
+    # determine HTTP method
+    if is_readonly and not params:
+        method = "GET"
+    else:
+        method = "POST" if not is_readonly else "GET"
+
+    # dry-run: show what would be sent
+    if args.dry_run:
+        output({
+            "dry_run": True,
+            "ability": args.ability_name,
+            "method": method,
+            "url": f"{load_env()['MAINWP_HOST']}/wp-json/wp-abilities/v1/abilities/{args.ability_name}/run",
+            "params": params,
+            "destructive": is_destructive,
+        })
+        return
+
+    # add confirm flag for destructive operations
+    if is_destructive:
+        params["confirm"] = True
+
+    # execute
+    if method == "GET":
+        result = api_call("GET", f"abilities/{args.ability_name}/run", params=params)
+    else:
+        result = api_call("POST", f"abilities/{args.ability_name}/run", data=params)
+
+    # batch job handling
+    if isinstance(result, dict) and "job_id" in result:
+        job_id = result["job_id"]
+        print(f"Batch job started: {job_id}", file=sys.stderr)
+        elapsed = 0
+        while elapsed < args.poll_timeout:
+            time.sleep(args.poll_interval)
+            elapsed += args.poll_interval
+            status = api_call("GET", f"abilities/{args.ability_name}/status", params={"job_id": job_id})
+            if isinstance(status, dict):
+                state = status.get("status", "unknown")
+                progress = status.get("progress", "")
+                if progress:
+                    print(f"  {state}: {progress}", file=sys.stderr)
+                if state in ("completed", "done", "finished", "failed", "error"):
+                    output(status)
+                    return
+        print(f"Warning: poll timeout after {args.poll_timeout}s", file=sys.stderr)
+        output(result)
+        return
+
+    output(result)
+
+
+# -- main --
+
+def main():
+    parser = argparse.ArgumentParser(description="MainWP Abilities API helper")
+    sub = parser.add_subparsers(dest="command")
+
+    p = sub.add_parser("setup", help="Fetch abilities and create instance.json")
+    p.set_defaults(func=cmd_setup)
+
+    p = sub.add_parser("ping", help="Test connectivity")
+    p.set_defaults(func=cmd_ping)
+
+    p = sub.add_parser("list", help="List available abilities")
+    p.add_argument("--category", help="Filter by category")
+    p.add_argument("--refresh", action="store_true", help="Re-fetch from API instead of cache")
+    p.set_defaults(func=cmd_list)
+
+    p = sub.add_parser("info", help="Show ability details and parameter schema")
+    p.add_argument("ability_name", help="Ability name (e.g. mainwp/list-sites-v1)")
+    p.set_defaults(func=cmd_info)
+
+    p = sub.add_parser("run", help="Execute an ability")
+    p.add_argument("ability_name", help="Ability name (e.g. mainwp/list-sites-v1)")
+    p.add_argument("--param", action="append", default=[], help="Parameter as key=value (repeatable)")
+    p.add_argument("--confirm", action="store_true", help="Confirm destructive operations")
+    p.add_argument("--dry-run", action="store_true", help="Show request without executing")
+    p.add_argument("--poll-interval", type=int, default=5, help="Batch job poll interval in seconds (default: 5)")
+    p.add_argument("--poll-timeout", type=int, default=300, help="Batch job poll timeout in seconds (default: 300)")
+    p.set_defaults(func=cmd_run)
+
+    args = parser.parse_args()
+    if not hasattr(args, "func"):
+        parser.print_help()
+        sys.exit(1)
+    args.func(args)
+
+
+if __name__ == "__main__":
+    main()
