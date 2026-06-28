@@ -2,7 +2,7 @@
 
 # MainWP Abilities API helper
 # stdlib only, no pip dependencies
-# version 1.9.0
+# version 1.9.1
 
 import argparse
 import base64
@@ -241,7 +241,12 @@ def cmd_info(args):
 
 
 def _coerce_value(val):
-    """Auto-coerce a string value to bool/int/float if possible"""
+    """Auto-coerce a string value to bool/int/float/list/dict if possible"""
+    if val.startswith(("[", "{")):
+        try:
+            return json.loads(val)
+        except (json.JSONDecodeError, ValueError):
+            pass
     if val.lower() in ("true", "false"):
         return val.lower() == "true"
     try:
@@ -275,7 +280,10 @@ def _parse_params(param_list, schema=None):
         val = _coerce_value(val)
 
         if key in array_keys:
-            params.setdefault(key, []).append(val)
+            if isinstance(val, list):
+                params.setdefault(key, []).extend(val)
+            else:
+                params.setdefault(key, []).append(val)
         elif key in params:
             existing = params[key]
             if isinstance(existing, list):

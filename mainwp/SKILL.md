@@ -128,8 +128,15 @@ python3 "$SKILL_DIR/mainwp" run mainwp/update-all-plugins-v1 --confirm --poll-in
 
 ### Sites auflisten
 
+Die API paginiert (Default: 20 pro Seite). IMMER `per_page=100` verwenden,
+um alle Sites zu erhalten. Bei >100 Sites zusaetzlich `page=2` etc. abfragen.
+
 ```bash
-python3 "$SKILL_DIR/mainwp" run mainwp/list-sites-v1
+# Alle Sites (bis 100)
+python3 "$SKILL_DIR/mainwp" run mainwp/list-sites-v1 --param per_page=100
+
+# Site nach Name/URL suchen
+python3 "$SKILL_DIR/mainwp" run mainwp/list-sites-v1 --param search=globex
 ```
 
 ### Updates pruefen
