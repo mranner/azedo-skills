@@ -76,9 +76,18 @@ def api_call(method, path, data=None, params=None):
     url = f"{config['MAINWP_HOST']}/wp-json/wp-abilities/v1/{path.lstrip('/')}"
 
     if params:
-        qs = urllib.parse.urlencode(
-            {k: v for k, v in params.items() if v is not None}
-        )
+        pairs = []
+        for k, v in params.items():
+            if v is None:
+                continue
+            if isinstance(v, list):
+                for i, item in enumerate(v):
+                    pairs.append((f"{k}[{i}]", item))
+            elif isinstance(v, bool):
+                pairs.append((k, "true" if v else "false"))
+            else:
+                pairs.append((k, v))
+        qs = urllib.parse.urlencode(pairs)
         if qs:
             url += f"?{qs}"
 
@@ -231,26 +240,50 @@ def cmd_info(args):
     output(result)
 
 
-def _parse_params(param_list):
-    """Parse --param key=value pairs into a dict"""
+def _coerce_value(val):
+    """Auto-coerce a string value to bool/int/float if possible"""
+    if val.lower() in ("true", "false"):
+        return val.lower() == "true"
+    try:
+        return int(val)
+    except ValueError:
+        pass
+    try:
+        return float(val)
+    except ValueError:
+        pass
+    return val
+
+
+def _parse_params(param_list, schema=None):
+    """Parse --param key=value pairs into a dict.
+    If schema defines a key as array type, values are collected into a list.
+    Duplicate keys are also collected into a list."""
+    array_keys = set()
+    if schema and isinstance(schema, dict):
+        props = schema.get("input_schema", {}).get("properties", {})
+        for k, v in props.items():
+            if isinstance(v, dict) and v.get("type") == "array":
+                array_keys.add(k)
+
     params = {}
     for p in param_list:
         if "=" not in p:
             print(f"Error: invalid param format '{p}' (expected key=value)", file=sys.stderr)
             sys.exit(1)
         key, val = p.split("=", 1)
-        # auto-coerce simple types
-        if val.lower() in ("true", "false"):
-            val = val.lower() == "true"
+        val = _coerce_value(val)
+
+        if key in array_keys:
+            params.setdefault(key, []).append(val)
+        elif key in params:
+            existing = params[key]
+            if isinstance(existing, list):
+                existing.append(val)
+            else:
+                params[key] = [existing, val]
         else:
-            try:
-                val = int(val)
-            except ValueError:
-                try:
-                    val = float(val)
-                except ValueError:
-                    pass
-        params[key] = val
+            params[key] = val
     return params
 
 
@@ -272,7 +305,7 @@ def cmd_run(args):
             if verb in name_lower:
                 is_destructive = True
 
-    params = _parse_params(args.param)
+    params = _parse_params(args.param, schema)
 
     # safety check for destructive operations
     if is_destructive and not args.confirm and not args.dry_run:
@@ -280,11 +313,8 @@ def cmd_run(args):
         print("Add --confirm to execute or --dry-run to preview.", file=sys.stderr)
         sys.exit(1)
 
-    # determine HTTP method
-    if is_readonly and not params:
-        method = "GET"
-    else:
-        method = "POST" if not is_readonly else "GET"
+    # determine HTTP method: readonly → GET, write → POST
+    method = "GET" if is_readonly else "POST"
 
     # dry-run: show what would be sent
     if args.dry_run:
@@ -302,11 +332,13 @@ def cmd_run(args):
     if is_destructive:
         params["confirm"] = True
 
-    # execute
+    # execute: wrap params in "input" envelope (API convention)
+    # GET: query string as input[key]=value, POST: JSON body as {"input": {...}}
     if method == "GET":
-        result = api_call("GET", f"abilities/{args.ability_name}/run", params=params)
+        input_params = {f"input[{k}]": v for k, v in params.items()}
+        result = api_call("GET", f"abilities/{args.ability_name}/run", params=input_params)
     else:
-        result = api_call("POST", f"abilities/{args.ability_name}/run", data=params)
+        result = api_call("POST", f"abilities/{args.ability_name}/run", data={"input": params})
 
     # batch job handling
     if isinstance(result, dict) and "job_id" in result:
