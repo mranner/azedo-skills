@@ -103,6 +103,7 @@ python3 "$SKILL_DIR/mainwp" run mainwp/update-all-plugins-v1 --confirm --poll-in
 **Flags:**
 - `--confirm` — Destruktive Operation bestaetigen (Pflicht bei delete, update, etc.)
 - `--dry-run` — Zeigt den Request ohne auszufuehren
+- `--batch-size N` — site_ids in Gruppen von N aufteilen (Default: 25, 0=aus)
 - `--poll-interval N` — Batch-Polling-Intervall in Sekunden (Default: 5)
 - `--poll-timeout N` — Batch-Polling-Timeout in Sekunden (Default: 300)
 
@@ -139,10 +140,27 @@ python3 "$SKILL_DIR/mainwp" run mainwp/list-sites-v1 --param per_page=100
 python3 "$SKILL_DIR/mainwp" run mainwp/list-sites-v1 --param search=globex
 ```
 
+### Alle Sites syncen
+
+Das Script teilt site_ids automatisch in Batches (Default: 25 pro Batch),
+um Gateway Timeouts zu vermeiden. Bei leerem Array werden alle Site-IDs
+erst via list-sites geholt.
+
+```bash
+# Alle Sites syncen (Auto-Batching)
+python3 "$SKILL_DIR/mainwp" run mainwp/sync-sites-v1 --param 'site_ids=[]'
+
+# Mit groesseren Batches
+python3 "$SKILL_DIR/mainwp" run mainwp/sync-sites-v1 --param 'site_ids=[]' --batch-size 50
+
+# Ohne Batching (nur bei wenigen Sites)
+python3 "$SKILL_DIR/mainwp" run mainwp/sync-sites-v1 --param 'site_ids=[]' --batch-size 0
+```
+
 ### Updates pruefen
 
 ```bash
-python3 "$SKILL_DIR/mainwp" run mainwp/list-sites-with-updates-v1
+python3 "$SKILL_DIR/mainwp" run mainwp/list-updates-v1 --param per_page=100
 ```
 
 ### Plugin-Update auf einer Site installieren
