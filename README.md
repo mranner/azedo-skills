@@ -155,6 +155,19 @@ PHP-Code-Formatierung nach PSR-2 mit azedo-spezifischen Anpassungen. Kein eigene
 
 **Trigger:** `/php-formatting` oder natuerliche Sprache wie "formatiere den PHP Code". Wird automatisch angewendet wenn PHP-Code erstellt oder geaendert wird.
 
+### tcsh
+
+Referenz-Skill fuer tcsh — Remote-Administration auf FreeBSD-Servern. Root-Shell auf allen FreeBSD-Servern ist `tcsh`, Claude denkt aber in bash/sh. Kein eigenes Script, reine SKILL.md mit:
+
+- Entscheidungsmatrix: tcsh nativ vs. `sh -c` Wrapping
+- tcsh-Syntax-Kurzreferenz (Variablen, Redirects, Kontrollstrukturen, File-Tests)
+- Bash → tcsh Uebersetzungstabelle (die haeufigsten 20 Patterns)
+- FreeBSD-Admin-Patterns (service, pkg, jails, logs, firewall, ZFS)
+- Quoting-Regeln fuer SSH → tcsh und SSH → jexec/iocage → sh -c
+- Bekannte Fallen (Glob-Expansion, History-!, foreach, sed -i, Funktionen)
+
+**Trigger:** Wird automatisch angewendet bei SSH-Befehlen auf FreeBSD-Servern.
+
 ### wp-cli
 
 Referenz-Skill fuer `wp` CLI — WordPress-Administration auf FreeBSD-Servern mit Jails. Kein eigenes Script, reine SKILL.md mit:
@@ -211,6 +224,7 @@ python3 ~/.claude/skills/mainwp/mainwp setup
 
 ### 1.9.3
 
+- **tcsh-Skill:** Neuer Referenz-Skill fuer tcsh-basierte Remote-Administration auf FreeBSD. Entscheidungsmatrix (tcsh nativ vs. sh -c), Syntax-Kurzreferenz, Bash→tcsh Uebersetzungstabelle, FreeBSD-Admin-Patterns, Quoting-Regeln, bekannte Fallen
 - **wp-cli: Custom-Tabellen bei Multisite:** Hinweis ergaenzt — `--url` erfasst nur Standard-Tabellen mit Site-Prefix, Custom-Tabellen (z.B. WPML `wp_*_icl_strings`) erfordern `--all-tables`
 
 ### 1.9.2
