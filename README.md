@@ -222,6 +222,10 @@ python3 ~/.claude/skills/mainwp/mainwp setup
 
 ## Changelog
 
+### 1.9.5
+
+- **MainWP Auto-Batching:** `--batch-size N` (Default 25) splittet site_ids-basierte Abilities automatisch in Gruppen, um Gateway Timeouts bei vielen Sites zu vermeiden. Bei leerem Array (= alle Sites) werden IDs erst via list-sites geholt. Ergebnisse (synced/errors) werden aggregiert
+
 ### 1.9.4
 
 - **install.sh:** tcsh-Skill in Skill-Liste ergaenzt — kuenftige Installs registrieren den Symlink automatisch
