@@ -2,7 +2,7 @@
 
 # Kanboard JSON-RPC 2.0 API helper
 # stdlib only, no pip dependencies
-# version 1.7.0
+# version 1.9.2
 
 import argparse
 import base64
@@ -81,9 +81,22 @@ def rpc_call(method, params=None):
 
     try:
         with urllib.request.urlopen(req) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
+            body = resp.read().decode("utf-8")
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", errors="replace") if e.fp else ""
+        print(f"HTTP {e.code}: {e.reason}", file=sys.stderr)
+        if body:
+            print(body[:500], file=sys.stderr)
+        sys.exit(1)
     except urllib.error.URLError as e:
         print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        data = json.loads(body)
+    except json.JSONDecodeError:
+        print(f"Error: API returned non-JSON response", file=sys.stderr)
+        print(body[:500], file=sys.stderr)
         sys.exit(1)
 
     if "error" in data and data["error"]:
@@ -121,8 +134,13 @@ def rpc_try(method, params=None):
 
     try:
         with urllib.request.urlopen(req) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-    except urllib.error.URLError:
+            body = resp.read().decode("utf-8")
+    except (urllib.error.URLError, urllib.error.HTTPError):
+        return None
+
+    try:
+        data = json.loads(body)
+    except json.JSONDecodeError:
         return None
 
     if "error" in data and data["error"]:
