@@ -220,7 +220,25 @@ python3 ~/.claude/skills/mainwp/mainwp setup
 
 **Trigger:** `/mainwp` oder natuerliche Sprache wie "welche Sites haben Updates", "installiere Updates auf allen Sites".
 
+### wp-pys
+
+Referenz-Skill fuer PixelYourSite Pro Event-Verwaltung in WordPress-(Multi-)Sites per WP-CLI. Kein eigenes Script, reine SKILL.md mit PHP-Snippets:
+
+- Datenmodell: `pys_event` CPT, `wp_{blog}_pys_options`, serialisierte Meta-Felder
+- Events auflisten, Plugin-Config lesen, Pixel-Ziele aktivieren
+- Events klonen, Trigger aendern (CSS-Click, Ninja Forms)
+- Verifizieren (Trigger-Deserialisierung pruefen), Backup/Restore
+- Ninja-Form-IDs nachschlagen (site-spezifisch bei Multisite)
+- Fallstricke: `wp_slash()` bei Triggers, `$args[]` statt Env-Vars, login-gated Formulare
+
+**Trigger:** `/wp-pys` oder natuerliche Sprache wie "PYS Events auflisten", "GA4 Event einrichten", "PixelYourSite".
+
 ## Changelog
+
+### 1.9.6
+
+- **wp-pys-Skill:** Neuer Referenz-Skill fuer PixelYourSite Pro Event-Verwaltung in WordPress-(Multi-)Sites. PHP-Snippets fuer list-events, show-config, enable-target, clone-event, set-trigger, verify, backup/restore, list-forms. Dokumentiert Datenmodell, wp_slash()-Fallstrick und Multisite-Stolpersteine
+- **install.sh:** Skill-Liste alphabetisch sortiert, wp-pys ergaenzt
 
 ### 1.9.5
 
