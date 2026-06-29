@@ -2,7 +2,7 @@
 
 # MainWP Abilities API helper
 # stdlib only, no pip dependencies
-# version 1.9.2
+# version 1.9.4
 
 import argparse
 import base64
@@ -295,6 +295,79 @@ def _parse_params(param_list, schema=None):
     return params
 
 
+def _fetch_all_site_ids():
+    """Fetch all site IDs via list-sites, handling pagination."""
+    ids = []
+    page = 1
+    while True:
+        input_params = {"input[per_page]": 100, "input[page]": page}
+        result = api_call("GET", "abilities/mainwp/list-sites-v1/run", params=input_params)
+        if not isinstance(result, dict):
+            break
+        items = result.get("items", [])
+        if not items:
+            break
+        ids.extend(s["id"] for s in items if isinstance(s, dict) and "id" in s)
+        if len(items) < 100:
+            break
+        page += 1
+    return ids
+
+
+def _run_batched(args, schema, method, params, ids_key, all_ids):
+    """Run an ability in batches over site IDs, aggregating results."""
+    batch_size = args.batch_size
+    total = len(all_ids)
+    batches = [all_ids[i:i + batch_size] for i in range(0, total, batch_size)]
+
+    print(f"Batching: {total} sites in {len(batches)} batches (size {batch_size})", file=sys.stderr)
+
+    agg_synced = []
+    agg_errors = []
+    agg_total_synced = 0
+    agg_total_errors = 0
+
+    for idx, batch in enumerate(batches, 1):
+        print(f"  Batch {idx}/{len(batches)}: {len(batch)} sites ...", file=sys.stderr, end=" ", flush=True)
+
+        batch_params = dict(params)
+        batch_params[ids_key] = batch
+
+        try:
+            if method == "GET":
+                input_params = {f"input[{k}]": v for k, v in batch_params.items()}
+                result = api_call("GET", f"abilities/{args.ability_name}/run", params=input_params)
+            else:
+                result = api_call("POST", f"abilities/{args.ability_name}/run", data={"input": batch_params})
+        except SystemExit:
+            print("ERROR", file=sys.stderr)
+            agg_total_errors += len(batch)
+            continue
+
+        if isinstance(result, dict):
+            agg_total_synced += result.get("total_synced", 0)
+            agg_total_errors += result.get("total_errors", 0)
+            agg_synced.extend(result.get("synced", []))
+            agg_errors.extend(result.get("errors", []))
+            s = result.get("total_synced", 0)
+            e = result.get("total_errors", 0)
+            print(f"{s} ok, {e} errors", file=sys.stderr)
+        else:
+            print("ok", file=sys.stderr)
+
+    aggregated = {
+        "total_synced": agg_total_synced,
+        "total_errors": agg_total_errors,
+        "batches": len(batches),
+    }
+    if agg_synced:
+        aggregated["synced"] = agg_synced
+    if agg_errors:
+        aggregated["errors"] = agg_errors
+
+    output(aggregated)
+
+
 def cmd_run(args):
     """Execute an ability"""
 
@@ -333,12 +406,30 @@ def cmd_run(args):
             "url": f"{load_env()['MAINWP_HOST']}/wp-json/wp-abilities/v1/abilities/{args.ability_name}/run",
             "params": params,
             "destructive": is_destructive,
+            "batch_size": args.batch_size,
         })
         return
 
     # add confirm flag for destructive operations
     if is_destructive:
         params["confirm"] = True
+
+    # auto-batching: detect site_ids / site_ids_or_domains arrays
+    if args.batch_size > 0:
+        for ids_key in ("site_ids", "site_ids_or_domains"):
+            if ids_key in params:
+                ids_val = params[ids_key]
+                if isinstance(ids_val, list) and len(ids_val) == 0:
+                    # empty array = all sites — fetch IDs first
+                    print("Fetching all site IDs ...", file=sys.stderr)
+                    all_ids = _fetch_all_site_ids()
+                    print(f"Found {len(all_ids)} sites", file=sys.stderr)
+                    _run_batched(args, schema, method, params, ids_key, all_ids)
+                    return
+                elif isinstance(ids_val, list) and len(ids_val) > args.batch_size:
+                    _run_batched(args, schema, method, params, ids_key, ids_val)
+                    return
+                break
 
     # execute: wrap params in "input" envelope (API convention)
     # GET: query string as input[key]=value, POST: JSON body as {"input": {...}}
@@ -398,6 +489,7 @@ def main():
     p.add_argument("--param", action="append", default=[], help="Parameter as key=value (repeatable)")
     p.add_argument("--confirm", action="store_true", help="Confirm destructive operations")
     p.add_argument("--dry-run", action="store_true", help="Show request without executing")
+    p.add_argument("--batch-size", type=int, default=25, help="Auto-batch site_ids into groups of N (default: 25, 0=off)")
     p.add_argument("--poll-interval", type=int, default=5, help="Batch job poll interval in seconds (default: 5)")
     p.add_argument("--poll-timeout", type=int, default=300, help="Batch job poll timeout in seconds (default: 300)")
     p.set_defaults(func=cmd_run)
