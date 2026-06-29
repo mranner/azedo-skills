@@ -344,6 +344,16 @@ wp plugin activate <slug> --network
 
 Bei Multisite-Installationen **immer** `--url=<site>` angeben, sonst wirkt der Befehl nur auf die Haupt-Site.
 
+**Achtung:** `--url` filtert nur auf Standard-WordPress-Tabellen (mit Site-Prefix). Custom-Tabellen wie `wp_*_icl_strings` (WPML) oder andere Plugin-Tabellen ohne Site-Prefix werden von `--url` **nicht** erfasst. Fuer Operationen auf solchen Tabellen `--all-tables` verwenden:
+
+```sh
+# FALSCH — findet Custom-Tabellen nicht:
+wp search-replace 'alt' 'neu' --url=sub.example.com
+
+# RICHTIG — alle Tabellen einschliessen:
+wp search-replace 'alt' 'neu' --all-tables
+```
+
 ---
 
 ## 7. Performance-Flags
