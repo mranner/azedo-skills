@@ -54,6 +54,12 @@ sudo ssh -C root@server "service apache24 stop ; service apache24 start"
 # iocage/jexec — einfache Befehle
 sudo ssh -C root@server "iocage exec jailname apachectl graceful"
 sudo ssh -C root@server "jexec 2 sudo -u wwwuser wp --path=/www/home/wwwuser/domain core version"
+
+# ACHTUNG: iocage exec + sudo -u — NICHT direkt moeglich!
+# iocage exec leitet an jexec weiter, jexec faengt -u als eigenen Flag ab.
+# jexec <JID> (numerisch) hat dieses Problem NICHT.
+# → Bei iocage exec immer sh -c wrappen:
+sudo ssh -C root@server "iocage exec jailname sh -c 'sudo -u wwwuser wp --path=/www/home/wwwuser/domain core version'"
 ```
 
 ### sh -c wrappen (Pflicht)
@@ -62,6 +68,7 @@ Sobald eines dieser Merkmale vorkommt:
 
 | Merkmal | Beispiel | Warum tcsh scheitert |
 |---------|----------|---------------------|
+| `iocage exec` + `sudo -u` | `iocage exec jail sudo -u user ...` | jexec faengt `-u` als eigenen Flag ab |
 | Stderr-Redirect | `2>/dev/null`, `2>&1` | tcsh interpretiert `2` als Dateiname |
 | `&&` / `||` | `cmd1 && cmd2` | "Invalid null command" |
 | `$()` | `$(hostname)` | Nicht unterstuetzt, nur Backticks |

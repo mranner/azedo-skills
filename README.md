@@ -204,13 +204,19 @@ Generischer Abilities-Executor: 5 Subcommands fuer beliebige MainWP-Abilities.
 
 **Voraussetzungen:** Python >= 3.11
 
-**Setup:** WordPress Application Password auf office.example.at erstellen. In `.env` eintragen:
+**Voraussetzungen:** Python >= 3.11
+
+**Setup:** WordPress Application Password und REST API v2 Key auf office.example.at. In `.env` eintragen:
 
 ```
 MAINWP_HOST=https://office.example.at
 MAINWP_USER=<wp-username>
 MAINWP_APP_PASSWORD=<xxxx xxxx xxxx xxxx>
+MAINWP_V2_CONSUMER_KEY=<consumer-key>
+MAINWP_V2_CONSUMER_SECRET=<consumer-secret>
 ```
+
+Application Password fuer die Abilities-API (Sites, Updates, Clients). Consumer Key/Secret fuer die REST API v2 (Tags).
 
 Dann einmalig:
 
@@ -234,6 +240,11 @@ Referenz-Skill fuer PixelYourSite Pro Event-Verwaltung in WordPress-(Multi-)Site
 **Trigger:** `/wp-pys` oder natuerliche Sprache wie "PYS Events auflisten", "GA4 Event einrichten", "PixelYourSite".
 
 ## Changelog
+
+### 1.9.8
+
+- **MainWP: REST API v2 dokumentiert:** Tag-Verwaltung ueber `mainwp/v2` Endpoint (Consumer Key/Secret Auth, getrennt von Application Password). Neue Abschnitte: Tags verwalten, Clients verwalten, API-Architektur. Pagination-Warnung (>100 Sites, immer page=2 pruefen). v2 Credentials in `.env` (`MAINWP_V2_CONSUMER_KEY`, `MAINWP_V2_CONSUMER_SECRET`)
+- **tcsh: iocage exec + sudo -u Pitfall:** `iocage exec <jail> sudo -u <user>` scheitert, weil jexec den `-u` Flag abfaengt. Fix: in `sh -c` wrappen. Unterschied zu `jexec <JID>` (numerisch) dokumentiert. In Entscheidungsmatrix aufgenommen
 
 ### 1.9.6
 
