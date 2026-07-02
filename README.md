@@ -17,6 +17,13 @@ Das Install-Script legt Symlinks an und traegt die nötigen Permissions in `~/.c
 cd ~/.claude/azedo-skills && git pull
 ```
 
+`install.sh` richtet beim ersten Lauf einen Git-Hook ein, der neue Skills nach
+jedem `git pull` **automatisch** verlinkt — man muss `install.sh` nach einem
+Update also nicht erneut aufrufen.
+
+**Aeltere Installationen ohne Hook:** einmalig `sh install.sh` ausfuehren,
+danach greift der Automatismus bei jedem weiteren `git pull`.
+
 Nach einem Update ggf. `setup` erneut ausfuehren, damit `instance.json` aktualisiert wird.
 
 **Ab v1.1.0:** `setup` muss nach dem Update einmal ausgefuehrt werden — die `instance.json` enthaelt jetzt die Benutzerrolle (Admin/Non-Admin) fuer die API-Aufrufe.

@@ -22,6 +22,29 @@ for skill in envato google-analytics image-optimize kanboard kimai mainwp php-fo
     fi
 done
 
+# Git-Hook installieren: verlinkt neue Skills automatisch nach 'git pull'
+# (post-merge fuer 'git pull', post-rewrite fuer 'git pull --rebase').
+if git -C "$REPO_DIR" rev-parse --git-dir >/dev/null 2>&1; then
+    HOOKS_DIR="$(cd "$REPO_DIR" && git rev-parse --absolute-git-dir)/hooks"
+    mkdir -p "$HOOKS_DIR"
+    HOOK_BODY="#!/bin/sh
+# azedo-skills auto-link hook (erzeugt von install.sh)
+# Verlinkt neue Skills automatisch nach 'git pull'.
+sh \"$REPO_DIR/install.sh\" >/dev/null 2>&1 || true"
+    for hook in post-merge post-rewrite; do
+        HOOK_FILE="$HOOKS_DIR/$hook"
+        if [ -e "$HOOK_FILE" ] && ! grep -q 'azedo-skills auto-link' "$HOOK_FILE" 2>/dev/null; then
+            echo "  warn  $hook Hook existiert bereits (fremd) — nicht ueberschrieben"
+        elif [ -e "$HOOK_FILE" ] && [ "$(cat "$HOOK_FILE")" = "$HOOK_BODY" ]; then
+            echo "  skip  $hook Hook (aktuell)"
+        else
+            printf '%s\n' "$HOOK_BODY" > "$HOOK_FILE"
+            chmod +x "$HOOK_FILE"
+            echo "  hook  $hook installiert"
+        fi
+    done
+fi
+
 # Permissions in settings.json eintragen
 if ! command -v python3 >/dev/null 2>&1; then
     echo ""
