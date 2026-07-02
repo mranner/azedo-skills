@@ -116,6 +116,26 @@ ENVATO_TOKEN=dein-personal-token
 
 **Trigger:** `/envato` oder natürliche Sprache wie "lade das Theme herunter", "zeig meine Envato-Käufe".
 
+### google-analytics
+
+Google Analytics 4 Datenabfrage via Service Account. Python-Script (stdlib only, keine pip-Dependencies):
+
+- Accounts und Properties auflisten
+- Reports: Custom Dimensions, Metrics, Filter, Sortierung, Datumsbereiche
+- Realtime: aktive User, aktuelle Seitenaufrufe
+- Metadata: verfuegbare Dimensionen und Metriken einer Property
+- Tab-separierte oder JSON-Ausgabe
+
+**Voraussetzungen:** Python >= 3.11, Package `cryptography` (fuer JWT-Signierung)
+
+**Setup:** Service Account JSON unter `~/.config/ga4-service-account.json`. Service Account als Betrachter in GA4-Properties hinterlegen. Dann:
+
+```bash
+python3 "$SKILL_DIR/google-analytics" setup
+```
+
+**Trigger:** `/google-analytics`, `/ga4` oder natuerliche Sprache wie "wie viele Besucher", "Traffic letzte Woche", "GA4 Report".
+
 ### image-optimize
 
 Optimiert Bilder für Web-Verwendung. Unterstützt:
@@ -239,7 +259,27 @@ Referenz-Skill fuer PixelYourSite Pro Event-Verwaltung in WordPress-(Multi-)Site
 
 **Trigger:** `/wp-pys` oder natuerliche Sprache wie "PYS Events auflisten", "GA4 Event einrichten", "PixelYourSite".
 
+### wiki
+
+LLM Wiki-Verwaltung fuer strukturierte Server-Infra-Dokumentation. Kein eigenes Script (bis auf lint-wiki.py), reine SKILL.md mit Subcommands:
+
+- init: neues Wiki-Unterverzeichnis anlegen
+- ingest: Quellen ins Wiki aufnehmen (nach raw/, immutable)
+- compile: Quellen zu Wiki-Entities verarbeiten (Server, Service, Access, Site, Procedure)
+- query: Fragen gegen das Wiki beantworten
+- lint: strukturelle Pruefung (Frontmatter, tote Links, Konnektivitaet, Namenskonventionen)
+- status: Ueberblick ueber Wiki-Zustand
+
+Referenzen: Frontmatter-Schemas, Compilation-Guide, Cross-Referencing-Regeln.
+
+**Trigger:** `/wiki` oder natuerliche Sprache wie "trag das ins Wiki ein", "was steht im Wiki zu X".
+
 ## Changelog
+
+### 1.10.0
+
+- **google-analytics-Skill:** GA4-Datenabfrage via Service Account (Python, stdlib only). Subcommands: accounts, properties, report, realtime, metadata, setup. Tab-separierte oder JSON-Ausgabe, Custom Dimensions/Metrics, Filter, Sortierung. instance.json fuer Property-ID Lookup
+- **wiki-Skill:** LLM Wiki-Verwaltung fuer Server-Infra-Dokumentation. Subcommands: init, ingest, compile, query, lint, status. Frontmatter-Schemas, Cross-Referencing mit Wikilinks, Backlink-Audit, Compile-Checkliste. Lint-Script (lint-wiki.py) prueft Pflichtfelder, tote Links, Konnektivitaet, Namenskonventionen
 
 ### 1.9.8
 

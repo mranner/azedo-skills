@@ -1,0 +1,379 @@
+#!/usr/bin/env python3
+
+# Google Analytics 4 REST API helper
+# stdlib only, no pip dependencies
+# version 0.1.0
+
+import argparse
+import json
+import os
+import sys
+import time
+import urllib.parse
+import urllib.request
+import urllib.error
+
+_token_cache = None
+_sa_config = None
+
+def _find_sa_file():
+    """Find service account JSON file"""
+    override = os.environ.get("GA4_SERVICE_ACCOUNT")
+    if override:
+        return override
+    default = os.path.join(os.path.expanduser("~"), ".config", "ga4-service-account.json")
+    if os.path.exists(default):
+        return default
+    return None
+
+
+def _load_sa():
+    """Load service account config (cached)"""
+    global _sa_config
+    if _sa_config is not None:
+        return _sa_config
+
+    path = _find_sa_file()
+    if not path:
+        print("Error: Service account JSON not found.", file=sys.stderr)
+        print("Set GA4_SERVICE_ACCOUNT or place file at ~/.config/ga4-service-account.json", file=sys.stderr)
+        sys.exit(1)
+    with open(path) as f:
+        _sa_config = json.load(f)
+    return _sa_config
+
+
+def _b64url(data):
+    """Base64url encode bytes"""
+    import base64
+    return base64.urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
+
+
+def _get_access_token():
+    """Get OAuth2 access token via service account JWT"""
+    global _token_cache
+    now = int(time.time())
+
+    if _token_cache and _token_cache["exp"] > now + 60:
+        return _token_cache["token"]
+
+    sa = _load_sa()
+
+    # Build JWT
+    header = _b64url(json.dumps({"alg": "RS256", "typ": "JWT"}).encode())
+    payload = _b64url(json.dumps({
+        "iss": sa["client_email"],
+        "scope": "https://www.googleapis.com/auth/analytics.readonly",
+        "aud": sa["token_uri"],
+        "iat": now,
+        "exp": now + 3600,
+    }).encode())
+
+    signing_input = f"{header}.{payload}".encode()
+
+    # Sign with RSA key
+    from hashlib import sha256
+    try:
+        from cryptography.hazmat.primitives import hashes, serialization
+        from cryptography.hazmat.primitives.asymmetric import padding
+        private_key = serialization.load_pem_private_key(sa["private_key"].encode(), password=None)
+        signature = private_key.sign(signing_input, padding.PKCS1v15(), hashes.SHA256())
+    except ImportError:
+        print("Error: cryptography package required. Install with: python3.11 -m pip install --user cryptography", file=sys.stderr)
+        sys.exit(1)
+
+    jwt = f"{header}.{payload}.{_b64url(signature)}"
+
+    # Exchange JWT for access token
+    data = urllib.parse.urlencode({
+        "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+        "assertion": jwt,
+    }).encode()
+
+    req = urllib.request.Request(sa["token_uri"], data=data, method="POST")
+    req.add_header("Content-Type", "application/x-www-form-urlencoded")
+
+    try:
+        with urllib.request.urlopen(req) as resp:
+            result = json.loads(resp.read())
+    except urllib.error.HTTPError as e:
+        body = e.read().decode()
+        print(f"Error getting access token: {e.code} {body}", file=sys.stderr)
+        sys.exit(1)
+
+    _token_cache = {"token": result["access_token"], "exp": now + result.get("expires_in", 3600)}
+    return _token_cache["token"]
+
+
+def api_call(method, url, data=None):
+    """Make authenticated HTTP request to Google API"""
+    token = _get_access_token()
+    body = json.dumps(data).encode() if data else None
+    req = urllib.request.Request(url, data=body, method=method)
+    req.add_header("Authorization", f"Bearer {token}")
+    req.add_header("Content-Type", "application/json")
+
+    try:
+        with urllib.request.urlopen(req) as resp:
+            return json.loads(resp.read())
+    except urllib.error.HTTPError as e:
+        body = e.read().decode()
+        print(f"Error: {e.code} {body}", file=sys.stderr)
+        sys.exit(1)
+
+
+# --- Subcommands ---
+
+def cmd_setup(args):
+    """Test connection and list accessible accounts/properties"""
+    token = _get_access_token()
+    print("Auth OK\n")
+
+    # List accounts
+    result = api_call("GET", "https://analyticsadmin.googleapis.com/v1beta/accounts")
+    accounts = result.get("accounts", [])
+
+    if not accounts:
+        print("Keine Accounts gefunden. Service Account als Betrachter in GA4 hinzufuegen.")
+        return
+
+    instance = {"accounts": [], "properties": []}
+
+    for acc in accounts:
+        acc_id = acc["name"].split("/")[-1]
+        acc_name = acc.get("displayName", "")
+        print(f"Account: {acc_name} ({acc_id})")
+        instance["accounts"].append({"id": acc_id, "name": acc_name})
+
+        # List properties for this account
+        props_result = api_call("GET",
+            f"https://analyticsadmin.googleapis.com/v1beta/properties?filter=parent:accounts/{acc_id}")
+        props = props_result.get("properties", [])
+
+        for prop in props:
+            prop_id = prop["name"].split("/")[-1]
+            prop_name = prop.get("displayName", "")
+            print(f"  Property: {prop_name} ({prop_id})")
+            instance["properties"].append({
+                "id": prop_id,
+                "name": prop_name,
+                "account_id": acc_id,
+                "account_name": acc_name,
+            })
+
+    # Save instance.json
+    skill_dir = os.path.dirname(os.path.abspath(__file__))
+    instance_path = os.path.join(skill_dir, "instance.json")
+    with open(instance_path, "w") as f:
+        json.dump(instance, f, indent=2, ensure_ascii=False)
+    print(f"\ninstance.json geschrieben ({len(instance['properties'])} Properties)")
+
+
+def cmd_accounts(args):
+    """List accounts"""
+    result = api_call("GET", "https://analyticsadmin.googleapis.com/v1beta/accounts")
+    for acc in result.get("accounts", []):
+        acc_id = acc["name"].split("/")[-1]
+        print(f"{acc_id}\t{acc.get('displayName', '')}")
+
+
+def cmd_properties(args):
+    """List properties for an account"""
+    filt = f"parent:accounts/{args.account}" if args.account else ""
+    url = f"https://analyticsadmin.googleapis.com/v1beta/properties?filter={filt}&pageSize=200"
+    result = api_call("GET", url)
+    for prop in result.get("properties", []):
+        prop_id = prop["name"].split("/")[-1]
+        print(f"{prop_id}\t{prop.get('displayName', '')}")
+
+
+def cmd_report(args):
+    """Run a GA4 report"""
+    url = f"https://analyticsdata.googleapis.com/v1beta/properties/{args.property}:runReport"
+
+    body = {
+        "dateRanges": [{"startDate": args.start, "endDate": args.end}],
+        "dimensions": [{"name": d} for d in args.dimensions.split(",")],
+        "metrics": [{"name": m} for m in args.metrics.split(",")],
+    }
+
+    if args.limit:
+        body["limit"] = args.limit
+
+    if args.order_by:
+        desc = True
+        field = args.order_by
+        if field.startswith("+"):
+            desc = False
+            field = field[1:]
+        elif field.startswith("-"):
+            field = field[1:]
+
+        order = {"desc": desc}
+        if field in args.metrics.split(","):
+            order["metric"] = {"metricName": field}
+        else:
+            order["dimension"] = {"dimensionName": field}
+        body["orderBys"] = [order]
+
+    if args.filter:
+        # Simple filter: dimension==value
+        parts = args.filter.split("==", 1)
+        if len(parts) == 2:
+            body["dimensionFilter"] = {
+                "filter": {
+                    "fieldName": parts[0],
+                    "stringFilter": {"value": parts[1]}
+                }
+            }
+
+    result = api_call("POST", url, body)
+
+    if args.json:
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return
+
+    # Header
+    dims = [h.get("name", "") for h in result.get("dimensionHeaders", [])]
+    mets = [h.get("name", "") for h in result.get("metricHeaders", [])]
+    print("\t".join(dims + mets))
+
+    # Rows
+    for row in result.get("rows", []):
+        dim_vals = [v.get("value", "") for v in row.get("dimensionValues", [])]
+        met_vals = [v.get("value", "") for v in row.get("metricValues", [])]
+        print("\t".join(dim_vals + met_vals))
+
+    total = result.get("rowCount", 0)
+    if total and args.limit and total > args.limit:
+        print(f"\n({args.limit} von {total} Zeilen)", file=sys.stderr)
+
+
+def cmd_realtime(args):
+    """Run a GA4 realtime report"""
+    url = f"https://analyticsdata.googleapis.com/v1beta/properties/{args.property}:runRealtimeReport"
+
+    dims = args.dimensions.split(",") if args.dimensions else ["country"]
+    mets = args.metrics.split(",") if args.metrics else ["activeUsers"]
+
+    body = {
+        "dimensions": [{"name": d} for d in dims],
+        "metrics": [{"name": m} for m in mets],
+    }
+
+    if args.limit:
+        body["limit"] = args.limit
+
+    result = api_call("POST", url, body)
+
+    if args.json:
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return
+
+    # Header
+    dim_headers = [h.get("name", "") for h in result.get("dimensionHeaders", [])]
+    met_headers = [h.get("name", "") for h in result.get("metricHeaders", [])]
+    print("\t".join(dim_headers + met_headers))
+
+    for row in result.get("rows", []):
+        dim_vals = [v.get("value", "") for v in row.get("dimensionValues", [])]
+        met_vals = [v.get("value", "") for v in row.get("metricValues", [])]
+        print("\t".join(dim_vals + met_vals))
+
+
+def cmd_metadata(args):
+    """List available dimensions and metrics for a property"""
+    url = f"https://analyticsdata.googleapis.com/v1beta/properties/{args.property}/metadata"
+    result = api_call("GET", url)
+
+    if args.json:
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return
+
+    if not args.type or args.type == "dimensions":
+        print("=== Dimensions ===")
+        for d in result.get("dimensions", []):
+            name = d.get("apiName", "")
+            desc = d.get("uiName", "")
+            if args.search and args.search.lower() not in name.lower() and args.search.lower() not in desc.lower():
+                continue
+            print(f"{name}\t{desc}")
+
+    if not args.type or args.type == "metrics":
+        print("\n=== Metrics ===")
+        for m in result.get("metrics", []):
+            name = m.get("apiName", "")
+            desc = m.get("uiName", "")
+            if args.search and args.search.lower() not in name.lower() and args.search.lower() not in desc.lower():
+                continue
+            print(f"{name}\t{desc}")
+
+
+def cmd_version(args):
+    print("google-analytics 0.1.0")
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Google Analytics 4 API")
+    sub = parser.add_subparsers(dest="command")
+
+    # setup
+    sub.add_parser("setup", help="Test auth, list accounts/properties, write instance.json")
+
+    # version
+    sub.add_parser("version", help="Show version")
+
+    # accounts
+    sub.add_parser("accounts", help="List accessible accounts")
+
+    # properties
+    p_props = sub.add_parser("properties", help="List properties")
+    p_props.add_argument("--account", help="Account ID filter")
+
+    # report
+    p_report = sub.add_parser("report", help="Run a GA4 report")
+    p_report.add_argument("--property", "-p", required=True, help="Property ID (e.g. 525022788)")
+    p_report.add_argument("--dimensions", "-d", default="date", help="Comma-separated dimensions (default: date)")
+    p_report.add_argument("--metrics", "-m", default="sessions,totalUsers,screenPageViews",
+                          help="Comma-separated metrics (default: sessions,totalUsers,screenPageViews)")
+    p_report.add_argument("--start", "-s", default="7daysAgo", help="Start date (default: 7daysAgo)")
+    p_report.add_argument("--end", "-e", default="today", help="End date (default: today)")
+    p_report.add_argument("--limit", "-l", type=int, help="Max rows")
+    p_report.add_argument("--order-by", "-o", help="Order by field (prefix - for desc, + for asc)")
+    p_report.add_argument("--filter", "-f", help="Simple filter: dimension==value")
+    p_report.add_argument("--json", action="store_true", help="Raw JSON output")
+
+    # realtime
+    p_rt = sub.add_parser("realtime", help="Realtime report")
+    p_rt.add_argument("--property", "-p", required=True, help="Property ID")
+    p_rt.add_argument("--dimensions", "-d", help="Comma-separated dimensions (default: country)")
+    p_rt.add_argument("--metrics", "-m", help="Comma-separated metrics (default: activeUsers)")
+    p_rt.add_argument("--limit", "-l", type=int, help="Max rows")
+    p_rt.add_argument("--json", action="store_true", help="Raw JSON output")
+
+    # metadata
+    p_meta = sub.add_parser("metadata", help="List available dimensions/metrics")
+    p_meta.add_argument("--property", "-p", required=True, help="Property ID")
+    p_meta.add_argument("--type", "-t", choices=["dimensions", "metrics"], help="Filter type")
+    p_meta.add_argument("--search", "-s", help="Search filter")
+    p_meta.add_argument("--json", action="store_true", help="Raw JSON output")
+
+    args = parser.parse_args()
+    if not args.command:
+        parser.print_help()
+        sys.exit(1)
+
+    cmds = {
+        "setup": cmd_setup,
+        "version": cmd_version,
+        "accounts": cmd_accounts,
+        "properties": cmd_properties,
+        "report": cmd_report,
+        "realtime": cmd_realtime,
+        "metadata": cmd_metadata,
+    }
+    cmds[args.command](args)
+
+
+if __name__ == "__main__":
+    main()
