@@ -21,6 +21,16 @@ Nach einem Update ggf. `setup` erneut ausfuehren, damit `instance.json` aktualis
 
 **Ab v1.1.0:** `setup` muss nach dem Update einmal ausgefuehrt werden — die `instance.json` enthaelt jetzt die Benutzerrolle (Admin/Non-Admin) fuer die API-Aufrufe.
 
+## Neue Skills hinzufuegen
+
+**Wichtig:** Wird ein neuer Skill angelegt, muss sein Verzeichnisname in die
+`for skill in …`-Liste in `install.sh` eingetragen werden. Sonst legt
+`install.sh` beim naechsten Lauf keinen Symlink an und der Skill ist nach dem
+Update nicht verfuegbar.
+
+Alle Skript-Shebangs verwenden `#!/usr/bin/env python3` (minor-version-
+unabhaengig); ein neuer Skill sollte das ebenso halten.
+
 ## Skills
 
 ### kanboard
@@ -274,7 +284,27 @@ Referenzen: Frontmatter-Schemas, Compilation-Guide, Cross-Referencing-Regeln.
 
 **Trigger:** `/wiki` oder natuerliche Sprache wie "trag das ins Wiki ein", "was steht im Wiki zu X".
 
+### wetter
+
+GeoSphere Austria Wetterdaten fuer Oesterreich. Python-Script (stdlib only, keine pip-Dependencies, keine Auth):
+
+- forecast: Stundenvorhersage (AROME `nwp-v1-1h-2500m`, ~60 h), pro Tag Min/Max, Niederschlag, Boeen + 3-stuendliche Zeilen
+- nowcast: Nahzeitvorhersage (`nowcast-v1-15min-1km`, ~3 h in 15-Minuten-Schritten)
+- warnungen: aktive amtliche Warnungen (Typ, Stufe gelb/orange/rot, Zeitraum, Auswirkungen, Empfehlungen)
+
+Standort per Ortsname (Geocoding via OpenStreetMap/Nominatim, auf AT beschraenkt) oder Koordinaten `lat,lon`. Alle Zeiten in Europe/Vienna. `--json` fuer Rohdaten.
+
+**Voraussetzungen:** Python >= 3.11
+
+**Trigger:** `/wetter` oder natuerliche Sprache wie "wie wird das Wetter in X", "regnet es morgen in X", "gibt es Wetterwarnungen fuer X".
+
 ## Changelog
+
+### 1.11.0
+
+- **wetter-Skill:** GeoSphere Austria Wetterdaten fuer Oesterreich (Python, stdlib only, keine Auth). Subcommands: forecast (AROME-Stundenvorhersage ~60 h), nowcast (15-Minuten-Schritte, ~3 h), warnungen (amtliche Warn-API). Standort per Ortsname (Nominatim-Geocoding, AT-beschraenkt) oder Koordinaten. Zustand aus Bewoelkung + Niederschlag abgeleitet (kein `sy`-Raten), Zeiten in Europe/Vienna, `--json`-Ausgabe
+- **Versionen vereinheitlicht:** alle Skript-`# version`-Marker und die `VERSION`-Datei auf 1.11.0. `image-optimize` hat nun ebenfalls einen Versions-Marker
+- **Minor-Version-Unabhaengigkeit geprueft:** alle Scripts laufen unveraendert auf Python 3.9–3.13 (generischer `#!/usr/bin/env python3`-Shebang, keine entfernten Stdlib-Module, keine ungueltigen Escape-Sequenzen). README-Hinweis fuer neue Skills (`install.sh`-Liste) ergaenzt
 
 ### 1.10.0
 
