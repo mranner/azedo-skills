@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.11
+#!/usr/bin/env python3
 """
 lint-wiki.py — Strukturpruefung fuer das azedo Server-Infra Wiki.
 
@@ -9,10 +9,10 @@ Prueft:
 - Namenskonventionen (nur Kleinbuchstaben, Ziffern, Bindestriche)
 - Verwaiste Seiten (keine eingehenden Links)
 
-Aufruf: python3.11 lint-wiki.py <wiki-root>
-        z.B. python3.11 lint-wiki.py ~/azedo.ai/wiki/azedo/
+Aufruf: python3 lint-wiki.py <wiki-root>
+        z.B. python3 lint-wiki.py ~/azedo.ai/wiki/azedo/
 
-Keine externen Abhaengigkeiten — reines Python 3.11.
+Keine externen Abhaengigkeiten — reines Python 3.
 """
 
 import sys

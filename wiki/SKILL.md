@@ -96,7 +96,7 @@ Wiki auf strukturelle Probleme pruefen.
 /wiki lint
 ```
 
-Fuehrt `python3.11 "$SKILL_DIR/scripts/lint-wiki.py" ~/azedo.ai/wiki/azedo/` aus.
+Fuehrt `python3 "$SKILL_DIR/scripts/lint-wiki.py" ~/azedo.ai/wiki/azedo/` aus.
 
 Prueft:
 - **Orphaned pages**: Artikel ohne eingehende Links

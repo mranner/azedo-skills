@@ -23,7 +23,7 @@ for skill in envato google-analytics image-optimize kanboard kimai mainwp php-fo
 done
 
 # Permissions in settings.json eintragen
-if ! command -v python3 >/dev/null 2>&1 && ! command -v python3.11 >/dev/null 2>&1; then
+if ! command -v python3 >/dev/null 2>&1; then
     echo ""
     echo "WARNUNG: python3 nicht gefunden. Permissions muessen manuell eingetragen werden."
     echo "Folgende Eintraege in $SETTINGS unter permissions.allow ergaenzen:"
@@ -38,7 +38,7 @@ if ! command -v python3 >/dev/null 2>&1 && ! command -v python3.11 >/dev/null 2>
     exit 0
 fi
 
-PYTHON="$(command -v python3.11 2>/dev/null || command -v python3)"
+PYTHON="$(command -v python3)"
 
 "$PYTHON" -c "
 import json, os, sys

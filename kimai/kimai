@@ -2,7 +2,7 @@
 
 # Kimai REST API helper
 # stdlib only, no pip dependencies
-# version 1.9.2
+# version 1.10.0
 
 import argparse
 import json

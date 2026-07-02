@@ -198,7 +198,7 @@ aus `~/.env` authentifiziert.
 
 ```bash
 # Tags auflisten (inkl. zugewiesener Sites)
-python3.11 -c "
+python3 -c "
 import requests, json, os
 host = os.environ['MAINWP_HOST']
 r = requests.get(f'{host}/wp-json/mainwp/v2/tags',
@@ -210,7 +210,7 @@ for t in r.json().get('data', {}).values():
 "
 
 # Tag erstellen
-python3.11 -c "
+python3 -c "
 import requests, os
 host = os.environ['MAINWP_HOST']
 r = requests.post(f'{host}/wp-json/mainwp/v2/tags/add',
