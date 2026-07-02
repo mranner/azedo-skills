@@ -307,6 +307,10 @@ Standort per Ortsname (Geocoding via OpenStreetMap/Nominatim, auf AT beschraenkt
 
 ## Changelog
 
+### 1.11.1
+
+- **Auto-Verlinkung nach `git pull`:** `install.sh` richtet `post-merge`- und `post-rewrite`-Hooks ein, die neue Skills nach jedem Pull (auch `--rebase`) automatisch verlinken. Fremde Hooks bleiben unangetastet, Installation idempotent. Aeltere Installationen einmalig `sh install.sh` ausfuehren, danach greift der Automatismus
+
 ### 1.11.0
 
 - **wetter-Skill:** GeoSphere Austria Wetterdaten fuer Oesterreich (Python, stdlib only, keine Auth). Subcommands: forecast (AROME-Stundenvorhersage ~60 h), nowcast (15-Minuten-Schritte, ~3 h), warnungen (amtliche Warn-API). Standort per Ortsname (Nominatim-Geocoding, AT-beschraenkt) oder Koordinaten. Zustand aus Bewoelkung + Niederschlag abgeleitet (kein `sy`-Raten), Zeiten in Europe/Vienna, `--json`-Ausgabe

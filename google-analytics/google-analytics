@@ -2,7 +2,7 @@
 
 # Google Analytics 4 REST API helper
 # stdlib only, no pip dependencies
-# version 1.11.0
+# version 1.11.1
 
 import argparse
 import json
