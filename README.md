@@ -307,6 +307,10 @@ Standort per Ortsname (Geocoding via OpenStreetMap/Nominatim, auf AT beschraenkt
 
 ## Changelog
 
+### 1.11.2
+
+- **wetter: Luftfeuchtigkeit im Nowcast:** Die relative Feuchte (`rh2m`) wird nun in jeder Nowcast-Zeile ausgegeben (`rF NN%`, zwischen Temperatur und Wind) und im `--json`-Output mitgeliefert. Der Parameter wurde bereits abgefragt, aber bisher nicht angezeigt
+
 ### 1.11.1
 
 - **Auto-Verlinkung nach `git pull`:** `install.sh` richtet `post-merge`- und `post-rewrite`-Hooks ein, die neue Skills nach jedem Pull (auch `--rebase`) automatisch verlinken. Fremde Hooks bleiben unangetastet, Installation idempotent. Aeltere Installationen einmalig `sh install.sh` ausfuehren, danach greift der Automatismus

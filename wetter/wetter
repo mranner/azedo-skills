@@ -4,7 +4,7 @@
 # Kurzfristvorhersage (AROME, stuendlich ~60 h), Nowcast (15-min, ~3 h)
 # und amtliche Wetterwarnungen fuer Oesterreich.
 # stdlib only, keine pip-Abhaengigkeiten, keine Authentifizierung noetig.
-# version 1.11.1
+# version 1.11.2
 
 import argparse
 import json
@@ -296,6 +296,7 @@ def cmd_nowcast(args):
     ff = series(feat, "ff")
     fx = series(feat, "fx")
     dd = series(feat, "dd")
+    rh = series(feat, "rh2m")
 
     rows = []
     for i, iso in enumerate(ts):
@@ -307,6 +308,7 @@ def cmd_nowcast(args):
             "time": iso, "local": lt.isoformat(),
             "t2m": t2m[i] if t2m else None,
             "rr": rr[i] if rr else None,
+            "rh": rh[i] if rh else None,
             "ff_kmh": (ff[i] * 3.6) if ff and ff[i] is not None else None,
             "fx_kmh": (fx[i] * 3.6) if fx and fx[i] is not None else None,
             "dir": direction, "_lt": lt,
@@ -331,10 +333,13 @@ def cmd_nowcast(args):
             wind = "  Wind %2.0f km/h %s" % (r["ff_kmh"], r["dir"] or "")
             if r["fx_kmh"] and r["fx_kmh"] - r["ff_kmh"] > 5:
                 wind += " (Boeen %.0f)" % r["fx_kmh"]
-        print("   %s  %4s°%s%s"
+        feuchte = ""
+        if r["rh"] is not None:
+            feuchte = "  rF %2.0f%%" % r["rh"]
+        print("   %s  %4s°%s%s%s"
               % (r["_lt"].strftime("%H:%M"),
                  "%.1f" % r["t2m"] if r["t2m"] is not None else "?",
-                 wind, rain))
+                 feuchte, wind, rain))
 
 
 # --- Warnungen --------------------------------------------------------------
