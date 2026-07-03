@@ -307,6 +307,10 @@ Standort per Ortsname (Geocoding via OpenStreetMap/Nominatim, auf AT beschraenkt
 
 ## Changelog
 
+### 1.11.5
+
+- **wetter: Favoritendatei bei Fehlen anlegen (Workflow):** Fehlt `~/.claude/wetter-favorites.json`, ist das Anlegen jetzt ein verpflichtender Workflow-Schritt (nur bei `forecast`/`nowcast`): `stations <ort>` auflisten, den User die Favoriten waehlen lassen, Datei schreiben — erst dann die eigentliche Abfrage. Zuvor war das nur ein passiver Hinweis. Bei `warnungen` entfaellt der Schritt (nutzen keine Favoriten)
+
 ### 1.11.4
 
 - **wetter: Kuratierte Favoritenstationen fuer den Messwert:** Der Messwert-Header nimmt nicht mehr die geografisch naechste Station (oft inoffiziell/ohne aktuelle Daten), sondern ausschliesslich Stationen aus `~/.claude/wetter-favorites.json`. Von diesen die naechste mit **frischen** Daten (veraltete >2 h werden uebersprungen). Fehlt die Datei/liefert kein Favorit Daten, laeuft es ohne Header weiter

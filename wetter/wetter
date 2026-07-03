@@ -4,7 +4,7 @@
 # Kurzfristvorhersage (AROME, stuendlich ~60 h), Nowcast (15-min, ~3 h)
 # und amtliche Wetterwarnungen fuer Oesterreich.
 # stdlib only, keine pip-Abhaengigkeiten, keine Authentifizierung noetig.
-# version 1.11.4
+# version 1.11.5
 
 import argparse
 import json

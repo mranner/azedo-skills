@@ -98,9 +98,17 @@ orange/rot), Zeitraum sowie Text, Auswirkungen und Empfehlungen.
 ## Workflow
 
 1. Ort aus der Anfrage ableiten (Name oder Koordinaten).
-2. Passenden Subcommand waehlen: `forecast` (heute/morgen), `nowcast`
+2. **Favoriten sicherstellen (nur bei `forecast`/`nowcast`):** Existiert
+   `~/.claude/wetter-favorites.json` nicht, zuerst `stations <ort>` aufrufen,
+   dem User die naechsten Stationen mit Distanz und Frische-Status zeigen und
+   fragen, welche als Favoriten gespeichert werden sollen. Danach die Datei im
+   dokumentierten Format anlegen (siehe Hinweise). Erst dann mit dem
+   eigentlichen Subcommand fortfahren. Existiert die Datei bereits, diesen
+   Schritt ueberspringen. (Bei `warnungen` entfaellt der Schritt — Warnungen
+   nutzen keine Favoriten.)
+3. Passenden Subcommand waehlen: `forecast` (heute/morgen), `nowcast`
    (naechste Stunden), `warnungen` (Unwetter/Warnlage).
-3. Ausgabe dem User lesbar zusammenfassen; bei Bedarf `--json` fuer Weiter-
+4. Ausgabe dem User lesbar zusammenfassen; bei Bedarf `--json` fuer Weiter-
    verarbeitung.
 
 ## Hinweise
@@ -122,11 +130,11 @@ orange/rot), Zeitraum sowie Text, Auswirkungen und Empfehlungen.
       { "id": "11238", "name": "Graz/Straßgang" },
       { "id": "11240", "name": "Graz-Thalerhof-Flughafen" } ] }
   ```
-  Ist die Datei nicht vorhanden, zeigt der Nowcast keinen Messwert-Header. In
-  dem Fall den User nach seinen Favoriten fragen (via `stations <ort>` die
-  passenden IDs ermitteln) und die Datei anlegen. Hintergrund: die naechste
-  Station ist oft eine inoffizielle Messstelle ohne aktuelle Daten — deshalb
-  eine kuratierte Liste statt "naechste Station".
+  Fehlt die Datei, wird sie beim ersten `forecast`/`nowcast`-Aufruf angelegt
+  (siehe Workflow Schritt 2): `stations <ort>` auflisten, den User waehlen
+  lassen, Datei schreiben. Bis dahin laeuft der Nowcast ohne Messwert-Header.
+  Hintergrund: die naechste Station ist oft eine inoffizielle Messstelle ohne
+  aktuelle Daten — deshalb eine kuratierte Liste statt "naechste Station".
 - Der Messwert-Header im Nowcast fragt jede Favoritenstation einzeln ab (ein
   HTTP-Request pro Favorit), weil die current-API bei Mehr-Stationen-Requests
   auf einen gemeinsamen Zeitstempel ausrichtet und veraltete Stationen frische
