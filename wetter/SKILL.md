@@ -48,6 +48,10 @@ ca. 60 Stunden. Ausgabe: pro Tag Min/Max-Temperatur, Niederschlagssumme,
 maximale Boeen; dazu 3-stuendliche Zeilen mit Temperatur, relativer Feuchte
 (`rF %`), Zustand und Wind. `--tage` steuert die Anzahl Tage (Standard 2).
 
+Oben wird — wie im Nowcast — ein **aktueller Messwert** der naechsten
+Favoritenstation angezeigt (echter Stationswert, siehe Nowcast-Abschnitt und
+Hinweise). Im `--json` als `messwert`-Block.
+
 ### Nowcast (~3 h, 15-Minuten-Schritte)
 
 ```bash
@@ -58,12 +62,27 @@ Nahzeitvorhersage `nowcast-v1-15min-1km` (1 km Raster): naechste ~3 Stunden
 in 15-Minuten-Schritten mit Temperatur, relativer Feuchte (`rF %`),
 Wind/Boeen und Niederschlag.
 
-Zusaetzlich wird oben ein **aktueller Messwert** der naechstgelegenen aktiven
-TAWES-Station (`station/current/tawes-v1-10min`) angezeigt — Stationsname,
-Distanz, Temperatur, Feuchte, Taupunkt und Wind. Das ist ein echter Messwert
-im Gegensatz zu den interpolierten Modellwerten der 15-Minuten-Schritte. Die
-Stationsabfrage ist "best effort": schlaegt sie fehl, laeuft der Nowcast ohne
-Messwert-Header weiter. Im `--json` steht der Messwert als `messwert`-Block.
+Zusaetzlich wird oben ein **aktueller Messwert** einer TAWES-Station
+(`station/current/tawes-v1-10min`) angezeigt — Stationsname, Distanz,
+Temperatur, Feuchte, Taupunkt und Wind. Das ist ein echter Messwert im
+Gegensatz zu den interpolierten Modellwerten der 15-Minuten-Schritte.
+
+Es werden **ausschliesslich Favoritenstationen** herangezogen (kuratierte
+Liste, siehe unten). Von diesen wird die naechstgelegene mit **frischen** Daten
+gewaehlt; veraltete Werte (aelter als 2 h) werden uebersprungen. Ist keine
+Favoritenstation gesetzt oder liefert keine aktuelle Daten, laeuft der Nowcast
+ohne Messwert-Header weiter. Im `--json` steht der Messwert als
+`messwert`-Block.
+
+### Stationen (Favoriten-Auswahl)
+
+```bash
+python3 "$SKILL_DIR/wetter" stations <ort> [--anzahl N] [--json]
+```
+
+Listet die naechstgelegenen TAWES-Stationen mit Distanz und aktuellem Messwert
+(bzw. "keine aktuellen Daten"/"veraltet"). Dient zum Auswaehlen der Favoriten.
+Favoriten sind mit `*` markiert. `--anzahl` steuert die Anzahl (Standard 8).
 
 ### Wetterwarnungen
 
@@ -97,8 +116,20 @@ orange/rot), Zeitraum sowie Text, Auswirkungen und Empfehlungen.
   (`rr_acc`/`rain_acc`/`snow_acc`) pro Intervall differenziert.
 - Geocoding nutzt OpenStreetMap/Nominatim (Fair-Use, ein Request pro Ortsname).
   Fuer wiederholte Abfragen desselben Orts besser Koordinaten verwenden.
-- Der Messwert-Header im Nowcast kostet zwei zusaetzliche HTTP-Requests
-  (Stations-Metadaten + aktueller Wert). Die naechste Station kann je nach Ort
-  einige km entfernt sein; die Distanz wird deshalb mit ausgegeben.
+- **Favoritenstationen** liegen in `~/.claude/wetter-favorites.json`:
+  ```json
+  { "favorites": [
+      { "id": "11238", "name": "Graz/Straßgang" },
+      { "id": "11240", "name": "Graz-Thalerhof-Flughafen" } ] }
+  ```
+  Ist die Datei nicht vorhanden, zeigt der Nowcast keinen Messwert-Header. In
+  dem Fall den User nach seinen Favoriten fragen (via `stations <ort>` die
+  passenden IDs ermitteln) und die Datei anlegen. Hintergrund: die naechste
+  Station ist oft eine inoffizielle Messstelle ohne aktuelle Daten — deshalb
+  eine kuratierte Liste statt "naechste Station".
+- Der Messwert-Header im Nowcast fragt jede Favoritenstation einzeln ab (ein
+  HTTP-Request pro Favorit), weil die current-API bei Mehr-Stationen-Requests
+  auf einen gemeinsamen Zeitstempel ausrichtet und veraltete Stationen frische
+  auf null ziehen wuerden. Die Distanz wird je Station mit ausgegeben.
 - Warnungen enden mit ihrem Ablaufzeitpunkt; ist nichts aktiv, meldet der
   Skill "Keine aktiven Warnungen".

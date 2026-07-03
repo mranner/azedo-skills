@@ -307,6 +307,13 @@ Standort per Ortsname (Geocoding via OpenStreetMap/Nominatim, auf AT beschraenkt
 
 ## Changelog
 
+### 1.11.4
+
+- **wetter: Kuratierte Favoritenstationen fuer den Messwert:** Der Messwert-Header nimmt nicht mehr die geografisch naechste Station (oft inoffiziell/ohne aktuelle Daten), sondern ausschliesslich Stationen aus `~/.claude/wetter-favorites.json`. Von diesen die naechste mit **frischen** Daten (veraltete >2 h werden uebersprungen). Fehlt die Datei/liefert kein Favorit Daten, laeuft es ohne Header weiter
+- **wetter: Messwert-Header auch im forecast:** `forecast` zeigt denselben Header (aktueller Favoriten-Messwert) wie der Nowcast, oben in der Ausgabe und als `messwert`-Block im `--json`
+- **wetter: Neuer Subcommand `stations <ort>`:** listet die naechstgelegenen TAWES-Stationen mit Distanz und aktuellem Wert (bzw. "veraltet"/"keine Daten"), Favoriten mit `*` markiert — zum Auswaehlen der Favoriten
+- **wetter: Robustere Stationsabfrage:** Einzelabfrage pro Station statt Batch — die current-API richtet Mehr-Stationen-Requests auf einen gemeinsamen Zeitstempel aus, wodurch veraltete Stationen frische auf null zogen
+
 ### 1.11.3
 
 - **wetter: Feuchte in der Stundenvorhersage:** `forecast` zeigt die relative Feuchte (`rF %`) nun in jeder 3-stuendlichen Zeile (Parameter `rh2m` ergänzt) und im `--json`-Output

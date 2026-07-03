@@ -4,11 +4,12 @@
 # Kurzfristvorhersage (AROME, stuendlich ~60 h), Nowcast (15-min, ~3 h)
 # und amtliche Wetterwarnungen fuer Oesterreich.
 # stdlib only, keine pip-Abhaengigkeiten, keine Authentifizierung noetig.
-# version 1.11.3
+# version 1.11.4
 
 import argparse
 import json
 import math
+import os
 import sys
 import urllib.parse
 import urllib.request
@@ -31,6 +32,11 @@ WARN_BASE = "https://warnungen.zamg.at/wsapp/api/getWarningsForCoords"
 NOMINATIM = "https://nominatim.openstreetmap.org/search"
 
 USER_AGENT = "azedo-wetter-skill/1.0 (ich@example.org)"
+
+# Favoriten-Stationen (kuratierte Liste) und Frische-Grenze fuer Messwerte
+
+FAV_PATH = os.path.expanduser("~/.claude/wetter-favorites.json")
+FRESH_MAX_SEC = 2 * 3600
 
 # Gueltiger Koordinaten-Bereich der Modelle (bbox aus Metadaten)
 
@@ -142,61 +148,111 @@ def _haversine(lat1, lon1, lat2, lon2):
     return 2 * r * math.asin(math.sqrt(a))
 
 
-def _station_active(s):
-    vt = s.get("valid_to")
-    if not vt:
-        return True
+def load_favorites():
+    """Favoriten-Stationen aus ~/.claude/wetter-favorites.json ([] wenn keine)."""
     try:
-        dt = datetime.fromisoformat(vt)
+        with open(FAV_PATH, encoding="utf-8") as f:
+            d = json.load(f)
+    except FileNotFoundError:
+        return []
+    except Exception:
+        return []
+    out = []
+    for x in d.get("favorites", []):
+        if x.get("id") is not None:
+            out.append({"id": str(x["id"]), "name": x.get("name", str(x["id"]))})
+    return out
+
+
+def _fresh(ts):
+    """True, wenn Zeitstempel nicht aelter als FRESH_MAX_SEC ist."""
+    if not ts:
+        return False
+    try:
+        dt = datetime.fromisoformat(ts)
         if dt.tzinfo is None:
             dt = dt.replace(tzinfo=timezone.utc)
-        return dt >= datetime.now(timezone.utc)
+        return (datetime.now(timezone.utc) - dt).total_seconds() <= FRESH_MAX_SEC
     except Exception:
         return True
 
 
-def nearest_station(lat, lon):
-    """Naechste aktive TAWES-Station zu (lat, lon) oder None."""
-    meta = http_get_soft(STATION_BASE + "/metadata")
-    if not meta:
+def _feat_val(par, k):
+    p = par.get(k) or {}
+    data = p.get("data") or []
+    return data[0] if data else None
+
+
+def station_snapshot(sid, params="TL,RF,TP,FF,FFX,DD,RR,P"):
+    """Aktuelle Messwerte EINER Station (eigener Zeitstempel) oder None.
+
+    Einzelabfrage, weil die current-API bei Mehr-Stationen-Requests auf einen
+    gemeinsamen Zeitstempel ausrichtet und veraltete Stationen frische auf
+    null ziehen wuerden.
+    """
+    d = http_get_soft("%s?%s" % (STATION_BASE, urllib.parse.urlencode(
+        {"station_ids": str(sid), "parameters": params})))
+    if not d:
         return None
+    ts = (d.get("timestamps") or [None])[0]
+    try:
+        f = d["features"][0]
+        par = f["properties"]["parameters"]
+    except (KeyError, IndexError, TypeError):
+        return None
+    coords = (f.get("geometry") or {}).get("coordinates") or [None, None]
+    return {"ts": ts, "lon": coords[0], "lat": coords[1], "par": par}
+
+
+def station_measurement(lat, lon, favorites):
+    """Aktueller Messwert der naechsten Favoritenstation mit frischen Daten.
+
+    Nur Favoriten werden beruecksichtigt; veraltete Werte (aelter als
+    FRESH_MAX_SEC) werden uebersprungen. Gibt dict oder None zurueck.
+    """
     best = None
-    for s in meta.get("stations", []):
-        try:
-            slat, slon = float(s["lat"]), float(s["lon"])
-        except (KeyError, TypeError, ValueError):
+    for fav in favorites:
+        snap = station_snapshot(fav["id"])
+        if not snap or not _fresh(snap["ts"]):
             continue
-        if not _station_active(s):
+        par = snap["par"]
+        tl = _feat_val(par, "TL")
+        if tl is None or snap["lat"] is None or snap["lon"] is None:
             continue
-        dist = _haversine(lat, lon, slat, slon)
-        if best is None or dist < best["dist"]:
-            best = {"id": s.get("id"), "name": s.get("name", "?"),
-                    "lat": slat, "lon": slon, "dist": dist}
+        dist = _haversine(lat, lon, snap["lat"], snap["lon"])
+        if best is None or dist < best["_dist"]:
+            best = {"station": fav["name"], "station_id": fav["id"],
+                    "distanz_km": round(dist, 1), "ts": snap["ts"], "tl": tl,
+                    "rf": _feat_val(par, "RF"), "tp": _feat_val(par, "TP"),
+                    "ff": _feat_val(par, "FF"), "ffx": _feat_val(par, "FFX"),
+                    "dd": _feat_val(par, "DD"), "rr": _feat_val(par, "RR"),
+                    "p": _feat_val(par, "P"), "_dist": dist}
+    if best:
+        best.pop("_dist", None)
     return best
 
 
-def station_current(sid):
-    """Aktueller Messwert einer Station als dict oder None."""
-    params = "TL,RF,TP,FF,FFX,DD,RR,P"
-    url = "%s?%s" % (STATION_BASE, urllib.parse.urlencode(
-        {"station_ids": str(sid), "parameters": params}))
-    d = http_get_soft(url)
-    if not d:
+def messwert_header(m):
+    """Formatiert den Messwert-Header (zwei Zeilen) oder None."""
+    if not m:
         return None
-    try:
-        ts = (d.get("timestamps") or [None])[0]
-        pr = d["features"][0]["properties"]["parameters"]
-    except (KeyError, IndexError, TypeError):
-        return None
-
-    def val(k):
-        p = pr.get(k) or {}
-        data = p.get("data") or []
-        return data[0] if data else None
-
-    return {"ts": ts, "tl": val("TL"), "rf": val("RF"), "tp": val("TP"),
-            "ff": val("FF"), "ffx": val("FFX"), "dd": val("DD"),
-            "rr": val("RR"), "p": val("P")}
+    parts = ["%.1f °C" % m["tl"]]
+    if m["rf"] is not None:
+        parts.append("rF %.0f%%" % m["rf"])
+    if m["tp"] is not None:
+        parts.append("Taupunkt %.1f °C" % m["tp"])
+    if m["ff"] is not None:
+        wdir = COMPASS[int((m["dd"] + 11.25) % 360 / 22.5)] \
+            if m["dd"] is not None else ""
+        w = "Wind %.0f km/h %s" % (m["ff"] * 3.6, wdir)
+        if m["ffx"] is not None and (m["ffx"] - m["ff"]) * 3.6 > 5:
+            w += " (Boeen %.0f)" % (m["ffx"] * 3.6)
+        parts.append(w.strip())
+    if m["rr"] is not None and m["rr"] >= 0.05:
+        parts.append("%.1f mm/10min" % m["rr"])
+    when = to_local(m["ts"]).strftime("%H:%M") if m["ts"] else "?"
+    return ("Aktueller Messwert — %s (%.0f km), Stand %s:\n   %s"
+            % (m["station"], m["distanz_km"], when, ", ".join(parts)))
 
 
 def cloud_word(tcc):
@@ -311,6 +367,9 @@ def cmd_forecast(args):
     days = days[:args.tage]
     rows = [r for r in rows if r["day"] in days]
 
+    # aktueller Messwert der naechsten Favoritenstation (best effort)
+    messwert = station_measurement(lat, lon, load_favorites())
+
     if args.json:
         out = []
         for r in rows:
@@ -318,13 +377,17 @@ def cmd_forecast(args):
             rr["local"] = r["local"].isoformat()
             out.append(rr)
         print(json.dumps({"ort": label, "lat": lat, "lon": lon,
-                          "reftime": reftime, "stunden": out},
+                          "reftime": reftime, "messwert": messwert,
+                          "stunden": out},
                          ensure_ascii=False, indent=2))
         return
 
     print("Vorhersage fuer %s (%.4f, %.4f) — GeoSphere AROME%s\n"
           % (label, lat, lon,
              ", Lauf %s" % _fmt_ref(reftime) if reftime else ""))
+    hdr = messwert_header(messwert)
+    if hdr:
+        print(hdr + "\n")
     wtag = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
     for day in days:
         drows = [r for r in rows if r["day"] == day]
@@ -397,13 +460,8 @@ def cmd_nowcast(args):
             "dir": direction, "_lt": lt,
         })
 
-    # aktueller Messwert der naechsten TAWES-Station (best effort)
-    st = nearest_station(lat, lon)
-    mv = station_current(st["id"]) if st else None
-    messwert = None
-    if st and mv and mv["tl"] is not None:
-        messwert = {"station": st["name"], "station_id": st["id"],
-                    "distanz_km": round(st["dist"], 1), **mv}
+    # aktueller Messwert der naechsten Favoritenstation (best effort)
+    messwert = station_measurement(lat, lon, load_favorites())
 
     if args.json:
         for r in rows:
@@ -416,25 +474,9 @@ def cmd_nowcast(args):
     if rows:
         print("Nowcast fuer %s (%.4f, %.4f) — naechste ~3 h, Stand %s\n"
               % (label, lat, lon, rows[0]["_lt"].strftime("%d.%m. %H:%M")))
-    if messwert:
-        parts = ["%.1f °C" % mv["tl"]]
-        if mv["rf"] is not None:
-            parts.append("rF %.0f%%" % mv["rf"])
-        if mv["tp"] is not None:
-            parts.append("Taupunkt %.1f °C" % mv["tp"])
-        if mv["ff"] is not None:
-            wdir = COMPASS[int((mv["dd"] + 11.25) % 360 / 22.5)] \
-                if mv["dd"] is not None else ""
-            w = "Wind %.0f km/h %s" % (mv["ff"] * 3.6, wdir)
-            if mv["ffx"] is not None and (mv["ffx"] - mv["ff"]) * 3.6 > 5:
-                w += " (Boeen %.0f)" % (mv["ffx"] * 3.6)
-            parts.append(w.strip())
-        if mv["rr"] is not None and mv["rr"] >= 0.05:
-            parts.append("%.1f mm/10min" % mv["rr"])
-        when = to_local(mv["ts"]).strftime("%H:%M") if mv["ts"] else "?"
-        print("Aktueller Messwert — %s (%.0f km), Stand %s:"
-              % (st["name"], st["dist"], when))
-        print("   " + ", ".join(parts) + "\n")
+    hdr = messwert_header(messwert)
+    if hdr:
+        print(hdr + "\n")
     for r in rows:
         rain = ""
         if r["rr"] and r["rr"] >= 0.05:
@@ -499,6 +541,61 @@ def cmd_warnungen(args):
         print()
 
 
+# --- Stationen (Favoriten-Auswahl) ------------------------------------------
+
+def cmd_stations(args):
+    lat, lon, label = parse_location(args.ort)
+    check_bbox(lat, lon)
+    meta = http_get_soft(STATION_BASE + "/metadata")
+    if not meta:
+        die("Stations-Metadaten nicht abrufbar.")
+    cand = []
+    for s in meta.get("stations", []):
+        try:
+            slat, slon = float(s["lat"]), float(s["lon"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        cand.append((_haversine(lat, lon, slat, slon),
+                     str(s.get("id")), s.get("name", "?")))
+    cand.sort(key=lambda x: x[0])
+    top = cand[:args.anzahl]
+    favids = {f["id"] for f in load_favorites()}
+
+    # aktuelle Werte pro Station einzeln abfragen (eigener Zeitstempel)
+    rows = []
+    for dist, sid, name in top:
+        snap = station_snapshot(sid, "TL,RF")
+        tl = rf = ts = None
+        if snap:
+            ts = snap["ts"]
+            tl = _feat_val(snap["par"], "TL")
+            rf = _feat_val(snap["par"], "RF")
+        rows.append({"id": sid, "name": name, "distanz_km": round(dist, 1),
+                     "favorit": sid in favids, "ts": ts,
+                     "frisch": bool(tl is not None and _fresh(ts)),
+                     "tl": tl, "rf": rf})
+
+    if args.json:
+        print(json.dumps({"ort": label, "lat": lat, "lon": lon,
+                          "stationen": rows}, ensure_ascii=False, indent=2))
+        return
+
+    print("Stationen nahe %s (%.4f, %.4f)\n" % (label, lat, lon))
+    for r in rows:
+        mark = "*" if r["favorit"] else " "
+        if r["tl"] is not None:
+            wert = "%.1f °C" % r["tl"]
+            if r["rf"] is not None:
+                wert += ", rF %.0f%%" % r["rf"]
+            if not r["frisch"]:
+                wert += " (veraltet, %s)" % (_fmt_ref(r["ts"]) if r["ts"] else "?")
+        else:
+            wert = "keine aktuellen Daten"
+        print(" %s %6.1f km  %-9s %-32s %s"
+              % (mark, r["distanz_km"], r["id"], r["name"], wert))
+    print("\n* = Favorit. Favoriten-Datei: %s" % FAV_PATH)
+
+
 def main():
     ap = argparse.ArgumentParser(
         prog="wetter",
@@ -522,6 +619,14 @@ def main():
     w.add_argument("ort", help="Ortsname oder 'lat,lon'")
     w.add_argument("--json", action="store_true", help="Rohdaten als JSON")
     w.set_defaults(func=cmd_warnungen)
+
+    s = sub.add_parser("stations",
+                       help="Nahe TAWES-Stationen auflisten (Favoriten-Auswahl)")
+    s.add_argument("ort", help="Ortsname oder 'lat,lon'")
+    s.add_argument("--anzahl", type=int, default=8,
+                   help="Anzahl Stationen (Standard 8)")
+    s.add_argument("--json", action="store_true", help="Rohdaten als JSON")
+    s.set_defaults(func=cmd_stations)
 
     args = ap.parse_args()
     args.func(args)
