@@ -307,6 +307,11 @@ Standort per Ortsname (Geocoding via OpenStreetMap/Nominatim, auf AT beschraenkt
 
 ## Changelog
 
+### 1.11.3
+
+- **wetter: Feuchte in der Stundenvorhersage:** `forecast` zeigt die relative Feuchte (`rF %`) nun in jeder 3-stuendlichen Zeile (Parameter `rh2m` ergänzt) und im `--json`-Output
+- **wetter: Echter Messwert im Nowcast:** `nowcast` zeigt oben einen Header mit dem aktuellen Messwert der naechstgelegenen aktiven TAWES-Station (`station/current/tawes-v1-10min`) — Stationsname, Distanz, Temperatur, Feuchte, Taupunkt, Wind. Echter Messwert statt interpoliertem Modellwert; als `messwert`-Block auch im `--json`. Stationsabfrage ist "best effort" (faellt bei Fehler stillschweigend weg)
+
 ### 1.11.2
 
 - **wetter: Luftfeuchtigkeit im Nowcast:** Die relative Feuchte (`rh2m`) wird nun in jeder Nowcast-Zeile ausgegeben (`rF NN%`, zwischen Temperatur und Wind) und im `--json`-Output mitgeliefert. Der Parameter wurde bereits abgefragt, aber bisher nicht angezeigt

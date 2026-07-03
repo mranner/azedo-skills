@@ -45,8 +45,8 @@ python3 "$SKILL_DIR/wetter" forecast <ort> [--tage 1-3] [--json]
 
 Stuendliche Werte des Modells `nwp-v1-1h-2500m` (2,5 km Raster), Horizont
 ca. 60 Stunden. Ausgabe: pro Tag Min/Max-Temperatur, Niederschlagssumme,
-maximale Boeen; dazu 3-stuendliche Zeilen mit Temperatur, Zustand und Wind.
-`--tage` steuert die Anzahl Tage (Standard 2).
+maximale Boeen; dazu 3-stuendliche Zeilen mit Temperatur, relativer Feuchte
+(`rF %`), Zustand und Wind. `--tage` steuert die Anzahl Tage (Standard 2).
 
 ### Nowcast (~3 h, 15-Minuten-Schritte)
 
@@ -55,7 +55,15 @@ python3 "$SKILL_DIR/wetter" nowcast <ort> [--json]
 ```
 
 Nahzeitvorhersage `nowcast-v1-15min-1km` (1 km Raster): naechste ~3 Stunden
-in 15-Minuten-Schritten mit Temperatur, Wind/Boeen und Niederschlag.
+in 15-Minuten-Schritten mit Temperatur, relativer Feuchte (`rF %`),
+Wind/Boeen und Niederschlag.
+
+Zusaetzlich wird oben ein **aktueller Messwert** der naechstgelegenen aktiven
+TAWES-Station (`station/current/tawes-v1-10min`) angezeigt — Stationsname,
+Distanz, Temperatur, Feuchte, Taupunkt und Wind. Das ist ein echter Messwert
+im Gegensatz zu den interpolierten Modellwerten der 15-Minuten-Schritte. Die
+Stationsabfrage ist "best effort": schlaegt sie fehl, laeuft der Nowcast ohne
+Messwert-Header weiter. Im `--json` steht der Messwert als `messwert`-Block.
 
 ### Wetterwarnungen
 
@@ -89,5 +97,8 @@ orange/rot), Zeitraum sowie Text, Auswirkungen und Empfehlungen.
   (`rr_acc`/`rain_acc`/`snow_acc`) pro Intervall differenziert.
 - Geocoding nutzt OpenStreetMap/Nominatim (Fair-Use, ein Request pro Ortsname).
   Fuer wiederholte Abfragen desselben Orts besser Koordinaten verwenden.
+- Der Messwert-Header im Nowcast kostet zwei zusaetzliche HTTP-Requests
+  (Stations-Metadaten + aktueller Wert). Die naechste Station kann je nach Ort
+  einige km entfernt sein; die Distanz wird deshalb mit ausgegeben.
 - Warnungen enden mit ihrem Ablaufzeitpunkt; ist nichts aktiv, meldet der
   Skill "Keine aktiven Warnungen".

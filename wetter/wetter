@@ -4,7 +4,7 @@
 # Kurzfristvorhersage (AROME, stuendlich ~60 h), Nowcast (15-min, ~3 h)
 # und amtliche Wetterwarnungen fuer Oesterreich.
 # stdlib only, keine pip-Abhaengigkeiten, keine Authentifizierung noetig.
-# version 1.11.2
+# version 1.11.3
 
 import argparse
 import json
@@ -26,6 +26,7 @@ except Exception:
 FORECAST_BASE = "https://dataset.api.hub.geosphere.at/v1/timeseries/forecast"
 NWP = "nwp-v1-1h-2500m"
 NOWCAST = "nowcast-v1-15min-1km"
+STATION_BASE = "https://dataset.api.hub.geosphere.at/v1/station/current/tawes-v1-10min"
 WARN_BASE = "https://warnungen.zamg.at/wsapp/api/getWarningsForCoords"
 NOMINATIM = "https://nominatim.openstreetmap.org/search"
 
@@ -61,6 +62,16 @@ def http_get(url, headers=None):
         die("HTTP %s bei %s" % (e.code, url))
     except urllib.error.URLError as e:
         die("Netzwerkfehler bei %s: %s" % (url, e.reason))
+
+
+def http_get_soft(url):
+    """Wie http_get, aber ohne Abbruch: gibt bei Fehlern None zurueck."""
+    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return json.load(r)
+    except Exception:
+        return None
 
 
 # --- Standort ---------------------------------------------------------------
@@ -117,6 +128,75 @@ def wind_speed_dir(u, v):
     spd = math.hypot(u, v) * 3.6
     deg = (270 - math.degrees(math.atan2(v, u))) % 360
     return spd, COMPASS[int((deg + 11.25) % 360 / 22.5)]
+
+
+# --- TAWES-Stationsmesswerte ------------------------------------------------
+
+def _haversine(lat1, lon1, lat2, lon2):
+    """Grosskreis-Distanz in km."""
+    r = 6371.0
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    dp = math.radians(lat2 - lat1)
+    dl = math.radians(lon2 - lon1)
+    a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+    return 2 * r * math.asin(math.sqrt(a))
+
+
+def _station_active(s):
+    vt = s.get("valid_to")
+    if not vt:
+        return True
+    try:
+        dt = datetime.fromisoformat(vt)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt >= datetime.now(timezone.utc)
+    except Exception:
+        return True
+
+
+def nearest_station(lat, lon):
+    """Naechste aktive TAWES-Station zu (lat, lon) oder None."""
+    meta = http_get_soft(STATION_BASE + "/metadata")
+    if not meta:
+        return None
+    best = None
+    for s in meta.get("stations", []):
+        try:
+            slat, slon = float(s["lat"]), float(s["lon"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if not _station_active(s):
+            continue
+        dist = _haversine(lat, lon, slat, slon)
+        if best is None or dist < best["dist"]:
+            best = {"id": s.get("id"), "name": s.get("name", "?"),
+                    "lat": slat, "lon": slon, "dist": dist}
+    return best
+
+
+def station_current(sid):
+    """Aktueller Messwert einer Station als dict oder None."""
+    params = "TL,RF,TP,FF,FFX,DD,RR,P"
+    url = "%s?%s" % (STATION_BASE, urllib.parse.urlencode(
+        {"station_ids": str(sid), "parameters": params}))
+    d = http_get_soft(url)
+    if not d:
+        return None
+    try:
+        ts = (d.get("timestamps") or [None])[0]
+        pr = d["features"][0]["properties"]["parameters"]
+    except (KeyError, IndexError, TypeError):
+        return None
+
+    def val(k):
+        p = pr.get(k) or {}
+        data = p.get("data") or []
+        return data[0] if data else None
+
+    return {"ts": ts, "tl": val("TL"), "rf": val("RF"), "tp": val("TP"),
+            "ff": val("FF"), "ffx": val("FFX"), "dd": val("DD"),
+            "rr": val("RR"), "p": val("P")}
 
 
 def cloud_word(tcc):
@@ -181,7 +261,7 @@ def diffs(data):
 def cmd_forecast(args):
     lat, lon, label = parse_location(args.ort)
     check_bbox(lat, lon)
-    params = "t2m,tcc,sy,rr_acc,rain_acc,snow_acc,u10m,v10m,ugust,vgust,snowlmt"
+    params = "t2m,tcc,sy,rr_acc,rain_acc,snow_acc,u10m,v10m,ugust,vgust,snowlmt,rh2m"
     url = "%s/%s?%s" % (FORECAST_BASE, NWP, urllib.parse.urlencode(
         {"lat_lon": "%.5f,%.5f" % (lat, lon), "parameters": params}))
     d = http_get(url)
@@ -192,6 +272,7 @@ def cmd_forecast(args):
     t2m = series(feat, "t2m")
     tcc = series(feat, "tcc")
     sy = series(feat, "sy")
+    rh = series(feat, "rh2m")
     rain = diffs(series(feat, "rain_acc"))
     snow = diffs(series(feat, "snow_acc"))
     rr = diffs(series(feat, "rr_acc"))
@@ -214,6 +295,7 @@ def cmd_forecast(args):
             "time": iso, "local": lt, "day": lt.date().isoformat(),
             "t2m": t2m[i] if t2m else None,
             "tcc": tcc[i] if tcc else None,
+            "rh": rh[i] if rh else None,
             "sy": int(sy[i]) if sy and sy[i] is not None else None,
             "rain": r, "snow": s,
             "precip": (r or 0) + (s or 0),
@@ -266,10 +348,11 @@ def cmd_forecast(args):
             wind = ""
             if r["wind"] is not None:
                 wind = "  Wind %2.0f km/h %s" % (r["wind"], r["wdir"] or "")
-            print("   %02dh  %3s°  %-28s%s"
+            feuchte = "rF %2.0f%%" % r["rh"] if r["rh"] is not None else "      "
+            print("   %02dh  %3s°  %s  %-28s%s"
                   % (r["local"].hour,
                      "%.0f" % r["t2m"] if r["t2m"] is not None else "?",
-                     cond, wind))
+                     feuchte, cond, wind))
         print()
 
 
@@ -314,16 +397,44 @@ def cmd_nowcast(args):
             "dir": direction, "_lt": lt,
         })
 
+    # aktueller Messwert der naechsten TAWES-Station (best effort)
+    st = nearest_station(lat, lon)
+    mv = station_current(st["id"]) if st else None
+    messwert = None
+    if st and mv and mv["tl"] is not None:
+        messwert = {"station": st["name"], "station_id": st["id"],
+                    "distanz_km": round(st["dist"], 1), **mv}
+
     if args.json:
         for r in rows:
             r.pop("_lt", None)
         print(json.dumps({"ort": label, "lat": lat, "lon": lon,
-                          "schritte": rows}, ensure_ascii=False, indent=2))
+                          "messwert": messwert, "schritte": rows},
+                         ensure_ascii=False, indent=2))
         return
 
     if rows:
         print("Nowcast fuer %s (%.4f, %.4f) — naechste ~3 h, Stand %s\n"
               % (label, lat, lon, rows[0]["_lt"].strftime("%d.%m. %H:%M")))
+    if messwert:
+        parts = ["%.1f °C" % mv["tl"]]
+        if mv["rf"] is not None:
+            parts.append("rF %.0f%%" % mv["rf"])
+        if mv["tp"] is not None:
+            parts.append("Taupunkt %.1f °C" % mv["tp"])
+        if mv["ff"] is not None:
+            wdir = COMPASS[int((mv["dd"] + 11.25) % 360 / 22.5)] \
+                if mv["dd"] is not None else ""
+            w = "Wind %.0f km/h %s" % (mv["ff"] * 3.6, wdir)
+            if mv["ffx"] is not None and (mv["ffx"] - mv["ff"]) * 3.6 > 5:
+                w += " (Boeen %.0f)" % (mv["ffx"] * 3.6)
+            parts.append(w.strip())
+        if mv["rr"] is not None and mv["rr"] >= 0.05:
+            parts.append("%.1f mm/10min" % mv["rr"])
+        when = to_local(mv["ts"]).strftime("%H:%M") if mv["ts"] else "?"
+        print("Aktueller Messwert — %s (%.0f km), Stand %s:"
+              % (st["name"], st["dist"], when))
+        print("   " + ", ".join(parts) + "\n")
     for r in rows:
         rain = ""
         if r["rr"] and r["rr"] >= 0.05:
