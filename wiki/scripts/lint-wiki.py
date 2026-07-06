@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
+
+# stdlib only, no pip dependencies
+# version 1.14.0
+
 """
-lint-wiki.py — Strukturpruefung fuer das azedo Server-Infra Wiki.
+lint-wiki.py — Strukturpruefung fuer LLM Wikis (Infra + Projekt-Doku).
 
 Prueft:
 - Frontmatter-Pflichtfelder pro Entity-Typ
