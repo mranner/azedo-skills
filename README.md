@@ -48,6 +48,7 @@ Verwaltet Tasks auf einer Kanboard-Instanz via JSON-RPC API. Unterstützt:
 - Kommentare lesen, hinzufügen, ändern, löschen
 - Dateien anhängen, auflisten, herunterladen, löschen
 - Teilaufgaben erstellen, ändern, löschen
+- Task-Verbindungen (interne Links) auflisten, erstellen, löschen
 - Projekte, Spalten und User auflisten
 
 **Voraussetzungen:** Python ≥ 3.11
@@ -322,6 +323,10 @@ Deutscher AI-Text-Humanizer: KI-Schreibmuster (KI-Tells) in deutschen Texten aud
 **Trigger:** `/humanizer-de` oder natuerliche Sprache wie "humanisiere den Text", "klingt nach KI", "entferne die KI-Tells".
 
 ## Changelog
+
+### 1.13.0
+
+- **kanboard: Task-Verbindungen (interne Links):** Vier neue Subcommands zum Verwalten von Task-zu-Task-Verknuepfungen ueber die Kanboard-Link-API. `list-links` listet die instanzweit definierten Link-Typen (id, label, opposite_id) — Discovery, um das richtige Label/die richtige ID zu finden. `list-task-links <task_id>` zeigt bestehende Verbindungen eines Tasks. `create-task-link <task_id> <opposite_task_id> --link "<label|id>"` verknuepft zwei Tasks (Label wird case-insensitiv via `getAllLinks` aufgeloest, oder direkt numerische `link_id`); Kanboard legt die Gegenrichtung automatisch an. `remove-task-link <task_link_id>` loescht eine Verbindung. Damit sind interne Verbindungen (z.B. „relates to", „is a child of", „blocks") jetzt scriptbar. Hinweis: die deutsche UI-Bezeichnung „gehört zu" entspricht dem gespeicherten Label „relates to" (link_id 1)
 
 ### 1.12.1
 

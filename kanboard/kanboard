@@ -2,7 +2,7 @@
 
 # Kanboard JSON-RPC 2.0 API helper
 # stdlib only, no pip dependencies
-# version 1.11.1
+# version 1.13.0
 
 import argparse
 import base64
@@ -191,6 +191,19 @@ def resolve_swimlane(project_id, swimlane_name):
             return int(sl["id"])
     names = [s["name"] for s in swimlanes]
     print(f"Error: swimlane '{swimlane_name}' not found (available: {', '.join(names)})", file=sys.stderr)
+    sys.exit(1)
+
+
+def resolve_link(link):
+    """Resolve link label or numeric ID to a link_id via getAllLinks"""
+    if str(link).isdigit():
+        return int(link)
+    links = rpc_call("getAllLinks")
+    for l in links:
+        if l.get("label", "").lower() == link.lower():
+            return int(l["id"])
+    labels = [l.get("label", "") for l in links]
+    print(f"Error: link label '{link}' not found (available: {', '.join(labels)})", file=sys.stderr)
     sys.exit(1)
 
 
@@ -508,6 +521,37 @@ def cmd_remove_subtask(args):
     output({"success": result})
 
 
+def cmd_list_links(args):
+    """List all link type definitions on the instance (id, label, opposite_id)"""
+    result = rpc_call("getAllLinks")
+    output(result if result else [])
+
+
+def cmd_list_task_links(args):
+    """List existing links attached to a task"""
+    result = rpc_call("getAllTaskLinks", {"task_id": int(args.task_id)})
+    output(result if result else [])
+
+
+def cmd_create_task_link(args):
+    """Link two tasks: '<task_id> <link> <opposite_task_id>' (e.g. A 'gehört zu' B)"""
+    link_id = resolve_link(args.link)
+    result = rpc_call("createTaskLink", {
+        "task_id": int(args.task_id),
+        "opposite_task_id": int(args.opposite_task_id),
+        "link_id": link_id,
+    })
+    if not result:
+        print("Error: task link creation failed", file=sys.stderr)
+        sys.exit(1)
+    output({"task_link_id": result})
+
+
+def cmd_remove_task_link(args):
+    result = rpc_call("removeTaskLink", {"task_link_id": int(args.task_link_id)})
+    output({"success": result})
+
+
 def parse_cr_id(raw):
     """Normalize CR input: CR4326, cr4326, CR 4326, #4326, 4326 -> 4326"""
     s = raw.strip().lstrip("#")
@@ -764,6 +808,28 @@ def main():
     p = sub.add_parser("remove-subtask")
     p.add_argument("subtask_id")
     p.set_defaults(func=cmd_remove_subtask)
+
+    # list-links (Link-Typen der Instanz)
+    p = sub.add_parser("list-links")
+    p.set_defaults(func=cmd_list_links)
+
+    # list-task-links (Verbindungen eines Tasks)
+    p = sub.add_parser("list-task-links")
+    p.add_argument("task_id")
+    p.set_defaults(func=cmd_list_task_links)
+
+    # create-task-link (zwei Tasks verknuepfen)
+    p = sub.add_parser("create-task-link")
+    p.add_argument("task_id")
+    p.add_argument("opposite_task_id")
+    p.add_argument("--link", required=True,
+                   help="Link-Label (z.B. 'gehört zu') oder numerische link_id")
+    p.set_defaults(func=cmd_create_task_link)
+
+    # remove-task-link
+    p = sub.add_parser("remove-task-link")
+    p.add_argument("task_link_id")
+    p.set_defaults(func=cmd_remove_task_link)
 
     args = parser.parse_args()
     args.func(args)

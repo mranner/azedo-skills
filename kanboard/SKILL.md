@@ -178,6 +178,46 @@ Status: 0=Todo, 1=In Progress, 2=Done
 python3 "$SKILL_DIR/kanboard" remove-subtask <subtask_id>
 ```
 
+### Task-Verbindungen (interne Links)
+
+Kanboard kann zwei Tasks ueber "interne Verbindungen" verknuepfen (z.B. "relates to", "is a child of", "blocks"). Diese Link-Typen sind instanzweit definiert.
+
+**Verfuegbare Link-Typen auflisten** (immer zuerst, um das richtige Label/ID zu finden):
+
+```bash
+python3 "$SKILL_DIR/kanboard" list-links
+```
+
+Die `label`-Werte sind die im Kanboard gespeicherten (meist englischen) Bezeichnungen -- die deutsche Oberflaeche uebersetzt sie nur bei der Anzeige. Fuer `--link` das Label aus dieser Liste oder die numerische `id` verwenden.
+
+Zuordnung deutsche UI → gespeichertes Label auf der azedo-Instanz: **"gehört zu" == "relates to"** (link_id 1, symmetrisch). Fuer eine echte Eltern-/Kind-Beziehung stattdessen `is a child of` / `is a parent of` (link_id 6/7).
+
+**Verbindungen eines Tasks anzeigen:**
+
+```bash
+python3 "$SKILL_DIR/kanboard" list-task-links <task_id>
+```
+
+**Zwei Tasks verknuepfen:**
+
+```bash
+python3 "$SKILL_DIR/kanboard" create-task-link <task_id> <opposite_task_id> --link "<label|id>"
+```
+
+Richtung beachten: `create-task-link A B --link "is a child of"` bedeutet **"A is a child of B"**. Die Gegenrichtung (opposite link) wird von Kanboard automatisch am anderen Task angelegt. Beispiel:
+
+```bash
+python3 "$SKILL_DIR/kanboard" create-task-link 4366 4296 --link "relates to"
+```
+
+**Verbindung loeschen:**
+
+```bash
+python3 "$SKILL_DIR/kanboard" remove-task-link <task_link_id>
+```
+
+Die `task_link_id` (Feld `id`) stammt aus `list-task-links`.
+
 ## Workflow
 
 1. Parameter aus der Nutzeranfrage ableiten (Projekt, Titel, Beschreibung, Zuweisung, Spalte).
