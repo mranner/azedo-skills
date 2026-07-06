@@ -78,6 +78,7 @@ Lint-Befunde sind Verdacht, kein Verdikt – jeden vor einer Änderung gegen den
 - `particles_outside_locker`/`particle_overdose` und `copula_avoidance_cluster` bei lexikalischer Mehrdeutigkeit: `register_lint.py` und `german_pattern_lint.py` sehen nur Wortformen, keine Wortart oder Lesart. `schon` im Sinn von `bereits`, `mal` als `einmal` oder `5-mal`, `ja` als Antwort und `stellt` als Vollverb (`stellt eine Frage`, `stellt sich die Frage`, `stellt die KI vor ein Problem`) sind allein kein Befund; real bleibt der Fund, wenn die Wörter tatsächlich als Modalpartikeln/Nähemarker gehäuft sind oder `stellt` eine Kopula-Vermeidung wie `stellt dar` statt `ist`/`hat` bildet.
 - Hoher `subject_initial_ratio` ohne Cluster: Werte über 0,85 sind allein unauffällig (Kalibrierungs-Median menschlicher Blogtexte: 0,887). `rhythm_lint.py` meldet dies nur als Fund bei zusätzlich niedriger Satzlängenvarianz oder wiederholten Satzanfängen – die reine Zahl in einer Audit-Zusammenfassung ist für sich kein Fund.
 - Doppelpunkt im Einzeltitel (Muster 54): erst ab 2+ gleich gebauten Doppelpunkt-Titeln im selben Dokument behandeln, nie einen einzelnen Haupttitel oder ein Label (UI, Quellenangabe, Zeit-/Ortsangabe).
+- Business-Anglizismen (Muster 67): Begriffe der Negativliste (MVP, SaaS, CRM, KI, RAG, …) und ein einzelner Treffer sind kein Befund; `german_pattern_lint.py` meldet erst ab der modusabhängigen Cluster-Schwelle. „IP" meint im IT-/Netzwerkkontext die IP-Adresse, nicht geistiges Eigentum — nur im Cluster mit weiterem Business-Jargon behandeln.
 
 ## Modusmatrix
 
@@ -90,7 +91,7 @@ Lint-Befunde sind Verdacht, kein Verdikt – jeden vor einer Änderung gegen den
 | MEDIUM weicher Stil | bei Häufung ändern | bei Häufung/klarer Mechanik ändern | meist nur markieren |
 | LOW Format | ändern, wenn störend | ändern bei Regelverstoß | meist überspringen |
 
-False Friends aus Muster 45 immer korrigieren. Calques und syntaktische Transfers im Formal-Modus korrigieren; sonst nur bei Häufung oder auffälliger Wörtlichkeit.
+False Friends aus Muster 45 immer korrigieren. Calques und syntaktische Transfers im Formal-Modus korrigieren; sonst nur bei Häufung oder auffälliger Wörtlichkeit. Business-Anglizismen (Muster 67): Formal jeden Treffer, Sachlich ab kleinem Cluster, Locker nur bei Häufung; Begriffe der Negativliste nie.
 
 <!-- SLOW_UPDATE_END -->
 
@@ -104,7 +105,7 @@ Spätere Pässe dürfen frühere nicht invalidieren. Rhythmus immer zuletzt.
 
 **Pass 1 – Artefakte und Evidenz (immer, Einzelbefund genügt).** Chatbot-Floskeln, Platzhalter, Quellenprobleme (Decision Table Evidenz), Unicode, falsche Typografie und Claim-Delta prüfen. Bei Overlaps zuerst [references/decision-tables.md](references/decision-tables.md); [references/evidence-ledger.md](references/evidence-ledger.md) bei Faktenankern; [references/patterns.md](references/patterns.md) nur für konkrete Musterdiagnose, Audit oder Grenzfälle laden. Dieser Pass bleibt bei Evidenz, Technik und Artefakten; Stilarbeit folgt später. Für sichere Datei-Korrekturen: `python3 "$SKILL_DIR/scripts/unicode_lint.py" --fix --write`; Ergebnis bei Frontmatter und Bildtiteln prüfen (siehe Carve-outs). Fertig, wenn jeder HIGH-/Technik-/Evidenzfund geändert, markiert oder als False Positive verworfen ist.
 
-**Pass 2 – Lexik (Cluster-Regel).** Floskel-Muster, KI-Marker-Vokabular (Muster 64), Kopula-Vermeidung (Muster 65), Abstrakta-Stapel (Muster 58): Hypernyme und Nominalstil dort auflösen, wo der konkrete Sachverhalt im Text oder Kontext steht. Konkretion kommt aus belegtem Material; unbelegte Lücken sichtbar markieren. Fertig, wenn nur Cluster bearbeitet wurden und Claim-/Persona-Lock halten.
+**Pass 2 – Lexik (Cluster-Regel).** Floskel-Muster, KI-Marker-Vokabular (Muster 64), Kopula-Vermeidung (Muster 65), Abstrakta-Stapel (Muster 58), Business-Anglizismen/Denglisch-Jargon (Muster 67): Hypernyme, Nominalstil und Buzzwords dort auflösen, wo der konkrete Sachverhalt im Text oder Kontext steht. Konkretion kommt aus belegtem Material; unbelegte Lücken sichtbar markieren. Fertig, wenn nur Cluster bearbeitet wurden und Claim-/Persona-Lock halten.
 
 **Pass 3 – Struktur (Cluster-Regel).** Überschriften-Schemata, isometrische Absätze (Muster 61), substanzlose Sektionen, Listen-Parallelismus, Schließzwang (Muster 62). Erst nach diesem Pass steht die endgültige Absatzstruktur. Fertig, wenn Strukturänderungen keine neuen Fakten, Fazitfloskeln oder Volltextpflicht erzeugen.
 
@@ -175,7 +176,7 @@ Wenn der Nutzer eine Datei übergibt und Änderungen verlangt, editiere die Date
 
 ## Herkunft & Lizenz
 
-Vendorter Fork von [marmbiz/humanizer-de](https://github.com/marmbiz/humanizer-de)
+Vendorisierter Fork von [marmbiz/humanizer-de](https://github.com/marmbiz/humanizer-de)
 @ `a5084f2` (v5.2.0), MIT-Lizenz, © Martin Moeller (www.martin-moeller.biz).
 
 Basiert auf:

@@ -148,6 +148,7 @@ def preflight_assessment(
         "copula_avoidance_cluster": 1,
         "abstraction_cluster": 1,
         "colon_heading_cluster": 1,
+        "business_anglicism_cluster": 1,
     }
     for item in german_findings:
         kind = item.get("kind", "")

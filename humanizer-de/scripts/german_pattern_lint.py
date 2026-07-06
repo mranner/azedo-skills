@@ -53,6 +53,75 @@ ABSTRACTA = (
 )
 PARTICLES = ("ja", "doch", "eben", "halt", "wohl", "mal", "schon")
 
+# --- azedo-Erweiterung: Muster 67 (Business-Anglizismen / Denglisch-Jargon) ---
+# Kuratiertes Lexikon englischer Business-/Consulting-Begriffe -> deutsche
+# Entsprechungen. Abgegrenzt von Muster 45 (harte Transfers) und Muster 64
+# (deutsche KI-Marker). Match ist case-insensitiv und lässt nur ein eng
+# begrenztes deutsches Flexions-Suffix zu (kein offenes \w*), damit Formen wie
+# "instrumentiert" greifen, Kurztokens wie "Gate"/"IP" aber nicht in
+# "Gateway"/"ZIP" mitmatchen. Cluster-/registergesteuert (BUSINESS_ANGLICISM_THRESHOLDS).
+BUSINESS_ANGLICISMS = {
+    "lean": ["schlank"],
+    "Entscheidungs-Gate": ["Entscheidungspunkt"],
+    "Gate": ["Entscheidungspunkt"],
+    "evidenzgetrieben": ["faktenbasiert", "datengestützt"],
+    "instrumentier": ["durchgängig messen", "erfassen"],
+    "R&D": ["F&E"],
+    "Plattform-IP": ["Plattform-Know-how", "geistiges Eigentum"],
+    "IP": ["geistiges Eigentum"],
+    "Headline": ["Überschrift", "Auf einen Blick"],
+    "buy-vs-build": ["Zukauf vs. Eigenbau"],
+    "Capex": ["einmalige Investition"],
+    "Opex": ["Betriebskosten", "laufende Kosten"],
+    "productisier": ["zum Produkt ausbauen", "produktreif machen"],
+}
+
+# Negativliste etablierter Fachbegriffe: nie ein Befund. Vor dem Lexikon-Match
+# ausmaskiert, damit z.B. "A/B-Testing" oder "KI" keinen Treffer auslösen.
+BUSINESS_ANGLICISM_ALLOWLIST = (
+    "MVP", "SaaS", "Multi-Tenant", "CRM", "RAG", "2FA", "QR", "NFC",
+    "A/B-Testing", "White-Label", "Drag&Drop", "LLM", "KI", "Stripe",
+    "Payrexx", "RaiseNow", "Self-Serve", "scope-abhängig", "Onboarding",
+    "Tracking", "Funnel", "Journeys", "Live-Vorschau",
+)
+
+# Cluster-Schwelle pro Modus: formal jeden Treffer, sachlich ab kleinem Cluster,
+# locker nur bei Häufung.
+BUSINESS_ANGLICISM_THRESHOLDS = {"locker": 4, "sachlich": 2, "formal": 1}
+
+
+# Eng begrenztes deutsches Flexions-Suffix (Deklination/Konjugation). Bewusst
+# geschlossen statt \w*, damit "Gate"/"IP" nicht in "Gateway"/"IPsec" laufen.
+ANGLICISM_INFLECTION = r"(?:e|en|es|er|em|te|ten|t|st|s)?"
+
+
+def anglicism_regex(marker: str) -> re.Pattern:
+    # Grenzen gegen Wortzeichen; der Marker selbst darf & / - enthalten
+    # (R&D, buy-vs-build, Plattform-IP). Danach nur das begrenzte Flexions-Suffix.
+    return re.compile(rf"(?<![\w&/-]){re.escape(marker)}{ANGLICISM_INFLECTION}(?!\w)", re.IGNORECASE)
+
+
+def count_business_anglicisms(text: str) -> dict:
+    # Erst Allowlist-Treffer ausmaskieren, dann das Lexikon von lang nach kurz
+    # matchen und getroffene Spannen ebenfalls maskieren (verhindert
+    # Doppelzählung von "IP" innerhalb "Plattform-IP").
+    masked = text
+    for term in BUSINESS_ANGLICISM_ALLOWLIST:
+        masked = anglicism_regex(term).sub(lambda match: "\x00" * len(match.group(0)), masked)
+
+    hits: dict = {}
+    for marker in sorted(BUSINESS_ANGLICISMS, key=len, reverse=True):
+        spans = list(anglicism_regex(marker).finditer(masked))
+        if not spans:
+            continue
+        hits[marker] = {"count": len(spans), "vorschlaege": BUSINESS_ANGLICISMS[marker]}
+        for match in spans:
+            start, end = match.span()
+            masked = masked[:start] + "\x00" * (end - start) + masked[end:]
+    return hits
+
+# --- Ende azedo-Erweiterung ---
+
 
 def marker_stem(marker: str) -> str:
     if marker.endswith("en") and len(marker) > 5:
@@ -102,6 +171,11 @@ def lint(text: str, mode: str = "sachlich") -> dict:
     ]
     if len(colon_headings) >= 2:
         findings.append({"pattern": 54, "kind": "colon_heading_cluster", "severity": "warning", "evidence": colon_headings})
+
+    anglicism_hits = count_business_anglicisms(text)
+    anglicism_total = sum(item["count"] for item in anglicism_hits.values())
+    if anglicism_total >= BUSINESS_ANGLICISM_THRESHOLDS.get(mode, 2):
+        findings.append({"pattern": 67, "kind": "business_anglicism_cluster", "severity": "warning", "evidence": anglicism_hits})
 
     return {"ok": not findings, "mode": mode, "findings": findings}
 

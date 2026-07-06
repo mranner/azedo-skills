@@ -94,7 +94,7 @@ Der einzige substanzwahrende Hebel gegen niedrige Burstiness ist Muster 55 (Satz
 
 ## Die 66 Muster
 
-### Sprache und Tonfall (17 Muster)
+### Sprache und Tonfall (18 Muster)
 
 #### 1. Übermäßige Betonung von Symbolik [HIGH]
 **Problem:** Bestimmte Wendungen erzeugen symbolische, zu perfekte Bedeutungen.
@@ -402,6 +402,21 @@ Häufige Indikatoren:
 **Lösung:** Relativsatz streichen. Falls die Schlussfolgerung echte Information trägt: als eigenständigen Satz mit konkretem Beleg formulieren statt als Anhang.
 ❌ Schlecht: "Das Team lieferte die Migration in drei Wochen ab, was die hohe Effizienz des Vorgehens unterstreicht."
 ✓ Besser: "Das Team lieferte die Migration in drei Wochen ab." (oder: "...ab – geplant waren sechs.")
+
+#### 67. Business-Anglizismen / Denglisch-Jargon [MEDIUM]
+**Kategorie:** Sprache und Tonfall
+**Problem:** Deutscher Business-, Consulting- und Pitch-Text mischt englische Buzzwords und Denglisch-Verben in den Fließtext, wo eine etablierte deutsche Entsprechung existiert („lean", „Entscheidungs-Gate", „evidenzgetrieben", „instrumentieren", „R&D", „Plattform-IP", „Headline", „buy-vs-build", „Capex/Opex", „productisieren"). Einzeln sind sie Jargon; ihre Häufung macht den Text zu „Bullshit-Bingo" und verdeckt konkrete Aussagen. Kuratiertes Lexikon Begriff→deutsche Entsprechung, cluster- und registergesteuert (azedo-Erweiterung, siehe `scripts/german_pattern_lint.py`).
+**Abgrenzung:** Muster 45 = harte Transfers (Calques, False Friends, Übersetzungssyntax) — dort sind einzelne Anglizismen ausdrücklich *kein* Tell. Muster 64 = deutsche KI-Marker-Vokabeln („nahtlos", „ganzheitlich"). Muster 67 = das kuratierte englische Buzzword-Lexikon selbst, unabhängig vom Satzbau.
+Häufige Indikatoren (Lexikon-Auszug, Begriff → Ersatz):
+- lean → schlank; Entscheidungs-Gate/Gate → Entscheidungspunkt; Headline → Überschrift / Auf einen Blick
+- evidenzgetrieben → faktenbasiert / datengestützt; instrumentieren → durchgängig messen / erfassen; productisieren → zum Produkt ausbauen
+- R&D → F&E; Plattform-IP/IP → geistiges Eigentum; Capex → einmalige Investition; Opex → Betriebskosten; buy-vs-build → Zukauf vs. Eigenbau
+**Negativliste (etablierte Fachbegriffe, kein Befund):** MVP, SaaS, Multi-Tenant, CRM, RAG, 2FA, QR/NFC, A/B-Testing, White-Label, Drag&Drop, LLM, KI, Stripe/Payrexx/RaiseNow, Self-Serve, scope-abhängig, Onboarding, Tracking, Funnel, Journeys, Live-Vorschau. Diese Begriffe haben keine gebräuchliche deutsche Entsprechung oder sind als Produkt-/Domänennamen gesetzt. Domänen-Vorsicht: „IP" meint im IT-/Netzwerkkontext die IP-Adresse, nicht geistiges Eigentum — nur im Cluster mit weiterem Business-Jargon behandeln.
+**Register-Regel:** Formal — jeden Treffer ersetzen (Fachtext soll deutsch sein). Sachlich — ab kleinem Cluster ersetzen, Negativliste nie. Locker — nur bei Häufung; Blog/Social darf Jargon tragen.
+**Warum LLMs das tun:** Englischdominiertes Trainingsmaterial und Consulting-Korpora setzen Buzzwords als Statussignal; das Modell übernimmt sie ungefiltert ins Deutsche.
+**Lösung:** Durch die deutsche Entsprechung ersetzen, wo der Sachverhalt es trägt. Etablierte Fachbegriffe (Negativliste) stehen lassen.
+❌ Schlecht: „Der lean aufgesetzte R&D-Prozess ist evidenzgetrieben und über ein Entscheidungs-Gate instrumentiert; die Plattform-IP bleibt Capex."
+✓ Besser: „Der schlank aufgesetzte F&E-Prozess ist faktenbasiert und über einen Entscheidungspunkt durchgängig gemessen; das geistige Eigentum an der Plattform bleibt einmalige Investition."
 
 ### Stil (4 Muster)
 

@@ -307,7 +307,7 @@ Standort per Ortsname (Geocoding via OpenStreetMap/Nominatim, auf AT beschraenkt
 
 ### humanizer-de
 
-Deutscher AI-Text-Humanizer: KI-Schreibmuster (KI-Tells) in deutschen Texten auditieren und belegtreu ueberarbeiten. Vendorter Fork von [marmbiz/humanizer-de](https://github.com/marmbiz/humanizer-de) (MIT). SKILL.md + Referenzen + Python-Linter (stdlib only):
+Deutscher AI-Text-Humanizer: KI-Schreibmuster (KI-Tells) in deutschen Texten auditieren und belegtreu ueberarbeiten. Vendorisierter Fork von [marmbiz/humanizer-de](https://github.com/marmbiz/humanizer-de) (MIT). SKILL.md + Referenzen + Python-Linter (stdlib only):
 
 - 66 Muster in 10 Kategorien (Referenzkatalog `references/patterns.md`)
 - Drei Modi: Locker (Blog/Social), Sachlich (Website/Doku/B2B), Formal (Wissenschaft/Recht)
@@ -323,9 +323,14 @@ Deutscher AI-Text-Humanizer: KI-Schreibmuster (KI-Tells) in deutschen Texten aud
 
 ## Changelog
 
+### 1.12.1
+
+- **humanizer-de: Muster 67 „Business-Anglizismen / Denglisch-Jargon" [MEDIUM] (azedo-Erweiterung):** Neue register- und clustergesteuerte Kategorie erkennt deutschen Business-/Consulting-Jargon und Anglizismen („Bullshit-Bingo") und schlaegt deutsche Entsprechungen vor — abgegrenzt von Muster 45 (harte Transfers) und Muster 64 (deutsche KI-Marker). Kuratiertes Lexikon (Begriff→DE) + fixe Negativliste etablierter Fachbegriffe (MVP, SaaS, CRM, KI, …) in `scripts/german_pattern_lint.py`; case-insensitiver Match mit begrenztem Flexions-Suffix (matcht `R&D`, `Plattform-IP`, `instrumentiert`, ohne `Gate`→`Gateway`/`IP`→`ZIP`-Fehltreffer). Schwellen formal ≥1 / sachlich ≥2 / locker ≥4. `humanizer_audit.py` aggregiert die Kategorie ins Preflight; Muster 67 in `patterns.md` (Pass 2) und `SKILL.md` (Modusmatrix, Carve-outs) dokumentiert. Als klar markierte azedo-Erweiterung gekapselt (kein Upstream-Sync)
+- **Wording:** „vendorisiert" statt „vendort/vendorter" in SKILL.md, README und Handoff
+
 ### 1.12.0
 
-- **humanizer-de-Skill:** Deutscher AI-Text-Humanizer als vendorter Fork von `marmbiz/humanizer-de` (@ `a5084f2`, v5.2.0, MIT). Kuratierter Subset (SKILL.md + 6 Referenzen + 7 Python-Linter, stdlib only); Plugin-/Codex-Manifeste, `tests/`, `docs/` und `assets/` weggelassen, da azedo-skills ueber Symlinks statt Marketplace laeuft. Frontmatter an azedo-Konvention angeglichen, Script-Aufrufe auf `$SKILL_DIR`, Herkunft-/Lizenz-Block ergaenzt. `LICENSE` verbatim erhalten (Attribution an `blader/humanizer` und dt. Wikipedia CC BY-SA 4.0)
+- **humanizer-de-Skill:** Deutscher AI-Text-Humanizer als vendorisierter Fork von `marmbiz/humanizer-de` (@ `a5084f2`, v5.2.0, MIT). Kuratierter Subset (SKILL.md + 6 Referenzen + 7 Python-Linter, stdlib only); Plugin-/Codex-Manifeste, `tests/`, `docs/` und `assets/` weggelassen, da azedo-skills ueber Symlinks statt Marketplace laeuft. Frontmatter an azedo-Konvention angeglichen, Script-Aufrufe auf `$SKILL_DIR`, Herkunft-/Lizenz-Block ergaenzt. `LICENSE` verbatim erhalten (Attribution an `blader/humanizer` und dt. Wikipedia CC BY-SA 4.0)
 
 ### 1.11.5
 
