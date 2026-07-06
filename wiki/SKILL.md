@@ -29,8 +29,15 @@ Alle Subcommands nehmen optional einen Wiki-Namen als Praefix an:
 Vor jeder Operation:
 
 1. Wiki-Name aus dem Argument parsen (Muster `^([a-z0-9-]+):`), sonst `azedo`.
-2. Wiki-Root ableiten: `WIKI_ROOT = ~/azedo.ai/wiki/<name>/`.
-3. Existenz von `WIKI_ROOT` pruefen. Fehlt es → Hinweis auf `/wiki init <name>`.
+2. Wiki-Root ableiten: `WIKI_ROOT = wiki/<name>/` — **relativ zum Projekt-Root**
+   (dem Arbeitsverzeichnis, in dem der Skill laeuft; dort liegen die Wikis unter
+   `wiki/`). Analog zur Projekt-`CLAUDE.md`, die das Wiki als `wiki/azedo/…`
+   referenziert. Kein absoluter Home-Pfad — so bleibt der Skill portabel
+   (Mac, andere Mitarbeiter, anderer Checkout-Ort).
+3. Existenz von `WIKI_ROOT` pruefen. Fehlt es, **nicht** auf einen Home-Pfad
+   ausweichen: bei einem neuen Wiki auf `/wiki init <name>` hinweisen; sonst melden,
+   dass das Wiki relativ zum aktuellen Verzeichnis nicht gefunden wurde (ggf. nicht
+   im Projekt-Root gestartet).
 4. `WIKI_ROOT/CLAUDE.md` lesen — jedes Wiki hat sein eigenes Entity-Modell und
    eigene Konventionen (z.B. Infra `kunde` vs. Projekt-Wiki `projekt`).
 
@@ -48,9 +55,9 @@ Neues Wiki-Unterverzeichnis anlegen.
 /wiki init <name>
 ```
 
-Erstellt die Standard-Verzeichnisstruktur unter `~/azedo.ai/wiki/<name>/` und legt
-eine Default-`wiki-schema.json` (Infra-Modell) an, damit das neue Wiki sofort
-lintbar ist:
+Erstellt die Standard-Verzeichnisstruktur unter `wiki/<name>/` (relativ zum
+Projekt-Root) und legt eine Default-`wiki-schema.json` (Infra-Modell) an, damit das
+neue Wiki sofort lintbar ist:
 
 ```json
 {
@@ -138,7 +145,8 @@ Wiki auf strukturelle Probleme pruefen.
 ```
 
 Fuehrt `python3 "$SKILL_DIR/scripts/lint-wiki.py" <WIKI_ROOT>` aus (z.B.
-`~/azedo.ai/wiki/azedo/` fuer das Default-Wiki, `~/azedo.ai/wiki/cris/` fuer `cris`).
+`wiki/azedo/` fuer das Default-Wiki, `wiki/cris/` fuer `cris` — jeweils relativ zum
+Projekt-Root).
 
 Das erlaubte Entity-Modell (Typen + Pflichtfelder) liest der Linter aus
 `<WIKI_ROOT>/wiki-schema.json`; fehlt die Datei, gilt das Infra-Default.

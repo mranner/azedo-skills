@@ -288,7 +288,7 @@ LLM Wiki-Verwaltung fuer strukturierte Dokumentation. Unterstuetzt **mehrere Wik
 - lint: strukturelle Pruefung (Frontmatter, tote Links, Konnektivitaet, Namenskonventionen)
 - status: Ueberblick ueber Wiki-Zustand
 
-Ziel-Wiki per Praefix waehlen: `/wiki cris:query "…"`; ohne Praefix gilt `azedo` (Default). Das Entity-Modell (erlaubte Typen + Pflichtfelder) liest der Linter aus `<wiki-root>/wiki-schema.json`, mit Infra-Default als Fallback.
+Ziel-Wiki per Praefix waehlen: `/wiki cris:query "…"`; ohne Praefix gilt `azedo` (Default). Die Wiki-Root wird projekt-relativ aufgeloest (`wiki/<name>/` relativ zum Projekt-Root), nicht ueber einen absoluten Home-Pfad — portabel ueber Maschinen/Checkout-Orte. Das Entity-Modell (erlaubte Typen + Pflichtfelder) liest der Linter aus `<wiki-root>/wiki-schema.json`, mit Infra-Default als Fallback.
 
 Referenzen: Frontmatter-Schemas, Compilation-Guide, Cross-Referencing-Regeln.
 
@@ -325,6 +325,10 @@ Deutscher AI-Text-Humanizer: KI-Schreibmuster (KI-Tells) in deutschen Texten aud
 **Trigger:** `/humanizer-de` oder natuerliche Sprache wie "humanisiere den Text", "klingt nach KI", "entferne die KI-Tells".
 
 ## Changelog
+
+### 1.14.1
+
+- **wiki: Wiki-Basis projekt-relativ (Portabilitaet).** Die Wiki-Root wird nicht mehr home-verankert (`~/azedo.ai/wiki/<name>/`) aufgeloest, sondern **relativ zum Projekt-Root** (`wiki/<name>/`) — konsistent mit der Projekt-`CLAUDE.md` (`wiki/azedo/…`) und portabel fuer Mac, andere Mitarbeiter und abweichende Checkout-Orte. Kein Home-Fallback (waere bei anderem Checkout-Pfad kontraproduktiv). Nur SKILL.md-Anleitung + Hilfetexte im Linter betroffen; `lint-wiki.py` war bereits vollstaendig parametrisch (nimmt die Wiki-Root als Argument). Verifiziert: azedo + cris linten sauber sowohl aus dem Projekt-Root als auch aus einem anderen Verzeichnis (0 Fehler)
 
 ### 1.14.0
 

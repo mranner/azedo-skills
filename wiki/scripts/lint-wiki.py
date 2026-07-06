@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # stdlib only, no pip dependencies
-# version 1.14.0
+# version 1.14.1
 
 """
 lint-wiki.py — Strukturpruefung fuer LLM Wikis (Infra + Projekt-Doku).
@@ -14,7 +14,7 @@ Prueft:
 - Verwaiste Seiten (keine eingehenden Links)
 
 Aufruf: python3 lint-wiki.py <wiki-root>
-        z.B. python3 lint-wiki.py ~/azedo.ai/wiki/azedo/
+        z.B. python3 lint-wiki.py wiki/azedo/   (relativ zum Projekt-Root)
 
 Keine externen Abhaengigkeiten — reines Python 3.
 """
@@ -284,6 +284,6 @@ def lint_wiki(wiki_root):
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print(f"Aufruf: {sys.argv[0]} <wiki-root>")
-        print(f"  z.B.: {sys.argv[0]} ~/azedo.ai/wiki/azedo/")
+        print(f"  z.B.: {sys.argv[0]} wiki/azedo/")
         sys.exit(2)
     sys.exit(lint_wiki(sys.argv[1]))
