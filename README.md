@@ -279,14 +279,16 @@ Referenz-Skill fuer PixelYourSite Pro Event-Verwaltung in WordPress-(Multi-)Site
 
 ### wiki
 
-LLM Wiki-Verwaltung fuer strukturierte Server-Infra-Dokumentation. Kein eigenes Script (bis auf lint-wiki.py), reine SKILL.md mit Subcommands:
+LLM Wiki-Verwaltung fuer strukturierte Dokumentation. Unterstuetzt **mehrere Wikis** mit je eigenem Entity-Modell (Infra `azedo`: Server/Service/Access/Site/Procedure; Projekt-Wikis abweichend). Kein eigenes Script (bis auf lint-wiki.py), reine SKILL.md mit Subcommands:
 
-- init: neues Wiki-Unterverzeichnis anlegen
+- init: neues Wiki-Unterverzeichnis anlegen (inkl. Default-`wiki-schema.json`)
 - ingest: Quellen ins Wiki aufnehmen (nach raw/, immutable)
-- compile: Quellen zu Wiki-Entities verarbeiten (Server, Service, Access, Site, Procedure)
+- compile: Quellen zu Wiki-Entities verarbeiten (erlaubte Typen laut Wiki-`CLAUDE.md`)
 - query: Fragen gegen das Wiki beantworten
 - lint: strukturelle Pruefung (Frontmatter, tote Links, Konnektivitaet, Namenskonventionen)
 - status: Ueberblick ueber Wiki-Zustand
+
+Ziel-Wiki per Praefix waehlen: `/wiki cris:query "…"`; ohne Praefix gilt `azedo` (Default). Das Entity-Modell (erlaubte Typen + Pflichtfelder) liest der Linter aus `<wiki-root>/wiki-schema.json`, mit Infra-Default als Fallback.
 
 Referenzen: Frontmatter-Schemas, Compilation-Guide, Cross-Referencing-Regeln.
 
@@ -323,6 +325,10 @@ Deutscher AI-Text-Humanizer: KI-Schreibmuster (KI-Tells) in deutschen Texten aud
 **Trigger:** `/humanizer-de` oder natuerliche Sprache wie "humanisiere den Text", "klingt nach KI", "entferne die KI-Tells".
 
 ## Changelog
+
+### 1.14.0
+
+- **wiki: Multi-Wiki-Support + konfigurierbares Entity-Modell.** Der Skill ist nicht mehr fest auf das Infra-Wiki `azedo` verdrahtet. Ziel-Wiki per Praefix waehlbar: `/wiki <name>:<subcommand>` (z.B. `/wiki cris:query "…"`), ohne Praefix gilt weiterhin `azedo` (rueckwaertskompatibel). Alle hartkodierten `~/azedo.ai/wiki/azedo/`-Pfade laufen ueber `<WIKI_ROOT>`; vor jeder Operation wird `<WIKI_ROOT>/CLAUDE.md` gelesen (jedes Wiki hat sein eigenes Modell und eigene Konventionen). `lint-wiki.py` laedt erlaubte Typen + Pflichtfelder aus `<wiki-root>/wiki-schema.json` (Format: `required_common` + `types`), mit dem bisherigen Infra-Modell als eingebautem Fallback (`DEFAULT_SCHEMA`) — fehlt die Datei, verhaelt sich der Linter wie bisher. `init` legt neben der Verzeichnisstruktur eine Default-`wiki-schema.json` an. Verifiziert: `azedo`-Lint unveraendert (99 Artikel, 0 Fehler, Default-Fallback), neues Projekt-Wiki `cris` (concept/module/integration/procedure/reference/architecture, Pflichtfeld `projekt`) lintet mit eigenem Schema sauber (10 Artikel, 0 Fehler). Die `wiki-schema.json` der einzelnen Wikis liegt im jeweiligen Wiki, nicht im Skill-Repo
 
 ### 1.13.0
 

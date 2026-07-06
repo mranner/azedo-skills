@@ -17,19 +17,43 @@ Keine externen Abhaengigkeiten — reines Python 3.
 
 import sys
 import re
+import json
 from pathlib import Path
 from collections import defaultdict
 
-# Pflichtfelder pro Entity-Typ
-REQUIRED_FIELDS = {
-    "server": ["date", "tags", "type", "status", "hostname", "ip", "os", "location", "kunde", "roles"],
-    "service": ["date", "tags", "type", "status", "runs-on", "port", "kunde"],
-    "access": ["date", "tags", "type", "status", "target", "method", "kunde"],
-    "site": ["date", "tags", "type", "status", "location", "network-segments", "kunde"],
-    "procedure": ["date", "tags", "type", "status", "applies-to", "kunde"],
+# Eingebautes Default-Schema = Infra-Modell (Rueckwaertskompatibilitaet).
+# Greift, wenn im Wiki-Root keine wiki-schema.json liegt.
+# required_common gilt fuer jeden Typ; die Liste pro Typ ergaenzt typ-spezifische
+# Pflichtfelder. Effektive Pflichtfelder = required_common + types[typ].
+DEFAULT_SCHEMA = {
+    "required_common": ["date", "tags", "type", "status", "kunde"],
+    "types": {
+        "server": ["hostname", "ip", "os", "location", "roles"],
+        "service": ["runs-on", "port"],
+        "access": ["target", "method"],
+        "site": ["location", "network-segments"],
+        "procedure": ["applies-to"],
+    },
 }
 
-VALID_TYPES = set(REQUIRED_FIELDS.keys())
+
+def load_schema(wiki_root):
+    """Laedt das Entity-Modell aus <wiki-root>/wiki-schema.json.
+
+    Faellt auf DEFAULT_SCHEMA (Infra-Modell) zurueck, wenn keine Config existiert.
+    Gibt (required_fields_pro_typ, set_der_gueltigen_typen) zurueck.
+    """
+    schema_file = Path(wiki_root) / "wiki-schema.json"
+    if schema_file.exists():
+        data = json.loads(schema_file.read_text(encoding="utf-8"))
+    else:
+        data = DEFAULT_SCHEMA
+
+    common = data.get("required_common", [])
+    required = {t: common + extra for t, extra in data["types"].items()}
+    return required, set(required.keys())
+
+
 FILENAME_PATTERN = re.compile(r"^[a-z0-9][a-z0-9-]*\.md$")
 WIKILINK_PATTERN = re.compile(r"\[\[([^\]|]+?)(?:\|[^\]]+?)?\]\]")
 MIN_WIKILINKS = 3
@@ -131,6 +155,9 @@ def lint_wiki(wiki_root):
         print(f"FEHLER: Wiki-Verzeichnis nicht gefunden: {wiki_dir}")
         return 1
 
+    # Entity-Modell pro Wiki laden (Config oder Infra-Default)
+    required_fields, valid_types = load_schema(wiki_root)
+
     errors = []
     warnings = []
 
@@ -175,12 +202,12 @@ def lint_wiki(wiki_root):
             errors.append(f"{prefix}: Pflichtfeld 'type' fehlt")
             continue
 
-        if entity_type not in VALID_TYPES:
-            errors.append(f"{prefix}: Unbekannter Typ '{entity_type}' (erlaubt: {', '.join(sorted(VALID_TYPES))})")
+        if entity_type not in valid_types:
+            errors.append(f"{prefix}: Unbekannter Typ '{entity_type}' (erlaubt: {', '.join(sorted(valid_types))})")
             continue
 
         # Pflichtfelder
-        for field in REQUIRED_FIELDS[entity_type]:
+        for field in required_fields[entity_type]:
             if field not in fm or fm[field] is None:
                 errors.append(f"{prefix}: Pflichtfeld '{field}' fehlt (Typ: {entity_type})")
 
