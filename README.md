@@ -329,6 +329,10 @@ Deutscher AI-Text-Humanizer: KI-Schreibmuster (KI-Tells) in deutschen Texten aud
 
 ## Changelog
 
+### 1.15.1
+
+- **php-formatting: Leerzeilen um Kontrollstrukturen an Blockgrenzen praezisiert.** Die Ausnahmen-Liste in Abschnitt 2 sagte bisher pauschal „am Anfang/Ende eines Blocks (direkt nach `{` / direkt vor `}`) keine ueberfluessige Leerzeile" — das widersprach der Grundregel, wenn das erste bzw. letzte Statement selbst eine Kontrollstruktur ist. Klargestellt: Regel 2 hat Vorrang, die Leerzeile vor/nach einer Kontrollstruktur gilt konsequent auch an Blockgrenzen (auch direkt nach dem oeffnenden `{` und direkt vor dem schliessenden `}`). Einzige verbleibende Ausnahme bleibt `}`↔`else`/`elseif`/`catch`/`finally`. Beispiel mit verschachtelter Kontrollstruktur als erstes/letztes Statement ergaenzt
+
 ### 1.15.0
 
 - **wiki: Read-only-Zugriff auf Wikis anderer Hosts (SSH).** Ein Projekt kann die Wikis eines anderen Hosts nutzen, ohne Sync und ohne je remote ins Wiki zu schreiben. Drei Bausteine: **(1) Remote-Query** — Remotes werden aus `<projekt>/.claude/wiki-remotes.json` (`{name: {host, path, readonly}}`) aufgeloest; `query`/`status` lesen die Dateien per `ssh <host> "cat/grep …"` (User-Shell ist bash, normales Quoting), `ingest`/`compile`/`init` sind fuer Remotes gesperrt (read-only by construction). **(2) Remote-Hints** — Wikilinks `[[<remote>:<slug>]]` gelten im Linter als gueltig, wenn `<remote>` in `.claude/wiki-remotes.json` steht (kein toter Link, keine Waisen-Folgefehler); Default offline-sicher, Flag `--check-remotes` verifiziert die Ziele on demand per SSH-`find`. **(3) Handoff-Note** — Subcommand `<remote>:handoff` liest das Zielschema + `index.md` per SSH, erkennt new-vs-update und erzeugt eine ingest-fertige Note unter `.claude/wiki-outbox/<remote>-<slug>.md`; Transport (Kanboard/scp/Mail) und Ingest auf dem Zielhost sind user-ausgeloest. `lint-wiki.py`: neue `load_remotes()`/`parse_remote_target()`/`check_remote_target()`, `--check-remotes`-Flag. Verifiziert: Regression azedo 99/0 + cris 27/0 unveraendert; SSH-Read + Remote-Pointer + Handoff-Format gegen die reale cris-Wiki getestet

@@ -60,7 +60,24 @@ Ausnahmen:
 - Zwischen `}` und unmittelbar folgendem `else`, `elseif`, `catch`, `finally`
   **keine** zusaetzliche Leerzeile (die gehoeren zusammen).
 - Am Anfang/Ende eines Blocks (direkt nach `{` / direkt vor `}`) keine
-  ueberfluessige Leerzeile.
+  ueberfluessige Leerzeile — **ausser** die erste bzw. letzte Anweisung im Block
+  ist selbst eine Kontrollstruktur. Dann hat Regel 2 Vorrang: Leerzeile **vor**
+  der Kontrollstruktur (auch direkt nach dem oeffnenden `{`) und **nach** ihrer
+  schliessenden `}` (auch direkt vor dem schliessenden `}` des umschliessenden
+  Blocks). Die Leerzeile vor/nach Kontrollstrukturen gilt also konsequent, auch
+  an Blockgrenzen.
+
+Beispiel (verschachtelte Kontrollstruktur als erstes/letztes Statement):
+
+```php
+foreach ($files as $file) {
+
+	if (preg_match('/(\d{4}-\d{2}-\d{2})/', basename($file), $m)) {
+		$dated[] = $file;
+	}
+
+}
+```
 
 ### 3. Leerzeilen nach Methoden-/Funktionsdeklarationen
 
