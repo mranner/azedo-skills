@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # stdlib only, no pip dependencies
-# version 1.14.1
+# version 1.15.0
 
 """
 lint-wiki.py — Strukturpruefung fuer LLM Wikis (Infra + Projekt-Doku).
@@ -13,7 +13,13 @@ Prueft:
 - Namenskonventionen (nur Kleinbuchstaben, Ziffern, Bindestriche)
 - Verwaiste Seiten (keine eingehenden Links)
 
-Aufruf: python3 lint-wiki.py <wiki-root>
+Remote-Pointer: Wikilinks der Form [[<remote>:<slug>]] verweisen auf ein Wiki
+auf einem anderen Host. Ist <remote> ein Key in <projekt-root>/.claude/
+wiki-remotes.json, gilt der Link als gueltig (kein toter Link) — das Ziel wird im
+Default NICHT geprueft (offline-sicher). Mit --check-remotes wird die Existenz per
+SSH (find) on demand verifiziert. Unbekanntes Praefix → weiterhin toter Link.
+
+Aufruf: python3 lint-wiki.py [--check-remotes] <wiki-root>
         z.B. python3 lint-wiki.py wiki/azedo/   (relativ zum Projekt-Root)
 
 Keine externen Abhaengigkeiten — reines Python 3.
@@ -22,6 +28,7 @@ Keine externen Abhaengigkeiten — reines Python 3.
 import sys
 import re
 import json
+import subprocess
 from pathlib import Path
 from collections import defaultdict
 
@@ -58,9 +65,60 @@ def load_schema(wiki_root):
     return required, set(required.keys())
 
 
+def load_remotes(wiki_root):
+    """Laedt bekannte Remote-Wikis aus <projekt-root>/.claude/wiki-remotes.json.
+
+    Projekt-Root = wiki_root.parent.parent (Layout <projekt>/wiki/<name>/).
+    Mergt optional wiki-remotes.local.json darueber. Fehlt alles → leeres Dict
+    (dann ist jeder [[x:y]]-Link mit unbekanntem x ein toter Link — wie bisher).
+    Gibt {name: {"host": ..., "path": ...}} zurueck.
+    """
+    remotes = {}
+    project_root = Path(wiki_root).resolve().parent.parent
+    for fname in ("wiki-remotes.json", "wiki-remotes.local.json"):
+        f = project_root / ".claude" / fname
+        if f.exists():
+            try:
+                data = json.loads(f.read_text(encoding="utf-8"))
+                if isinstance(data, dict):
+                    remotes.update(data)
+            except (json.JSONDecodeError, OSError):
+                pass
+    return remotes
+
+
 FILENAME_PATTERN = re.compile(r"^[a-z0-9][a-z0-9-]*\.md$")
 WIKILINK_PATTERN = re.compile(r"\[\[([^\]|]+?)(?:\|[^\]]+?)?\]\]")
+# Remote-Pointer [[<remote>:<slug>]] — beide Teile in Slug-Schreibweise
+REMOTE_TARGET_PATTERN = re.compile(r"^([a-z0-9-]+):([a-z0-9-]+)$")
 MIN_WIKILINKS = 3
+
+
+def parse_remote_target(target):
+    """Zerlegt 'remote:slug' → (remote, slug); sonst None."""
+    m = REMOTE_TARGET_PATTERN.match(target.strip())
+    return (m.group(1), m.group(2)) if m else None
+
+
+def check_remote_target(remote_conf, slug):
+    """Prueft per SSH, ob <slug>.md im Remote-Wiki existiert.
+
+    Gibt (True, None) bei Fund, (False, grund) sonst. Nutzt BatchMode (kein
+    Passwort-Prompt). Nur bei --check-remotes aufgerufen.
+    """
+    host = remote_conf.get("host")
+    path = remote_conf.get("path")
+    if not host or not path:
+        return False, "unvollstaendige Remote-Config (host/path)"
+    cmd = ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8", host,
+           f"find {path}/wiki -type f -name '{slug}.md'"]
+    try:
+        res = subprocess.run(cmd, capture_output=True, text=True, timeout=20)
+    except (subprocess.SubprocessError, OSError) as exc:
+        return False, f"SSH-Fehler ({exc})"
+    if res.returncode != 0:
+        return False, f"SSH-Exit {res.returncode}"
+    return (True, None) if res.stdout.strip() else (False, "Ziel nicht gefunden")
 
 
 def parse_frontmatter(filepath):
@@ -149,7 +207,7 @@ def check_filename(filepath):
     return None
 
 
-def lint_wiki(wiki_root):
+def lint_wiki(wiki_root, check_remotes=False):
     """Hauptfunktion: prueft das gesamte Wiki."""
     wiki_root = Path(wiki_root)
     wiki_dir = wiki_root / "wiki"
@@ -161,6 +219,9 @@ def lint_wiki(wiki_root):
 
     # Entity-Modell pro Wiki laden (Config oder Infra-Default)
     required_fields, valid_types = load_schema(wiki_root)
+
+    # Bekannte Remote-Wikis (fuer [[<remote>:<slug>]]-Pointer)
+    remotes = load_remotes(wiki_root)
 
     errors = []
     warnings = []
@@ -230,11 +291,25 @@ def lint_wiki(wiki_root):
         if len(links) < MIN_WIKILINKS:
             warnings.append(f"{prefix}: Nur {len(links)} Wikilinks (Minimum: {MIN_WIKILINKS})")
 
-    # Tote Links
+    # Tote Links (Remote-Pointer [[<remote>:<slug>]] ausgenommen, wenn <remote> bekannt)
+    remote_pointers = []  # (source_slug, remote_name, target_slug)
     for slug, targets in outgoing_links.items():
         for target in targets:
-            if target not in all_slugs:
-                errors.append(f"{articles[slug]['rel_path']}: Toter Wikilink [[{target}]] — Ziel existiert nicht")
+            if target in all_slugs:
+                continue
+            rp = parse_remote_target(target)
+            if rp and rp[0] in remotes:
+                # gueltiger Remote-Pointer — kein toter Link (Default offline-sicher)
+                remote_pointers.append((slug, rp[0], rp[1]))
+                continue
+            errors.append(f"{articles[slug]['rel_path']}: Toter Wikilink [[{target}]] — Ziel existiert nicht")
+
+    # Optional: Remote-Pointer-Ziele per SSH verifizieren
+    if check_remotes and remote_pointers:
+        for src, rname, tslug in remote_pointers:
+            ok, reason = check_remote_target(remotes[rname], tslug)
+            if not ok:
+                warnings.append(f"{articles[src]['rel_path']}: Remote-Pointer [[{rname}:{tslug}]] — {reason}")
 
     # Verwaiste Seiten
     for slug in all_slugs:
@@ -282,8 +357,15 @@ def lint_wiki(wiki_root):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print(f"Aufruf: {sys.argv[0]} <wiki-root>")
+    args = sys.argv[1:]
+    check_remotes = False
+    if "--check-remotes" in args:
+        check_remotes = True
+        args.remove("--check-remotes")
+
+    if len(args) != 1:
+        print(f"Aufruf: {sys.argv[0]} [--check-remotes] <wiki-root>")
         print(f"  z.B.: {sys.argv[0]} wiki/azedo/")
+        print(f"  --check-remotes: [[<remote>:<slug>]]-Ziele per SSH verifizieren")
         sys.exit(2)
-    sys.exit(lint_wiki(sys.argv[1]))
+    sys.exit(lint_wiki(args[0], check_remotes=check_remotes))

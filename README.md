@@ -285,10 +285,13 @@ LLM Wiki-Verwaltung fuer strukturierte Dokumentation. Unterstuetzt **mehrere Wik
 - ingest: Quellen ins Wiki aufnehmen (nach raw/, immutable)
 - compile: Quellen zu Wiki-Entities verarbeiten (erlaubte Typen laut Wiki-`CLAUDE.md`)
 - query: Fragen gegen das Wiki beantworten
-- lint: strukturelle Pruefung (Frontmatter, tote Links, Konnektivitaet, Namenskonventionen)
+- lint: strukturelle Pruefung (Frontmatter, tote Links, Konnektivitaet, Namenskonventionen); `--check-remotes` verifiziert Remote-Pointer per SSH
 - status: Ueberblick ueber Wiki-Zustand
+- handoff: aus lokalen Erkenntnissen eine ingest-fertige Note fuer ein Remote-Wiki erzeugen (manueller Ingest auf dem Zielhost)
 
 Ziel-Wiki per Praefix waehlen: `/wiki cris:query "…"`; ohne Praefix gilt `azedo` (Default). Die Wiki-Root wird projekt-relativ aufgeloest (`wiki/<name>/` relativ zum Projekt-Root), nicht ueber einen absoluten Home-Pfad — portabel ueber Maschinen/Checkout-Orte. Das Entity-Modell (erlaubte Typen + Pflichtfelder) liest der Linter aus `<wiki-root>/wiki-schema.json`, mit Infra-Default als Fallback.
+
+**Remote-Wikis (read-only):** Ein Wiki auf einem anderen Host kann per SSH read-only abgefragt werden — ohne lokale Kopie, ohne Sync. Definiert in `.claude/wiki-remotes.json` (`{name: {host, path}}`); `query`/`status` lesen dann per `ssh <host> "cat/grep …"`, schreibende Subcommands sind fuer Remotes gesperrt. Aus einem lokalen Wiki auf eine Remote-Entity verweisen: `[[<remote>:<slug>]]` (gueltiger Pointer, kein toter Link, wenn `<remote>` bekannt). Neue Erkenntnisse fuer ein Remote-Wiki liefert `<remote>:handoff` als Outbox-Note (`.claude/wiki-outbox/`) zum manuellen Ingest auf dem Zielhost — kein Remote-Write.
 
 Referenzen: Frontmatter-Schemas, Compilation-Guide, Cross-Referencing-Regeln.
 
@@ -325,6 +328,10 @@ Deutscher AI-Text-Humanizer: KI-Schreibmuster (KI-Tells) in deutschen Texten aud
 **Trigger:** `/humanizer-de` oder natuerliche Sprache wie "humanisiere den Text", "klingt nach KI", "entferne die KI-Tells".
 
 ## Changelog
+
+### 1.15.0
+
+- **wiki: Read-only-Zugriff auf Wikis anderer Hosts (SSH).** Ein Projekt kann die Wikis eines anderen Hosts nutzen, ohne Sync und ohne je remote ins Wiki zu schreiben. Drei Bausteine: **(1) Remote-Query** — Remotes werden aus `<projekt>/.claude/wiki-remotes.json` (`{name: {host, path, readonly}}`) aufgeloest; `query`/`status` lesen die Dateien per `ssh <host> "cat/grep …"` (User-Shell ist bash, normales Quoting), `ingest`/`compile`/`init` sind fuer Remotes gesperrt (read-only by construction). **(2) Remote-Hints** — Wikilinks `[[<remote>:<slug>]]` gelten im Linter als gueltig, wenn `<remote>` in `.claude/wiki-remotes.json` steht (kein toter Link, keine Waisen-Folgefehler); Default offline-sicher, Flag `--check-remotes` verifiziert die Ziele on demand per SSH-`find`. **(3) Handoff-Note** — Subcommand `<remote>:handoff` liest das Zielschema + `index.md` per SSH, erkennt new-vs-update und erzeugt eine ingest-fertige Note unter `.claude/wiki-outbox/<remote>-<slug>.md`; Transport (Kanboard/scp/Mail) und Ingest auf dem Zielhost sind user-ausgeloest. `lint-wiki.py`: neue `load_remotes()`/`parse_remote_target()`/`check_remote_target()`, `--check-remotes`-Flag. Verifiziert: Regression azedo 99/0 + cris 27/0 unveraendert; SSH-Read + Remote-Pointer + Handoff-Format gegen die reale cris-Wiki getestet
 
 ### 1.14.1
 
