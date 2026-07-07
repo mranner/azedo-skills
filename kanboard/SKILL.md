@@ -74,6 +74,18 @@ python3 "$SKILL_DIR/kanboard" update-task <task_id> \
 python3 "$SKILL_DIR/kanboard" move-task <task_id> --column "<spalte>" [--swimlane <name>] [--project <name|id>]
 ```
 
+### Task in anderes Projekt verschieben
+
+```bash
+python3 "$SKILL_DIR/kanboard" move-project <task_id> --project <name|id> [--column <name>] [--swimlane <name>]
+```
+
+`move-task` verschiebt nur **innerhalb** eines Projekts (`moveTaskPosition`). Fuer
+einen Projektwechsel `move-project` verwenden — nutzt `moveTaskToProject` und setzt
+danach optional Spalte/Swimlane im Zielprojekt. Ohne `--column` landet der Task in
+der von Kanboard gewaehlten Standardspalte; ohne `--swimlane` in der ersten
+aktiven Swimlane des Zielprojekts.
+
 ### Task oeffnen / schliessen
 
 ```bash

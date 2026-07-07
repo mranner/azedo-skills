@@ -44,7 +44,7 @@ unabhaengig); ein neuer Skill sollte das ebenso halten.
 
 Verwaltet Tasks auf einer Kanboard-Instanz via JSON-RPC API. Unterstützt:
 
-- Tasks erstellen, anzeigen, ändern, verschieben, öffnen/schließen
+- Tasks erstellen, anzeigen, ändern, verschieben (auch projektübergreifend), öffnen/schließen
 - Kommentare lesen, hinzufügen, ändern, löschen
 - Dateien anhängen, auflisten, herunterladen, löschen
 - Teilaufgaben erstellen, ändern, löschen
@@ -328,6 +328,10 @@ Deutscher AI-Text-Humanizer: KI-Schreibmuster (KI-Tells) in deutschen Texten aud
 **Trigger:** `/humanizer-de` oder natuerliche Sprache wie "humanisiere den Text", "klingt nach KI", "entferne die KI-Tells".
 
 ## Changelog
+
+### 1.15.2
+
+- **kanboard: Neuer Subcommand `move-project` (Task in anderes Projekt verschieben).** `move-task` arbeitet nur projektintern (`moveTaskPosition`) und schlaegt bei einem Projektwechsel fehl. `move-project <task_id> --project <name|id> [--column <name>] [--swimlane <name>]` nutzt `moveTaskToProject` und setzt danach optional Spalte/Swimlane im Zielprojekt (ohne `--column` Kanboard-Standardspalte, ohne `--swimlane` erste aktive Swimlane). Verifiziert: Live-Verschiebung eines realen Tasks ins Zielprojekt/-spalte (`success: true`)
 
 ### 1.15.1
 

@@ -288,6 +288,48 @@ def cmd_move_task(args):
     output({"success": result})
 
 
+def cmd_move_project(args):
+    task = rpc_call("getTask", {"task_id": int(args.task_id)})
+    if not task:
+        print(f"Error: task {args.task_id} not found", file=sys.stderr)
+        sys.exit(1)
+
+    target_project_id = resolve_project(args.project)
+
+    # moveTaskToProject verschiebt task-uebergreifend; column/swimlane werden
+    # danach separat gesetzt, da moveTaskToProject die Zielspalte nicht kennt
+
+    moved = rpc_call("moveTaskToProject", {
+        "task_id": int(args.task_id),
+        "project_id": target_project_id
+    })
+    if not moved:
+        output({"success": False})
+        return
+
+    if args.column:
+        column_id = resolve_column(target_project_id, args.column)
+        if args.swimlane:
+            swimlane_id = resolve_swimlane(target_project_id, args.swimlane)
+        else:
+            swimlanes = rpc_call("getActiveSwimlanes", {"project_id": target_project_id})
+            swimlane_id = int(swimlanes[0]["id"]) if swimlanes else int(task["swimlane_id"])
+
+        # Position 9999: Kanboard clampt auf die letzte Position
+
+        placed = rpc_call("moveTaskPosition", {
+            "project_id": target_project_id,
+            "task_id": int(args.task_id),
+            "column_id": column_id,
+            "position": 9999,
+            "swimlane_id": swimlane_id
+        })
+        output({"success": placed, "project_id": target_project_id})
+        return
+
+    output({"success": True, "project_id": target_project_id})
+
+
 def cmd_open_task(args):
     result = rpc_call("openTask", {"task_id": int(args.task_id)})
     output({"success": result})
@@ -706,6 +748,14 @@ def main():
     p.add_argument("--swimlane")
     p.add_argument("--project")
     p.set_defaults(func=cmd_move_task)
+
+    # move-project (task in anderes Projekt verschieben)
+    p = sub.add_parser("move-project")
+    p.add_argument("task_id")
+    p.add_argument("--project", required=True)
+    p.add_argument("--column")
+    p.add_argument("--swimlane")
+    p.set_defaults(func=cmd_move_project)
 
     # open-task
     p = sub.add_parser("open-task")
