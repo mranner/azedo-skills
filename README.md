@@ -327,7 +327,24 @@ Deutscher AI-Text-Humanizer: KI-Schreibmuster (KI-Tells) in deutschen Texten aud
 
 **Trigger:** `/humanizer-de` oder natuerliche Sprache wie "humanisiere den Text", "klingt nach KI", "entferne die KI-Tells".
 
+### handoff
+
+Fasst die aktuelle Konversation in ein Uebergabedokument zusammen, damit ein neuer Agent nahtlos weiterarbeiten kann. Reiner Referenz-Skill (nur SKILL.md, kein Script). Vendorisierter, angepasster Fork von [mattpocock/skills](https://github.com/mattpocock/skills/tree/main/skills/productivity/handoff) (MIT):
+
+- Ablage im Projektverzeichnis (`docs/` falls vorhanden, sonst Projektstamm)
+- Dateiname aus dem Argument: kein Argument → `handoff.md`; Argument ohne `.md` → Fokus **und** Slug (`handoff-<slug>.md`, nichts wird ueberschrieben); Argument mit `.md` → expliziter Dateiname
+- Abschnitt „Empfohlene Skills" im Dokument, keine Duplikate zu bestehenden Artefakten, Redaktion sensibler Daten
+- Einlese-Workflow: bestehendes Handoff rekapitulieren, rueckfragen, nie eigenstaendig handeln
+
+**Lizenz:** MIT (c) 2026 Matt Pocock. Siehe `handoff/LICENSE`. azedo-Anpassungen (Deutsch, Ablageort, Dateinamens-Konvention, Einlese-Sektion) in der SKILL.md unter „Herkunft & Lizenz" dokumentiert.
+
+**Trigger:** `/handoff` oder natuerliche Sprache wie "erstell eine Uebergabe", "fass die Session fuer den naechsten Agent zusammen".
+
 ## Changelog
+
+### 1.16.0
+
+- **handoff-Skill aufgenommen.** Reiner Referenz-Skill (nur SKILL.md, kein Script) zum Erstellen von Uebergabedokumenten. Vendorisierter, angepasster Fork von [mattpocock/skills](https://github.com/mattpocock/skills/tree/main/skills/productivity/handoff) @ `386d4ff` (MIT (c) 2026 Matt Pocock, `LICENSE` mitgefuehrt). azedo-Anpassungen gegenueber dem Upstream: Uebersetzung ins Deutsche, Ablage im Projektverzeichnis (`docs/`/Projektstamm) statt OS-Temp, Abschnitt „Einlesen eines bestehenden Handoff-Dokuments", `disable-model-invocation` entfernt. **Neu:** Dateinamens-Konvention — das Argument dient als Fokus **und** Slug (`handoff-<slug>.md`), Argument mit `.md`-Endung als expliziter Dateiname; damit entsteht pro Thema ein eigenes Dokument statt ein stets ueberschriebenes `handoff.md`. `install.sh`-Liste ergaenzt
 
 ### 1.15.2
 
