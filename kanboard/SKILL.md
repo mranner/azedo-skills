@@ -292,3 +292,7 @@ Wenn mehrere CRs aktiv sind, **vor dem Commit oder der Zeiterfassung nachfragen*
 ### Ohne aktiven CR-Kontext
 
 Wenn kein CR aktiv ist, Commits und Kimai-Eintraege ganz normal ohne Prefix erstellen.
+
+### Handoff
+
+Wird ein Uebergabedokument erstellt (`/handoff`), gehoert der aktive CR-Kontext ins Dokument. Der handoff-Skill legt dafuer einen eigenen Abschnitt „Aktiver CR-Kontext" an (CR-ID, Titel, Task-URL, aktuelle Spalte/Status), damit der naechste Agent weiss, an welchem Task gearbeitet wird, und ihn mit `/kanboard cr <id>` wiederherstellen kann.

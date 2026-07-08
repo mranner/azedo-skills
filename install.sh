@@ -13,10 +13,28 @@ SETTINGS="$HOME/.claude/settings.json"
 mkdir -p "$SKILLS_DIR"
 for skill in envato google-analytics handoff humanizer-de image-optimize kanboard kimai mainwp php-formatting ripgrep swaks tcsh wetter wiki wp-cli wp-pys wp-sync-dev; do
     if [ -d "$REPO_DIR/$skill" ]; then
-        if [ -e "$SKILLS_DIR/$skill" ]; then
-            echo "  skip  $skill (existiert bereits)"
+        target="$SKILLS_DIR/$skill"
+        want="$REPO_DIR/$skill"
+        if [ -L "$target" ]; then
+            # Existierender Symlink: auf das aktuelle Repo-Ziel zeigen lassen
+            if [ "$(readlink "$target")" = "$want" ]; then
+                echo "  skip  $skill (Symlink aktuell)"
+            else
+                rm "$target"
+                ln -s "$want" "$target"
+                echo "  relink  $skill (Symlink neu gesetzt)"
+            fi
+        elif [ -e "$target" ]; then
+            # Echtes Verzeichnis/Datei schattet den Repo-Skill (z.B. alte lokale
+            # Kopie vor Aufnahme ins Repo) -> sichern und durch Symlink ersetzen.
+            backup="$target.pre-azedo-skills"
+            n=1
+            while [ -e "$backup" ]; do backup="$target.pre-azedo-skills.$n"; n=$((n + 1)); done
+            mv "$target" "$backup"
+            ln -s "$want" "$target"
+            echo "  replace  $skill (alte Version gesichert nach $(basename "$backup"))"
         else
-            ln -s "$REPO_DIR/$skill" "$SKILLS_DIR/$skill"
+            ln -s "$want" "$target"
             echo "  link  $skill"
         fi
     fi

@@ -342,6 +342,11 @@ Fasst die aktuelle Konversation in ein Uebergabedokument zusammen, damit ein neu
 
 ## Changelog
 
+### 1.16.1
+
+- **handoff + kanboard: aktiver CR-Kontext wird ins Handoff uebernommen.** Ist beim Erstellen eines Uebergabedokuments ein Kanboard-Task als CR-Kontext aktiv (`/kanboard cr <id>`), legt der handoff-Skill jetzt einen eigenen Abschnitt „Aktiver CR-Kontext" an (CR-ID, Titel, Task-URL, aktuelle Spalte/Status; konventionsbasiert aus dem Session-Stand, keine Live-Abfrage) und nimmt `kanboard` in die empfohlenen Skills auf. Der kanboard-Skill verweist im Abschnitt „CR-Kontext" gegenlaeufig darauf. Damit weiss der naechste Agent, an welchem Task gearbeitet wird, und kann ihn mit `/kanboard cr <id>` wiederherstellen
+- **install.sh: alte Skill-Verzeichnisse werden beim Update ersetzt.** Bisher uebersprang `install.sh` jeden Skill, dessen Ziel unter `~/.claude/skills/` bereits existierte — eine alte lokale Kopie (echtes Verzeichnis, z.B. das fruehere `handoff/`) blieb so nach einem `git pull` bestehen. Jetzt: bestehende Symlinks werden aufs aktuelle Repo-Ziel umgesetzt; ein echtes Verzeichnis/Datei, das einen Repo-Skill schattet, wird nach `<skill>.pre-azedo-skills` gesichert und durch den Symlink ersetzt (nicht geloescht)
+
 ### 1.16.0
 
 - **handoff-Skill aufgenommen.** Reiner Referenz-Skill (nur SKILL.md, kein Script) zum Erstellen von Uebergabedokumenten. Vendorisierter, angepasster Fork von [mattpocock/skills](https://github.com/mattpocock/skills/tree/main/skills/productivity/handoff) @ `386d4ff` (MIT (c) 2026 Matt Pocock, `LICENSE` mitgefuehrt). azedo-Anpassungen gegenueber dem Upstream: Uebersetzung ins Deutsche, Ablage im Projektverzeichnis (`docs/`/Projektstamm) statt OS-Temp, Abschnitt „Einlesen eines bestehenden Handoff-Dokuments", `disable-model-invocation` entfernt. **Neu:** Dateinamens-Konvention — das Argument dient als Fokus **und** Slug (`handoff-<slug>.md`), Argument mit `.md`-Endung als expliziter Dateiname; damit entsteht pro Thema ein eigenes Dokument statt ein stets ueberschriebenes `handoff.md`. `install.sh`-Liste ergaenzt

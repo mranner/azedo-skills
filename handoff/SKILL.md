@@ -12,6 +12,12 @@ Dupliziere keine Inhalte, die bereits in anderen Artefakten erfasst sind (PRDs, 
 
 Entferne sensible Informationen wie API-Keys, Passwörter oder personenbezogene Daten.
 
+## Aktiver CR-Kontext (Kanboard)
+
+Wenn in der Session ein oder mehrere Kanboard-Tasks als CR-Kontext aktiv sind (geladen via `/kanboard cr <id>` oder weil der User „ich arbeite an CR…" gesagt hat), lege im Handoff einen eigenen, klar markierten Abschnitt „Aktiver CR-Kontext" an. Führe je aktivem CR auf: **CR-ID, Titel, Task-URL und aktuelle Spalte/Status** — aus dem in der Session bekannten Stand, keine Live-Abfrage nötig. Vermerke, dass der nächste Agent den Kontext mit `/kanboard cr <id>` wiederherstellen kann, und nimm `kanboard` in die „Empfohlene Skills" auf.
+
+Ist kein CR aktiv, entfällt der Abschnitt.
+
 ## Dateiname und Argument
 
 Das übergebene Argument bestimmt **sowohl den Fokus** der nächsten Session **als auch den Dateinamen** — so entsteht pro Thema ein eigenes Dokument, und ein bestehendes Handoff wird nicht überschrieben:
