@@ -34,6 +34,9 @@ WordPress-Installationen liegen unter `/www/home/<wwwuser>/<domain>/`.
 
 WP-User haben Shell `/usr/bin/true` — daher `sudo -u <wwwuser>` verwenden, nicht `su -l`.
 
+> **Nie `--allow-root` / nie als root ausführen.** WP-CLI als root triggert u. a.
+> den WPML/WP_Filesystem-FTP-Fatal. Immer `sudo -u <wwwuser>`.
+
 ### ezjail (jexec)
 
 Jail-ID per `jls` auf dem Server ermitteln. `jexec` braucht die **JID** (numerisch), nicht den Jail-Namen.

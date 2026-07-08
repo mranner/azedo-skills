@@ -342,6 +342,10 @@ Fasst die aktuelle Konversation in ein Uebergabedokument zusammen, damit ein neu
 
 ## Changelog
 
+### 1.16.2
+
+- **wp-cli: expliziter Negativ-Hinweis „nie `--allow-root`".** Der Skill zeigte durchgaengig das `sudo -u <wwwuser>`-Muster, sagte aber nirgends ausdruecklich, dass WP-CLI **nicht** als root laufen darf. Warnkasten in Abschnitt „1. Zugriff auf WordPress in Jails" ergaenzt: `--allow-root` vermeiden — triggert u. a. den WPML/WP_Filesystem-FTP-Fatal; immer `sudo -u <wwwuser>`
+
 ### 1.16.1
 
 - **handoff + kanboard: aktiver CR-Kontext wird ins Handoff uebernommen.** Ist beim Erstellen eines Uebergabedokuments ein Kanboard-Task als CR-Kontext aktiv (`/kanboard cr <id>`), legt der handoff-Skill jetzt einen eigenen Abschnitt „Aktiver CR-Kontext" an (CR-ID, Titel, Task-URL, aktuelle Spalte/Status; konventionsbasiert aus dem Session-Stand, keine Live-Abfrage) und nimmt `kanboard` in die empfohlenen Skills auf. Der kanboard-Skill verweist im Abschnitt „CR-Kontext" gegenlaeufig darauf. Damit weiss der naechste Agent, an welchem Task gearbeitet wird, und kann ihn mit `/kanboard cr <id>` wiederherstellen
