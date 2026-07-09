@@ -1,0 +1,228 @@
+#!/usr/bin/env bash
+
+# md2pdf -- Markdown -> "schoenes" PDF (Typora-naher Look)
+# Pipeline: pandoc -> self-contained HTML (CSS + SVG inline) -> headless Chrome --print-to-pdf
+# Mermaid-Codebloecke (```mermaid) werden via mmdc zu SVG gerendert und eingebettet (optional).
+# version 1.17.0
+#
+# Usage:  md2pdf <input.md> [output.pdf] [--css <file>] [--no-mermaid]
+#         (ohne output.pdf -> gleicher Name/Ordner mit .pdf; ueberschreibt eine vorhandene .pdf)
+#
+# Cross-Platform: macOS, Linux, FreeBSD. Chrome/Chromium wird je OS gesucht,
+# Override per Env MD2PDF_CHROME. Mermaid ist optional (mmdc), degradiert sauber.
+
+set -euo pipefail
+
+# --- Argumente parsen ---
+IN=""
+OUT=""
+CSS_OVERRIDE=""
+USE_MERMAID=1
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --css)
+      CSS_OVERRIDE="${2:-}"; shift 2 ;;
+    --no-mermaid)
+      USE_MERMAID=0; shift ;;
+    -h|--help)
+      echo "Usage: md2pdf <input.md> [output.pdf] [--css <file>] [--no-mermaid]"; exit 0 ;;
+    -*)
+      echo "Unbekannte Option: $1" >&2; exit 1 ;;
+    *)
+      if [[ -z "$IN" ]]; then IN="$1"
+      elif [[ -z "$OUT" ]]; then OUT="$1"
+      else echo "Zu viele Argumente: $1" >&2; exit 1
+      fi
+      shift ;;
+  esac
+done
+
+if [[ -z "$IN" || ! -f "$IN" ]]; then
+  echo "Usage: md2pdf <input.md> [output.pdf] [--css <file>] [--no-mermaid]" >&2
+  exit 1
+fi
+OUT="${OUT:-${IN%.*}.pdf}"
+IN_DIR="$(cd "$(dirname "$IN")" && pwd)"
+IN_BASE="$(basename "$IN")"
+
+OS="$(uname -s)"
+
+# --- pandoc (Pflicht) ---
+if ! command -v pandoc >/dev/null 2>&1; then
+  echo "Fehler: pandoc fehlt." >&2
+  case "$OS" in
+    Darwin)  echo "  Installation: brew install pandoc" >&2 ;;
+    FreeBSD) echo "  Installation: pkg install hs-pandoc  (oder: pkg install pandoc)" >&2 ;;
+    *)       echo "  Installation: apt install pandoc  bzw.  dnf install pandoc" >&2 ;;
+  esac
+  exit 1
+fi
+
+# --- Chrome/Chromium finden (Pflicht) ---
+CHROME=""
+if [[ -n "${MD2PDF_CHROME:-}" ]]; then
+  if [[ -x "$MD2PDF_CHROME" ]] || command -v "$MD2PDF_CHROME" >/dev/null 2>&1; then
+    CHROME="$MD2PDF_CHROME"
+  else
+    echo "Fehler: MD2PDF_CHROME='$MD2PDF_CHROME' ist nicht ausfuehrbar." >&2
+    exit 1
+  fi
+fi
+
+if [[ -z "$CHROME" ]]; then
+  case "$OS" in
+    Darwin)
+      for c in \
+        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+        "/Applications/Chromium.app/Contents/MacOS/Chromium" \
+        "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge"; do
+        [[ -x "$c" ]] && { CHROME="$c"; break; }
+      done
+      ;;
+    *)
+      # Linux / FreeBSD: PATH durchsuchen. Auf FreeBSD installiert www/chromium
+      # das Binary als 'chrome'.
+      for c in google-chrome-stable google-chrome chromium chromium-browser chrome microsoft-edge; do
+        if command -v "$c" >/dev/null 2>&1; then CHROME="$(command -v "$c")"; break; fi
+      done
+      [[ -z "$CHROME" && -x /usr/local/bin/chrome ]] && CHROME="/usr/local/bin/chrome"
+      ;;
+  esac
+fi
+
+if [[ -z "$CHROME" ]]; then
+  echo "Fehler: Kein Chrome/Chromium gefunden." >&2
+  case "$OS" in
+    Darwin)  echo "  Chrome installieren oder MD2PDF_CHROME=<pfad> setzen." >&2 ;;
+    FreeBSD) echo "  Installation: pkg install chromium  (Binary heisst 'chrome'), oder MD2PDF_CHROME=<pfad>." >&2 ;;
+    *)       echo "  Installation: apt install chromium  bzw.  dnf install chromium, oder MD2PDF_CHROME=<pfad>." >&2 ;;
+  esac
+  exit 1
+fi
+
+# --- mmdc (optional, nur fuer Mermaid) ---
+HAVE_MMDC=0
+if [[ "$USE_MERMAID" -eq 1 ]] && command -v mmdc >/dev/null 2>&1; then
+  HAVE_MMDC=1
+fi
+
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+
+# --- CSS (GitHub/Typora-artig, plattformuebergreifender Font-Stack) ---
+if [[ -n "$CSS_OVERRIDE" ]]; then
+  if [[ ! -f "$CSS_OVERRIDE" ]]; then
+    echo "Fehler: CSS-Datei '$CSS_OVERRIDE' nicht gefunden." >&2
+    exit 1
+  fi
+  CSS_FILE="$CSS_OVERRIDE"
+else
+  CSS_FILE="$TMP/style.css"
+  cat > "$CSS_FILE" <<'CSS'
+@page { size: A4; margin: 20mm 18mm; }
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { font-family: -apple-system, "Segoe UI", "Noto Sans", "DejaVu Sans", "Liberation Sans", "Helvetica Neue", Arial, sans-serif;
+  font-size: 10.5pt; line-height: 1.55; color: #24292f; margin: 0; }
+h1,h2,h3,h4 { font-weight: 600; line-height: 1.25; margin: 1.4em 0 .6em; color: #1b1f23; }
+h1 { font-size: 1.9em; border-bottom: 2px solid #d0d7de; padding-bottom: .3em; }
+h2 { font-size: 1.45em; border-bottom: 1px solid #d8dee4; padding-bottom: .25em; }
+h3 { font-size: 1.2em; } h4 { font-size: 1.05em; color: #57606a; }
+p,li { margin: .35em 0; } a { color: #0969da; text-decoration: none; }
+code { font-family: "SF Mono","JetBrains Mono","DejaVu Sans Mono","Liberation Mono",Menlo,Consolas,monospace; font-size: .88em;
+  background: #f2f4f7; padding: .12em .34em; border-radius: 4px; color: #1f2328; }
+pre { background: #f6f8fa; border: 1px solid #e6eaef; border-radius: 6px; padding: 12px 14px;
+  overflow-x: auto; font-size: .82em; line-height: 1.45; }
+pre code { background: none; padding: 0; }
+table { border-collapse: collapse; width: 100%; margin: .8em 0; font-size: .92em; page-break-inside: avoid; }
+th,td { border: 1px solid #d0d7de; padding: 6px 10px; text-align: left; vertical-align: top; }
+th { background: #f2f4f7; font-weight: 600; } tr:nth-child(even) td { background: #fafbfc; }
+blockquote { margin: .8em 0; padding: .2em 1em; color: #57606a; border-left: 4px solid #d0d7de; background: #fafbfc; }
+img,svg { max-width: 100%; height: auto; }
+.mermaid-svg { text-align: center; margin: 1em 0; page-break-inside: avoid; }
+hr { border: none; border-top: 1px solid #d8dee4; margin: 1.6em 0; }
+h1,h2,h3 { page-break-after: avoid; }
+CSS
+fi
+
+# --- Lua-Filter fuer Mermaid nur schreiben, wenn mmdc verfuegbar ---
+LUA_ARGS=()
+if [[ "$HAVE_MMDC" -eq 1 ]]; then
+  # Puppeteer-Config: auf Linux/FreeBSD (und als root/in Jails) braucht das
+  # von mmdc gestartete Chromium meist --no-sandbox.
+  PUPPETEER_CFG="$TMP/puppeteer.json"
+  cat > "$PUPPETEER_CFG" <<'PJSON'
+{ "args": ["--no-sandbox", "--disable-dev-shm-usage"] }
+PJSON
+  export MD2PDF_PUPPETEER="$PUPPETEER_CFG"
+
+  cat > "$TMP/mermaid.lua" <<'LUA'
+local counter = 0
+function CodeBlock(el)
+  if el.classes:includes("mermaid") then
+    local tmp = os.getenv("MD2PDF_TMP")
+    if tmp == nil then return nil end
+    counter = counter + 1
+    local base = tmp .. "/mermaid_" .. counter
+    local mmd, svg = base .. ".mmd", base .. ".svg"
+    local f = io.open(mmd, "w"); f:write(el.text); f:close()
+    local pcfg = os.getenv("MD2PDF_PUPPETEER")
+    local pflag = ""
+    if pcfg ~= nil and pcfg ~= "" then pflag = " -p '" .. pcfg .. "'" end
+    os.execute("mmdc -i '" .. mmd .. "' -o '" .. svg .. "' -b transparent" .. pflag .. " >/dev/null 2>&1")
+    local sf = io.open(svg, "r")
+    if sf then
+      local data = sf:read("*a"); sf:close()
+      if data ~= nil and data ~= "" then
+        return pandoc.RawBlock("html", "<div class='mermaid-svg'>" .. data .. "</div>")
+      end
+    end
+    -- mmdc fehlgeschlagen -> Block bleibt als Code (kein harter Abbruch)
+  end
+  return nil
+end
+LUA
+  LUA_ARGS=(--lua-filter="$TMP/mermaid.lua")
+  export MD2PDF_TMP="$TMP"
+else
+  # Mermaid-Bloecke vorhanden, aber kein mmdc -> warnen (nicht abbrechen)
+  if [[ "$USE_MERMAID" -eq 1 ]] && grep -q '^```mermaid' "$IN" 2>/dev/null; then
+    echo "Warnung: Mermaid-Bloecke gefunden, aber 'mmdc' (mermaid-cli) fehlt --" >&2
+    echo "         Diagramme bleiben als Code. Installation: npm i -g @mermaid-js/mermaid-cli" >&2
+  fi
+fi
+
+# --- 1) MD -> self-contained HTML ---
+( cd "$IN_DIR" && pandoc "$IN_BASE" \
+    --standalone --embed-resources \
+    ${LUA_ARGS[@]+"${LUA_ARGS[@]}"} \
+    --css "$CSS_FILE" --resource-path=. \
+    --metadata pagetitle="${IN_BASE%.*}" \
+    -o "$TMP/doc.html" )
+
+# --- 2) HTML -> PDF (Chrome headless) ---
+# Sandbox-Flags nur auf Linux/FreeBSD (als root/in Jails noetig); macOS ohne.
+SANDBOX_ARGS=()
+if [[ "$OS" != "Darwin" ]]; then
+  SANDBOX_ARGS=(--no-sandbox --disable-dev-shm-usage)
+fi
+
+render_pdf() {
+  # $1 = Headless-Modus (z.B. --headless=new oder --headless)
+  "$CHROME" "$1" --disable-gpu ${SANDBOX_ARGS[@]+"${SANDBOX_ARGS[@]}"} --no-pdf-header-footer \
+    --print-to-pdf="$OUT" --virtual-time-budget=12000 \
+    "file://$TMP/doc.html" >/dev/null 2>&1
+}
+
+# Neuere Chrome-Versionen: --headless=new; Fallback auf --headless.
+rm -f "$OUT"
+if ! render_pdf "--headless=new" || [[ ! -s "$OUT" ]]; then
+  render_pdf "--headless" || true
+fi
+
+if [[ ! -s "$OUT" ]]; then
+  echo "Fehler: PDF konnte nicht erzeugt werden (Chrome: $CHROME)." >&2
+  exit 1
+fi
+
+echo "PDF: $OUT"

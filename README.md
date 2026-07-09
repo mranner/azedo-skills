@@ -168,6 +168,21 @@ Optimiert Bilder für Web-Verwendung. Unterstützt:
 
 **Trigger:** `/image-optimize` oder natürliche Sprache wie "Bilder für Web optimieren", "Bilder komprimieren".
 
+### md2pdf
+
+Rendert Markdown zu einem "schönen" PDF (Typora-naher Look). Pipeline: `pandoc` → self-contained HTML (CSS + SVG inline) → headless Chrome `--print-to-pdf`. Kein LaTeX nötig. Läuft unter macOS, Linux und FreeBSD (Chrome/Chromium-Discovery je OS, Override per `MD2PDF_CHROME`). Unterstützt:
+
+- Tabellen, Code-Blöcke, Blockquotes im GitHub/Typora-Look
+- Inline-SVG (z.B. eingebettete ER-Diagramme) scharf im PDF
+- Mermaid-Blöcke (```mermaid) via `mmdc` als SVG gerendert (optional, degradiert sauber wenn `mmdc` fehlt)
+- Optionen `--css <file>` (eigenes Stylesheet) und `--no-mermaid`
+
+**Voraussetzungen:** `pandoc` (Pflicht), Chrome/Chromium (Pflicht), `bash`; optional `mmdc` (`@mermaid-js/mermaid-cli`) für Mermaid
+
+**Aufruf:** `"$SKILL_DIR/md2pdf" <input.md> [output.pdf]`
+
+**Trigger:** `/md2pdf` oder natürliche Sprache wie "mach ein PDF draus", "Markdown zu PDF", "Doku als PDF exportieren".
+
 ### ripgrep
 
 Referenz-Skill fuer `rg` (ripgrep) — schnelle Textsuche in Dateien und Verzeichnissen. Kein eigenes Script, reine SKILL.md mit:
@@ -341,6 +356,10 @@ Fasst die aktuelle Konversation in ein Uebergabedokument zusammen, damit ein neu
 **Trigger:** `/handoff` oder natuerliche Sprache wie "erstell eine Uebergabe", "fass die Session fuer den naechsten Agent zusammen".
 
 ## Changelog
+
+### 1.17.0
+
+- **md2pdf-Skill aufgenommen.** Neuer Skill (SKILL.md + gebundeltes bash-Script `md2pdf`) rendert Markdown zu einem "schönen" PDF im Typora-nahen Look. Pipeline: `pandoc` → self-contained HTML (CSS + SVG inline) → headless Chrome `--print-to-pdf` — kein LaTeX nötig, weil Typora selbst über eine Browser-Engine rendert und Chrome praktisch denselben Look samt nativem SVG liefert. Cross-Platform generalisiert (macOS/Linux/FreeBSD): Chrome/Chromium-Discovery je OS mit `MD2PDF_CHROME`-Override, `--headless=new` mit Fallback auf `--headless`, auf Linux/FreeBSD `--no-sandbox --disable-dev-shm-usage` (root/Jail-tauglich), plattformübergreifender Font-Stack (Noto/DejaVu/Liberation). Mermaid-Blöcke (```mermaid) werden via `mmdc` zu SVG gerendert (Puppeteer-Config mit `--no-sandbox` automatisch übergeben); fehlt `mmdc`, bleibt der Block als Code und es gibt eine Warnung (graceful degradation). Optionen `--css <file>` und `--no-mermaid`. `install.sh`-Liste ergänzt
 
 ### 1.16.2
 
