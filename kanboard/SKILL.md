@@ -25,9 +25,35 @@ Beim ersten Einsatz (oder wenn sich Projekte/User aendern) `setup` ausfuehren:
 python3 "$SKILL_DIR/kanboard" setup --default-user <username>
 ```
 
-Das schreibt `instance.json` ins Skill-Verzeichnis mit allen Projekten, Swimlanes, Spalten und Usern. `--default-user` legt fest, welcher Kanboard-User als Absender fuer Kommentare verwendet wird (wenn kein `--user` angegeben). **Vor jeder Task-Operation `$SKILL_DIR/instance.json` lesen**, um Projekt-IDs, Swimlane-Namen und Spalten zu kennen.
+Das schreibt `instance.json` ins Skill-Verzeichnis mit allen Projekten, Swimlanes, Spalten und Usern. `--default-user` legt fest, welcher Kanboard-User als Absender fuer Kommentare verwendet wird (wenn kein `--user` angegeben).
 
 Falls `instance.json` nicht existiert, zuerst `setup` ausfuehren.
+
+### instance.json — Schema und Zugriff
+
+**`instance.json` NICHT selbst roh parsen** — dafuer gibt es die Subcommands
+`list-projects`, `list-columns --project <name|id>` und `list-users` (liefern IDs
+**und** Namen). `get-task` reichert seit v1.18.3 zusaetzlich `column_title`,
+`swimlane_name`, `owner_username`/`owner_name` an, sodass keine Quer-Aufloesung
+noetig ist.
+
+Falls doch direkt gelesen wird, ist das Schema:
+
+```json
+{
+  "role": "app-admin",
+  "default_user": "mmuster",
+  "projects": [
+    { "id": 1, "name": "azedo",
+      "swimlanes": ["Standard-Swimlane"],   // Liste von STRINGS (nur Namen)
+      "columns":   ["Ideen", "Bereit", "In Arbeit", "Erledigt"] }  // STRINGS
+  ],
+  "users": [ { "id": 4, "username": "kollege", "name": "Karin Musterfrau" } ]
+}
+```
+
+Merke: `columns`/`swimlanes` sind **Strings ohne IDs** — die Spalten-ID einer
+Position ergibt sich nicht aus `instance.json`, dafuer `list-columns` verwenden.
 
 ## Subcommands
 

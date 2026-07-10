@@ -2,7 +2,7 @@
 
 # Kanboard JSON-RPC 2.0 API helper
 # stdlib only, no pip dependencies
-# version 1.18.1
+# version 1.18.3
 
 import argparse
 import base64
@@ -244,12 +244,48 @@ def cmd_create_task(args):
     output({"task_id": task_id, "project_id": project_id})
 
 
+def enrich_task(task):
+    """Add human-readable names to a raw task dict without removing anything.
+
+    getTask returns column_id/owner_id/swimlane_id but no names. We add
+    column_title, swimlane_name and owner_username/owner_name so callers do not
+    have to cross-reference list-columns/list-users themselves.
+    """
+    if not isinstance(task, dict):
+        return task
+    project_id = task.get("project_id")
+
+    col_id = task.get("column_id")
+    if project_id and col_id and "column_title" not in task:
+        for c in rpc_call("getColumns", {"project_id": int(project_id)}) or []:
+            if str(c.get("id")) == str(col_id):
+                task["column_title"] = c.get("title")
+                break
+
+    sl_id = task.get("swimlane_id")
+    if project_id and sl_id and "swimlane_name" not in task:
+        for s in rpc_call("getActiveSwimlanes", {"project_id": int(project_id)}) or []:
+            if str(s.get("id")) == str(sl_id):
+                task["swimlane_name"] = s.get("name")
+                break
+
+    owner_id = task.get("owner_id")
+    if owner_id and str(owner_id) != "0" and "owner_username" not in task:
+        for u in load_instance().get("users", []):
+            if str(u.get("id")) == str(owner_id):
+                task["owner_username"] = u.get("username")
+                task["owner_name"] = u.get("name")
+                break
+
+    return task
+
+
 def cmd_get_task(args):
     result = rpc_call("getTask", {"task_id": int(args.task_id)})
     if not result:
         print(f"Error: task {args.task_id} not found", file=sys.stderr)
         sys.exit(1)
-    output(result)
+    output(enrich_task(result))
 
 
 def cmd_update_task(args):

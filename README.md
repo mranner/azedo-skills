@@ -51,6 +51,7 @@ Verwaltet Tasks auf einer Kanboard-Instanz via JSON-RPC API. Unterstützt:
 - Task-Verbindungen (interne Links) auflisten, erstellen, löschen
 - Handoff-Feld setzen/auslesen/entfernen (TaskHandoff-Plugin, Volltext-Markdown pro Task)
 - Projekte, Spalten und User auflisten
+- `get-task` liefert zusätzlich Klarnamen (Spalte, Owner, Swimlane) neben den IDs
 
 **Voraussetzungen:** Python ≥ 3.11
 
