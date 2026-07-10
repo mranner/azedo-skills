@@ -163,6 +163,31 @@ python3 "$SKILL_DIR/kanboard" remove-file <file_id>
 
 `file_id` erhaelt man via `list-files`. Zum Aktualisieren eines Anhangs: erst `remove-file`, dann `attach-file`.
 
+### Handoff-Feld (TaskHandoff-Plugin)
+
+Auf der Kanboard-Instanz ist das Plugin **TaskHandoff** installiert: es speichert pro Task
+ein Handoff-Dokument (Volltext, Markdown) in einer eigenen aufklappbaren „Handoff"-Sektion
+auf der Task-Seite (Spalte `content` als `LONGTEXT`, keine Laengengrenze — anders als
+Task-Metadata mit `VARCHAR(255)`). Der Handoff ist **nicht** die Beschreibung, **nicht** ein
+Kommentar und **nicht** ein Anhang, sondern ein eigenes Feld. Ein Handoff pro Task (erneutes
+`set-handoff` ueberschreibt).
+
+```bash
+# Handoff setzen (Text aus Datei ODER direkt)
+python3 "$SKILL_DIR/kanboard" set-handoff <task_id> --file /pfad/handoff.md
+python3 "$SKILL_DIR/kanboard" set-handoff <task_id> --value "# Titel ..."
+
+# Handoff auslesen (roher Markdown-Text auf stdout, oder in Datei)
+python3 "$SKILL_DIR/kanboard" get-handoff <task_id>
+python3 "$SKILL_DIR/kanboard" get-handoff <task_id> --output /pfad/handoff.md
+
+# Handoff entfernen
+python3 "$SKILL_DIR/kanboard" remove-handoff <task_id>
+```
+
+Die Ablage im Handoff-Feld ist im handoff-Skill eine bewusst gewaehlte **Alternative** zur
+lokalen `.md`-Datei (Default bleibt die Datei) — siehe handoff-Skill.
+
 ### Teilaufgaben auflisten
 
 ```bash

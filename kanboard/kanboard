@@ -2,7 +2,7 @@
 
 # Kanboard JSON-RPC 2.0 API helper
 # stdlib only, no pip dependencies
-# version 1.13.0
+# version 1.18.0
 
 import argparse
 import base64
@@ -366,6 +366,45 @@ def cmd_attach_file(args):
         "blob": blob
     })
     output({"file_id": result, "filename": filename})
+
+
+def cmd_set_handoff(args):
+    if args.file:
+        filepath = os.path.abspath(args.file)
+        if not os.path.exists(filepath):
+            print(f"Error: file '{filepath}' not found", file=sys.stderr)
+            sys.exit(1)
+        with open(filepath, "r", encoding="utf-8") as f:
+            content = f.read()
+    else:
+        content = args.value
+
+    result = rpc_call("saveTaskHandoff", {
+        "task_id": int(args.task_id),
+        "content": content,
+    })
+    output({"task_id": int(args.task_id), "saved": result, "length": len(content)})
+
+
+def cmd_get_handoff(args):
+    content = rpc_call("getTaskHandoff", {"task_id": int(args.task_id)})
+    if content is None:
+        content = ""
+
+    if args.output:
+        outpath = os.path.abspath(args.output)
+        with open(outpath, "w", encoding="utf-8") as f:
+            f.write(content)
+        output({"path": outpath, "length": len(content)})
+    else:
+        sys.stdout.write(content)
+        if content and not content.endswith("\n"):
+            sys.stdout.write("\n")
+
+
+def cmd_remove_handoff(args):
+    result = rpc_call("removeTaskHandoff", {"task_id": int(args.task_id)})
+    output({"task_id": int(args.task_id), "removed": result})
 
 
 def cmd_list_tasks(args):
@@ -772,6 +811,25 @@ def main():
     p.add_argument("task_id")
     p.add_argument("--file", required=True)
     p.set_defaults(func=cmd_attach_file)
+
+    # set-handoff (TaskHandoff-Plugin)
+    p = sub.add_parser("set-handoff")
+    p.add_argument("task_id")
+    g = p.add_mutually_exclusive_group(required=True)
+    g.add_argument("--file", help="Handoff-Text aus Datei lesen")
+    g.add_argument("--value", help="Handoff-Text direkt uebergeben")
+    p.set_defaults(func=cmd_set_handoff)
+
+    # get-handoff (TaskHandoff-Plugin)
+    p = sub.add_parser("get-handoff")
+    p.add_argument("task_id")
+    p.add_argument("--output", help="In Datei schreiben statt stdout")
+    p.set_defaults(func=cmd_get_handoff)
+
+    # remove-handoff (TaskHandoff-Plugin)
+    p = sub.add_parser("remove-handoff")
+    p.add_argument("task_id")
+    p.set_defaults(func=cmd_remove_handoff)
 
     # list-tasks
     p = sub.add_parser("list-tasks")

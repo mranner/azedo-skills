@@ -49,6 +49,7 @@ Verwaltet Tasks auf einer Kanboard-Instanz via JSON-RPC API. Unterstützt:
 - Dateien anhängen, auflisten, herunterladen, löschen
 - Teilaufgaben erstellen, ändern, löschen
 - Task-Verbindungen (interne Links) auflisten, erstellen, löschen
+- Handoff-Feld setzen/auslesen/entfernen (TaskHandoff-Plugin, Volltext-Markdown pro Task)
 - Projekte, Spalten und User auflisten
 
 **Voraussetzungen:** Python ≥ 3.11
@@ -356,6 +357,10 @@ Fasst die aktuelle Konversation in ein Uebergabedokument zusammen, damit ein neu
 **Trigger:** `/handoff` oder natuerliche Sprache wie "erstell eine Uebergabe", "fass die Session fuer den naechsten Agent zusammen".
 
 ## Changelog
+
+### 1.18.0
+
+- **kanboard: Handoff-Feld pro Task (`set-handoff` / `get-handoff` / `remove-handoff`).** Ergaenzt das serverseitige Kanboard-Plugin **TaskHandoff** (eigenes Repo/Deployment), das pro Task ein Handoff-Dokument als Volltext-Markdown in einer aufklappbaren „Handoff"-Sektion der Task-Seite speichert (Spalte `content` als `LONGTEXT` — keine Laengengrenze, anders als Task-Metadata mit `VARCHAR(255)`; Bearbeiten per Modal wie „Aufgabe bearbeiten"). Drei neue Subcommands ueber die Plugin-JSON-RPC-Prozeduren `saveTaskHandoff`/`getTaskHandoff`/`removeTaskHandoff`: `set-handoff <task_id> (--file <pfad> | --value <text>)`, `get-handoff <task_id> [--output <pfad>]` (roher Markdown auf stdout oder in Datei), `remove-handoff <task_id>`. Ein Handoff pro Task (Upsert). Verifiziert: API-Round-Trip mit 24 KB Payload (inkl. Umlaute/Emoji) ohne Trunkierung, Skill-Subcommands live getestet. Der handoff-Skill nutzt die Kanboard-Ablage als bewusste **Alternative** zur lokalen `.md`-Datei (Default bleibt die Datei)
 
 ### 1.17.0
 
