@@ -358,6 +358,10 @@ Fasst die aktuelle Konversation in ein Uebergabedokument zusammen, damit ein neu
 
 ## Changelog
 
+### 1.18.1
+
+- **kanboard/handoff: robusteres Verhalten, wenn das TaskHandoff-Plugin fehlt.** Ist das Plugin auf der Kanboard-Instanz nicht installiert/aktiviert, liefern `set-handoff`/`get-handoff`/`remove-handoff` den JSON-RPC-Fehler `-32601` „Method not found". Der kanboard-Skill ergänzt bei diesem Code jetzt einen erklärenden Hinweis (Methode wird evtl. von einem nicht installierten Plugin bereitgestellt, z. B. TaskHandoff). Der handoff-Skill dokumentiert den Fallback: schlägt `set-handoff` mit `-32601` fehl, auf die lokale `.md`-Datei zurückfallen und den User informieren.
+
 ### 1.18.0
 
 - **kanboard: Handoff-Feld pro Task (`set-handoff` / `get-handoff` / `remove-handoff`).** Ergaenzt das serverseitige Kanboard-Plugin **TaskHandoff** (eigenes Repo/Deployment), das pro Task ein Handoff-Dokument als Volltext-Markdown in einer aufklappbaren „Handoff"-Sektion der Task-Seite speichert (Spalte `content` als `LONGTEXT` — keine Laengengrenze, anders als Task-Metadata mit `VARCHAR(255)`; Bearbeiten per Modal wie „Aufgabe bearbeiten"). Drei neue Subcommands ueber die Plugin-JSON-RPC-Prozeduren `saveTaskHandoff`/`getTaskHandoff`/`removeTaskHandoff`: `set-handoff <task_id> (--file <pfad> | --value <text>)`, `get-handoff <task_id> [--output <pfad>]` (roher Markdown auf stdout oder in Datei), `remove-handoff <task_id>`. Ein Handoff pro Task (Upsert). Verifiziert: API-Round-Trip mit 24 KB Payload (inkl. Umlaute/Emoji) ohne Trunkierung, Skill-Subcommands live getestet. Der handoff-Skill nutzt die Kanboard-Ablage als bewusste **Alternative** zur lokalen `.md`-Datei (Default bleibt die Datei)

@@ -2,7 +2,7 @@
 
 # Kanboard JSON-RPC 2.0 API helper
 # stdlib only, no pip dependencies
-# version 1.18.0
+# version 1.18.1
 
 import argparse
 import base64
@@ -100,7 +100,15 @@ def rpc_call(method, params=None):
         sys.exit(1)
 
     if "error" in data and data["error"]:
-        print(f"API error: {json.dumps(data['error'])}", file=sys.stderr)
+        err = data["error"]
+        print(f"API error: {json.dumps(err)}", file=sys.stderr)
+        if isinstance(err, dict) and err.get("code") == -32601:
+            print(
+                "Hinweis: 'Method not found' — diese Methode wird evtl. von einem "
+                "Kanboard-Plugin bereitgestellt, das nicht installiert/aktiviert ist "
+                "(z.B. TaskHandoff fuer set-/get-/remove-handoff).",
+                file=sys.stderr,
+            )
         sys.exit(1)
 
     return data.get("result")

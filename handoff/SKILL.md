@@ -42,6 +42,8 @@ python3 ~/.claude/skills/kanboard/kanboard set-handoff <task_id> --value "<vollt
 
 Wird die Kanboard-Ablage gewählt, ist **keine** lokale `.md`-Datei und **kein** Anhang nötig (entweder-oder). Die `task_id` ergibt sich aus dem aktiven CR-Kontext (siehe „Aktiver CR-Kontext"). Details zu den Subcommands: kanboard-Skill, Abschnitt „Handoff-Feld (TaskHandoff-Plugin)".
 
+**Fallback (Plugin nicht installiert):** Schlägt `set-handoff` mit `API error … "Method not found"` (Code `-32601`) fehl, ist das **TaskHandoff-Plugin** auf dieser Kanboard-Instanz nicht installiert/aktiviert. Dann auf die **lokale `.md`-Datei** zurückfallen (Default-Verhalten) und den User kurz darüber informieren — nichts geht verloren, der Handoff wird einfach als Datei abgelegt.
+
 ## Einlesen eines bestehenden Handoff-Dokuments
 
 Wenn ein Handoff-Dokument (`handoff.md` oder `handoff-<slug>.md`) bereits existiert und du es einliest (z. B. zu Beginn einer neuen Session), gehe wie folgt vor:
