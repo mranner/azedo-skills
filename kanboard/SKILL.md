@@ -72,6 +72,12 @@ python3 "$SKILL_DIR/kanboard" cr 4326
 python3 "$SKILL_DIR/kanboard" cr CR4326 CR4330
 ```
 
+**Handoff-Feld wird automatisch mitgeladen:** Ist das Handoff-Feld (TaskHandoff-Plugin,
+siehe unten) befuellt, erscheint sein Volltext im Feld `handoff`. Ist es leer — oder
+das Plugin gar nicht installiert — entfaellt das Feld und die Ausgabe bleibt schlank.
+Datei-**Anhaenge** werden bewusst **nicht** automatisch geladen; die holt man bei
+Bedarf gezielt mit `list-files`/`download-file`.
+
 ### Task erstellen
 
 ```bash

@@ -697,15 +697,33 @@ def cmd_cr(args):
         if not task:
             print(f"Error: task {task_id} not found", file=sys.stderr)
             sys.exit(1)
-        results.append({
+
+        # getTask liefert nur *_id, keine Klarnamen — enrich_task ergaenzt
+        # column_title/owner_username; project_name separat aufloesen.
+
+        enrich_task(task)
+        project_id = int(task["project_id"])
+        project = rpc_try("getProjectById", {"project_id": project_id}) or {}
+
+        entry = {
             "cr": f"CR{task_id}",
             "task_id": task_id,
             "title": task["title"],
-            "project_id": int(task["project_id"]),
-            "project_name": task.get("project_name", ""),
-            "column": task.get("column_name", ""),
+            "project_id": project_id,
+            "project_name": project.get("name", ""),
+            "column": task.get("column_title", ""),
             "owner": task.get("owner_username", ""),
-        })
+        }
+
+        # Handoff-Feld (TaskHandoff-Plugin) automatisch mitladen, falls befuellt.
+        # rpc_try statt rpc_call: fehlt das Plugin (Method not found), liefert es
+        # None statt cr komplett abzubrechen.
+
+        handoff = rpc_try("getTaskHandoff", {"task_id": task_id})
+        if handoff:
+            entry["handoff"] = handoff
+
+        results.append(entry)
 
     output(results if len(results) > 1 else results[0])
 
