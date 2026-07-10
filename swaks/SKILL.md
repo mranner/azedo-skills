@@ -5,7 +5,8 @@ description: >
   the user wants to send an email, forward a file, share documentation, or
   deliver any content by mail — even if they just say "schick mir das",
   "sende das per Mail", "mail me the result", or "send this to X".
-  Handles plain text, HTML body, and file attachments (any type).
+  Standardversand ist eine multipart/alternative-Mail (Text + HTML) via
+  build_mail.py; zusaetzlich moeglich: reiner Text-Body und Dateianhaenge (any type).
   Default recipient is ich@example.org, default sender is claude@azedo.at,
   default server is mom.azedo.at.
   Trigger with /swaks.
@@ -41,7 +42,14 @@ printf '%s\t%s\n' "kurzname" "email@adresse" >> .claude/swaks-contacts.tsv
 
 ## Signatur
 
-Wenn `.claude/swaks-signature.txt` im Arbeitsverzeichnis existiert, wird deren Inhalt am Ende des Mail-Body angehängt (mit einer Leerzeile Abstand). Die Signatur wird **nicht** angehängt wenn:
+Zwei Signaturdateien im Arbeitsverzeichnis:
+
+- `.claude/swaks-signature.txt` – Plain-Text-Signatur (für den Text-Part)
+- `.claude/swaks-signature.html` – HTML-Signatur (für den HTML-Part)
+
+Beim Standardversand (Multipart, siehe unten) hängt `build_mail.py` beide automatisch an – Text-Signatur mit Leerzeile Abstand, HTML-Signatur als Block. Bei reinem Text-Body nur die `.txt`-Signatur.
+
+Die Signatur wird **nicht** angehängt wenn:
 
 - Der User explizit "ohne Signatur" / "no sig" sagt
 - Die Mail im Namen einer anderen Person verfasst wird (anderer `--from`)
@@ -56,6 +64,47 @@ Immer UTF-8 Header mitgeben, damit Umlaute korrekt ankommen:
 ```
 
 Für HTML-Mails stattdessen `text/html; charset=utf-8` (siehe Abschnitt HTML-Body).
+
+## Standardversand: Multipart (Text + HTML)
+
+**Default für zusammengesetzte Mails.** Es wird eine `multipart/alternative`-Mail erzeugt (Text- **und** HTML-Part im selben Objekt) – gut für Copy/Paste in Thunderbird und beim Weiterleiten, mit Fallback für Plain-Text-Clients. HTML bewusst schlicht halten (Absätze `<p>`, Umbrüche `<br>`, keine CSS-Spielereien).
+
+Ablauf: `build_mail.py` baut die MIME-DATA (korrekte Boundaries/Encoding, hängt Signaturen an), die Ausgabe geht per `swaks --data @-` raus.
+
+1. Text-Body als `.txt` und HTML-Body als `.html` in `.tmp/` schreiben (jeweils **ohne** Signatur – die hängt der Helper an).
+2. Senden:
+
+```bash
+python3.11 ~/.claude/skills/swaks/build_mail.py \
+  --subject "Betreff" \
+  --to "empfaenger@example.com" \
+  --from claude@azedo.at \
+  --text-file .tmp/body.txt \
+  --html-file .tmp/body.html \
+  --sig-text-file .claude/swaks-signature.txt \
+  --sig-html-file .claude/swaks-signature.html \
+  | swaks --server mom.azedo.at \
+      --to "empfaenger@example.com" \
+      --from claude@azedo.at \
+      --data @-
+```
+
+Hinweise:
+- `--to`/`--from` bei **beiden** (Helper *und* swaks) angeben: der Helper setzt die Header, swaks den SMTP-Envelope.
+- **Cc:** `--cc "adr"` an `build_mail.py` setzt den sichtbaren `Cc:`-Header. Die Cc-Adresse **zusätzlich** in den swaks-Envelope `--to` aufnehmen (kommasepariert), sonst wird sie nicht zugestellt.
+- **Bcc:** `--bcc "adr"` an `build_mail.py` setzt **bewusst keinen** Header (sonst wären die Empfänger sichtbar). Die Bcc-Adresse **nur** in den swaks-Envelope `--to` aufnehmen — sie bleibt für die anderen Empfänger unsichtbar. Beispiel: Header via `build_mail.py --to a@x --cc cc@x --bcc bcc@x`, Envelope via `swaks --to "a@x,cc@x,bcc@x" …`.
+- **Leerer Body:** `build_mail.py` bricht mit Exit ≠ 0 ab, wenn Text *und* HTML leer sind — so sendet swaks nie versehentlich seine eingebaute Default-Test-Mail. In Pipelines ggf. `set -o pipefail` nutzen, damit der Abbruch durchschlägt.
+- Signatur weglassen: `--sig-text-file`/`--sig-html-file` einfach nicht übergeben.
+- **Anhänge:** pro Datei ein `--attach <pfad>` an `build_mail.py` – dann wird `multipart/mixed` um das Text+HTML-Part gelegt (MIME-Type wird automatisch erraten):
+
+```bash
+python3.11 ~/.claude/skills/swaks/build_mail.py ... \
+  --attach /pfad/zu/datei1.pdf \
+  --attach /pfad/zu/datei2.png \
+  | swaks --server mom.azedo.at --to "..." --from claude@azedo.at --data @-
+```
+
+Die folgenden Abschnitte (reiner Text-Body, HTML-Body, `--attach` direkt an swaks) sind **einfachere Sonderfälle** – nur nutzen, wenn explizit nur Text gewünscht ist oder es rein um einen Dateiversand ohne formatierten Body geht.
 
 ## Grundbefehl
 
@@ -161,12 +210,13 @@ swaks \
 ## Ablauf
 
 1. **Empfänger auflösen:** Wenn ein Name statt E-Mail-Adresse genannt wird, `grep -i <name> .claude/swaks-contacts.tsv` ausführen. Bei Treffer: E-Mail aus zweitem Feld verwenden. Bei keinem Treffer: nachfragen.
-2. **Signatur:** Wenn `.claude/swaks-signature.txt` existiert und kein Ausschlussgrund vorliegt, Inhalt mit Leerzeile Abstand an den Body anhängen.
-3. Fehlende Angaben aus dem Kontext ableiten (Betreff, Body, Anhänge).
-4. Befehl zusammenbauen.
-5. Befehl dem Nutzer kurz zeigen und auf Bestätigung warten – außer der Nutzer hat bereits explizit „ja" gesagt oder den Versand klar angeordnet.
-6. Befehl ausführen und Ergebnis (Queue-ID oder Fehler) melden.
-7. **Kontakt ergänzen:** Wenn eine neue E-Mail-Adresse verwendet wurde, die noch nicht in `.claude/swaks-contacts.tsv` steht, per `printf` anhängen.
+2. **Versandart wählen:** Default ist **Multipart (Text + HTML)** via `build_mail.py`. Nur reinen Text senden, wenn der User das will oder es rein um einen Dateiversand ohne formatierten Body geht.
+3. **Body erstellen:** Für Multipart Text- und HTML-Body in `.tmp/` ablegen (ohne Signatur). HTML schlicht halten.
+4. **Signatur:** Sofern kein Ausschlussgrund vorliegt, `--sig-text-file`/`--sig-html-file` an `build_mail.py` übergeben (bzw. bei reinem Text die `.txt`-Signatur anhängen).
+5. Fehlende Angaben aus dem Kontext ableiten (Betreff, Body, Anhänge).
+6. Befehl zusammenbauen und dem Nutzer kurz zeigen; auf Bestätigung warten – außer der Nutzer hat bereits „ja" gesagt oder den Versand klar angeordnet.
+7. Befehl ausführen und Ergebnis (Queue-ID oder Fehler) melden. Erfolg: `250 2.0.0 Ok: queued as <ID>`.
+8. **Kontakt ergänzen:** Wenn eine neue E-Mail-Adresse verwendet wurde, die noch nicht in `.claude/swaks-contacts.tsv` steht, per `printf` anhängen.
 
 ## Hinweise
 

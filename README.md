@@ -358,6 +358,10 @@ Fasst die aktuelle Konversation in ein Uebergabedokument zusammen, damit ein neu
 
 ## Changelog
 
+### 1.18.2
+
+- **swaks/build_mail.py: `--cc`/`--bcc` und Hart-Abbruch bei leerem Body.** `--cc` setzt einen sichtbaren `Cc:`-Header (Adresse zusätzlich in den swaks-Envelope `--to` aufnehmen). `--bcc` setzt **bewusst keinen** Header (sonst wären die Empfänger sichtbar) — die Adresse gehört nur in den swaks-Envelope; ein stderr-Hinweis erinnert daran. Neu: bricht mit Exit ≠ 0 ab, wenn Text *und* HTML leer sind (bzw. die Ausgabe leer wäre), damit swaks nie auf seine eingebaute Default-Test-Mail zurückfällt. SKILL.md um Cc/Bcc/Leer-Body-Hinweise ergänzt. (Enthält außerdem die zuvor lokal offene Multipart-Dokumentation zu `build_mail.py`.)
+
 ### 1.18.1
 
 - **kanboard/handoff: robusteres Verhalten, wenn das TaskHandoff-Plugin fehlt.** Ist das Plugin auf der Kanboard-Instanz nicht installiert/aktiviert, liefern `set-handoff`/`get-handoff`/`remove-handoff` den JSON-RPC-Fehler `-32601` „Method not found". Der kanboard-Skill ergänzt bei diesem Code jetzt einen erklärenden Hinweis (Methode wird evtl. von einem nicht installierten Plugin bereitgestellt, z. B. TaskHandoff). Der handoff-Skill dokumentiert den Fallback: schlägt `set-handoff` mit `-32601` fehl, auf die lokale `.md`-Datei zurückfallen und den User informieren.
