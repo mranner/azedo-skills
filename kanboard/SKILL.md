@@ -118,6 +118,11 @@ danach optional Spalte/Swimlane im Zielprojekt. Ohne `--column` landet der Task 
 der von Kanboard gewaehlten Standardspalte; ohne `--swimlane` in der ersten
 aktiven Swimlane des Zielprojekts.
 
+**Status-Erhaltung:** `moveTaskToProject` oeffnet geschlossene Tasks automatisch
+wieder (is_active 0 → 1). `move-project` faengt das ab und schliesst einen zuvor
+geschlossenen Task nach dem Move wieder (Feld `reclosed: true` in der Ausgabe) —
+der Offen/Geschlossen-Zustand bleibt also erhalten.
+
 ### Task oeffnen / schliessen
 
 ```bash

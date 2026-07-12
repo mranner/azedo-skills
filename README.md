@@ -360,6 +360,10 @@ Fasst die aktuelle Konversation in ein Uebergabedokument zusammen, damit ein neu
 
 ## Changelog
 
+### 1.19.1
+
+- **kanboard: `move-project` erhaelt jetzt den Offen/Geschlossen-Status.** `moveTaskToProject` oeffnet einen geschlossenen Task beim Projektwechsel automatisch wieder (is_active 0 → 1). `move-project` merkt sich den Status vor dem Move und schliesst einen zuvor geschlossenen Task danach wieder (`closeTask`), Rueckgabefeld `reclosed: true`. Ein reines Verschieben aendert damit den Erledigt-Status nicht mehr. Verifiziert: geschlossener Task bleibt nach dem Move geschlossen (richtige Spalte), offener Task bleibt offen.
+
 ### 1.19.0
 
 - **kanboard: Projekt-Verwaltung — Projekte anlegen und Mitglieder/Rollen/Owner scriptbar.** Sechs neue Subcommands schliessen die Luecke, dass bisher nur Tasks, aber keine Projekte und keine Projekt-Rechte verwaltet werden konnten: `create-project --name <name> [--owner <username>]` (`createProject`; mit `--owner` wird der User Owner **und** `project-manager`-Mitglied), `list-project-users --project <p>` (`getProjectUsers` + `getProjectUserRole` je User, inkl. Owner), `add-project-user --project <p> --user <u> [--role <rolle>]` (`addProjectUser`, Default-Rolle `project-member`), `set-project-user-role` (`changeProjectUserRole`), `remove-project-user` (`removeProjectUser`) und `set-project-owner` (`updateProject`; ergaenzt den User bei Bedarf zuerst als Mitglied). Rollen validiert gegen `project-manager`/`project-member`/`project-viewer`. Damit ist „Projekt X anlegen, User Y mit gleicher Rolle wie in Projekt Z" ein Einzeiler statt Inline-Python. **API-Stolperfalle dokumentiert:** `updateProject` erwartet den Key `project_id` (nicht `id`) — mit `id` kommt „Missing argument: project_id", mit `name`/`id` ein stummes `False`; und ein Owner muss erst Projektmitglied sein, bevor er gesetzt werden kann. Verifiziert: alle sechs Subcommands live gegen die azedo-Instanz getestet (add/rollenwechsel/remove reversibel, Wegwerf-Projekt angelegt + wieder entfernt), Rollen-Validierung bricht bei ungueltiger Rolle mit Exit ≠ 0 ab.

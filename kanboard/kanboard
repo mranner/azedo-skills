@@ -338,6 +338,11 @@ def cmd_move_project(args):
         print(f"Error: task {args.task_id} not found", file=sys.stderr)
         sys.exit(1)
 
+    # Offen/Geschlossen-Status vor dem Move merken: moveTaskToProject oeffnet
+    # geschlossene Tasks automatisch wieder (is_active 0 -> 1). War der Task
+    # geschlossen, wird er nach dem Verschieben wieder geschlossen.
+    was_active = int(task.get("is_active", 1))
+
     target_project_id = resolve_project(args.project)
 
     # moveTaskToProject verschiebt task-uebergreifend; column/swimlane werden
@@ -350,6 +355,8 @@ def cmd_move_project(args):
     if not moved:
         output({"success": False})
         return
+
+    result = {"success": True, "project_id": target_project_id}
 
     if args.column:
         column_id = resolve_column(target_project_id, args.column)
@@ -368,10 +375,13 @@ def cmd_move_project(args):
             "position": 9999,
             "swimlane_id": swimlane_id
         })
-        output({"success": placed, "project_id": target_project_id})
-        return
+        result["success"] = placed
 
-    output({"success": True, "project_id": target_project_id})
+    # Status erhalten: war der Task geschlossen, wieder schliessen
+    if was_active == 0:
+        result["reclosed"] = bool(rpc_call("closeTask", {"task_id": int(args.task_id)}))
+
+    output(result)
 
 
 def cmd_open_task(args):
