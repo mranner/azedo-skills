@@ -511,6 +511,94 @@ def cmd_list_users(args):
     output(summary)
 
 
+# Project administration
+
+PROJECT_ROLES = ("project-manager", "project-member", "project-viewer")
+
+
+def _check_role(role):
+    if role not in PROJECT_ROLES:
+        print(f"Error: invalid role '{role}' (allowed: {', '.join(PROJECT_ROLES)})", file=sys.stderr)
+        sys.exit(1)
+
+
+def cmd_create_project(args):
+    params = {"name": args.name}
+    owner_id = None
+    if args.owner:
+        owner_id = resolve_user(args.owner)
+        params["owner_id"] = owner_id
+
+    pid = rpc_call("createProject", params)
+    if not pid:
+        output({"success": False})
+        return
+    pid = int(pid)
+    result = {"success": True, "project_id": pid, "name": args.name}
+
+    if owner_id is not None:
+        # Owner als Projekt-Manager-Mitglied fuehren (wie in bestehenden Projekten)
+        rpc_try("addProjectUser", {"project_id": pid, "user_id": owner_id, "role": "project-manager"})
+
+        # owner_id explizit setzen — createProject uebernimmt es nicht zuverlaessig.
+        # updateProject verlangt den Key 'project_id' (nicht 'id')
+        rpc_try("updateProject", {"project_id": pid, "owner_id": owner_id})
+        result["owner_id"] = owner_id
+
+    result["hint"] = "Neues Projekt — 'setup' ausfuehren, damit instance.json es kennt."
+    output(result)
+
+
+def cmd_list_project_users(args):
+    project_id = resolve_project(args.project)
+    members = rpc_call("getProjectUsers", {"project_id": project_id})
+    users = []
+    if isinstance(members, dict):
+        for uid, name in members.items():
+            role = rpc_try("getProjectUserRole", {"project_id": project_id, "user_id": int(uid)})
+            users.append({"id": int(uid), "name": name, "role": role})
+    proj = rpc_try("getProjectById", {"project_id": project_id})
+    owner_id = int(proj.get("owner_id", 0)) if proj else 0
+    output({"project_id": project_id, "owner_id": owner_id, "users": users})
+
+
+def cmd_add_project_user(args):
+    project_id = resolve_project(args.project)
+    user_id = resolve_user(args.user)
+    _check_role(args.role)
+    ok = rpc_call("addProjectUser", {"project_id": project_id, "user_id": user_id, "role": args.role})
+    output({"success": bool(ok), "project_id": project_id, "user_id": user_id, "role": args.role})
+
+
+def cmd_set_project_user_role(args):
+    project_id = resolve_project(args.project)
+    user_id = resolve_user(args.user)
+    _check_role(args.role)
+    ok = rpc_call("changeProjectUserRole", {"project_id": project_id, "user_id": user_id, "role": args.role})
+    output({"success": bool(ok), "project_id": project_id, "user_id": user_id, "role": args.role})
+
+
+def cmd_remove_project_user(args):
+    project_id = resolve_project(args.project)
+    user_id = resolve_user(args.user)
+    ok = rpc_call("removeProjectUser", {"project_id": project_id, "user_id": user_id})
+    output({"success": bool(ok), "project_id": project_id, "user_id": user_id})
+
+
+def cmd_set_project_owner(args):
+    project_id = resolve_project(args.project)
+    user_id = resolve_user(args.user)
+
+    # Owner muss Projektmitglied sein, sonst ignoriert Kanboard das Setzen still
+    members = rpc_call("getProjectUsers", {"project_id": project_id})
+    if not (isinstance(members, dict) and str(user_id) in members):
+        rpc_try("addProjectUser", {"project_id": project_id, "user_id": user_id, "role": "project-manager"})
+
+    # updateProject verlangt den Key 'project_id' (nicht 'id')
+    ok = rpc_call("updateProject", {"project_id": project_id, "owner_id": user_id})
+    output({"success": bool(ok), "project_id": project_id, "owner_id": user_id})
+
+
 def cmd_get_comments(args):
     result = rpc_call("getAllComments", {"task_id": int(args.task_id)})
     output(result if result else [])
@@ -1000,6 +1088,45 @@ def main():
     p = sub.add_parser("remove-task-link")
     p.add_argument("task_link_id")
     p.set_defaults(func=cmd_remove_task_link)
+
+    # create-project
+    p = sub.add_parser("create-project")
+    p.add_argument("--name", required=True)
+    p.add_argument("--owner", help="Username; wird Owner + project-manager-Mitglied")
+    p.set_defaults(func=cmd_create_project)
+
+    # list-project-users
+    p = sub.add_parser("list-project-users")
+    p.add_argument("--project", required=True)
+    p.set_defaults(func=cmd_list_project_users)
+
+    # add-project-user
+    p = sub.add_parser("add-project-user")
+    p.add_argument("--project", required=True)
+    p.add_argument("--user", required=True)
+    p.add_argument("--role", default="project-member",
+                   help="project-manager | project-member | project-viewer (Default: project-member)")
+    p.set_defaults(func=cmd_add_project_user)
+
+    # set-project-user-role
+    p = sub.add_parser("set-project-user-role")
+    p.add_argument("--project", required=True)
+    p.add_argument("--user", required=True)
+    p.add_argument("--role", required=True,
+                   help="project-manager | project-member | project-viewer")
+    p.set_defaults(func=cmd_set_project_user_role)
+
+    # remove-project-user
+    p = sub.add_parser("remove-project-user")
+    p.add_argument("--project", required=True)
+    p.add_argument("--user", required=True)
+    p.set_defaults(func=cmd_remove_project_user)
+
+    # set-project-owner
+    p = sub.add_parser("set-project-owner")
+    p.add_argument("--project", required=True)
+    p.add_argument("--user", required=True)
+    p.set_defaults(func=cmd_set_project_owner)
 
     args = parser.parse_args()
     args.func(args)

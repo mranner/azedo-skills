@@ -51,6 +51,7 @@ Verwaltet Tasks auf einer Kanboard-Instanz via JSON-RPC API. Unterstützt:
 - Task-Verbindungen (interne Links) auflisten, erstellen, löschen
 - Handoff-Feld setzen/auslesen/entfernen (TaskHandoff-Plugin, Volltext-Markdown pro Task)
 - Projekte, Spalten und User auflisten
+- Projekt-Verwaltung: Projekte anlegen, Mitglieder/Rollen verwalten, Owner setzen
 - `get-task` liefert zusätzlich Klarnamen (Spalte, Owner, Swimlane) neben den IDs
 
 **Voraussetzungen:** Python ≥ 3.11
@@ -358,6 +359,10 @@ Fasst die aktuelle Konversation in ein Uebergabedokument zusammen, damit ein neu
 **Trigger:** `/handoff` oder natuerliche Sprache wie "erstell eine Uebergabe", "fass die Session fuer den naechsten Agent zusammen".
 
 ## Changelog
+
+### 1.19.0
+
+- **kanboard: Projekt-Verwaltung — Projekte anlegen und Mitglieder/Rollen/Owner scriptbar.** Sechs neue Subcommands schliessen die Luecke, dass bisher nur Tasks, aber keine Projekte und keine Projekt-Rechte verwaltet werden konnten: `create-project --name <name> [--owner <username>]` (`createProject`; mit `--owner` wird der User Owner **und** `project-manager`-Mitglied), `list-project-users --project <p>` (`getProjectUsers` + `getProjectUserRole` je User, inkl. Owner), `add-project-user --project <p> --user <u> [--role <rolle>]` (`addProjectUser`, Default-Rolle `project-member`), `set-project-user-role` (`changeProjectUserRole`), `remove-project-user` (`removeProjectUser`) und `set-project-owner` (`updateProject`; ergaenzt den User bei Bedarf zuerst als Mitglied). Rollen validiert gegen `project-manager`/`project-member`/`project-viewer`. Damit ist „Projekt X anlegen, User Y mit gleicher Rolle wie in Projekt Z" ein Einzeiler statt Inline-Python. **API-Stolperfalle dokumentiert:** `updateProject` erwartet den Key `project_id` (nicht `id`) — mit `id` kommt „Missing argument: project_id", mit `name`/`id` ein stummes `False`; und ein Owner muss erst Projektmitglied sein, bevor er gesetzt werden kann. Verifiziert: alle sechs Subcommands live gegen die azedo-Instanz getestet (add/rollenwechsel/remove reversibel, Wegwerf-Projekt angelegt + wieder entfernt), Rollen-Validierung bricht bei ungueltiger Rolle mit Exit ≠ 0 ab.
 
 ### 1.18.2
 
