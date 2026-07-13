@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.11
+#!/usr/bin/env python3
 
 # Baut eine multipart/alternative-Mail (Text + HTML) und gibt die komplette
 # DATA-Sektion (Header + Body) auf STDOUT aus. Die Ausgabe wird per

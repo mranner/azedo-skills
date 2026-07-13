@@ -69,13 +69,13 @@ Für HTML-Mails stattdessen `text/html; charset=utf-8` (siehe Abschnitt HTML-Bod
 
 **Default für zusammengesetzte Mails.** Es wird eine `multipart/alternative`-Mail erzeugt (Text- **und** HTML-Part im selben Objekt) – gut für Copy/Paste in Thunderbird und beim Weiterleiten, mit Fallback für Plain-Text-Clients. HTML bewusst schlicht halten (Absätze `<p>`, Umbrüche `<br>`, keine CSS-Spielereien).
 
-Ablauf: `build_mail.py` baut die MIME-DATA (korrekte Boundaries/Encoding, hängt Signaturen an), die Ausgabe geht per `swaks --data @-` raus.
+Ablauf: `build_mail.py` baut die MIME-DATA (korrekte Boundaries/Encoding, hängt Signaturen an) in eine Datei, danach geht diese per `swaks --data @<datei>` raus.
 
 1. Text-Body als `.txt` und HTML-Body als `.html` in `.tmp/` schreiben (jeweils **ohne** Signatur – die hängt der Helper an).
-2. Senden:
+2. MIME-DATA bauen und senden. **Erst in eine Datei bauen, dann senden** – nicht direkt in `swaks` pipen: schlägt der Bau fehl (Exit ≠ 0 oder Interpreter nicht gefunden), würde `swaks` sonst auf leerem STDIN laufen und seine eingebaute **Default-Test-Mail** verschicken. Die `&&`-Kette stoppt vor `swaks`, sobald der Bau fehlschlägt oder die Datei leer ist:
 
 ```bash
-python3.11 ~/.claude/skills/swaks/build_mail.py \
+python3 ~/.claude/skills/swaks/build_mail.py \
   --subject "Betreff" \
   --to "empfaenger@example.com" \
   --from claude@azedo.at \
@@ -83,25 +83,29 @@ python3.11 ~/.claude/skills/swaks/build_mail.py \
   --html-file .tmp/body.html \
   --sig-text-file .claude/swaks-signature.txt \
   --sig-html-file .claude/swaks-signature.html \
-  | swaks --server mom.azedo.at \
+  > .tmp/mail.eml \
+  && test -s .tmp/mail.eml \
+  && swaks --server mom.azedo.at \
       --to "empfaenger@example.com" \
       --from claude@azedo.at \
-      --data @-
+      --data @.tmp/mail.eml
 ```
 
 Hinweise:
 - `--to`/`--from` bei **beiden** (Helper *und* swaks) angeben: der Helper setzt die Header, swaks den SMTP-Envelope.
 - **Cc:** `--cc "adr"` an `build_mail.py` setzt den sichtbaren `Cc:`-Header. Die Cc-Adresse **zusätzlich** in den swaks-Envelope `--to` aufnehmen (kommasepariert), sonst wird sie nicht zugestellt.
 - **Bcc:** `--bcc "adr"` an `build_mail.py` setzt **bewusst keinen** Header (sonst wären die Empfänger sichtbar). Die Bcc-Adresse **nur** in den swaks-Envelope `--to` aufnehmen — sie bleibt für die anderen Empfänger unsichtbar. Beispiel: Header via `build_mail.py --to a@x --cc cc@x --bcc bcc@x`, Envelope via `swaks --to "a@x,cc@x,bcc@x" …`.
-- **Leerer Body:** `build_mail.py` bricht mit Exit ≠ 0 ab, wenn Text *und* HTML leer sind — so sendet swaks nie versehentlich seine eingebaute Default-Test-Mail. In Pipelines ggf. `set -o pipefail` nutzen, damit der Abbruch durchschlägt.
+- **Leerer Body / Bau-Fehler:** `build_mail.py` bricht mit Exit ≠ 0 ab, wenn Text *und* HTML leer sind. Deshalb **nie direkt in `swaks` pipen** — bei einem Bau-Fehler (Exit ≠ 0 oder Interpreter nicht gefunden) läuft `swaks` sonst auf leerem STDIN und sendet seine eingebaute Default-Test-Mail. Immer erst in eine Datei bauen und mit `&& test -s <datei> && swaks … --data @<datei>` absichern. `set -o pipefail` allein genügt **nicht**, da `swaks` in der Pipe trotzdem startet.
 - Signatur weglassen: `--sig-text-file`/`--sig-html-file` einfach nicht übergeben.
 - **Anhänge:** pro Datei ein `--attach <pfad>` an `build_mail.py` – dann wird `multipart/mixed` um das Text+HTML-Part gelegt (MIME-Type wird automatisch erraten):
 
 ```bash
-python3.11 ~/.claude/skills/swaks/build_mail.py ... \
+python3 ~/.claude/skills/swaks/build_mail.py ... \
   --attach /pfad/zu/datei1.pdf \
   --attach /pfad/zu/datei2.png \
-  | swaks --server mom.azedo.at --to "..." --from claude@azedo.at --data @-
+  > .tmp/mail.eml \
+  && test -s .tmp/mail.eml \
+  && swaks --server mom.azedo.at --to "..." --from claude@azedo.at --data @.tmp/mail.eml
 ```
 
 Die folgenden Abschnitte (reiner Text-Body, HTML-Body, `--attach` direkt an swaks) sind **einfachere Sonderfälle** – nur nutzen, wenn explizit nur Text gewünscht ist oder es rein um einen Dateiversand ohne formatierten Body geht.

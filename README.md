@@ -360,6 +360,10 @@ Fasst die aktuelle Konversation in ein Uebergabedokument zusammen, damit ein neu
 
 ## Changelog
 
+### 1.19.2
+
+- **swaks: robuster Interpreter-Aufruf + Test-Mail-Footgun geschlossen.** `build_mail.py` wurde in SKILL.md und im Shebang von `python3.11` auf `python3` umgestellt — auf Maschinen ohne `python3.11` (z. B. mom mit `python3` 3.12) schlug der Aufruf sonst mit „command not found" fehl. Kritischer: Das bisher dokumentierte `build_mail.py | swaks --data @-` ist ein Footgun — schlägt der Bau fehl (Exit ≠ 0 oder Interpreter fehlt), läuft `swaks` trotzdem auf leerem STDIN und verschickt seine eingebaute **Default-Test-Mail** (genau so passiert). `set -o pipefail` verhindert das **nicht**, da `swaks` in der Pipe ohnehin startet. Der Standard-Ablauf baut die MIME-DATA jetzt erst in eine Datei und sendet per `&& test -s <datei> && swaks … --data @<datei>` — die `&&`-Kette stoppt vor `swaks`, sobald der Bau fehlschlägt oder die Datei leer ist. Verifiziert: erfolgreicher Bau erzeugt valide Multipart-MIME und passiert den Guard; fehlende Body-Datei (Exit 1) und `python3.11`-not-found (Exit 127, 0-Byte-Datei) stoppen die Kette beide vor `swaks`.
+
 ### 1.19.1
 
 - **kanboard: `move-project` erhaelt jetzt den Offen/Geschlossen-Status.** `moveTaskToProject` oeffnet einen geschlossenen Task beim Projektwechsel automatisch wieder (is_active 0 → 1). `move-project` merkt sich den Status vor dem Move und schliesst einen zuvor geschlossenen Task danach wieder (`closeTask`), Rueckgabefeld `reclosed: true`. Ein reines Verschieben aendert damit den Erledigt-Status nicht mehr. Verifiziert: geschlossener Task bleibt nach dem Move geschlossen (richtige Spalte), offener Task bleibt offen.
