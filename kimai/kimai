@@ -2,7 +2,7 @@
 
 # Kimai REST API helper
 # stdlib only, no pip dependencies
-# version 1.11.1
+# version 1.19.3
 
 import argparse
 import json
@@ -397,6 +397,13 @@ def cmd_create_project(args):
     if args.billable is not None:
         data["billable"] = args.billable == "1"
 
+    # Default: globale Aktivitaeten erlauben, damit instanzweite Aktivitaeten
+    # (z.B. IT-Support) sofort buchbar sind
+    if args.global_activities is not None:
+        data["globalActivities"] = args.global_activities == "1"
+    else:
+        data["globalActivities"] = True
+
     result = api_call("POST", "projects", data=data)
     output(result)
 
@@ -415,6 +422,8 @@ def cmd_update_project(args):
         data["visible"] = args.visible == "1"
     if args.billable is not None:
         data["billable"] = args.billable == "1"
+    if args.global_activities is not None:
+        data["globalActivities"] = args.global_activities == "1"
 
     if not data:
         print("Error: nothing to update", file=sys.stderr)
@@ -1155,6 +1164,8 @@ def main():
     p.add_argument("--color")
     p.add_argument("--visible", help="0 or 1")
     p.add_argument("--billable", help="0 or 1")
+    p.add_argument("--global-activities", dest="global_activities",
+                   help="0 or 1 (allow global activities; default 1)")
     p.set_defaults(func=cmd_create_project)
 
     p = sub.add_parser("update-project")
@@ -1165,6 +1176,8 @@ def main():
     p.add_argument("--color")
     p.add_argument("--visible", help="0 or 1")
     p.add_argument("--billable", help="0 or 1")
+    p.add_argument("--global-activities", dest="global_activities",
+                   help="0 or 1 (allow global activities)")
     p.set_defaults(func=cmd_update_project)
 
     p = sub.add_parser("delete-project")

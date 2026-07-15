@@ -126,12 +126,18 @@ Erledigt in einem Call: Shortcut aufloesen, letzten heutigen Eintrag finden, `be
 python3 "$SKILL_DIR/kimai" list-projects
 python3 "$SKILL_DIR/kimai" get-project <id>
 python3 "$SKILL_DIR/kimai" create-project --name "<name>" --customer <id> \
-  [--comment "<text>"] [--color "<hex>"] [--visible <0|1>] [--billable <0|1>]
+  [--comment "<text>"] [--color "<hex>"] [--visible <0|1>] [--billable <0|1>] \
+  [--global-activities <0|1>]
 python3 "$SKILL_DIR/kimai" update-project <id> \
   [--name "<name>"] [--customer <id>] [--comment "<text>"] \
-  [--color "<hex>"] [--visible <0|1>] [--billable <0|1>]
+  [--color "<hex>"] [--visible <0|1>] [--billable <0|1>] [--global-activities <0|1>]
 python3 "$SKILL_DIR/kimai" delete-project <id>
 ```
+
+`--global-activities` steuert, ob die instanzweiten (globalen) Aktivitaeten
+— z.B. *IT-Support (SP90)* — im Projekt buchbar sind. Bei `create-project` ist
+der **Default `1`**; ohne globale Aktivitaeten schlaegt `create-timesheet` mit
+einer globalen Aktivitaet sonst mit `400 activity … invalid choice` fehl.
 
 ### Aktivitaeten
 
@@ -250,4 +256,4 @@ python3 "$SKILL_DIR/kimai" log --duration 0.5 --shortcut initech --description "
 - Output ist JSON — relevante Felder extrahieren und lesbar darstellen.
 - Alle IDs (Projekt, Aktivitaet, User, Kunde) sind numerisch.
 - `create-timesheet` ohne `--end` startet einen laufenden Timer. `stop-timesheet` beendet ihn.
-- Boolean-Felder (`--visible`, `--billable`, `--exported`) erwarten `0` oder `1`.
+- Boolean-Felder (`--visible`, `--billable`, `--exported`, `--global-activities`) erwarten `0` oder `1`.
