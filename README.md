@@ -157,6 +157,26 @@ python3 "$SKILL_DIR/google-analytics" setup
 
 **Trigger:** `/google-analytics`, `/ga4` oder natuerliche Sprache wie "wie viele Besucher", "Traffic letzte Woche", "GA4 Report".
 
+### google-search-console
+
+Google Search Console (GSC) Datenabfrage via Service Account. Python-Script (stdlib + `cryptography`), read-only (Scope `webmasters.readonly`):
+
+- Sites/Properties + Berechtigungslevel auflisten
+- Search-Analytics: Klicks, Impressionen, CTR, Position nach query/page/country/device/date/searchAppearance, mit Zeitraum und Filter
+- URL-Inspection: echter Google-Index-Status je URL (verdict, coverageState, robots, lastCrawlTime, canonical)
+- Sitemaps: eingereichte Sitemaps + submitted/indexed URL-Zahlen
+- Tab-separierte oder JSON-Ausgabe
+
+**Voraussetzungen:** Python >= 3.11, Package `cryptography` (fuer JWT-Signierung)
+
+**Setup:** Service Account JSON unter `~/.config/ga4-service-account.json` (derselbe SA wie GA4, oder Pfad via `GSC_SERVICE_ACCOUNT`). Service Account als Nutzer in der GSC-Property hinterlegen, Search Console API im GCP-Projekt aktivieren. Dann:
+
+```bash
+python3 "$SKILL_DIR/google-search-console" setup
+```
+
+**Trigger:** `/google-search-console`, `/gsc` oder natuerliche Sprache wie "organische Klicks", "Impressionen in der Google-Suche", "ist die Seite indexiert".
+
 ### image-optimize
 
 Optimiert Bilder für Web-Verwendung. Unterstützt:
@@ -359,6 +379,10 @@ Fasst die aktuelle Konversation in ein Uebergabedokument zusammen, damit ein neu
 **Trigger:** `/handoff` oder natuerliche Sprache wie "erstell eine Uebergabe", "fass die Session fuer den naechsten Agent zusammen".
 
 ## Changelog
+
+### 1.20.0
+
+- **Neuer Skill `google-search-console` (GSC).** Read-only Datenabfrage der Google Search Console via Service Account (derselbe SA wie GA4, Scope `webmasters.readonly`). Python-Script (stdlib + `cryptography`, JWT-Flow 1:1 aus dem GA4-Skill uebernommen). Subcommands: `setup` (Auth testen, Sites cachen), `sites` (Properties + permissionLevel), `search-analytics` (Klicks/Impressionen/CTR/Position nach query/page/country/device/date/searchAppearance, Zeitraum + `dimension==value`-Filter; relative Datums-Keywords wie `28daysAgo` werden lokal auf ISO-Daten aufgeloest, da die GSC-API nur `YYYY-MM-DD` akzeptiert), `url-inspection` (echter Google-Index-Status je URL: verdict/coverageState/robots/lastCrawlTime/canonical), `sitemaps` (eingereichte Sitemaps + submitted/indexed URL-Zahlen). Trigger `/google-search-console`, `/gsc`. Anlass: empirischer Index-/Ranking-Nachweis fuer duenne Landingpages (CR4403, im Kontext CR4400). (CR4403)
 
 ### 1.19.3
 

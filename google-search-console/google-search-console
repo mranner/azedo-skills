@@ -1,0 +1,337 @@
+#!/usr/bin/env python3
+
+# Google Search Console REST API helper
+# stdlib + cryptography (fuer JWT RS256), keine weiteren pip-Dependencies
+# version 0.1.0
+
+import argparse
+import datetime
+import json
+import os
+import sys
+import time
+import urllib.parse
+import urllib.request
+import urllib.error
+
+_token_cache = None
+_sa_config = None
+
+API_BASE = "https://searchconsole.googleapis.com"
+SCOPE = "https://www.googleapis.com/auth/webmasters.readonly"
+
+
+def _find_sa_file():
+    """Find service account JSON file (shared with GA4 skill)"""
+    override = os.environ.get("GSC_SERVICE_ACCOUNT")
+    if override:
+        return override
+    default = os.path.join(os.path.expanduser("~"), ".config", "ga4-service-account.json")
+    if os.path.exists(default):
+        return default
+    return None
+
+
+def _load_sa():
+    """Load service account config (cached)"""
+    global _sa_config
+    if _sa_config is not None:
+        return _sa_config
+
+    path = _find_sa_file()
+    if not path:
+        print("Error: Service account JSON not found.", file=sys.stderr)
+        print("Set GSC_SERVICE_ACCOUNT or place file at ~/.config/ga4-service-account.json", file=sys.stderr)
+        sys.exit(1)
+    with open(path) as f:
+        _sa_config = json.load(f)
+    return _sa_config
+
+
+def _b64url(data):
+    """Base64url encode bytes"""
+    import base64
+    return base64.urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
+
+
+def _get_access_token():
+    """Get OAuth2 access token via service account JWT"""
+    global _token_cache
+    now = int(time.time())
+
+    if _token_cache and _token_cache["exp"] > now + 60:
+        return _token_cache["token"]
+
+    sa = _load_sa()
+
+    # Build JWT
+    header = _b64url(json.dumps({"alg": "RS256", "typ": "JWT"}).encode())
+    payload = _b64url(json.dumps({
+        "iss": sa["client_email"],
+        "scope": SCOPE,
+        "aud": sa["token_uri"],
+        "iat": now,
+        "exp": now + 3600,
+    }).encode())
+
+    signing_input = f"{header}.{payload}".encode()
+
+    # Sign with RSA key
+    try:
+        from cryptography.hazmat.primitives import hashes, serialization
+        from cryptography.hazmat.primitives.asymmetric import padding
+        private_key = serialization.load_pem_private_key(sa["private_key"].encode(), password=None)
+        signature = private_key.sign(signing_input, padding.PKCS1v15(), hashes.SHA256())
+    except ImportError:
+        print("Error: cryptography package required. Install with: python3 -m pip install --user cryptography", file=sys.stderr)
+        sys.exit(1)
+
+    jwt = f"{header}.{payload}.{_b64url(signature)}"
+
+    # Exchange JWT for access token
+    data = urllib.parse.urlencode({
+        "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+        "assertion": jwt,
+    }).encode()
+
+    req = urllib.request.Request(sa["token_uri"], data=data, method="POST")
+    req.add_header("Content-Type", "application/x-www-form-urlencoded")
+
+    try:
+        with urllib.request.urlopen(req) as resp:
+            result = json.loads(resp.read())
+    except urllib.error.HTTPError as e:
+        body = e.read().decode()
+        print(f"Error getting access token: {e.code} {body}", file=sys.stderr)
+        sys.exit(1)
+
+    _token_cache = {"token": result["access_token"], "exp": now + result.get("expires_in", 3600)}
+    return _token_cache["token"]
+
+
+def api_call(method, url, data=None):
+    """Make authenticated HTTP request to Google API"""
+    token = _get_access_token()
+    body = json.dumps(data).encode() if data else None
+    req = urllib.request.Request(url, data=body, method=method)
+    req.add_header("Authorization", f"Bearer {token}")
+    req.add_header("Content-Type", "application/json")
+
+    try:
+        with urllib.request.urlopen(req) as resp:
+            return json.loads(resp.read())
+    except urllib.error.HTTPError as e:
+        body = e.read().decode()
+        print(f"Error: {e.code} {body}", file=sys.stderr)
+        sys.exit(1)
+
+
+def _enc_site(site_url):
+    """URL-encode siteUrl for use in path (sc-domain:... or https://...)"""
+    return urllib.parse.quote(site_url, safe="")
+
+
+def _resolve_date(value):
+    """Resolve GA4-style date keywords to YYYY-MM-DD (GSC accepts ISO dates only)"""
+    if not value or value == "today":
+        return datetime.date.today().isoformat()
+    if value == "yesterday":
+        return (datetime.date.today() - datetime.timedelta(days=1)).isoformat()
+    if value.endswith("daysAgo"):
+        n = int(value[:-len("daysAgo")])
+        return (datetime.date.today() - datetime.timedelta(days=n)).isoformat()
+    # assume already YYYY-MM-DD
+    return value
+
+
+# --- Subcommands ---
+
+def cmd_setup(args):
+    """Test connection, list accessible sites, write instance.json"""
+    _get_access_token()
+    print("Auth OK\n")
+
+    result = api_call("GET", f"{API_BASE}/webmasters/v3/sites")
+    sites = result.get("siteEntry", [])
+
+    if not sites:
+        print("Keine Sites gefunden. Service Account als Nutzer in der GSC-Property hinzufuegen.")
+        return
+
+    instance = {"sites": []}
+    for s in sites:
+        site_url = s.get("siteUrl", "")
+        level = s.get("permissionLevel", "")
+        print(f"Site: {site_url} ({level})")
+        instance["sites"].append({"siteUrl": site_url, "permissionLevel": level})
+
+    skill_dir = os.path.dirname(os.path.abspath(__file__))
+    instance_path = os.path.join(skill_dir, "instance.json")
+    with open(instance_path, "w") as f:
+        json.dump(instance, f, indent=2, ensure_ascii=False)
+    print(f"\ninstance.json geschrieben ({len(instance['sites'])} Sites)")
+
+
+def cmd_sites(args):
+    """List accessible sites and permission levels"""
+    result = api_call("GET", f"{API_BASE}/webmasters/v3/sites")
+
+    if args.json:
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return
+
+    for s in result.get("siteEntry", []):
+        print(f"{s.get('siteUrl', '')}\t{s.get('permissionLevel', '')}")
+
+
+def cmd_search_analytics(args):
+    """Run a Search Analytics query"""
+    url = f"{API_BASE}/webmasters/v3/sites/{_enc_site(args.site)}/searchAnalytics/query"
+
+    dims = [d.strip() for d in args.dimensions.split(",") if d.strip()]
+    body = {
+        "startDate": _resolve_date(args.start),
+        "endDate": _resolve_date(args.end),
+        "dimensions": dims,
+        "rowLimit": args.limit,
+    }
+
+    if args.filter:
+        parts = args.filter.split("==", 1)
+        if len(parts) == 2:
+            body["dimensionFilterGroups"] = [{
+                "filters": [{
+                    "dimension": parts[0],
+                    "operator": "equals",
+                    "expression": parts[1],
+                }]
+            }]
+
+    result = api_call("POST", url, body)
+
+    if args.json:
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return
+
+    # Header
+    print("\t".join(dims + ["clicks", "impressions", "ctr", "position"]))
+
+    for row in result.get("rows", []):
+        keys = row.get("keys", [])
+        vals = [
+            str(row.get("clicks", "")),
+            str(row.get("impressions", "")),
+            f"{row.get('ctr', 0):.4f}",
+            f"{row.get('position', 0):.1f}",
+        ]
+        print("\t".join(keys + vals))
+
+
+def cmd_url_inspection(args):
+    """Inspect the Google index status of a URL"""
+    url = f"{API_BASE}/v1/urlInspection/index:inspect"
+    body = {
+        "inspectionUrl": args.url,
+        "siteUrl": args.site,
+        "languageCode": args.language,
+    }
+
+    result = api_call("POST", url, body)
+
+    if args.json:
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return
+
+    inspection = result.get("inspectionResult", {})
+    idx = inspection.get("indexStatusResult", {})
+    fields = [
+        "verdict", "coverageState", "robotsTxtState", "indexingState",
+        "pageFetchState", "lastCrawlTime", "googleCanonical", "userCanonical",
+        "crawledAs",
+    ]
+    for f in fields:
+        if f in idx:
+            print(f"{f}\t{idx[f]}")
+
+    link = inspection.get("inspectionResultLink")
+    if link:
+        print(f"inspectionResultLink\t{link}")
+
+
+def cmd_sitemaps(args):
+    """List submitted sitemaps and their URL counts"""
+    url = f"{API_BASE}/webmasters/v3/sites/{_enc_site(args.site)}/sitemaps"
+    result = api_call("GET", url)
+
+    if args.json:
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return
+
+    for sm in result.get("sitemap", []):
+        submitted = sum(int(c.get("submitted", 0)) for c in sm.get("contents", []))
+        indexed = sum(int(c.get("indexed", 0)) for c in sm.get("contents", []))
+        print(f"{sm.get('path', '')}\t"
+              f"lastSubmitted={sm.get('lastSubmitted', '')}\t"
+              f"pending={sm.get('isPending', False)}\t"
+              f"submitted={submitted}\tindexed={indexed}")
+
+
+def cmd_version(args):
+    print("google-search-console 0.1.0")
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Google Search Console API")
+    sub = parser.add_subparsers(dest="command")
+
+    # setup
+    sub.add_parser("setup", help="Test auth, list sites, write instance.json")
+
+    # version
+    sub.add_parser("version", help="Show version")
+
+    # sites
+    p_sites = sub.add_parser("sites", help="List accessible sites + permission levels")
+    p_sites.add_argument("--json", action="store_true", help="Raw JSON output")
+
+    # search-analytics
+    p_sa = sub.add_parser("search-analytics", help="Run a Search Analytics query")
+    p_sa.add_argument("--site", "-S", required=True, help="siteUrl (e.g. sc-domain:example.com)")
+    p_sa.add_argument("--dimensions", "-d", default="query",
+                      help="Comma-separated: query,page,country,device,date,searchAppearance (default: query)")
+    p_sa.add_argument("--start", "-s", default="28daysAgo", help="Start date (default: 28daysAgo)")
+    p_sa.add_argument("--end", "-e", default="today", help="End date (default: today)")
+    p_sa.add_argument("--limit", "-l", type=int, default=1000, help="Max rows (default: 1000, API max: 25000)")
+    p_sa.add_argument("--filter", "-f", help="Simple filter: dimension==value")
+    p_sa.add_argument("--json", action="store_true", help="Raw JSON output")
+
+    # url-inspection
+    p_ui = sub.add_parser("url-inspection", help="Inspect Google index status of a URL")
+    p_ui.add_argument("--site", "-S", required=True, help="siteUrl (property, e.g. sc-domain:example.com)")
+    p_ui.add_argument("--url", "-u", required=True, help="URL to inspect")
+    p_ui.add_argument("--language", default="de", help="languageCode (default: de)")
+    p_ui.add_argument("--json", action="store_true", help="Raw JSON output")
+
+    # sitemaps
+    p_sm = sub.add_parser("sitemaps", help="List submitted sitemaps + URL counts")
+    p_sm.add_argument("--site", "-S", required=True, help="siteUrl (e.g. sc-domain:example.com)")
+    p_sm.add_argument("--json", action="store_true", help="Raw JSON output")
+
+    args = parser.parse_args()
+    if not args.command:
+        parser.print_help()
+        sys.exit(1)
+
+    cmds = {
+        "setup": cmd_setup,
+        "version": cmd_version,
+        "sites": cmd_sites,
+        "search-analytics": cmd_search_analytics,
+        "url-inspection": cmd_url_inspection,
+        "sitemaps": cmd_sitemaps,
+    }
+    cmds[args.command](args)
+
+
+if __name__ == "__main__":
+    main()
