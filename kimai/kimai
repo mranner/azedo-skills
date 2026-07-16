@@ -110,6 +110,16 @@ def output(data):
     print(json.dumps(data, indent=2, ensure_ascii=False))
 
 
+def parse_kimai_dt(s):
+    """Parse a Kimai datetime string into a naive local datetime.
+
+    Kimai returns a timezone suffix (+0200, +02:00, Z); we strip it and work
+    in local wall-clock time, matching how log entries are created.
+    """
+    s = re.sub(r'[+-]\d{2}:?\d{2}$|Z$', '', s)
+    return datetime.fromisoformat(s)
+
+
 _instance = None
 
 
@@ -1017,22 +1027,49 @@ def cmd_log(args):
     # Parse duration
     minutes = parse_duration(args.duration)
 
-    # Find last today's entry to append
+    # Fetch all of today's entries — used both to anchor the new entry and to
+    # detect overlaps. timesheets/recent is Kimai's "recently used" list
+    # (ordered by edit recency, not chronologically), so recent[0] is NOT
+    # reliably the day's latest entry — using it lets new entries march into
+    # already-filled slots. Take the maximum end of today's entries instead.
     today = date.today().isoformat()
-    recent = api_call("GET", "timesheets/recent", params={
+    entries = api_call("GET", "timesheets", params={
         "begin": f"{today}T00:00:00",
-        "size": "1",
-    })
+        "end": f"{today}T23:59:59",
+        "size": "100",
+    }) or []
 
-    if recent and recent[0].get("end"):
-        begin_str = recent[0]["end"]
+    # Collect existing (begin, end) spans as naive local datetimes
+    spans = []
+    for t in entries:
+        if not t.get("begin") or not t.get("end"):
+            continue
+        spans.append((parse_kimai_dt(t["begin"]), parse_kimai_dt(t["end"])))
+
+    # Determine the begin time: explicit --begin wins; otherwise the latest end
+    # of today's entries; fallback 08:00 when there are none.
+    if getattr(args, "begin", None):
+        begin_dt = parse_kimai_dt(args.begin)
+    elif spans:
+        begin_dt = max(e for _, e in spans)
     else:
-        begin_str = f"{today}T08:00:00"
+        begin_dt = datetime.fromisoformat(f"{today}T08:00:00")
 
-    # Strip timezone suffix — API returns +0200, +02:00, Z, etc.; we work in local time
-    begin_str = re.sub(r'[+-]\d{2}:?\d{2}$|Z$', '', begin_str)
-    begin_dt = datetime.fromisoformat(begin_str)
     end_dt = begin_dt + timedelta(minutes=minutes)
+
+    # Overlap guard: never book a slot that collides with an existing today
+    # entry (covers the race between parallel Claude sessions too).
+    for b, e in spans:
+        if begin_dt < e and b < end_dt:
+            print(
+                f"Error: proposed slot "
+                f"{begin_dt.strftime('%H:%M')}–{end_dt.strftime('%H:%M')} "
+                f"overlaps existing entry "
+                f"{b.strftime('%H:%M')}–{e.strftime('%H:%M')}. "
+                f"Aborting — pass --begin to set the start time explicitly.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
 
     # Create timesheet
     data = {
@@ -1311,6 +1348,7 @@ def main():
     p.add_argument("--project", help="Project ID (alternative to --shortcut)")
     p.add_argument("--activity", help="Activity ID (alternative to --shortcut)")
     p.add_argument("--description", help="Description text")
+    p.add_argument("--begin", help="Explicit start time (ISO datetime), overrides the auto anchor")
     p.set_defaults(func=cmd_log)
 
     # ── import-hours ──
