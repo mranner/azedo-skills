@@ -159,12 +159,12 @@ python3 "$SKILL_DIR/google-analytics" setup
 
 ### google-search-console
 
-Google Search Console (GSC) Datenabfrage via Service Account. Python-Script (stdlib + `cryptography`), read-only (Scope `webmasters.readonly`):
+Google Search Console (GSC) Datenabfrage via Service Account. Python-Script (stdlib + `cryptography`). Scope pro Subcommand: lesend `webmasters.readonly`, schreibend (submit/delete-sitemap) `webmasters`:
 
 - Sites/Properties + Berechtigungslevel auflisten
 - Search-Analytics: Klicks, Impressionen, CTR, Position nach query/page/country/device/date/searchAppearance, mit Zeitraum und Filter
 - URL-Inspection: echter Google-Index-Status je URL (verdict, coverageState, robots, lastCrawlTime, canonical)
-- Sitemaps: eingereichte Sitemaps + submitted/indexed URL-Zahlen
+- Sitemaps: eingereichte Sitemaps + submitted/indexed URL-Zahlen (`sitemaps`); einreichen (`submit-sitemap`) und entfernen (`delete-sitemap`) mit y/N-Abfrage bzw. `--yes`
 - Tab-separierte oder JSON-Ausgabe
 
 **Voraussetzungen:** Python >= 3.11, Package `cryptography` (fuer JWT-Signierung)
@@ -379,6 +379,10 @@ Fasst die aktuelle Konversation in ein Uebergabedokument zusammen, damit ein neu
 **Trigger:** `/handoff` oder natuerliche Sprache wie "erstell eine Uebergabe", "fass die Session fuer den naechsten Agent zusammen".
 
 ## Changelog
+
+### 1.20.1
+
+- **google-search-console: schreibende Sitemap-Operationen `submit-sitemap`/`delete-sitemap`.** Der Skill war bisher rein lesend (Scope `webmasters.readonly`). Neu: `submit-sitemap <-S siteUrl> <feedpath>` (`PUT`) und `delete-sitemap <-S siteUrl> <feedpath>` (`DELETE`). Der Scope wird jetzt **pro Subcommand** gewaehlt — lesende Befehle behalten `webmasters.readonly`, nur die beiden Schreib-Befehle fordern `webmasters` an (Token-Cache pro Scope). Schreib-Endpoint liegt unter `www.googleapis.com/webmasters/v3` (nicht `searchconsole.googleapis.com`); `PUT`/`DELETE` liefern HTTP 204 ohne Body, was `api_call` jetzt abfaengt (leerer Body → `{}`). `siteUrl` und `feedpath` werden voll URL-encodet. Absicherung: beide Befehle zeigen den Vorher-Zustand und fragen interaktiv `[y/N]`; `--yes`/`-y` ueberspringt, ohne TTY (Agent/Script) wird ohne `--yes` mit Exit 2 abgebrochen (kein versehentlicher Write). Verifiziert gegen `sc-domain:globex.com` (siteFullUser): idempotenter Re-Submit liefert HTTP 204 und aktualisiert `lastSubmitted`. Anlass: die in CR4400 noch per Ad-hoc-Script erledigten Sitemap-Writes reproduzierbar machen. (CR4408)
 
 ### 1.20.0
 
