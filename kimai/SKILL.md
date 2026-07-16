@@ -114,9 +114,26 @@ python3 "$SKILL_DIR/kimai" log --duration 0.5 --shortcut initech \
 # Mit expliziten IDs
 python3 "$SKILL_DIR/kimai" log --duration 1h30m --project 84 --activity 196 \
   [--description "..."]
+
+# Startzeit explizit vorgeben (uebersteuert den Auto-Anker)
+python3 "$SKILL_DIR/kimai" log --duration 0.5 --shortcut initech \
+  --begin 2026-07-16T14:00:00 [--description "..."]
 ```
 
-Erledigt in einem Call: Shortcut aufloesen, letzten heutigen Eintrag finden, `begin` auf dessen Ende setzen (oder 08:00), `end` berechnen, Eintrag anlegen.
+Erledigt in einem Call: Shortcut aufloesen, Anker bestimmen, `end` berechnen, Eintrag anlegen.
+
+**Anker (`begin`):** Der Befehl holt **alle heutigen Eintraege** und setzt `begin` auf
+das **spaeteste `end`** des Tages (`max(end)`); ohne heutige Eintraege auf 08:00. Bewusst
+**nicht** `timesheets/recent[0]` — diese Liste ist nach Bearbeitungs-Aktualitaet sortiert,
+nicht chronologisch, und lieferte daher keinen verlaesslichen Anker (neue Eintraege
+wanderten in belegte Slots, v.a. bei parallelen Sessions).
+
+**Overlap-Guard:** Kollidiert der berechnete Slot `[begin, end)` mit einem bestehenden
+heutigen Eintrag, bricht der Befehl mit klarer Meldung ab, statt still zu buchen (deckt
+auch den Race zwischen parallelen Sessions ab).
+
+**`--begin`:** Uebersteuert den Auto-Anker mit einer expliziten ISO-Startzeit; der
+Overlap-Guard greift weiterhin.
 
 **Duration-Formate:** Dezimalstunden (`0.5`, `1.5`), Minuten (`30m`, `90m`), gemischt (`1h30m`, `2h`).
 
@@ -249,7 +266,7 @@ python3 "$SKILL_DIR/kimai" log --duration 0.5 --shortcut initech --description "
 
 ## Hinweise
 
-- **Neue Eintraege zeitlich anschliessen:** Wenn der User keinen expliziten Zeitpunkt angibt, zuerst die heutigen Eintraege des Users abfragen (`recent-timesheets`). Den neuen Eintrag direkt am Ende des letzten heutigen Eintrags beginnen lassen (`--begin` = `--end` des letzten Eintrags). Falls heute noch kein Eintrag existiert, ab 08:00 Uhr beginnen.
+- **Neue Eintraege zeitlich anschliessen:** `log` erledigt das automatisch — Anker ist das spaeteste `end` aller heutigen Eintraege (`max(end)`, sonst 08:00), mit Overlap-Guard (siehe Log-Abschnitt). Bei **manuellen** `create-timesheet`-Buchungen dieselbe Regel anwenden: heutige Eintraege abfragen (`list-timesheets --begin <heute>T00:00:00 --end <heute>T23:59:59`) und `--begin` auf das **spaeteste** `end` setzen — **nicht** auf `recent-timesheets[0]` (nach Bearbeitungs-, nicht Uhrzeit-Reihenfolge sortiert).
 - **CR-Kontext beachten:** Wenn ein CR-Kontext aktiv ist (gesetzt via `/kanboard cr <id>`), die Beschreibung (`--description`) immer mit `CR{id}: ` prefixen. Bei mehreren aktiven CRs nachfragen. Details siehe Kanboard SKILL.md, Abschnitt "CR-Kontext".
 - Config (`KIMAI_HOST` und `KIMAI_TOKEN`) wird aus `.env` im aktuellen Arbeitsverzeichnis gelesen (oder via `KIMAI_ENV` Environment-Variable).
 - Temporaere Dateien gehoeren ins Projekt-Verzeichnis `.tmp/`, **nicht** in `$SKILL_DIR/.tmp/`.
