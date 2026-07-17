@@ -398,6 +398,10 @@ Fasst die aktuelle Konversation in ein Uebergabedokument zusammen, damit ein neu
 
 ## Changelog
 
+### 1.22.1
+
+- **wp-cli: Hinweis auf plugin-eigene CLI-Befehle (Cross-Link zu `wp-nf`).** Kurze Notiz unter der Plugins-Quick-Reference: manche Plugins registrieren eigene WP-CLI-Subcommands; Ninja Forms bringt `wp ninja-forms` mit, Details (Settings/`element_class`/Export/Import) deckt der Skill `wp-nf` ab. (CR4409)
+
 ### 1.22.0
 
 - **Neuer Skill `wp-nf` (Ninja-Forms-Administration).** Reiner Referenz-Skill (nur SKILL.md, PHP-Snippets fuer `wp eval-file` im FreeBSD-Jail), verifiziert am Plugin-Quellcode von **Ninja Forms 3.14.8** auf apache1.acme.com. Anlass: das bei CR4266 (customer, GA4-CSS-Click-Events) entstandene, bisher nur im Handoff lebende NF-Wissen reproduzierbar kodieren. Inhalt: Datenmodell + Footguns (`element_class` liegt in `nf3_field_meta`, **keine** `settings`-Spalte in 3.14.8 — die aeltere Annahme ist damit widerlegt; Render-Quelle ist der Form-Cache `nf3_upgrades`, `WPN_Helper::use_cache()` liefert hart `true`), Formulare auflisten + Titel→ID-Mapping, Felder+Settings dumpen (Model-API), `element_class`-Write nach dem Muster Backup→Write→**Cache invalidieren**→Verify, **Export/Import** (`.nff`, Backend-identisch, ueber `export_form()`/`import_form()`; Import legt immer ein neues Formular an), Settings-Preflight (Meta↔Cache-Drift), Diagnose-Muster PYS-CSS-Click ↔ `element_class`, sowie eine Uebersicht der nativen `wp ninja-forms`-Extension und ihrer Grenzen (kein Export/Import, keine Settings-Details). `install.sh`-Liste ergaenzt. (CR4409)

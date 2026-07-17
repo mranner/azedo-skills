@@ -219,6 +219,11 @@ wp plugin search <term>                     # Im Repository suchen
 wp plugin verify-checksums --all            # Integritaet pruefen
 ```
 
+> **Plugin-eigene CLI-Befehle:** Manche Plugins registrieren eigene WP-CLI-Subcommands.
+> Ninja Forms z.B. bringt `wp ninja-forms` mit (`list`/`get`/`form`/`delete`/`info`) —
+> Formular-Auslesen/-Aendern, Settings (`element_class`) und Export/Import deckt der
+> Skill [[wp-nf]] ab.
+
 ### Themes
 
 ```sh
