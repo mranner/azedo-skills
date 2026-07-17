@@ -398,6 +398,10 @@ Fasst die aktuelle Konversation in ein Uebergabedokument zusammen, damit ein neu
 
 ## Changelog
 
+### 1.22.3
+
+- **wp-sync-dev: Scope-Grenze Host-Dateizugriff vs. Jail-Laufzeit klargestellt.** Der Skill beschrieb die DEV-Pfade als host-seitig (korrekt fuer rsync/chmod), sagte aber nicht, dass `dev.example.at` ein iocage-Jail ist und alles Laufzeitartige (`wp`-CLI, WordPress) **im Jail** laufen muss (`iocage exec dev.example.at … sudo -u www wp …`). Fuehrte in dieser Session zur Fehlannahme, `wp` liefe direkt auf dem mom-Host (`command not found`). DEV-Abschnitt umbenannt + Notiz mit Verweis auf Skill `wp-cli` / Wiki `wp-cli-in-jails` / `mom-azedo-at`.
+
 ### 1.22.2
 
 - **wp-nf: Export-Snippet faengt Schreibfehler ab.** `nf-export-form.php` pruefte den Rueckgabewert von `file_put_contents()` nicht und meldete „OK … Bytes" auch dann, wenn die Datei gar nicht geschrieben wurde (aufgefallen beim Live-Test auf dev.example.at, als `wp` als `www` nicht ins Jail-`/tmp` schreiben durfte). Jetzt: bei `false` Abbruch mit Fehlermeldung und Exit 1. §5-Write und §8-Import wurden dabei end-to-end gegen NF 3.14.9 verifiziert (Export→Import→`element_class`-Write→Cache-Rebuild, Meta↔Cache konsistent). (CR4409)

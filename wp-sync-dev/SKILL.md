@@ -15,12 +15,22 @@ der DEV-Umgebung auf mom.azedo.at via rsync.
 
 ## Pfad-Schema
 
-### DEV (mom.azedo.at)
+### DEV (Jail `dev.example.at` auf mom.azedo.at)
+
+`dev.example.at` ist ein **iocage-Jail** auf mom. Fuer den **Datei**-Zugriff (rsync, chmod)
+sind die DEV-Vhosts vom mom-Host aus direkt unter dem folgenden Pfad erreichbar — **kein**
+Jail-Prefix noetig:
 
 ```
 /www/virtual/dev.example.at/<site>/wp-content/plugins/<plugin-name>/
 /www/virtual/dev.example.at/<site>/wp-content/themes/<theme-name>/
 ```
+
+> **Nur der Dateizugriff laeuft host-seitig.** Alles Laufzeitartige (wp-cli, WordPress)
+> muss **im Jail** laufen:
+> `iocage exec dev.example.at sh -c 'sudo -u www wp --path=/www/virtual/dev.example.at/<site> …'`
+> — nie `wp` direkt auf dem mom-Host (dort ist `wp` nicht im PATH). Details: Skill `wp-cli`,
+> Wiki-Procedure `wp-cli-in-jails`, Server-Entity `mom-azedo-at`.
 
 ### Prod (Jail-Host)
 
