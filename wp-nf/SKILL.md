@@ -327,7 +327,9 @@ if ( ! is_array( $export ) ) { echo "Export fehlgeschlagen (Form $form_id?)\n"; 
 
 // Backend-identisches Format: utf8-kodiertes JSON
 $json = json_encode( WPN_Helper::utf8_encode( $export ) );
-file_put_contents( $outfile, $json );
+if ( file_put_contents( $outfile, $json ) === false ) {
+    echo "FEHLER: konnte $outfile nicht schreiben (Web-User schreibbar?)\n"; exit( 1 );
+}
 echo "OK: $outfile (" . strlen( $json ) . " Bytes)\n";
 ```
 

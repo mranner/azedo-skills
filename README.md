@@ -398,6 +398,10 @@ Fasst die aktuelle Konversation in ein Uebergabedokument zusammen, damit ein neu
 
 ## Changelog
 
+### 1.22.2
+
+- **wp-nf: Export-Snippet faengt Schreibfehler ab.** `nf-export-form.php` pruefte den Rueckgabewert von `file_put_contents()` nicht und meldete „OK … Bytes" auch dann, wenn die Datei gar nicht geschrieben wurde (aufgefallen beim Live-Test auf dev.example.at, als `wp` als `www` nicht ins Jail-`/tmp` schreiben durfte). Jetzt: bei `false` Abbruch mit Fehlermeldung und Exit 1. §5-Write und §8-Import wurden dabei end-to-end gegen NF 3.14.9 verifiziert (Export→Import→`element_class`-Write→Cache-Rebuild, Meta↔Cache konsistent). (CR4409)
+
 ### 1.22.1
 
 - **wp-cli: Hinweis auf plugin-eigene CLI-Befehle (Cross-Link zu `wp-nf`).** Kurze Notiz unter der Plugins-Quick-Reference: manche Plugins registrieren eigene WP-CLI-Subcommands; Ninja Forms bringt `wp ninja-forms` mit, Details (Settings/`element_class`/Export/Import) deckt der Skill `wp-nf` ab. (CR4409)
