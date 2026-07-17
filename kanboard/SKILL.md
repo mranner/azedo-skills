@@ -72,11 +72,28 @@ python3 "$SKILL_DIR/kanboard" cr 4326
 python3 "$SKILL_DIR/kanboard" cr CR4326 CR4330
 ```
 
-**Handoff-Feld wird automatisch mitgeladen:** Ist das Handoff-Feld (TaskHandoff-Plugin,
-siehe unten) befuellt, erscheint sein Volltext im Feld `handoff`. Ist es leer — oder
-das Plugin gar nicht installiert — entfaellt das Feld und die Ausgabe bleibt schlank.
-Datei-**Anhaenge** werden bewusst **nicht** automatisch geladen; die holt man bei
-Bedarf gezielt mit `list-files`/`download-file`.
+**Feldauswahl von `cr` (bewusst gewaehlt, nicht zufaellig):** Der CR-Kontext ist die
+Arbeitsgrundlage der ganzen Session, deshalb laedt `cr` den *Inhalt* des Tasks mit —
+nicht nur die Metadaten.
+
+| Feld | Verhalten |
+|---|---|
+| `title`, `column`, `owner`, `project_name` | immer |
+| `modified` | immer — Aenderungszeitpunkt, lesbar (`YYYY-MM-DD HH:MM`) |
+| `description` | **immer, Volltext** — enthaelt i.d.R. die menschlich verfasste Ausgangslage (Zusammenfassung, Mail-Auszug). Ohne sie sieht ein voller Task faelschlich leer aus. |
+| `handoff` | nur wenn befuellt (TaskHandoff-Plugin) |
+| `tags` | nur wenn vorhanden — Liste der Tag-Namen |
+| `kimai` | nur wenn ein Tag `kimai:<shortcut>` gesetzt ist (siehe Tags) |
+| `comments`, `attachments` | Zaehler, nur wenn > 0 |
+
+`description` und `handoff` sind **nicht** redundant: Description = *was ist die
+Aufgabe* (von Menschen gesetzt), Handoff = *wo stehen wir / wie geht es weiter*
+(Uebergabestand fuer die naechste Bearbeitung).
+
+Bewusst **nicht** automatisch geladen — dafuer gibt es eigene Befehle: Kommentar-
+Volltext (`get-comments`), Teilaufgaben (`list-subtasks`), Task-Links
+(`list-task-links`), Datei-**Anhaenge** (`list-files`/`download-file`). Von
+Kommentaren und Anhaengen kommt nur der Zaehler als Signal mit.
 
 ### Task erstellen
 
@@ -86,6 +103,9 @@ python3 "$SKILL_DIR/kanboard" create-task \
   [--description "<text>"] [--column <name>] \
   [--owner <username>] [--swimlane <name>]
 ```
+
+Ohne `--owner` wird der Task dem `default_user` aus `instance.json` zugewiesen (wie
+bei `add-comment`). Ist dort kein `default_user` gesetzt, bleibt der Task unassigned.
 
 ### Task anzeigen
 
@@ -143,6 +163,31 @@ python3 "$SKILL_DIR/kanboard" attach-file <task_id> --file /absoluter/pfad/zur/d
 ```bash
 python3 "$SKILL_DIR/kanboard" list-tasks --project <name|id> [--column <name>] [--closed]
 ```
+
+### Tasks suchen (Stichwort/Query)
+
+```bash
+python3 "$SKILL_DIR/kanboard" search "<text>" [--project <name|id>] [--all]
+```
+
+Findet Tasks per Stichwort — praktisch, wenn die Task-ID unbekannt ist. Ohne
+`--project` wird ueber **alle** zugaenglichen Projekte gesucht. Die Query versteht
+dieselben Operatoren wie die Web-Oberflaeche, z.B. `status:open`,
+`assignee:mmuster`, `title:...`, `color:...`. Standardmaessig nur **offene** Tasks;
+`--all` bezieht geschlossene mit ein. Ausgabe: `id`, `title`, `project_name`,
+`column`, `owner`, `is_active` pro Treffer.
+
+### Eigene Tasks (projektuebergreifend)
+
+```bash
+python3 "$SKILL_DIR/kanboard" my-tasks [--user <username>]
+```
+
+Listet **offene** Tasks, die einem User zugewiesen sind, ueber alle Projekte hinweg.
+Ohne `--user` gilt der `default_user` aus `instance.json`. Schneller Tagesueberblick.
+(Hinweis: „offen" heisst `is_active=1` — Tasks, die in der Spalte „Erledigt" liegen,
+aber nicht per `close-task` geschlossen wurden, erscheinen weiterhin; die Spalte
+steht im Feld `column`.)
 
 ### Projekte, Spalten, User auflisten
 
@@ -327,6 +372,45 @@ python3 "$SKILL_DIR/kanboard" remove-task-link <task_link_id>
 
 Die `task_link_id` (Feld `id`) stammt aus `list-task-links`.
 
+### Tags (Schlagworte)
+
+Tags sind farbige Schlagworte am Task (in der Kanboard-Oberflaeche sichtbar,
+projektuebergreifend durchsuchbar). `setTaskTags` legt unbekannte Tags automatisch
+am Projekt an — ein separater Anlage-Schritt entfaellt.
+
+```bash
+# Tags eines Tasks anzeigen (Liste der Namen)
+python3 "$SKILL_DIR/kanboard" get-tags <task_id>
+
+# ALLE Tags ersetzen (Komma-separiert; leerer Wert entfernt alle)
+python3 "$SKILL_DIR/kanboard" set-tags <task_id> --tags "Doku,dringend"
+
+# einen Tag ergaenzen, ohne bestehende zu ueberschreiben
+python3 "$SKILL_DIR/kanboard" add-tag <task_id> --tag "dringend"
+
+# einen Tag entfernen
+python3 "$SKILL_DIR/kanboard" remove-tag <task_id> --tag "dringend"
+```
+
+**Achtung:** `set-tags` ersetzt den **gesamten** Tag-Satz. Zum Ergaenzen `add-tag`
+verwenden (liest bestehende Tags und schreibt sie mit zurueck).
+
+#### Kimai-Verknuepfung: `kimai:<shortcut>`-Tag
+
+Ein Tag der Form `kimai:<shortcut>` verknuepft den Task mit einem Kimai-Shortcut
+(Key aus `.claude/kimai-shortcuts.json`). `cr` hebt ihn als eigenes Feld `kimai`
+heraus — damit steht der Zeiterfassungs-Kontext direkt im CR-Kontext, und spaetere
+Buchungen koennen den richtigen Shortcut automatisch waehlen.
+
+```bash
+# Kimai-Shortcut am Task hinterlegen (ersetzt einen bereits vorhandenen kimai:*-Tag)
+python3 "$SKILL_DIR/kanboard" set-kimai <task_id> --shortcut acme-it-support
+```
+
+Genau **ein** Kimai-Shortcut pro Task: `set-kimai` entfernt einen evtl. schon
+vorhandenen `kimai:*`-Tag, bevor der neue gesetzt wird. Wann der Tag gesetzt wird,
+regelt der Abschnitt [Kimai-Prefixing](#kimai-prefixing).
+
 ## Workflow
 
 1. Parameter aus der Nutzeranfrage ableiten (Projekt, Titel, Beschreibung, Zuweisung, Spalte).
@@ -381,6 +465,20 @@ Wenn ein CR-Kontext aktiv ist und der User Zeit erfasst (via `/kimai`):
 
 - Beschreibung (`--description`) immer mit `CR{id}: ` prefixen
 - Beispiel: `--description "CR4326: Login-Validierung implementiert"`
+
+**Kimai-Shortcut am Task hinterlegen (Write-back):** Nach einer Kimai-Buchung unter
+aktivem CR den verwendeten Shortcut am Task als Tag `kimai:<shortcut>` ablegen, falls
+noch nicht vorhanden — analog zum Commit-Prefixing eine automatische Regel, keine
+Rueckfrage noetig:
+
+```bash
+python3 "$SKILL_DIR/kanboard" set-kimai <task_id> --shortcut <shortcut>
+```
+
+So steht der Shortcut beim naechsten `cr <id>` im Feld `kimai` und die Zeiterfassung
+kann ihn direkt uebernehmen, ohne erneut zu suchen. Steht der `kimai:`-Tag bereits und
+passt, entfaellt der Aufruf. (Der Tag traegt den Shortcut-**Key** aus
+`.claude/kimai-shortcuts.json`, nicht Projekt-/Aktivitaets-IDs.)
 
 ### Mehrere aktive CRs
 

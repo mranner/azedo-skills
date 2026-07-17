@@ -49,10 +49,14 @@ Verwaltet Tasks auf einer Kanboard-Instanz via JSON-RPC API. Unterstützt:
 - Dateien anhängen, auflisten, herunterladen, löschen
 - Teilaufgaben erstellen, ändern, löschen
 - Task-Verbindungen (interne Links) auflisten, erstellen, löschen
+- Tags verwalten (`get-tags`/`set-tags`/`add-tag`/`remove-tag`) inkl. Kimai-Verknüpfung (`set-kimai`)
 - Handoff-Feld setzen/auslesen/entfernen (TaskHandoff-Plugin, Volltext-Markdown pro Task)
 - Projekte, Spalten und User auflisten
 - Projekt-Verwaltung: Projekte anlegen, Mitglieder/Rollen verwalten, Owner setzen
+- Tasks suchen (`search`, Stichwort/Query projektübergreifend) und eigene offene Tasks (`my-tasks`)
 - `get-task` liefert zusätzlich Klarnamen (Spalte, Owner, Swimlane) neben den IDs
+- `cr` lädt Beschreibung, Änderungszeitpunkt, Handoff, Tags/Kimai-Kontext und Kommentar-/Anhang-Zähler
+- Neue Tasks fallen ohne `--owner` auf den `default_user` zurück
 
 **Voraussetzungen:** Python ≥ 3.11
 
@@ -379,6 +383,15 @@ Fasst die aktuelle Konversation in ein Uebergabedokument zusammen, damit ein neu
 **Trigger:** `/handoff` oder natuerliche Sprache wie "erstell eine Uebergabe", "fass die Session fuer den naechsten Agent zusammen".
 
 ## Changelog
+
+### 1.21.0
+
+- **kanboard: `cr` laedt den Task-Inhalt vollstaendig.** Der `cr`-Kontext hat bisher die **Beschreibung verworfen** (Whitelist ohne `description`) — bei leerem Handoff sah ein voller Task faelschlich leer aus (Anlass: CR4377, dessen Kostenanalyse komplett in der Beschreibung stand und uebersehen wurde). `cr` liefert jetzt: `description` (immer, Volltext), `modified` (Aenderungszeitpunkt lesbar), `tags` inkl. herausgehobenem `kimai`-Feld, sowie `comments`/`attachments`-Zaehler (nur > 0). Description und Handoff sind bewusst beide dabei (Aufgabe vs. Uebergabestand). Kommentar-Volltext, Teilaufgaben, Task-Links und Anhang-Details bleiben eigene Befehle. Nebenbei schlanker: der in `cr` ungenutzte Swimlane-RPC entfaellt, `project_name` kommt aus dem `instance.json`-Cache. Feldauswahl in der SKILL.md dokumentiert. (CR4411)
+- **kanboard: Tags + Kimai-Verknuepfung.** Neue Subcommands `get-tags`, `set-tags` (ersetzt alle), `add-tag`/`remove-tag` (read-merge-write, ohne Clobbern) und `set-kimai <task_id> --shortcut <key>`. Ein Tag `kimai:<shortcut>` verknuepft den Task mit einem Kimai-Shortcut (`.claude/kimai-shortcuts.json`); `cr` hebt ihn als Feld `kimai` heraus. Write-back-Regel dokumentiert (kanboard- **und** kimai-SKILL.md): nach einer Kimai-Buchung unter aktivem CR wird der Shortcut automatisch am Task getaggt, sodass er beim naechsten `cr` bereitsteht. Genau ein Kimai-Shortcut pro Task (`set-kimai` ersetzt einen vorhandenen). (CR4411)
+- **kanboard: `list-tasks`-Bugfix.** `getAllTasks` liefert `column_name`/`owner_username` **nicht** mit — beide waren in jeder Auflistung leer. Werden jetzt aus `column_id` (via `getColumns`) bzw. `owner_id` (via `instance.json`) aufgeloest; `date_due` wird lesbar formatiert. (CR4411)
+- **kanboard: `search` + `my-tasks`.** `search "<text>" [--project] [--all]` findet Tasks per Stichwort/Query projektuebergreifend (nutzt `searchTasks`, versteht UI-Operatoren wie `status:open`/`assignee:…`; Default nur offene Tasks). `my-tasks [--user]` listet offene Tasks eines Users (Default `default_user`) ueber alle Projekte. Beide ziehen Spalte/Owner direkt aus `searchTasks` (keine Extra-Lookups). (CR4415)
+- **kanboard: `create-task` faellt ohne `--owner` auf `default_user` zurueck** (wie `add-comment`) — neue Tasks landen standardmaessig beim eingestellten User statt unassigned; ist kein `default_user` gesetzt, bleibt der Task ohne Zuweisung.
+- **kanboard: internes Refactoring.** `rpc_call`/`rpc_try` teilten ~40 Zeilen Duplikat (Payload/Auth/HTTP/JSON-Parse) und wurden auf einen gemeinsamen Kern `_rpc(method, params, strict)` zusammengefuehrt — `strict=True` exit-on-error, `strict=False` liefert `None`. Kein Verhaltenswechsel. Ausserdem neuer `format_ts()`-Helper fuer lesbare Zeitstempel. (CR4416)
 
 ### 1.20.1
 

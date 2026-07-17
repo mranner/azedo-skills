@@ -2,7 +2,7 @@
 
 # Kanboard JSON-RPC 2.0 API helper
 # stdlib only, no pip dependencies
-# version 1.18.3
+# version 1.21.0
 
 import argparse
 import base64
@@ -10,6 +10,21 @@ import json
 import os
 import sys
 import urllib.request
+from datetime import datetime
+
+
+def format_ts(ts):
+    """Format a Unix timestamp as 'YYYY-MM-DD HH:MM' (local time).
+
+    Returns '' for falsy/unparseable input so empty timestamps (Kanboard uses 0
+    for 'not set') stay blank instead of showing the epoch.
+    """
+    if not ts:
+        return ""
+    try:
+        return datetime.fromtimestamp(int(ts)).strftime("%Y-%m-%d %H:%M")
+    except (ValueError, OSError, OverflowError):
+        return ""
 
 def _find_env():
     override = os.environ.get("KANBOARD_ENV")
@@ -53,8 +68,13 @@ def load_env():
     return _config
 
 
-def rpc_call(method, params=None):
-    """Make a JSON-RPC 2.0 call to Kanboard"""
+def _rpc(method, params, strict):
+    """Core JSON-RPC 2.0 call to Kanboard.
+
+    strict=True  -> print a diagnostic and sys.exit(1) on any failure (rpc_call).
+    strict=False -> swallow every failure and return None instead (rpc_try),
+                    e.g. for optional/plugin methods that may not exist.
+    """
     global _request_id
     _request_id += 1
     config = load_env()
@@ -83,23 +103,31 @@ def rpc_call(method, params=None):
         with urllib.request.urlopen(req) as resp:
             body = resp.read().decode("utf-8")
     except urllib.error.HTTPError as e:
+        if not strict:
+            return None
         body = e.read().decode("utf-8", errors="replace") if e.fp else ""
         print(f"HTTP {e.code}: {e.reason}", file=sys.stderr)
         if body:
             print(body[:500], file=sys.stderr)
         sys.exit(1)
     except urllib.error.URLError as e:
+        if not strict:
+            return None
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
 
     try:
         data = json.loads(body)
     except json.JSONDecodeError:
+        if not strict:
+            return None
         print(f"Error: API returned non-JSON response", file=sys.stderr)
         print(body[:500], file=sys.stderr)
         sys.exit(1)
 
     if "error" in data and data["error"]:
+        if not strict:
+            return None
         err = data["error"]
         print(f"API error: {json.dumps(err)}", file=sys.stderr)
         if isinstance(err, dict) and err.get("code") == -32601:
@@ -114,47 +142,14 @@ def rpc_call(method, params=None):
     return data.get("result")
 
 
+def rpc_call(method, params=None):
+    """Make a JSON-RPC 2.0 call; print a diagnostic and exit on any failure."""
+    return _rpc(method, params, strict=True)
+
+
 def rpc_try(method, params=None):
-    """Like rpc_call but returns None on error instead of exiting"""
-    global _request_id
-    _request_id += 1
-    config = load_env()
-    payload = json.dumps({
-        "jsonrpc": "2.0",
-        "method": method,
-        "id": _request_id,
-        "params": params or {}
-    }).encode("utf-8")
-
-    api_user = config.get("KANBOARD_USER", "jsonrpc")
-    credentials = base64.b64encode(
-        f"{api_user}:{config['KANBOARD_TOKEN']}".encode()
-    ).decode()
-
-    req = urllib.request.Request(
-        config["KANBOARD_URL"],
-        data=payload,
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": f"Basic {credentials}"
-        }
-    )
-
-    try:
-        with urllib.request.urlopen(req) as resp:
-            body = resp.read().decode("utf-8")
-    except (urllib.error.URLError, urllib.error.HTTPError):
-        return None
-
-    try:
-        data = json.loads(body)
-    except json.JSONDecodeError:
-        return None
-
-    if "error" in data and data["error"]:
-        return None
-
-    return data.get("result")
+    """Like rpc_call but returns None on any error instead of exiting."""
+    return _rpc(method, params, strict=False)
 
 
 # Resolver helpers
@@ -232,8 +227,13 @@ def cmd_create_task(args):
         params["description"] = args.description
     if args.column:
         params["column_id"] = resolve_column(project_id, args.column)
-    if args.owner:
-        params["owner_id"] = resolve_user(args.owner)
+
+    # Owner: explizites --owner hat Vorrang, sonst Fallback auf default_user aus
+    # instance.json (wie bei add-comment). Ohne beides bleibt der Task unassigned.
+    owner = args.owner or get_default_user()
+    if owner:
+        params["owner_id"] = resolve_user(owner)
+
     if args.swimlane:
         params["swimlane_id"] = resolve_swimlane(project_id, args.swimlane)
 
@@ -469,6 +469,13 @@ def cmd_list_tasks(args):
         "status_id": status
     })
 
+    # getAllTasks liefert column_name/owner_username NICHT mit — daher aus
+    # column_id (getColumns) bzw. owner_id (instance.json) selbst aufloesen,
+    # sonst blieben beide Felder in der Ausgabe leer.
+    col_by_id = {str(c["id"]): c["title"]
+                 for c in rpc_call("getColumns", {"project_id": project_id}) or []}
+    user_by_id = {str(u["id"]): u["username"] for u in load_instance().get("users", [])}
+
     if args.column:
         column_id = resolve_column(project_id, args.column)
         tasks = [t for t in tasks if int(t["column_id"]) == column_id]
@@ -478,12 +485,82 @@ def cmd_list_tasks(args):
         summary.append({
             "id": t["id"],
             "title": t["title"],
-            "column_name": t.get("column_name", ""),
-            "owner_username": t.get("owner_username", ""),
-            "date_due": t.get("date_due", ""),
+            "column_name": col_by_id.get(str(t.get("column_id")), ""),
+            "owner_username": user_by_id.get(str(t.get("owner_id")), ""),
+            "date_due": format_ts(t.get("date_due")),
             "is_active": t.get("is_active", "")
         })
     output(summary)
+
+
+def _accessible_projects():
+    """Return {project_id: name} for all accessible projects.
+
+    Prefers the instance.json cache (no RPC); falls back to getAllProjects /
+    getMyProjects only if the cache is empty.
+    """
+    inst = load_instance()
+    projects = inst.get("projects", [])
+    if not projects:
+        projects = (rpc_call("getAllProjects") if is_admin() else rpc_call("getMyProjects")) or []
+    return {int(p["id"]): p.get("name", "") for p in projects}
+
+
+def _search_summary(pid, pname, query, active_only):
+    """Run searchTasks for one project and shape the hits into summary rows.
+
+    searchTasks (unlike getAllTasks) already returns column_name and
+    assignee_username, so no extra column/user lookups are needed here.
+    """
+    rows = []
+    found = rpc_try("searchTasks", {"project_id": pid, "query": query})
+    if not isinstance(found, list):
+        return rows
+    for t in found:
+        if active_only and int(t.get("is_active", 1)) != 1:
+            continue
+        rows.append({
+            "id": t["id"],
+            "title": t["title"],
+            "project_id": pid,
+            "project_name": pname,
+            "column": t.get("column_name", ""),
+            "owner": t.get("assignee_username", "") or "",
+            "is_active": t.get("is_active", ""),
+        })
+    return rows
+
+
+def cmd_search(args):
+    """Find tasks by keyword across all accessible projects (or one via --project).
+
+    Uses Kanboard's searchTasks, so the query understands the same operators as
+    the web UI (e.g. 'status:open', 'assignee:mmuster', 'title:...'). By default
+    only open tasks are shown; --all includes closed ones.
+    """
+    projects = _accessible_projects()
+    if args.project:
+        pid = resolve_project(args.project)
+        projects = {pid: projects.get(pid, "")}
+
+    results = []
+    for pid, pname in projects.items():
+        results.extend(_search_summary(pid, pname, args.query, active_only=not args.all))
+    output(results)
+
+
+def cmd_my_tasks(args):
+    """Open tasks assigned to a user (default: default_user) across all projects."""
+    username = args.user or get_default_user()
+    if not username:
+        print("Error: no --user given and no default_user in instance.json (run: setup --default-user <username>)", file=sys.stderr)
+        sys.exit(1)
+
+    query = f"status:open assignee:{username}"
+    results = []
+    for pid, pname in _accessible_projects().items():
+        results.extend(_search_summary(pid, pname, query, active_only=True))
+    output(results)
 
 
 def cmd_list_projects(args):
@@ -775,6 +852,79 @@ def cmd_remove_task_link(args):
     output({"success": result})
 
 
+# Tags
+
+def _get_tag_names(task_id):
+    """Return the task's tag names as a sorted list. getTaskTags -> {id: name}."""
+    tags_map = rpc_call("getTaskTags", {"task_id": int(task_id)})
+    if isinstance(tags_map, dict):
+        return sorted(tags_map.values())
+    return []
+
+
+def _set_tag_names(task_id, project_id, names):
+    """Replace the task's full tag set. setTaskTags creates unknown tags on the
+    fly at project level, so no separate create step is needed."""
+    return rpc_call("setTaskTags", {
+        "project_id": int(project_id),
+        "task_id": int(task_id),
+        "tags": names,
+    })
+
+
+def _task_project_id(task_id):
+    task = rpc_call("getTask", {"task_id": int(task_id)})
+    if not task:
+        print(f"Error: task {task_id} not found", file=sys.stderr)
+        sys.exit(1)
+    return int(task["project_id"])
+
+
+def cmd_get_tags(args):
+    output(_get_tag_names(args.task_id))
+
+
+def cmd_set_tags(args):
+    """Replace ALL tags with the given comma-separated list (empty clears)."""
+    project_id = _task_project_id(args.task_id)
+    names = [t.strip() for t in args.tags.split(",") if t.strip()]
+    ok = _set_tag_names(args.task_id, project_id, names)
+    output({"success": bool(ok), "tags": names})
+
+
+def cmd_add_tag(args):
+    """Add one tag without clobbering existing ones (read-merge-write)."""
+    project_id = _task_project_id(args.task_id)
+    names = _get_tag_names(args.task_id)
+    if args.tag not in names:
+        names = sorted(names + [args.tag])
+    ok = _set_tag_names(args.task_id, project_id, names)
+    output({"success": bool(ok), "tags": names})
+
+
+def cmd_remove_tag(args):
+    """Remove one tag, keep the rest."""
+    project_id = _task_project_id(args.task_id)
+    names = [n for n in _get_tag_names(args.task_id) if n != args.tag]
+    ok = _set_tag_names(args.task_id, project_id, names)
+    output({"success": bool(ok), "tags": names})
+
+
+def cmd_set_kimai(args):
+    """Tag the task with the Kimai shortcut as 'kimai:<shortcut>'.
+
+    One Kimai shortcut per task: any existing 'kimai:*' tag is replaced. cr
+    surfaces this as the 'kimai' field so later time entries can pick the right
+    shortcut automatically.
+    """
+    project_id = _task_project_id(args.task_id)
+    shortcut = args.shortcut.strip()
+    names = [n for n in _get_tag_names(args.task_id) if not n.lower().startswith("kimai:")]
+    names.append(f"kimai:{shortcut}")
+    ok = _set_tag_names(args.task_id, project_id, sorted(names))
+    output({"success": bool(ok), "kimai": shortcut, "tags": sorted(names)})
+
+
 def parse_cr_id(raw):
     """Normalize CR input: CR4326, cr4326, CR 4326, #4326, 4326 -> 4326"""
     s = raw.strip().lstrip("#")
@@ -787,7 +937,22 @@ def parse_cr_id(raw):
 
 
 def cmd_cr(args):
-    """Load one or more tasks as CR context"""
+    """Load one or more tasks as CR context.
+
+    Der CR-Kontext ist die Arbeitsgrundlage fuer die gesamte Session (Commit-/
+    Kimai-Prefixing). Deshalb laedt cr bewusst den *Inhalt* des Tasks mit — vor
+    allem die **Beschreibung**, in der im Regelfall die menschlich verfasste
+    Ausgangslage steht (Zusammenfassung, Mail-Auszug, Kurzbeschreibung). Fehlt
+    sie, sieht ein voller Task faelschlich leer aus.
+
+    Bewusst *nicht* automatisch geladen (eigene Befehle): Kommentar-Volltext
+    (get-comments), Teilaufgaben (list-subtasks), Task-Links (list-task-links),
+    Anhang-Details (list-files). Von Kommentaren und Anhaengen kommt nur ein
+    Zaehler als Signal mit.
+    """
+    instance = load_instance()
+    proj_names = {int(p["id"]): p.get("name", "") for p in instance.get("projects", [])}
+
     results = []
     for raw_id in args.task_ids:
         task_id = parse_cr_id(raw_id)
@@ -796,30 +961,74 @@ def cmd_cr(args):
             print(f"Error: task {task_id} not found", file=sys.stderr)
             sys.exit(1)
 
-        # getTask liefert nur *_id, keine Klarnamen — enrich_task ergaenzt
-        # column_title/owner_username; project_name separat aufloesen.
-
-        enrich_task(task)
         project_id = int(task["project_id"])
-        project = rpc_try("getProjectById", {"project_id": project_id}) or {}
+
+        # Spalten-Titel aufloesen (getTask liefert nur column_id). Die Swimlane
+        # braucht cr nicht — daher hier bewusst kein getActiveSwimlanes-Call.
+        column_title = ""
+        col_id = task.get("column_id")
+        if col_id:
+            for c in rpc_call("getColumns", {"project_id": project_id}) or []:
+                if str(c.get("id")) == str(col_id):
+                    column_title = c.get("title", "")
+                    break
+
+        # Owner-Username aus dem instance.json-Cache (kein RPC).
+        owner_username = ""
+        owner_id = task.get("owner_id")
+        if owner_id and str(owner_id) != "0":
+            for u in instance.get("users", []):
+                if str(u.get("id")) == str(owner_id):
+                    owner_username = u.get("username", "")
+                    break
+
+        # Projektname aus dem Cache; nur wenn dort unbekannt, per RPC nachladen.
+        project_name = proj_names.get(project_id)
+        if not project_name:
+            project_name = (rpc_try("getProjectById", {"project_id": project_id}) or {}).get("name", "")
 
         entry = {
             "cr": f"CR{task_id}",
             "task_id": task_id,
             "title": task["title"],
             "project_id": project_id,
-            "project_name": project.get("name", ""),
-            "column": task.get("column_title", ""),
-            "owner": task.get("owner_username", ""),
+            "project_name": project_name,
+            "column": column_title,
+            "owner": owner_username,
+            "modified": format_ts(task.get("date_modification")),
+            "description": task.get("description", "") or "",
         }
 
         # Handoff-Feld (TaskHandoff-Plugin) automatisch mitladen, falls befuellt.
+        # Ergaenzt die Description, ist nicht redundant: Description = was ist die
+        # Aufgabe, Handoff = wo stehen wir / wie geht es weiter (Uebergabestand).
         # rpc_try statt rpc_call: fehlt das Plugin (Method not found), liefert es
         # None statt cr komplett abzubrechen.
-
         handoff = rpc_try("getTaskHandoff", {"task_id": task_id})
         if handoff:
             entry["handoff"] = handoff
+
+        # Tags. Ein Tag der Form 'kimai:<shortcut>' verknuepft den Task mit einem
+        # Kimai-Shortcut (.claude/kimai-shortcuts.json) und wird als eigenes Feld
+        # 'kimai' herausgehoben — damit steht der Zeiterfassungs-Kontext direkt im
+        # CR-Kontext. getTaskTags liefert {tag_id: name}.
+        tags_map = rpc_try("getTaskTags", {"task_id": task_id})
+        tag_names = sorted(tags_map.values()) if isinstance(tags_map, dict) else []
+        if tag_names:
+            entry["tags"] = tag_names
+            for t in tag_names:
+                if t.lower().startswith("kimai:"):
+                    entry["kimai"] = t.split(":", 1)[1].strip()
+                    break
+
+        # Zaehler fuer Kommentare/Anhaenge — nur wenn > 0, damit leere Tasks
+        # schlank bleiben. Kanboard hat keine Count-Methode; len() der Liste.
+        comments = rpc_try("getAllComments", {"task_id": task_id})
+        if comments:
+            entry["comments"] = len(comments)
+        files = rpc_try("getAllTaskFiles", {"task_id": task_id})
+        if files:
+            entry["attachments"] = len(files)
 
         results.append(entry)
 
@@ -998,6 +1207,18 @@ def main():
     p.add_argument("--closed", action="store_true")
     p.set_defaults(func=cmd_list_tasks)
 
+    # search (Tasks per Stichwort/Query finden)
+    p = sub.add_parser("search")
+    p.add_argument("query", help="Suchtext oder Kanboard-Query (z.B. 'status:open assignee:mmuster')")
+    p.add_argument("--project", help="nur in diesem Projekt suchen (Default: alle zugaenglichen)")
+    p.add_argument("--all", action="store_true", help="auch geschlossene Tasks einbeziehen")
+    p.set_defaults(func=cmd_search)
+
+    # my-tasks (offene Tasks eines Users projektuebergreifend)
+    p = sub.add_parser("my-tasks")
+    p.add_argument("--user", help="Username (Default: default_user aus instance.json)")
+    p.set_defaults(func=cmd_my_tasks)
+
     # list-projects
     p = sub.add_parser("list-projects")
     p.set_defaults(func=cmd_list_projects)
@@ -1098,6 +1319,35 @@ def main():
     p = sub.add_parser("remove-task-link")
     p.add_argument("task_link_id")
     p.set_defaults(func=cmd_remove_task_link)
+
+    # get-tags
+    p = sub.add_parser("get-tags")
+    p.add_argument("task_id")
+    p.set_defaults(func=cmd_get_tags)
+
+    # set-tags (ersetzt ALLE Tags)
+    p = sub.add_parser("set-tags")
+    p.add_argument("task_id")
+    p.add_argument("--tags", required=True, help="Komma-separierte Tag-Liste (leer = alle entfernen)")
+    p.set_defaults(func=cmd_set_tags)
+
+    # add-tag (ergaenzt, ohne bestehende zu ueberschreiben)
+    p = sub.add_parser("add-tag")
+    p.add_argument("task_id")
+    p.add_argument("--tag", required=True)
+    p.set_defaults(func=cmd_add_tag)
+
+    # remove-tag
+    p = sub.add_parser("remove-tag")
+    p.add_argument("task_id")
+    p.add_argument("--tag", required=True)
+    p.set_defaults(func=cmd_remove_tag)
+
+    # set-kimai (Kimai-Shortcut als 'kimai:<shortcut>'-Tag; ersetzt vorhandenen)
+    p = sub.add_parser("set-kimai")
+    p.add_argument("task_id")
+    p.add_argument("--shortcut", required=True, help="Kimai-Shortcut-Key (.claude/kimai-shortcuts.json)")
+    p.set_defaults(func=cmd_set_kimai)
 
     # create-project
     p = sub.add_parser("create-project")
