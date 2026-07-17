@@ -319,6 +319,20 @@ Referenz-Skill fuer PixelYourSite Pro Event-Verwaltung in WordPress-(Multi-)Site
 
 **Trigger:** `/wp-pys` oder natuerliche Sprache wie "PYS Events auflisten", "GA4 Event einrichten", "PixelYourSite".
 
+### wp-nf
+
+Referenz-Skill fuer Ninja-Forms-Administration in WordPress-(Multi-)Sites per WP-CLI (FreeBSD-Jail). Kein eigenes Script, reine SKILL.md mit PHP-Snippets, verifiziert an NF 3.14.8:
+
+- Datenmodell + Footguns: `nf3_forms`/`nf3_fields`/`nf3_field_meta`, `element_class` liegt in der Meta-Tabelle (keine `settings`-Spalte); Render-Quelle ist der Form-Cache (`nf3_upgrades`), `use_cache()` hart `true`
+- Formulare auflisten + Titel→ID-Mapping (native `wp ninja-forms list` oder Snippet), Felder + Settings dumpen (Model-API)
+- `element_class`/HTML-Link-Klasse setzen — Backup (Form-Export) → Write → Cache invalidieren → Verify
+- Export/Import (`.nff`, Backend-identisch): Backup und Klonen zwischen Subsites; Import legt immer ein neues Formular an
+- Settings-Preflight: Meta↔Cache-Drift pruefen (Signatur des stillen „geaendert, aendert sich nichts"-Fehlers)
+- Diagnose-Muster PYS-CSS-Click ↔ NF-`element_class` (Cross-Link zu wp-pys)
+- Uebersicht der nativen `wp ninja-forms`-Extension und ihrer Grenzen (kein Export/Import, keine Settings-Details)
+
+**Trigger:** `/wp-nf` oder natuerliche Sprache wie "Ninja Forms Feld", "element_class setzen", "Formular exportieren/importieren".
+
 ### wiki
 
 LLM Wiki-Verwaltung fuer strukturierte Dokumentation. Unterstuetzt **mehrere Wikis** mit je eigenem Entity-Modell (Infra `azedo`: Server/Service/Access/Site/Procedure; Projekt-Wikis abweichend). Kein eigenes Script (bis auf lint-wiki.py), reine SKILL.md mit Subcommands:
@@ -383,6 +397,11 @@ Fasst die aktuelle Konversation in ein Uebergabedokument zusammen, damit ein neu
 **Trigger:** `/handoff` oder natuerliche Sprache wie "erstell eine Uebergabe", "fass die Session fuer den naechsten Agent zusammen".
 
 ## Changelog
+
+### 1.22.0
+
+- **Neuer Skill `wp-nf` (Ninja-Forms-Administration).** Reiner Referenz-Skill (nur SKILL.md, PHP-Snippets fuer `wp eval-file` im FreeBSD-Jail), verifiziert am Plugin-Quellcode von **Ninja Forms 3.14.8** auf apache1.acme.com. Anlass: das bei CR4266 (customer, GA4-CSS-Click-Events) entstandene, bisher nur im Handoff lebende NF-Wissen reproduzierbar kodieren. Inhalt: Datenmodell + Footguns (`element_class` liegt in `nf3_field_meta`, **keine** `settings`-Spalte in 3.14.8 — die aeltere Annahme ist damit widerlegt; Render-Quelle ist der Form-Cache `nf3_upgrades`, `WPN_Helper::use_cache()` liefert hart `true`), Formulare auflisten + Titel→ID-Mapping, Felder+Settings dumpen (Model-API), `element_class`-Write nach dem Muster Backup→Write→**Cache invalidieren**→Verify, **Export/Import** (`.nff`, Backend-identisch, ueber `export_form()`/`import_form()`; Import legt immer ein neues Formular an), Settings-Preflight (Meta↔Cache-Drift), Diagnose-Muster PYS-CSS-Click ↔ `element_class`, sowie eine Uebersicht der nativen `wp ninja-forms`-Extension und ihrer Grenzen (kein Export/Import, keine Settings-Details). `install.sh`-Liste ergaenzt. (CR4409)
+- **wp-pys: NF-ID-Wissen nach `wp-nf` migriert.** Abschnitt „3.8 Ninja-Form-IDs ermitteln" enthielt das Roh-Snippet zur Formular-Auflistung; das gesamte NF-Datenmodell gehoert nun in den neuen Skill `wp-nf`. `wp-pys` verweist jetzt nur noch darauf (Titel-Mapping-Prinzip + Cross-Link) und ergaenzt den reziproken Hinweis, dass `css_click` auch an der NF-Feld-Klasse `element_class` haengt. Keine Duplizierung mehr zwischen den beiden Skills. (CR4409)
 
 ### 1.21.0
 

@@ -366,25 +366,14 @@ echo "OK: $key von Event $event_id wiederhergestellt\n";
 
 ### 3.8 Ninja-Form-IDs ermitteln
 
-Form-IDs sind **site-spezifisch** — nie raten, immer nachschlagen:
+Form-IDs sind **site-spezifisch** — nie raten, immer nachschlagen und ueber den
+Formular-**Titel** mappen. Das Auflisten und das gesamte NF-Datenmodell liegen im
+Skill **[[wp-nf]]** (Abschnitt „Formulare auflisten + Titel→ID-Mapping"); von dort das
+`nf-list-forms.php`-Snippet verwenden.
 
-```php
-<?php
-// pys-list-forms.php — via: wp eval-file pys-list-forms.php --url=<subsite>
-
-global $wpdb;
-$table = $wpdb->prefix . 'nf3_forms';
-
-if ($wpdb->get_var("SHOW TABLES LIKE '$table'") !== $table) {
-    echo "Tabelle $table existiert nicht\n";
-    exit(0);
-}
-
-$forms = $wpdb->get_results("SELECT id, title FROM $table ORDER BY id");
-foreach ($forms as $f) {
-    echo "ID:{$f->id} | {$f->title}\n";
-}
-```
+Ergaenzend fuer CSS-Click-Tracking: ob ein `css_click`-Event feuert, haengt nicht nur am
+PYS-Selektor, sondern auch an der **CSS-Klasse im NF-Feld** (`element_class`). Zum
+Setzen/Pruefen dieser Klasse siehe [[wp-nf]] (Diagnose-Muster PYS ↔ `element_class`).
 
 ---
 
@@ -410,7 +399,7 @@ Parameter an `wp eval-file` immer als Positionsargumente (`$args[0]`, `$args[1]`
 
 ### Ninja-Form-IDs sind site-spezifisch
 
-Bei Multisite haben die gleichen Formulare auf verschiedenen Subsites unterschiedliche IDs. Immer per `pys-list-forms.php` nachschlagen, Mapping ueber den Formular-Titel herstellen.
+Bei Multisite haben die gleichen Formulare auf verschiedenen Subsites unterschiedliche IDs. Immer nachschlagen und das Mapping ueber den Formular-Titel herstellen — Auflistung via Skill [[wp-nf]].
 
 ### Login-gated Formulare
 

@@ -11,7 +11,7 @@ SETTINGS="$HOME/.claude/settings.json"
 
 # Symlinks anlegen
 mkdir -p "$SKILLS_DIR"
-for skill in envato google-analytics google-search-console handoff humanizer-de image-optimize kanboard kimai mainwp md2pdf php-formatting ripgrep swaks tcsh wetter wiki wp-cli wp-pys wp-sync-dev; do
+for skill in envato google-analytics google-search-console handoff humanizer-de image-optimize kanboard kimai mainwp md2pdf php-formatting ripgrep swaks tcsh wetter wiki wp-cli wp-nf wp-pys wp-sync-dev; do
     if [ -d "$REPO_DIR/$skill" ]; then
         target="$SKILLS_DIR/$skill"
         want="$REPO_DIR/$skill"
