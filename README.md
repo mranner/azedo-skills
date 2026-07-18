@@ -398,6 +398,10 @@ Fasst die aktuelle Konversation in ein Uebergabedokument zusammen, damit ein neu
 
 ## Changelog
 
+### 1.22.4
+
+- **mainwp: Hinweis zum Auslesen des Sync-Status (Ausgabe nicht tailen).** Beim `sync-sites-v1` schlagen einzelne Sites oft fehl; das Script aggregiert ueber alle Batches und liefert `total_synced`/`total_errors` sowie `errors[]` (mit `identifier`, `code`, `message`). Diese Summen stehen **oben** im JSON, vor dem langen `synced`-Array — `| tail -N` schneidet sie ab. SKILL.md-Abschnitt „Alle Sites syncen" um eine Warnung plus fertiges Auswerte-Snippet ergaenzt (Ausgabe in Datei, stderr getrennt, dann `total_errors`/`errors[]` gezielt ausgeben).
+
 ### 1.22.3
 
 - **wp-sync-dev: Scope-Grenze Host-Dateizugriff vs. Jail-Laufzeit klargestellt.** Der Skill beschrieb die DEV-Pfade als host-seitig (korrekt fuer rsync/chmod), sagte aber nicht, dass `dev.example.at` ein iocage-Jail ist und alles Laufzeitartige (`wp`-CLI, WordPress) **im Jail** laufen muss (`iocage exec dev.example.at … sudo -u www wp …`). Fuehrte in dieser Session zur Fehlannahme, `wp` liefe direkt auf dem mom-Host (`command not found`). DEV-Abschnitt umbenannt + Notiz mit Verweis auf Skill `wp-cli` / Wiki `wp-cli-in-jails` / `mom-azedo-at`.

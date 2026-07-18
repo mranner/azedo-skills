@@ -169,6 +169,29 @@ python3 "$SKILL_DIR/mainwp" run mainwp/sync-sites-v1 --param 'site_ids=[]' --bat
 python3 "$SKILL_DIR/mainwp" run mainwp/sync-sites-v1 --param 'site_ids=[]' --batch-size 0
 ```
 
+**Status auslesen — Ausgabe NICHT tailen.** Das Script aggregiert ueber alle
+Batches und liefert `total_synced`, `total_errors` sowie die Arrays `synced[]`
+und `errors[]` (jeder Fehler mit `identifier`, `code`, `message`). Diese Summen
+stehen **oben** im JSON, vor dem langen `synced`-Array — `| tail -N` schneidet
+sie ab. Einzelne Sites schlagen oft fehl, deshalb immer `total_errors`/`errors[]`
+pruefen. Ausgabe in eine Datei schreiben (stderr = Batch-Fortschritt, getrennt
+halten), dann gezielt auswerten:
+
+```bash
+# Vollstaendige Ausgabe sichern, stderr getrennt
+python3 "$SKILL_DIR/mainwp" run mainwp/sync-sites-v1 --param 'site_ids=[]' \
+  >.tmp/mainwp_sync.json 2>.tmp/mainwp_sync.progress
+
+# Zusammenfassung + fehlgeschlagene Sites anzeigen
+python3 -c "
+import json
+d = json.load(open('.tmp/mainwp_sync.json'))
+print(f\"synced: {d.get('total_synced')}  errors: {d.get('total_errors')}  batches: {d.get('batches')}\")
+for e in d.get('errors', []):
+    print(f\"  FAIL {e['identifier']}: [{e['code']}] {e['message']}\")
+"
+```
+
 ### Updates pruefen
 
 ```bash
