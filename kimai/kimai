@@ -2,7 +2,7 @@
 
 # Kimai REST API helper
 # stdlib only, no pip dependencies
-# version 1.21.0
+# version 1.23.1
 
 import argparse
 import json
@@ -958,10 +958,27 @@ def parse_duration(s):
         sys.exit(1)
 
 
+def _find_shortcuts_file():
+    """Search upward from cwd for .claude/kimai-shortcuts.json (like git finds .git).
+
+    So the lookup works from any subdirectory of the project (e.g. .tmp/),
+    not only when cwd is exactly the project root.
+    """
+    d = os.getcwd()
+    while True:
+        candidate = os.path.join(d, ".claude", "kimai-shortcuts.json")
+        if os.path.exists(candidate):
+            return candidate
+        parent = os.path.dirname(d)
+        if parent == d:
+            return None
+        d = parent
+
+
 def load_shortcuts():
-    """Read .claude/kimai-shortcuts.json from cwd. Returns dict or {}."""
-    path = os.path.join(os.getcwd(), ".claude", "kimai-shortcuts.json")
-    if not os.path.exists(path):
+    """Read .claude/kimai-shortcuts.json (searched upward from cwd). Returns dict or {}."""
+    path = _find_shortcuts_file()
+    if not path:
         return {}
     with open(path) as f:
         data = json.load(f)
