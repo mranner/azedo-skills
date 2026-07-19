@@ -396,7 +396,27 @@ Fasst die aktuelle Konversation in ein Uebergabedokument zusammen, damit ein neu
 
 **Trigger:** `/handoff` oder natuerliche Sprache wie "erstell eine Uebergabe", "fass die Session fuer den naechsten Agent zusammen".
 
+### telegram
+
+Telegram-Bot-Anbindung (outbound-first). Python-Script (stdlib only, keine pip-Dependencies), lauffaehig auf macOS + FreeBSD, **kein Server-Prozess** — jeder Aufruf ist ein einzelner HTTPS-Call an `api.telegram.org` und laeuft auch aus cron:
+
+- send: Kernbefehl (sendMessage), Text aus Argument/`--file`/STDIN, `--parse-mode`, `--silent`, `--no-preview`, `--json`
+- Vorlagen: alert (rot), recovery (gruen), digest (Titel + Bullets) — HTML mit Emoji, dynamische Werte geescaped
+- setup: chat_id via `getUpdates` ermitteln (optional `--write` in die .env)
+- Interaktiv warten: `wait` (blockiert bis Nachricht kommt, gibt Text aus) und `ask` (Frage senden **und** auf Antwort warten) — drainen Backlog vorab, akzeptieren per Default nur den eigenen Chat, Exit 2 bei Timeout
+- Dauer-Empfangs-Scaffold: `get-updates` (roh) und `poll` (Long-Poll `getUpdates?timeout=50` im Vordergrund, fuehrt `offset` mit) — optional, kein Daemon
+
+Credentials in `.env`: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` (Auffindung wie kimai/kanboard: cwd/.env → ~/.env, Env-Variablen haben Vorrang). FreeBSD-TLS-Escape-Hatch `TELEGRAM_CA_BUNDLE`.
+
+**Voraussetzungen:** Python >= 3.11, Bot-Token von BotFather. FreeBSD: `pkg install python311 ca_root_nss`.
+
+**Trigger:** `/telegram` oder natuerliche Sprache wie "schick mir das per Telegram", "Alert nach Telegram", "Post-Update-Status per Telegram melden".
+
 ## Changelog
+
+### 1.23.0
+
+- **Neuer Skill `telegram` (Telegram-Bot, outbound-first).** Python-Script (stdlib only, `urllib`, kein `requests`), lauffaehig auf macOS **und** FreeBSD, **kein Server-Prozess** — jeder Aufruf ein einzelner HTTPS-Call an `api.telegram.org` (auch aus cron). Kernbefehl `send` (sendMessage; Text aus Argument/`--file`/STDIN, `--parse-mode` Default Klartext, `--silent`, `--no-preview`, `--json`), Monitoring-Vorlagen `alert`/`recovery`/`digest` (HTML + Emoji, dynamische Werte HTML-geescaped), Setup-Helfer `setup` (chat_id via `getUpdates`, optional `--write` in die .env) und `me` (getMe/Token-Check). **Interaktiver Empfang** `wait` (blockiert einmalig per Long-Poll bis eine Nachricht kommt, gibt den Text aus; Exit 2 = Timeout) und `ask` (Frage senden **und** auf die Antwort warten) — beide drainen den Backlog vorab (nur Nachrichten NACH Start zaehlen) und akzeptieren per Default nur den eigenen Chat; damit kann Claude Code auf eine Telegram-Anweisung warten und danach handeln. Zusaetzlich Dauer-Empfang als Scaffold: `get-updates` (roh) und `poll` (Long-Poll im Vordergrund, fuehrt `offset` mit, loest vorab `deleteWebhook`) — kein Daemon, reine Ausbaubasis. Credentials in `.env` (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`; Auffindung wie kimai/kanboard, Env-Variablen haben Vorrang), FreeBSD-TLS-Escape-Hatch `TELEGRAM_CA_BUNDLE`. `install.sh`-Liste ergaenzt. (CR4420)
 
 ### 1.22.4
 
