@@ -1,0 +1,5 @@
+# Reale Inventory mit IPs/Credential-Refs — nie einchecken
+inventory.json
+
+__pycache__/
+*.pyc

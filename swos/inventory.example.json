@@ -1,0 +1,15 @@
+{
+  "//": "Kopie nach inventory.json (gitignored) oder SWOS_INVENTORY setzen.",
+  "//_cred": "Passwoerter NIE hier einchecken: password_env oder password_file nutzen.",
+
+  "defaults": { "user": "admin" },
+
+  "credentials": {
+    "beispiel": { "user": "admin", "password_env": "SWOS_PW_BEISPIEL" }
+  },
+
+  "switches": {
+    "sw-direct":  { "ip": "192.168.201.215", "mode": "direct", "password": "", "model": "CSS610-8P-2S+" },
+    "sw-jump":    { "ip": "10.1.13.4", "mode": "ssh-curl", "jump": "gateway.example.at", "cred": "beispiel", "model": "CSS326-24G-2S+" }
+  }
+}
