@@ -58,7 +58,8 @@ swos hosts  <ziel>                # FDB: MAC -> Port (live; im Backup leer)
 swos all    <ziel>                # alle vier Views
 swos raw    <ziel> <endpoint>     # roher Endpoint-Blob als JSON (Debug), z.B. sys.b, !dhost.b
 swos backup <ziel> [--output <pfad>]  # Live-Backup ziehen (GET /backup.swb), Default <ziel>.swb
-swos poe-out <ziel> --port <n> --to off|on|auto [--commit]   # Stufe 2, schreibend (s.u.)
+swos poe-out     <ziel> --port <n> --to off|on|auto     [--commit]   # Stufe 2, schreibend (s.u.)
+swos poe-voltage <ziel> --port <n> --to auto|low|high   [--commit]   # Stufe 2, schreibend (s.u.)
 ```
 
 Beispiele:
@@ -77,38 +78,51 @@ offline dekodiert. Funktioniert mit Inventory-Namen, `--ip/--mode` oder Ad-hoc-Z
 mit `--swb` (ein Backup ist kein Live-Ziel). **Achtung:** Die `.swb`-Datei enthaelt das
 Digest-Passwort hex-kodiert (`.pwd.b`) — nicht unbedacht weitergeben oder an Tickets anhaengen.
 
-## Schreiben (Stufe 2) — bisher nur `poe-out`
+## Schreiben (Stufe 2) — nur `poe.b` (`poe-out`, `poe-voltage`)
 
-**Genau ein** Schreibbefehl ist implementiert; alles andere (VLAN/PVID, Portname, Mgmt-IP,
-PoE auf anderen Dialekten) bleibt bewusst offen, bis das jeweilige POST-Format per DevTools
-verifiziert ist (nicht raten).
+**Zwei** Schreibbefehle sind freigegeben, beide auf `poe.b` (dessen GET nachweislich config-treu
+ist). Alles andere bleibt bewusst offen (siehe „Bewusst zurückgestellt" unten) — nichts wird geraten.
 
 ```bash
-swos poe-out <ziel> --port <n> --to off|on|auto            # Dry-Run (Default): zeigt Ist/Soll, sendet NICHTS
-swos poe-out <ziel> --port <n> --to off|on|auto --commit   # sendet + Read-back-Verify
+swos poe-out     <ziel> --port <n> --to off|on|auto          # Dry-Run: zeigt Ist/Soll, sendet NICHTS
+swos poe-out     <ziel> --port <n> --to off|on|auto --commit # sendet + Read-back-Verify
+swos poe-voltage <ziel> --port <n> --to auto|low|high        # Voltage Level, gleiche Mechanik
 ```
 
-Setzt **„PoE Out"** eines Kupferports: `off` | `on` (forced on) | `auto`. Format hart verifiziert
-(DevTools-Capture `.215` + `engine.js`, CR4426): `POST /poe.b`, `Content-Type: text/plain`, Body ein
-roher Teil-Blob `{i01,i02,i03,i0a}` (8 Kupferports; `i01`=PoE Out `u:[off,on,auto]`, `i02`=Priority,
-`i03`=Voltage Level, `i0a`=global). Das Tool liest `poe.b`, ändert nur `i01[port]` und postet den Rest
-unverändert zurück.
+`poe-out` setzt **„PoE Out"** (`off`|`on` forced|`auto`), `poe-voltage` das **„Voltage Level"**
+(`auto`|`low`|`high`). Format hart verifiziert (DevTools-/HAR-Capture `.215` + `engine.js`, CR4426):
+`POST /poe.b`, `Content-Type: text/plain`, Body ein roher Teil-Blob `{i01,i02,i03,i0a}` (8 Kupferports;
+`i01`=PoE Out, `i02`=Priority, `i03`=Voltage Level, `i0a`=global). Das Tool liest `poe.b`, ändert **nur**
+das Zielfeld am Zielport und postet den Rest unverändert zurück.
 
 **Guard-Rails:**
 - **`"writable": true`** im Inventory Pflicht (nur die 3 Büro-Sandkasten-Switches). Ohne Flag,
   bei `--swb`/`--ip` oder unbekanntem Switch → Abbruch. Produktion (Seiersberg) bleibt read-only.
-- **Nur `css610_new`** — andere Dialekte werden abgelehnt (css326 hat kein PoE; swos_lite/CSS106
-  führt PoE in `link.b`, Format noch nicht gecaptured). Nur `direct`-Transport (nicht ssh-curl).
-- **`--dry-run` ist Default:** zeigt aktuelles/geplantes `i01` und den exakten POST-Body, sendet
+- **Nur `css610_new`** und nur `direct`-Transport (css326 hat kein PoE; swos_lite/CSS106 führt PoE
+  in `link.b`, Format noch nicht gecaptured).
+- **`--dry-run` ist Default:** zeigt aktuelles/geplantes Feld und den exakten POST-Body, sendet
   nichts. Erst `--commit` schreibt.
 - **Snapshot vor der ersten Änderung:** zieht einmalig ein `.swb` nach `.tmp/swos-snapshot-<sw>.swb`
-  (existiert schon einer, wird er nicht überschrieben) — Rollback-Punkt.
-- **Read-back-Verify** nach jedem Commit: liest `poe.b` neu, prüft dass **nur** `i01[port]` sich
+  — Rollback-Punkt.
+- **Read-back-Verify** nach jedem Commit: liest `poe.b` neu, prüft dass **nur** das Zielfeld sich
   geändert hat; sonst Abbruch mit Snapshot-Hinweis.
 
-**Bekannter Read-only-Bug (unabhängig):** Der `ports`-View liest den PoE-**Modus** aus `poe.b i04`,
-das ist aber der **Runtime-Status** (`2=idle,3=liefert,5=?`). Der Config-Modus steht in `i01`
-(`engine.js`). Der Write nutzt korrekt `i01`; der Lese-View ist separat zu fixen.
+### Bewusst zurückgestellt (Format verifiziert, aber Semantik/Sicherheit offen — CR4426)
+
+Der Read-back-Verify hat diese beim Live-Test abgefangen, bevor Schaden blieb:
+
+- **`poe-priority`** (`poe.b i02`): keine freie Zahl je Port, sondern ein **eindeutiger Rang
+  (Permutation 0–7)** — der Switch schichtet beim Setzen um. Braucht ein Ranking-Modell.
+- **`portname` (`link.b`), `pvid` (`fwd.b`), `vlan-set` (`vlan.b`)**: Der `link.b`-Write hat im
+  Test die **Enabled-Maske umgeworfen** (Ports deaktiviert). **Lehre:** Config-Basis für Writes ist
+  **immer der Live-GET** (der ist config-treu — Feld-für-Feld deckungsgleich mit der Web-UI),
+  **niemals** der `.swb`-Parser (lieferte falsche Bitmasken). Der link/fwd/vlan-Write-Nebeneffekt ist
+  erst kontrolliert nachzuweisen, bevor diese Befehle zurückkommen.
+
+**Bekannter Read-only-Bug (unabhängig):** Der `ports`-View liest den PoE-**Modus** aus `poe.b i04`
+(= **Runtime-Status** `2=idle,3=liefert`), der Config-Modus steht in `i01`. Der Write nutzt korrekt
+`i01`; der Lese-View ist separat zu fixen. Ebenso: `!dhost.b` liefert im `direct`-Modus gelegentlich
+Short-Reads (`BlobError`).
 
 ## Inventory-Config
 

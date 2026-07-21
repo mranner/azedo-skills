@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-# MikroTik SwOS query helper (read-only Stufe 1 + erster Schreibbefehl Stufe 2)
+# MikroTik SwOS query helper (read-only Stufe 1 + Schreibbefehle Stufe 2)
 # stdlib only, no pip dependencies
-# version 1.26.0
+# version 1.26.1
 #
 # Ein gemeinsamer Decoder, drei Transporte:
 #   A) direct   – urllib HTTP-Digest direkt auf die Switch-IP (Runner routbar)
@@ -12,7 +12,7 @@
 # Vier SwOS-Feld-Dialekte: css326, css610_new, css610_old, swos_lite.
 # `backup` zieht das Live-Backup (GET /backup.swb) -- reines Lesen (kein POST,
 # keine Config-Aenderung), bleibt also innerhalb von Stufe 1.
-# `poe-out` ist der erste Schreibbefehl (Stufe 2, POST /poe.b, nur css610_new):
+# Schreibbefehle (Stufe 2, POST /poe.b, nur css610_new): `poe-out`, `poe-voltage`.
 # writable-Flag Pflicht, --dry-run als Default, Snapshot + Read-back-Verify.
 # Siehe SKILL.md.
 
@@ -779,24 +779,64 @@ def cmd_backup(args):
 
 
 # ---------------------------------------------------------------------------
-# Schreiben (Stufe 2) — bisher nur "PoE Out" auf css610_new. Format verifiziert
-# per DevTools-Capture (.215) + engine.js-Feldtabelle (CR4426), nicht geraten:
-#   POST /poe.b  Content-Type: text/plain  Body = Teil-Blob {i01,i02,i03,i0a}
-#   (8 Kupferports, keine SFP/Runtime-Felder).  i01 = PoE Out  u:[off,on,auto].
-# Guard-Rails: writable-Flag Pflicht, --dry-run als Default, Snapshot vor der
-# ersten Aenderung, Read-back-Verify, genau ein Feld/Port pro Write.
+# Schreiben (Stufe 2) — nur css610_new, nur poe.b. Format per DevTools-/HAR-
+# Capture (.215) + engine.js-Feldtabelle verifiziert (CR4426), nicht geraten:
+#   POST /poe.b  Content-Type text/plain  Body = Teil-Blob {i01,i02,i03,i0a}
+#   (Arrays 8 = Kupferports, keine SFP).  i01=PoE Out, i03=Voltage Level.
+# Muster: GET -> schreibbaren Feld-Subset uebernehmen -> nur Zielfeld ersetzen
+# -> POST -> Read-back-Verify. Guard-Rails: writable-Flag Pflicht, --dry-run als
+# Default, Snapshot vor der ersten Aenderung, ein Feld/Port pro Write.
+#
+# BEWUSST NICHT umgesetzt (Format verifiziert, aber Semantik/Sicherheit offen —
+# siehe SKILL.md und CR4426-Handoff):
+#   poe-priority (poe.b i02) : eindeutiger Rang/Permutation, kein Skalar je Port.
+#   portname (link.b i0a)    : link.b-Write hat Enabled-Maske umgeworfen; Config-
+#                              Quelle ist der GET (nicht .swb), Write-Nebeneffekt
+#                              erst kontrolliert nachzuweisen.
+#   pvid (fwd.b i18), vlan-set (vlan.b) : gleicher link/fwd/vlan-Write-Pfad.
 # ---------------------------------------------------------------------------
 
-POE_OUT_MODES = {"off": 0, "on": 1, "auto": 2}    # engine.js i01 u:[]
+POE_OUT_MODES = {"off": 0, "on": 1, "auto": 2}       # engine.js poe.b i01 u:[]
 POE_OUT_NAMES = {v: k for k, v in POE_OUT_MODES.items()}
+POE_VOLT_MODES = {"auto": 0, "low": 1, "high": 2}    # engine.js poe.b i03 u:[]
+POE_VOLT_NAMES = {v: k for k, v in POE_VOLT_MODES.items()}
+
+POST_FIELDS = {
+    "poe.b": ["i01", "i02", "i03", "i0a"],
+}
 
 
 def _blob_hex(v):
-    return f"0x{v & 0xff:02x}"
+    return f"0x{int(v):02x}"
 
 
 def _blob_arr(vals):
     return "[" + ",".join(_blob_hex(v) for v in vals) + "]"
+
+
+def _ser(v):
+    """Serialisiert einen geparsten Blob-Wert zurueck ins SwOS-Format
+    (dict/list/int/quoted-hex-string) — genau wie die SwOS-UI ihn sendet."""
+    if isinstance(v, list):
+        return "[" + ",".join(_ser(x) for x in v) + "]"
+    if isinstance(v, dict):
+        return "{" + ",".join(f"{k}:{_ser(x)}" for k, x in v.items()) + "}"
+    if isinstance(v, str):
+        return "'" + v + "'"          # Quoted-Hex-String (vom Parser roh gehalten)
+    if isinstance(v, int):
+        return _blob_hex(v)
+    raise SystemExit(f"nicht serialisierbarer Wert: {v!r}")
+
+
+def _norm(v):
+    """Vergleichsnormalform: Hex-Strings case-insensitiv."""
+    if isinstance(v, list):
+        return [_norm(x) for x in v]
+    if isinstance(v, dict):
+        return {k: _norm(x) for k, x in v.items()}
+    if isinstance(v, str):
+        return v.lower()
+    return v
 
 
 def _snapshot_once(target):
@@ -816,91 +856,135 @@ def _snapshot_once(target):
     return path, True
 
 
-def cmd_poe_out(args):
-    port = args.port
-    mode = args.mode
-    target_val = POE_OUT_MODES[mode]
-
-    # 1) nur freigegebene Inventory-Switches — kein --ip/--swb-Blindwrite
+def _write_guard(args, cmd):
+    """Gemeinsame Guard-Rails: nur writable Inventory-Switch, nur css610_new.
+    Liefert das Target."""
     if args.swb:
-        raise SystemExit("poe-out: --swb ist offline, kein Schreibziel.")
+        raise SystemExit(f"{cmd}: --swb ist offline, kein Schreibziel.")
     inv = load_inventory()
     sw = inv.get("switches", {}).get(args.switch or "")
     if sw is None:
-        raise SystemExit(f"poe-out: '{args.switch}' nicht im Inventory — Schreibzugriff "
+        raise SystemExit(f"{cmd}: '{args.switch}' nicht im Inventory — Schreibzugriff "
                          "nur auf freigegebene Inventory-Switches.")
     if not sw.get("writable"):
-        raise SystemExit(f"poe-out: '{args.switch}' ist nicht als writable markiert "
+        raise SystemExit(f"{cmd}: '{args.switch}' ist nicht als writable markiert "
                          "(Inventory-Flag \"writable\": true fehlt). Schreibzugriff nur "
                          "auf freigegebenen Sandkasten-Switches.")
-
     target = make_target(args)
-
-    # 2) Dialekt absichern — Write-Format bisher nur fuer css610_new verifiziert
     sysobj = target.get("sys.b")
     if not isinstance(sysobj, dict):
         raise SystemExit(f"[{target.name}] sys.b nicht lesbar")
     dia = detect_dialect(sysobj)
     if dia != "css610_new":
-        raise SystemExit(f"poe-out: Write-Format bisher nur fuer css610_new verifiziert, "
-                         f"'{target.name}' ist {dia}. Erst per DevTools-Capture verifizieren "
-                         "(css326 hat kein PoE; swos_lite/CSS106 fuehrt PoE in link.b).")
+        raise SystemExit(f"{cmd}: Write-Format bisher nur fuer css610_new verifiziert, "
+                         f"'{target.name}' ist {dia}. Erst per DevTools/HAR-Capture verifizieren.")
+    return target
 
-    # 3) aktuellen poe.b lesen, Config-Felder uebernehmen (nur 8 Kupferports)
-    poe = target.get("poe.b")
-    if not isinstance(poe, dict) or "i01" not in poe:
-        raise SystemExit(f"[{target.name}] poe.b nicht lesbar")
-    i01 = list(poe["i01"])[:8]
-    i02 = list(poe.get("i02", []))[:8]
-    i03 = list(poe.get("i03", []))[:8]
-    i0a = poe.get("i0a", 0)
-    if not (1 <= port <= len(i01)):
-        raise SystemExit(f"poe-out: Port {port} ungueltig (1..{len(i01)}; "
-                         "SFP-Ports haben kein PoE).")
 
-    cur_val = i01[port - 1]
-    new_i01 = list(i01)
-    new_i01[port - 1] = target_val
-    body = ("{i01:" + _blob_arr(new_i01) +
-            ",i02:" + _blob_arr(i02) +
-            ",i03:" + _blob_arr(i03) +
-            ",i0a:" + _blob_hex(i0a) + "}")
+def _post_subset(target, endpoint, width=None):
+    """Aktuellen GET lesen und den schreibbaren Feld-Subset (POST_FIELDS) als
+    frische Kopie zurueckgeben. `width` schneidet Array-Felder ab (poe.b: 8)."""
+    cur = target.get(endpoint)
+    if not isinstance(cur, dict):
+        raise SystemExit(f"[{target.name}] {endpoint} nicht lesbar")
+    post = {}
+    for f in POST_FIELDS[endpoint]:
+        if f not in cur:
+            raise SystemExit(f"[{target.name}] {endpoint}: Feld {f} fehlt im aktuellen Blob")
+        v = cur[f]
+        if isinstance(v, list):
+            v = list(v)[:width] if width else list(v)
+        post[f] = v
+    return cur, post
 
-    cur_name = POE_OUT_NAMES.get(cur_val, f"0x{cur_val:02x}")
-    print(f"# {target.name}  PoE Out  Port {port}: {cur_name} -> {mode}")
-    print(f"  i01 aktuell : {_blob_arr(i01)}")
-    print(f"  i01 geplant : {_blob_arr(new_i01)}")
-    if cur_val == target_val:
-        print("  (keine Aenderung — Port steht bereits auf diesem Modus)")
+
+def _verify_subset(back, expected, width=None):
+    """Read-back gegen den gesendeten Subset pruefen: jedes gepostete Feld muss
+    exakt so zurueckkommen (nur Config-Felder, keine Runtime-Counter)."""
+    if not isinstance(back, dict):
+        return False, "kein Objekt zurueck"
+    for f, ev in expected.items():
+        bv = back.get(f)
+        if width is not None and isinstance(ev, list) and isinstance(bv, list):
+            bv = bv[:width]
+        if _norm(bv) != _norm(ev):
+            return False, f"{f}: read-back {bv} != erwartet {ev}"
+    return True, ""
+
+
+def _commit_write(target, endpoint, payload, describe, args, ok_msg,
+                  width=None, verify_fn=None):
+    """Dry-run/Commit-Pfad: Anzeige -> (bei --commit) Snapshot -> POST ->
+    Read-back-Verify. `payload` = zu postender Wert (dict oder list)."""
+    body = _ser(payload)
+    for line in describe:
+        print(line)
     print(f"  POST-Body   : {body}")
-
     if not args.commit:
         print("\n  DRY-RUN — nichts gesendet. Zum Ausfuehren --commit anhaengen.")
         return
-
-    # 4) Commit: Snapshot-once -> POST -> Read-back-Verify
     snap, fresh = _snapshot_once(target)
     print(f"\n  Snapshot    : {snap}" +
           ("  (neu gezogen)" if fresh else "  (bereits vorhanden)"))
-    target.post_blob("poe.b", body)
+    target.post_blob(endpoint, body)
     print("  POST        : gesendet")
-
-    target._cache.pop("poe.b", None)
-    back = target.get("poe.b")
-    if not isinstance(back, dict):
-        raise SystemExit(f"[{target.name}] Read-back: poe.b nicht lesbar — MANUELL PRUEFEN")
-    b01 = list(back.get("i01", []))[:8]
-    ok = (len(b01) >= port and b01[port - 1] == target_val and b01 == new_i01 and
-          list(back.get("i02", []))[:8] == i02 and
-          list(back.get("i03", []))[:8] == i03 and
-          back.get("i0a", 0) == i0a)
-    if ok:
-        print(f"  Verify      : OK — Port {port} jetzt '{mode}', sonst unveraendert.")
+    target._cache.pop(endpoint, None)
+    back = target.get(endpoint)
+    if verify_fn is not None:
+        ok, why = verify_fn(back)
     else:
-        print(f"  Verify      : FEHLGESCHLAGEN — i01 read-back {_blob_arr(b01)} "
-              f"(erwartet {_blob_arr(new_i01)}).")
+        ok, why = _verify_subset(back, payload, width)
+    if ok:
+        print(f"  Verify      : OK — {ok_msg}")
+    else:
+        print(f"  Verify      : FEHLGESCHLAGEN — {why}")
         raise SystemExit(f"[{target.name}] Read-back-Verify fehlgeschlagen — Zustand "
                          f"pruefen, ggf. Snapshot zurueckspielen: {snap}")
+
+
+def _port_in_range(cmd, port, n, extra=""):
+    if not (1 <= port <= n):
+        raise SystemExit(f"{cmd}: Port {port} ungueltig (1..{n}{extra}).")
+
+
+def cmd_poe_out(args):
+    target = _write_guard(args, "poe-out")
+    cur, post = _post_subset(target, "poe.b", width=8)
+    i01 = list(post["i01"])
+    _port_in_range("poe-out", args.port, len(i01), "; SFP-Ports haben kein PoE")
+    tv = POE_OUT_MODES[args.mode]
+    cur_val = i01[args.port - 1]
+    i01[args.port - 1] = tv
+    post["i01"] = i01
+    describe = [
+        f"# {target.name}  PoE Out  Port {args.port}: "
+        f"{POE_OUT_NAMES.get(cur_val, hex(cur_val))} -> {args.mode}",
+        f"  i01 aktuell : {_blob_arr(cur['i01'][:8])}",
+        f"  i01 geplant : {_blob_arr(i01)}",
+    ]
+    if cur_val == tv:
+        describe.append("  (keine Aenderung — Port steht bereits auf diesem Modus)")
+    _commit_write(target, "poe.b", post, describe, args,
+                  f"Port {args.port} jetzt '{args.mode}', sonst unveraendert.", width=8)
+
+
+def cmd_poe_voltage(args):
+    target = _write_guard(args, "poe-voltage")
+    cur, post = _post_subset(target, "poe.b", width=8)
+    i03 = list(post["i03"])
+    _port_in_range("poe-voltage", args.port, len(i03))
+    tv = POE_VOLT_MODES[args.mode]
+    old = i03[args.port - 1]
+    i03[args.port - 1] = tv
+    post["i03"] = i03
+    describe = [
+        f"# {target.name}  PoE Voltage Level  Port {args.port}: "
+        f"{POE_VOLT_NAMES.get(old, hex(old))} -> {args.mode}",
+        f"  i03 aktuell : {_blob_arr(cur['i03'][:8])}",
+        f"  i03 geplant : {_blob_arr(i03)}",
+    ]
+    _commit_write(target, "poe.b", post, describe, args,
+                  f"Port {args.port} Voltage Level '{args.mode}'.", width=8)
 
 
 def main():
@@ -925,26 +1009,39 @@ def main():
     add_target_args(p)
     p.add_argument("--output", help="Zieldatei (default: <switch>.swb)")
 
+    def _commit_arg(p):
+        p.add_argument("--commit", action="store_true",
+                       help="tatsaechlich senden (Default: Dry-Run, sendet nichts)")
+
     p = sub.add_parser("poe-out",
                        help="PoE Out je Port setzen (Stufe 2, schreibend)")
     add_target_args(p)
-    p.add_argument("--port", type=int, required=True,
-                   help="Portnummer (1-basiert, Kupferport)")
-    p.add_argument("--to", dest="mode", required=True,
-                   choices=["off", "on", "auto"],
+    p.add_argument("--port", type=int, required=True, help="Portnummer (1-basiert)")
+    p.add_argument("--to", dest="mode", required=True, choices=["off", "on", "auto"],
                    help="PoE Out Zielwert: off | on (forced) | auto")
-    p.add_argument("--commit", action="store_true",
-                   help="tatsaechlich senden (Default: Dry-Run, sendet nichts)")
+    _commit_arg(p)
+
+    p = sub.add_parser("poe-voltage",
+                       help="PoE Voltage Level je Port setzen (Stufe 2, schreibend)")
+    add_target_args(p)
+    p.add_argument("--port", type=int, required=True, help="Portnummer (1-basiert)")
+    p.add_argument("--to", dest="mode", required=True, choices=["auto", "low", "high"],
+                   help="Voltage Level: auto | low | high")
+    _commit_arg(p)
 
     args = ap.parse_args()
+    dispatch = {
+        "poe-out": cmd_poe_out,
+        "poe-voltage": cmd_poe_voltage,
+    }
     if args.cmd == "list":
         cmd_list(args)
     elif args.cmd == "raw":
         cmd_raw(args)
     elif args.cmd == "backup":
         cmd_backup(args)
-    elif args.cmd == "poe-out":
-        cmd_poe_out(args)
+    elif args.cmd in dispatch:
+        dispatch[args.cmd](args)
     else:
         cmd_view(args, args.cmd)
 

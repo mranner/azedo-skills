@@ -1,5 +1,8 @@
 # Reale Inventory mit IPs/Credential-Refs — nie einchecken
 inventory.json
 
+# Snapshots/Backups (.swb enthaelt das Digest-Passwort hex-kodiert)
+.tmp/
+
 __pycache__/
 *.pyc

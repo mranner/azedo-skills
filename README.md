@@ -414,6 +414,25 @@ Credentials in `.env`: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` (Auffindung wie 
 
 ## Changelog
 
+### 1.26.1
+
+- **swos: zweiter Schreibbefehl `poe-voltage` (poe.b i03) + gemeinsame Write-Basis + harte
+  Sicherheits-Lehren aus dem Live-Test (CR4426).** `swos poe-voltage <sw> --port <n> --to
+  auto|low|high [--commit]` setzt das PoE „Voltage Level" (`engine.js` `i03 u:[auto,low,high]`).
+  Der Write-Pfad wurde auf eine gemeinsame Basis refaktoriert (generischer Blob-Serializer,
+  `_write_guard`/`_post_subset`/`_commit_write`, Read-back-Verify) — `poe-out` und `poe-voltage`
+  teilen sie, beide live an `.215` verifiziert (Ändern + Read-back + Restore). **Bewusst NICHT
+  ausgeliefert** (Format zwar aus einem vollständigen HAR verifiziert, aber der Read-back-Verify
+  hat beim Live-Test echte Probleme abgefangen): `poe-priority` — PoE-Priority ist ein **eindeutiger
+  Rang/Permutation**, kein Skalar je Port (Switch schichtet um); `portname`/`pvid`/`vlan-set` —
+  ein `link.b`-Testwrite hat die **Enabled-Maske umgeworfen** (Ports deaktiviert). **Zentrale
+  Lehre, jetzt dokumentiert:** Config-Basis für Writes ist **immer der Live-GET** (nachweislich
+  config-treu, Feld-für-Feld deckungsgleich mit der SwOS-Web-UI), **niemals** der `.swb`-Parser
+  (lieferte falsche Bitmasken `0x37f/0x3ff` statt `0x37/0x3f`, was einen Fix-POST scheitern ließ).
+  Diese vier Befehle kehren erst nach kontrolliertem Nachweis ihres Write-Nebeneffekts zurück.
+  Inventory-`writable`-Flag, `--dry-run`-Default, Snapshot-once und Nur-`css610_new`/`direct`
+  gelten unverändert. SKILL.md-Schreib-Sektion überarbeitet.
+
 ### 1.26.0
 
 - **swos: erster Schreibbefehl `poe-out` (Stufe 2) — PoE Out je Port setzen, Format verifiziert
