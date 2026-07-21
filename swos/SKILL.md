@@ -109,14 +109,18 @@ ODER `cred: "<name>"` -> `credentials.<name>` mit `password` / `password_env` / 
 - **Link/Speed** wird noch nicht dekodiert (Speed-Codes modellabhaengig, unsicher).
 - **ssh-curl** macht pro Endpoint eine SSH-Session; `all` = mehrere Sessions (funktioniert,
   aber nicht gebuendelt).
-- **Dialekt-Fehlerkennung bei frischen `.swb`-Backups (CSS610):** Ein per `backup` gezogenes
-  `.swb` eines CSS610 mit `css610_new`-Live-Dialekt wird von `detect_dialect()` teils als
-  `css610_old` erkannt (Backup-`sys.b` enthaelt sowohl `F`- als auch `J`-Keys, was aktuell fest
-  als `css610_old`-Signatur gilt) — Modell/Version/MAC/Serial/Portnamen fallen dann auf
-  Fallback-Werte zurueck. VLAN/PVID/PoE bleiben korrekt (andere Felder). Live vs. `.swb` scheinen
-  fuer denselben physischen Switch unterschiedliche Key-Dialekte zu verwenden; noch nicht
-  gegen `engine.js` verifiziert, daher hier nur dokumentiert statt gefixt (2026-07-21,
-  aufgefallen an `swbs02poe`/CR4369).
+- **`.swb`-Backups (jede CSS610-Generation) nutzen immer das alte Einzelbuchstaben-Schema.**
+  Ein per `backup` gezogenes `.swb` traegt in `sys.b` `F`+`J`-Keys, egal ob das Geraet live
+  `css610_new` (numerische `i0x`-Keys) oder `css610_old` meldet — `detect_dialect()` erkennt
+  Backups deshalb immer als `css610_old`. Das ist fuer VLAN/PVID/PoE/Portnamen korrekt (alle vier
+  Felder sind unter den `css610_old`-Buchstaben-Keys vorhanden und werden richtig dekodiert,
+  `portnames` seit 2026-07-21 auf Key `K` gemappt — Gegenprobe an einem echten Alt-FW-Fixture
+  [`swvspoe1.swb`] und einem frischen Neu-FW-Backup [`swbs02poe`/CR4369] verifiziert, beide
+  liefern jetzt die realen Namen `Port1..8`/`SFP+1`/`SFP+2` statt der Modell-Fallbacks).
+- **Modell/Version/MAC/Serial fehlen in `.swb`-Backups grundsaetzlich** (CSS610, beide FW-Stufen
+  gegengeprueft) — das ist keine Dialekt-Verwechslung, sondern eine Eigenschaft des Backup-Formats
+  selbst (Config-Backup, keine Identitaets-/Hardware-Daten). Bleibt `?` in der Ausgabe; noch nicht
+  gegen `engine.js` verifiziert, ob es unter einem bisher ungenutzten Key doch vorliegt.
 
 ## Hinweise
 

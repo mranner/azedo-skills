@@ -414,6 +414,22 @@ Credentials in `.env`: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` (Auffindung wie 
 
 ## Changelog
 
+### 1.25.3
+
+- **swos: Dialekt-Bug gefixt — `.swb`-Backups verlieren nicht mehr die echten Portnamen.**
+  `.swb`-Backups jeder CSS610-Generation tragen in `sys.b` sowohl `F`- als auch `J`-Keys, egal ob
+  das Geraet live `css610_new` oder `css610_old` meldet — `detect_dialect()` erkennt Backups
+  deshalb immer als `css610_old`. VLAN/PVID/PoE waren davon nicht betroffen (korrekt unter den
+  `css610_old`-Buchstaben-Keys dekodiert), aber `portnames` stand faelschlich auf `None` und fiel
+  immer auf die generischen `ether1..8`/`SFP+1/2`-Fallbacks zurueck, obwohl `link.b` unter Key `K`
+  die echten Namen (`Port1..8`/`SFP+1`/`SFP+2`) enthaelt. Fix: `css610_old.portnames = "K"`.
+  Gegenprobe an zwei unabhaengigen `.swb`-Quellen: dem echten Alt-FW-Fixture `swvspoe1.swb`
+  (site1-Nightly) und einem frischen Neu-FW-Backup von `swbs02poe` (CR4369, per `backup`
+  gezogen) — beide liefern jetzt die realen Portnamen. Modell/Version/MAC/Serial bleiben `?`:
+  das ist keine Dialekt-Verwechslung mehr, sondern fehlt in **beiden** Referenz-Backups
+  gleichermassen und damit vermutlich grundsaetzlich im `.swb`-Format (Config-Backup ohne
+  Identitaets-/Hardware-Daten) — dokumentiert statt geraten.
+
 ### 1.25.2
 
 - **swos: neuer Subcommand `backup` (Live-Backup ziehen, GET `/backup.swb`).** Referenz-Fund:

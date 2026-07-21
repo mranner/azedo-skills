@@ -2,7 +2,7 @@
 
 # MikroTik SwOS read-only query helper
 # stdlib only, no pip dependencies
-# version 1.25.2
+# version 1.25.3
 #
 # Ein gemeinsamer Decoder, drei Transporte:
 #   A) direct   – urllib HTTP-Digest direkt auf die Switch-IP (Runner routbar)
@@ -234,7 +234,7 @@ DIALECTS = {
         "mac": None, "serial": None,
         "ip_cur": ("J",), "ip_stat": None,
         "temp": None, "uptime": None,
-        "portnames": None, "vlan": "B_C", "pvid": "Y", "poe": "poe_E",
+        "portnames": "K", "vlan": "B_C", "pvid": "Y", "poe": "poe_E",
     },
 }
 
