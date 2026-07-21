@@ -2,7 +2,7 @@
 
 # Kanboard JSON-RPC 2.0 API helper
 # stdlib only, no pip dependencies
-# version 1.21.0
+# version 1.25.0
 
 import argparse
 import base64
@@ -531,22 +531,71 @@ def _search_summary(pid, pname, query, active_only):
     return rows
 
 
+SEARCH_FIELDS = ("title", "description", "comment")
+
+
+def _field_query(field, term):
+    """Wrap a plain search term into a single-field Kanboard query.
+
+    Kanboard's searchTasks matches a bare term against the TITLE only; the body
+    and comments need the explicit 'description:' / 'comment:' operators. Terms
+    with whitespace are quoted so the parser keeps them as one phrase.
+    """
+    q = '"%s"' % term if any(c.isspace() for c in term) else term
+    return "%s:%s" % (field, q)
+
+
 def cmd_search(args):
     """Find tasks by keyword across all accessible projects (or one via --project).
 
     Uses Kanboard's searchTasks, so the query understands the same operators as
     the web UI (e.g. 'status:open', 'assignee:mmuster', 'title:...'). By default
     only open tasks are shown; --all includes closed ones.
+
+    A bare term matches only the TITLE. To search body/comments too, pass
+    --anywhere (title+description+comment) or --in <fields>; in that mode the
+    query is treated as a plain term, wrapped into each field filter, and the
+    per-field hits are unioned (deduped by id, with a matched_in list).
     """
     projects = _accessible_projects()
     if args.project:
         pid = resolve_project(args.project)
         projects = {pid: projects.get(pid, "")}
 
-    results = []
+    active_only = not args.all
+
+    fields = None
+    if args.anywhere:
+        fields = list(SEARCH_FIELDS)
+    elif args.in_fields:
+        fields = [f.strip().lower() for f in args.in_fields.split(",") if f.strip()]
+        bad = [f for f in fields if f not in SEARCH_FIELDS]
+        if bad:
+            print("Error: unbekannte(s) Feld(er) fuer --in: %s (erlaubt: %s)"
+                  % (", ".join(bad), ", ".join(SEARCH_FIELDS)), file=sys.stderr)
+            sys.exit(1)
+
+    # Klassischer Modus: Query 1:1 an searchTasks durchreichen
+    if not fields:
+        results = []
+        for pid, pname in projects.items():
+            results.extend(_search_summary(pid, pname, args.query, active_only=active_only))
+        output(results)
+        return
+
+    # Feld-uebergreifend: pro Feld eine Query, Union nach id (matched_in merkt sich das Feld)
+    by_id = {}
+    order = []
     for pid, pname in projects.items():
-        results.extend(_search_summary(pid, pname, args.query, active_only=not args.all))
-    output(results)
+        for field in fields:
+            for row in _search_summary(pid, pname, _field_query(field, args.query), active_only=active_only):
+                rid = row["id"]
+                if rid not in by_id:
+                    by_id[rid] = dict(row, matched_in=[])
+                    order.append(rid)
+                if field not in by_id[rid]["matched_in"]:
+                    by_id[rid]["matched_in"].append(field)
+    output([by_id[i] for i in order])
 
 
 def cmd_my_tasks(args):
@@ -1212,6 +1261,10 @@ def main():
     p.add_argument("query", help="Suchtext oder Kanboard-Query (z.B. 'status:open assignee:mmuster')")
     p.add_argument("--project", help="nur in diesem Projekt suchen (Default: alle zugaenglichen)")
     p.add_argument("--all", action="store_true", help="auch geschlossene Tasks einbeziehen")
+    p.add_argument("--anywhere", action="store_true",
+                   help="query als reinen Begriff in Titel+Beschreibung+Kommentar suchen (Union); Kurzform fuer --in title,description,comment")
+    p.add_argument("--in", dest="in_fields", metavar="FELDER",
+                   help="Felder komma-separiert (title,description,comment); query wird als reiner Begriff behandelt")
     p.set_defaults(func=cmd_search)
 
     # my-tasks (offene Tasks eines Users projektuebergreifend)

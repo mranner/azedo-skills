@@ -167,15 +167,66 @@ python3 "$SKILL_DIR/kanboard" list-tasks --project <name|id> [--column <name>] [
 ### Tasks suchen (Stichwort/Query)
 
 ```bash
-python3 "$SKILL_DIR/kanboard" search "<text>" [--project <name|id>] [--all]
+python3 "$SKILL_DIR/kanboard" search "<text>" [--project <name|id>] [--all] [--anywhere | --in <felder>]
 ```
 
 Findet Tasks per Stichwort — praktisch, wenn die Task-ID unbekannt ist. Ohne
-`--project` wird ueber **alle** zugaenglichen Projekte gesucht. Die Query versteht
-dieselben Operatoren wie die Web-Oberflaeche, z.B. `status:open`,
-`assignee:mmuster`, `title:...`, `color:...`. Standardmaessig nur **offene** Tasks;
-`--all` bezieht geschlossene mit ein. Ausgabe: `id`, `title`, `project_name`,
-`column`, `owner`, `is_active` pro Treffer.
+`--project` wird ueber **alle** zugaenglichen Projekte gesucht. Standardmaessig nur
+**offene** Tasks; `--all` bezieht geschlossene mit ein. Ausgabe: `id`, `title`,
+`project_name`, `column`, `owner`, `is_active` pro Treffer.
+
+#### ⚠️ Ein bloßes Wort trifft nur den Titel
+
+Die groesste Falle: Die Query geht 1:1 an Kanboards `searchTasks`, und ein
+**unqualifiziertes** Stichwort matcht **ausschliesslich den Titel**. Steht der
+gesuchte String nur in der **Beschreibung** oder in einem **Kommentar**, liefert
+`search "printsrv"` faelschlich **nichts** — obwohl der Text existiert. Dann den
+passenden Feld-Filter verwenden (oder `--anywhere`, siehe unten).
+
+#### Feld-Filter (nativ von Kanboard, case-insensitiv, Teilstring)
+
+Alle drei Text-Felder sind einzeln durchsuchbar; der Match ist **gross/klein-egal**
+und ein Teilstring:
+
+| Query | sucht in |
+|---|---|
+| `printsrv` (bloß) | **nur Titel** |
+| `title:printsrv` | Titel (explizit) |
+| `description:printsrv` | Beschreibung |
+| `comment:printsrv` | Kommentartext |
+
+Weitere native Operatoren wie in der Web-Oberflaeche: `status:open|closed`,
+`assignee:mmuster`, `column:...`, `swimlane:...`, `color:...`, `category:...`,
+`tag:...`, Datums-Filter (`created:`, `modified:`, `due:` mit `>=`, `T-2d` …).
+
+**AND/ODER-Semantik:** *verschiedene* Felder in einer Query werden **UND**-verknuepft
+(`title:site1 description:Drucker` = beides), **dasselbe** Feld doppelt wird
+**ODER**-verknuepft (`description:A description:B` = A oder B). Phrasen mit Leerzeichen
+quoten: `description:"neue WLAN"`.
+
+#### `--anywhere` / `--in` — über mehrere Felder gleichzeitig
+
+Kanboard kennt **keinen** Operator, der Titel *oder* Beschreibung *oder* Kommentar in
+**einer** Query trifft. Dafuer kapselt der Skill die Mehrfeld-Suche: die `query` wird
+als **reiner Begriff** behandelt, in jeden gewaehlten Feld-Filter gewickelt, und die
+Treffer werden nach `id` **unioniert**. Jeder Treffer bekommt zusaetzlich
+`matched_in` (Liste der Felder, in denen er gefunden wurde).
+
+```bash
+# Titel + Beschreibung + Kommentar (der haeufige "finde das irgendwo"-Fall)
+python3 "$SKILL_DIR/kanboard" search "print_and_follow" --all --anywhere
+
+# nur eine Teilmenge der Felder
+python3 "$SKILL_DIR/kanboard" search "Drucker" --all --in description,comment
+```
+
+`--anywhere` ist die Kurzform fuer `--in title,description,comment`. Erlaubte Felder:
+`title`, `description`, `comment`. In diesem Modus **keine** Kanboard-Operatoren in die
+`query` schreiben (sie wird ja selbst als Suchbegriff gequotet) — Filter wie
+`status:`/`assignee:` gehoeren in den klassischen Modus ohne `--anywhere`/`--in`.
+
+**Faustregel:** String-Suche nach etwas, das evtl. nicht im Titel steht → `--anywhere`.
+Gezielte Filter-Query (Status, Assignee, ein bestimmtes Feld) → klassischer Modus.
 
 ### Eigene Tasks (projektuebergreifend)
 
