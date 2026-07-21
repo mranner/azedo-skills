@@ -86,7 +86,7 @@ Digest-Passwort hex-kodiert (`.pwd.b`) — nicht unbedacht weitergeben oder an T
 
 ## Schreiben (Stufe 2) — `poe.b`, `link.b`, `fwd.b`, `vlan.b`
 
-**Acht** Schreibbefehle sind freigegeben, alle live an `.215` verifiziert (ändern → Read-back →
+**Neun** Schreibbefehle sind freigegeben, alle live an `.215` verifiziert (ändern → Read-back →
 Restore). Format je Endpoint aus DevTools-/HAR-Capture `.215` + `engine.js` hart abgeleitet (CR4426):
 
 ```bash
@@ -96,6 +96,7 @@ swos portname    <ziel> --port <n> --name <text>         [--commit]   # Port-Nam
 swos port-enable <ziel> --port <n> --to on|off  [--force] [--commit]   # Enabled (link.b i01)
 swos autoneg     <ziel> --port <n> --to on|off  [--force] [--commit]   # Auto Negotiation (link.b i02)
 swos duplex      <ziel> --port <n> --to on|off  [--force] [--commit]   # Full Duplex (link.b i03)
+swos speed       <ziel> --port 1..8 --to 10|100|1000 [--force][--commit]  # Forced Speed Mbit/s (link.b i05)
 swos pvid        <ziel> --port <n> --vid <1..4095>        [--commit]   # Default VLAN ID / PVID (fwd.b i18)
 swos vlan-set    <ziel> --vid <1..4095> --members 1,2,9   [--commit]   # VLAN-Membership (vlan.b), legt an falls neu
 ```
@@ -106,9 +107,10 @@ Abbruch) — er könnte den Mgmt-/Uplink-Verkehr tragen, und Enable/Auto-Neg/Dup
 den Link stören. Der Dry-Run zeigt die Vorschau trotzdem; nur der `--commit` erzwingt `--force`.
 No-op (Zielwert = Ist) löst nie den Guard aus.
 
-**Speed** (`link.b i05`, Forced-Speed je Port) ist bewusst **nicht** umgesetzt: die Index→Speed-Enum
-ist in `engine.js` dynamisch je Port befüllt (`a=[]`) und wird nur bei Auto-Neg=off wirksam — erst
-nach sauberem Capture der Dropdown-Werte, nicht geraten.
+**`speed`** (`link.b i05`, Forced-Speed) — nur **Kupferports 1–8** (Dropdown `10`/`100`/`1000`
+Mbit/s → Index `0`/`1`/`2`, per UI verifiziert; SFP+ 9/10 haben andere Werte → abgelehnt). Wirkt
+**nur bei Auto-Neg=off** für den Port — bei Auto-Neg=on wird der Wert gespeichert, aber der Dry-Run
+weist darauf hin, dass er erst nach `autoneg off` greift. Link-Guard wie oben.
 
 Mechanik überall gleich (**wie die SwOS-Web-UI**): GET des Endpoints (= config-treu, s. u.) →
 schreibbaren Feld-Subset übernehmen → **nur das Zielfeld** ersetzen → `POST /<ep>.b`

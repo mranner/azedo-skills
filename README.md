@@ -414,6 +414,17 @@ Credentials in `.env`: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` (Auffindung wie 
 
 ## Changelog
 
+### 1.26.5
+
+- **swos: neunter Schreibbefehl `speed` (link.b i05, Forced Speed je Kupferport) — Enum aus der
+  UI verifiziert (CR4426).** `swos speed <sw> --port 1..8 --to 10|100|1000 [--force] [--commit]`.
+  Die Index→Speed-Enum (`engine.js` `a=[]`, dynamisch je Port) wurde per DevTools-Capture +
+  Nutzerangabe der Dropdown-Werte geklärt: `0`=10, `1`=100, `2`=1000 Mbit/s (Kupferports; SFP+ 9/10
+  haben andere Werte → abgelehnt). Wirkt nur bei Auto-Neg=off; der Dry-Run weist darauf hin, wenn
+  Auto-Neg für den Port noch on ist. Link-/Lockout-Guard wie bei den übrigen link.b-Writes
+  (Änderung an Port mit aktivem Link nur mit `--force`). Live an `.215` verifiziert (Port 7
+  1000→100→1000; zyklische Permutation der Ports 3/5/7 gegen die UI gegengeprüft).
+
 ### 1.26.4
 
 - **swos: `autoneg` (link.b i02) + `duplex` (link.b i03) — Auto Negotiation & Full Duplex je Port

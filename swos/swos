@@ -2,7 +2,7 @@
 
 # MikroTik SwOS query helper (read-only Stufe 1 + Schreibbefehle Stufe 2)
 # stdlib only, no pip dependencies
-# version 1.26.4
+# version 1.26.5
 #
 # Ein gemeinsamer Decoder, drei Transporte:
 #   A) direct   – urllib HTTP-Digest direkt auf die Switch-IP (Runner routbar)
@@ -13,7 +13,7 @@
 # `backup` zieht das Live-Backup (GET /backup.swb) -- reines Lesen (kein POST,
 # keine Config-Aenderung), bleibt also innerhalb von Stufe 1.
 # Schreibbefehle (Stufe 2, nur css610_new, POST /<ep>.b): poe-out/poe-voltage
-# (poe.b), portname/port-enable/autoneg/duplex (link.b), pvid (fwd.b), vlan-set
+# (poe.b), portname/port-enable/autoneg/duplex/speed (link.b), pvid (fwd.b), vlan-set
 # (vlan.b). writable-Flag Pflicht, --dry-run als Default, Snapshot + Read-back-
 # Verify, Hex byte-aligned. Siehe SKILL.md.
 
@@ -800,6 +800,10 @@ POE_OUT_MODES = {"off": 0, "on": 1, "auto": 2}       # engine.js poe.b i01 u:[]
 POE_OUT_NAMES = {v: k for k, v in POE_OUT_MODES.items()}
 POE_VOLT_MODES = {"auto": 0, "low": 1, "high": 2}    # engine.js poe.b i03 u:[]
 POE_VOLT_NAMES = {v: k for k, v in POE_VOLT_MODES.items()}
+# link.b i05 Forced-Speed-Index, Kupferports 1..8 (Dropdown 10/100/1000 Mbit/s,
+# per UI verifiziert). SFP+ 9/10 haben andere Werte -> nicht abgedeckt.
+SPEED_MODES = {"10": 0, "100": 1, "1000": 2}
+SPEED_NAMES = {v: k for k, v in SPEED_MODES.items()}
 
 POST_FIELDS = {
     "poe.b":  ["i01", "i02", "i03", "i0a"],
@@ -1059,6 +1063,36 @@ def cmd_duplex(args):
     _link_bit_write(args, "duplex", "i03", "Full Duplex")
 
 
+def cmd_speed(args):
+    target = _write_guard(args, "speed")
+    cur, post = _post_subset(target, "link.b")
+    if not (1 <= args.port <= 8):
+        raise SystemExit("speed: nur Kupferports 1..8 (SFP+ 9/10 haben andere "
+                         "Dropdown-Werte, nicht gecaptured).")
+    i05 = list(post["i05"])
+    tv = SPEED_MODES[args.to]
+    old = i05[args.port - 1]
+    changes = old != tv
+    has_link = bool((cur.get("i06", 0) >> (args.port - 1)) & 1)
+    if changes and has_link and not args.force and args.commit:
+        raise SystemExit(f"speed: Port {args.port} hat aktuell LINK (i06) — Aenderung nur "
+                         "mit --force (Speed-Wechsel kann den Link stoeren, evtl. Mgmt-/Uplink-Port).")
+    i05[args.port - 1] = tv
+    post["i05"] = i05
+    # Forced-Speed wirkt nur bei Auto-Neg=off fuer diesen Port
+    autoneg_on = bool((post.get("i02", 0) >> (args.port - 1)) & 1)
+    note = "  [Auto-Neg=on -> wirkt erst bei 'autoneg off']" if autoneg_on else ""
+    warn = "  [LINK aktiv!]" if (changes and has_link) else ""
+    describe = [
+        f"# {target.name}  Speed  Port {args.port}: "
+        f"{SPEED_NAMES.get(old, old)} -> {args.to} Mbit/s{note}{warn}",
+        f"  i05 aktuell : {_blob_arr(cur['i05'])}",
+        f"  i05 geplant : {_blob_arr(i05)}",
+    ]
+    _commit_write(target, "link.b", post, describe, args,
+                  f"Port {args.port} Speed = {args.to} Mbit/s, sonst unveraendert.")
+
+
 def cmd_pvid(args):
     target = _write_guard(args, "pvid")
     cur, post = _post_subset(target, "fwd.b")
@@ -1195,6 +1229,16 @@ def main():
                        help="Aenderung an Port mit aktivem Link erzwingen (Link-/Lockout-Gefahr)")
         _commit_arg(p)
 
+    p = sub.add_parser("speed",
+                       help="Forced Speed je Kupferport setzen (Stufe 2, schreibend)")
+    add_target_args(p)
+    p.add_argument("--port", type=int, required=True, help="Portnummer 1..8 (Kupfer)")
+    p.add_argument("--to", required=True, choices=["10", "100", "1000"],
+                   help="Speed in Mbit/s (nur bei Auto-Neg=off wirksam)")
+    p.add_argument("--force", action="store_true",
+                   help="Aenderung an Port mit aktivem Link erzwingen (Link-/Lockout-Gefahr)")
+    _commit_arg(p)
+
     p = sub.add_parser("pvid",
                        help="PVID (Default VLAN ID) je Port setzen (Stufe 2, schreibend)")
     add_target_args(p)
@@ -1218,6 +1262,7 @@ def main():
         "port-enable": cmd_port_enable,
         "autoneg": cmd_autoneg,
         "duplex": cmd_duplex,
+        "speed": cmd_speed,
         "pvid": cmd_pvid,
         "vlan-set": cmd_vlan,
     }
