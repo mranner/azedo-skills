@@ -70,12 +70,14 @@ if ! command -v python3 >/dev/null 2>&1; then
     echo "Folgende Eintraege in $SETTINGS unter permissions.allow ergaenzen:"
     echo "  Read($HOME/.claude/azedo-skills/**)"
     echo "  Read(~/.claude/azedo-skills/**)"
-    echo "  Write($HOME/.claude/azedo-skills/**)"
-    echo "  Write(~/.claude/azedo-skills/**)"
+    echo "  Edit($HOME/.claude/azedo-skills/**)"
+    echo "  Edit(~/.claude/azedo-skills/**)"
     echo "  Read($HOME/.claude/skills/**)"
     echo "  Read(~/.claude/skills/**)"
-    echo "  Write($HOME/.claude/skills/**)"
-    echo "  Write(~/.claude/skills/**)"
+    echo "  Edit($HOME/.claude/skills/**)"
+    echo "  Edit(~/.claude/skills/**)"
+    echo "(Falls noch alte Write(...)-Regeln fuer diese Pfade drinstehen: entfernen —"
+    echo " Write(path) wird ignoriert, Edit(path) deckt alle Datei-Tools ab.)"
     exit 0
 fi
 
@@ -91,10 +93,20 @@ needed = [
     'Bash(python3:*)',
     'Read(' + home + '/.claude/azedo-skills/**)',
     'Read(~/.claude/azedo-skills/**)',
-    'Write(' + home + '/.claude/azedo-skills/**)',
-    'Write(~/.claude/azedo-skills/**)',
+    'Edit(' + home + '/.claude/azedo-skills/**)',
+    'Edit(~/.claude/azedo-skills/**)',
     'Read(' + home + '/.claude/skills/**)',
     'Read(~/.claude/skills/**)',
+    'Edit(' + home + '/.claude/skills/**)',
+    'Edit(~/.claude/skills/**)',
+]
+
+# Fruehere Versionen trugen fuer diese Pfade Write(...)-Regeln ein. Die File-
+# Permission-Checks matchen Write(path) nicht (nur Edit(path) deckt alle
+# Datei-Tools ab) -> Claude Code warnt bei jedem Laden. Daher hier mit-entfernen.
+obsolete = [
+    'Write(' + home + '/.claude/azedo-skills/**)',
+    'Write(~/.claude/azedo-skills/**)',
     'Write(' + home + '/.claude/skills/**)',
     'Write(~/.claude/skills/**)',
 ]
@@ -107,22 +119,28 @@ else:
 
 allow = data.setdefault('permissions', {}).setdefault('allow', [])
 
+removed = [p for p in allow if p in obsolete]
+if removed:
+    allow[:] = [p for p in allow if p not in obsolete]
+
 added = []
 for perm in needed:
     if perm not in allow:
         allow.append(perm)
         added.append(perm)
 
-if added:
+if added or removed:
     with open(settings_path, 'w') as f:
         json.dump(data, f, indent=2)
         f.write('\n')
+    for p in removed:
+        print('  drop  ' + p + ' (obsolet: Write wird ignoriert)')
     for p in added:
         print('  perm  ' + p)
     print('')
-    print('Permissions eingetragen in ' + settings_path)
+    print('Permissions aktualisiert in ' + settings_path)
 else:
-    print('  Permissions bereits vorhanden.')
+    print('  Permissions bereits aktuell.')
 "
 
 echo ""
