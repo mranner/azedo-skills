@@ -414,6 +414,20 @@ Credentials in `.env`: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` (Auffindung wie 
 
 ## Changelog
 
+### 1.26.6
+
+- **swos: die restlichen `fwd.b`-VLAN-Port-Felder als Schreibbefehle — `vlan-mode` (i15),
+  `vlan-receive` (i17), `force-vlan-id` (i19) (CR4426).**
+  `swos vlan-mode <sw> --port <n> --to disabled|optional|strict`,
+  `swos vlan-receive … --to any|tagged|untagged`,
+  `swos force-vlan-id … --to on|off` (jeweils `[--force] [--commit]`). Werte aus `engine.js`
+  (`i15 u:[disabled,optional,strict]`, `i17 u:[any,only tagged,only untagged]`, `i19 t:D`
+  Per-Port-Bitmaske). Gemeinsamer `fwd.b`-Enum-Helfer (`_fwd_enum_write`) plus Bitmasken-Variante
+  für `force-vlan-id`; alle drei mit **Link-/Lockout-Schutz** (Änderung an Port mit aktivem Link
+  nur mit `--force`, da VLAN-Filterung den Zugriff kappen kann). Live an `.215` verifiziert (Ports
+  3/5/7 einzeln + permutiert gegen die UI gegengeprüft). Damit sind alle vier `fwd.b`-Portfelder
+  schreibbar (i15/i17/i18=PVID/i19). Zwölf Schreibbefehle gesamt.
+
 ### 1.26.5
 
 - **swos: neunter Schreibbefehl `speed` (link.b i05, Forced Speed je Kupferport) — Enum aus der

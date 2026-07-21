@@ -2,7 +2,7 @@
 
 # MikroTik SwOS query helper (read-only Stufe 1 + Schreibbefehle Stufe 2)
 # stdlib only, no pip dependencies
-# version 1.26.5
+# version 1.26.6
 #
 # Ein gemeinsamer Decoder, drei Transporte:
 #   A) direct   – urllib HTTP-Digest direkt auf die Switch-IP (Runner routbar)
@@ -13,7 +13,8 @@
 # `backup` zieht das Live-Backup (GET /backup.swb) -- reines Lesen (kein POST,
 # keine Config-Aenderung), bleibt also innerhalb von Stufe 1.
 # Schreibbefehle (Stufe 2, nur css610_new, POST /<ep>.b): poe-out/poe-voltage
-# (poe.b), portname/port-enable/autoneg/duplex/speed (link.b), pvid (fwd.b), vlan-set
+# (poe.b), portname/port-enable/autoneg/duplex/speed (link.b), pvid/vlan-mode/
+# vlan-receive/force-vlan-id (fwd.b), vlan-set
 # (vlan.b). writable-Flag Pflicht, --dry-run als Default, Snapshot + Read-back-
 # Verify, Hex byte-aligned. Siehe SKILL.md.
 
@@ -804,6 +805,11 @@ POE_VOLT_NAMES = {v: k for k, v in POE_VOLT_MODES.items()}
 # per UI verifiziert). SFP+ 9/10 haben andere Werte -> nicht abgedeckt.
 SPEED_MODES = {"10": 0, "100": 1, "1000": 2}
 SPEED_NAMES = {v: k for k, v in SPEED_MODES.items()}
+# fwd.b Per-Port-Enums (engine.js). VLAN Mode i15 / VLAN Receive i17.
+VLANMODE_MODES = {"disabled": 0, "optional": 1, "strict": 2}
+VLANMODE_NAMES = {v: k for k, v in VLANMODE_MODES.items()}
+VLANRECV_MODES = {"any": 0, "tagged": 1, "untagged": 2}   # engine.js: any / only tagged / only untagged
+VLANRECV_NAMES = {v: k for k, v in VLANRECV_MODES.items()}
 
 POST_FIELDS = {
     "poe.b":  ["i01", "i02", "i03", "i0a"],
@@ -1093,6 +1099,75 @@ def cmd_speed(args):
                   f"Port {args.port} Speed = {args.to} Mbit/s, sonst unveraendert.")
 
 
+def _fwd_enum_write(args, cmd, field, label, modes, names):
+    """Gemeinsam fuer fwd.b Per-Port-Enums (i15 VLAN Mode / i17 VLAN Receive):
+    ein Wert je Port. Link-Schutz: eine tatsaechliche Aenderung an einem Port mit
+    aktivem Link (i06 aus link.b) verlangt --force — VLAN-Filterung kann den
+    Zugriff kappen. Dry-Run zeigt Vorschau; erst --commit erzwingt --force."""
+    target = _write_guard(args, cmd)
+    cur, post = _post_subset(target, "fwd.b")
+    arr = list(post[field])
+    _port_in_range(cmd, args.port, len(arr))
+    tv = modes[args.to]
+    old = arr[args.port - 1]
+    changes = old != tv
+    i06 = (target.get("link.b") or {}).get("i06", 0)
+    has_link = bool((i06 >> (args.port - 1)) & 1)
+    if changes and has_link and not args.force and args.commit:
+        raise SystemExit(f"{cmd}: Port {args.port} hat aktuell LINK — Aenderung nur mit --force "
+                         "(VLAN-Filterung kann den Zugriff kappen, evtl. Mgmt-/Uplink-Port).")
+    arr[args.port - 1] = tv
+    post[field] = arr
+    warn = "  [LINK aktiv!]" if (changes and has_link) else ""
+    describe = [
+        f"# {target.name}  {label}  Port {args.port}: "
+        f"{names.get(old, old)} -> {args.to}{warn}",
+        f"  {field} aktuell : {_blob_arr(cur[field])}",
+        f"  {field} geplant : {_blob_arr(arr)}",
+    ]
+    _commit_write(target, "fwd.b", post, describe, args,
+                  f"Port {args.port} {label} = {args.to}, sonst unveraendert.")
+
+
+def cmd_vlan_mode(args):
+    _fwd_enum_write(args, "vlan-mode", "i15", "VLAN Mode",
+                    VLANMODE_MODES, VLANMODE_NAMES)
+
+
+def cmd_vlan_receive(args):
+    _fwd_enum_write(args, "vlan-receive", "i17", "VLAN Receive",
+                    VLANRECV_MODES, VLANRECV_NAMES)
+
+
+def cmd_force_vlan_id(args):
+    """Force VLAN ID je Port on/off (fwd.b i19, Per-Port-Bitmaske). Link-Schutz
+    wie die uebrigen VLAN-Port-Felder."""
+    target = _write_guard(args, "force-vlan-id")
+    cur, post = _post_subset(target, "fwd.b")
+    _port_in_range("force-vlan-id", args.port, len(post["i18"]))
+    bit = 1 << (args.port - 1)
+    val = post["i19"]
+    want_on = args.state == "on"
+    cur_on = bool(val & bit)
+    changes = cur_on != want_on
+    i06 = (target.get("link.b") or {}).get("i06", 0)
+    has_link = bool((i06 >> (args.port - 1)) & 1)
+    if changes and has_link and not args.force and args.commit:
+        raise SystemExit(f"force-vlan-id: Port {args.port} hat aktuell LINK — Aenderung nur mit "
+                         "--force (VLAN-Filterung kann den Zugriff kappen, evtl. Mgmt-/Uplink-Port).")
+    new_val = (val | bit) if want_on else (val & ~bit)
+    post["i19"] = new_val
+    warn = "  [LINK aktiv!]" if (changes and has_link) else ""
+    describe = [
+        f"# {target.name}  Force VLAN ID  Port {args.port}: "
+        f"{'on' if cur_on else 'off'} -> {'on' if want_on else 'off'}{warn}",
+        f"  i19 aktuell : {_blob_hex(val)}",
+        f"  i19 geplant : {_blob_hex(new_val)}",
+    ]
+    _commit_write(target, "fwd.b", post, describe, args,
+                  f"Port {args.port} Force VLAN ID = {'on' if want_on else 'off'}, sonst unveraendert.")
+
+
 def cmd_pvid(args):
     target = _write_guard(args, "pvid")
     cur, post = _post_subset(target, "fwd.b")
@@ -1239,6 +1314,36 @@ def main():
                    help="Aenderung an Port mit aktivem Link erzwingen (Link-/Lockout-Gefahr)")
     _commit_arg(p)
 
+    p = sub.add_parser("vlan-mode",
+                       help="VLAN Mode je Port setzen (Stufe 2, schreibend)")
+    add_target_args(p)
+    p.add_argument("--port", type=int, required=True, help="Portnummer (1-basiert)")
+    p.add_argument("--to", required=True, choices=["disabled", "optional", "strict"],
+                   help="VLAN Mode: disabled | optional | strict")
+    p.add_argument("--force", action="store_true",
+                   help="Aenderung an Port mit aktivem Link erzwingen (VLAN-Filter-/Lockout-Gefahr)")
+    _commit_arg(p)
+
+    p = sub.add_parser("vlan-receive",
+                       help="VLAN Receive je Port setzen (Stufe 2, schreibend)")
+    add_target_args(p)
+    p.add_argument("--port", type=int, required=True, help="Portnummer (1-basiert)")
+    p.add_argument("--to", required=True, choices=["any", "tagged", "untagged"],
+                   help="VLAN Receive: any | tagged (only tagged) | untagged (only untagged)")
+    p.add_argument("--force", action="store_true",
+                   help="Aenderung an Port mit aktivem Link erzwingen (VLAN-Filter-/Lockout-Gefahr)")
+    _commit_arg(p)
+
+    p = sub.add_parser("force-vlan-id",
+                       help="Force VLAN ID je Port setzen (Stufe 2, schreibend)")
+    add_target_args(p)
+    p.add_argument("--port", type=int, required=True, help="Portnummer (1-basiert)")
+    p.add_argument("--to", dest="state", required=True, choices=["on", "off"],
+                   help="Force VLAN ID: on | off")
+    p.add_argument("--force", action="store_true",
+                   help="Aenderung an Port mit aktivem Link erzwingen (VLAN-Filter-/Lockout-Gefahr)")
+    _commit_arg(p)
+
     p = sub.add_parser("pvid",
                        help="PVID (Default VLAN ID) je Port setzen (Stufe 2, schreibend)")
     add_target_args(p)
@@ -1263,6 +1368,9 @@ def main():
         "autoneg": cmd_autoneg,
         "duplex": cmd_duplex,
         "speed": cmd_speed,
+        "vlan-mode": cmd_vlan_mode,
+        "vlan-receive": cmd_vlan_receive,
+        "force-vlan-id": cmd_force_vlan_id,
         "pvid": cmd_pvid,
         "vlan-set": cmd_vlan,
     }

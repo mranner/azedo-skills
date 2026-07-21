@@ -58,14 +58,8 @@ swos hosts  <ziel>                # FDB: MAC -> Port (live; im Backup leer)
 swos all    <ziel>                # alle vier Views
 swos raw    <ziel> <endpoint>     # roher Endpoint-Blob als JSON (Debug), z.B. sys.b, !dhost.b
 swos backup <ziel> [--output <pfad>]  # Live-Backup ziehen (GET /backup.swb), Default <ziel>.swb
-swos poe-out     <ziel> --port <n> --to off|on|auto     [--commit]   # Stufe 2, schreibend (s.u.)
-swos poe-voltage <ziel> --port <n> --to auto|low|high   [--commit]   # Stufe 2, schreibend (s.u.)
-swos portname    <ziel> --port <n> --name <text>        [--commit]   # Stufe 2, schreibend (s.u.)
-swos port-enable <ziel> --port <n> --to on|off  [--force][--commit]   # Stufe 2, schreibend (s.u.)
-swos autoneg     <ziel> --port <n> --to on|off  [--force][--commit]   # Stufe 2, schreibend (s.u.)
-swos duplex      <ziel> --port <n> --to on|off  [--force][--commit]   # Stufe 2, schreibend (s.u.)
-swos pvid        <ziel> --port <n> --vid <1..4095>       [--commit]   # Stufe 2, schreibend (s.u.)
-swos vlan-set    <ziel> --vid <n> --members 1,2,9        [--commit]   # Stufe 2, schreibend (s.u.)
+# Stufe 2 (schreibend): poe-out, poe-voltage, portname, port-enable, autoneg, duplex,
+#   speed, vlan-mode, vlan-receive, pvid, vlan-set  -> siehe Abschnitt "Schreiben (Stufe 2)"
 ```
 
 Beispiele:
@@ -86,7 +80,7 @@ Digest-Passwort hex-kodiert (`.pwd.b`) — nicht unbedacht weitergeben oder an T
 
 ## Schreiben (Stufe 2) — `poe.b`, `link.b`, `fwd.b`, `vlan.b`
 
-**Neun** Schreibbefehle sind freigegeben, alle live an `.215` verifiziert (ändern → Read-back →
+**Zwölf** Schreibbefehle sind freigegeben, alle live an `.215` verifiziert (ändern → Read-back →
 Restore). Format je Endpoint aus DevTools-/HAR-Capture `.215` + `engine.js` hart abgeleitet (CR4426):
 
 ```bash
@@ -97,15 +91,20 @@ swos port-enable <ziel> --port <n> --to on|off  [--force] [--commit]   # Enabled
 swos autoneg     <ziel> --port <n> --to on|off  [--force] [--commit]   # Auto Negotiation (link.b i02)
 swos duplex      <ziel> --port <n> --to on|off  [--force] [--commit]   # Full Duplex (link.b i03)
 swos speed       <ziel> --port 1..8 --to 10|100|1000 [--force][--commit]  # Forced Speed Mbit/s (link.b i05)
+swos vlan-mode   <ziel> --port <n> --to disabled|optional|strict [--force][--commit]  # VLAN Mode (fwd.b i15)
+swos vlan-receive <ziel> --port <n> --to any|tagged|untagged [--force][--commit]      # VLAN Receive (fwd.b i17)
+swos force-vlan-id <ziel> --port <n> --to on|off [--force][--commit]  # Force VLAN ID (fwd.b i19)
 swos pvid        <ziel> --port <n> --vid <1..4095>        [--commit]   # Default VLAN ID / PVID (fwd.b i18)
 swos vlan-set    <ziel> --vid <1..4095> --members 1,2,9   [--commit]   # VLAN-Membership (vlan.b), legt an falls neu
 ```
 
-**Link-/Lockout-Schutz** (`port-enable`, `autoneg`, `duplex` — die drei `link.b`-Bitmaskenfelder):
-eine **tatsächliche Änderung** an einem Port mit **aktivem Link** (`i06`) verlangt `--force` (sonst
-Abbruch) — er könnte den Mgmt-/Uplink-Verkehr tragen, und Enable/Auto-Neg/Duplex-Änderungen können
-den Link stören. Der Dry-Run zeigt die Vorschau trotzdem; nur der `--commit` erzwingt `--force`.
-No-op (Zielwert = Ist) löst nie den Guard aus.
+**Link-/Lockout-Schutz** (`port-enable`, `autoneg`, `duplex`, `speed` sowie `vlan-mode`,
+`vlan-receive`, `force-vlan-id`): eine **tatsächliche Änderung** an einem Port mit **aktivem Link** (`i06`) verlangt
+`--force` (sonst Abbruch) — er könnte den Mgmt-/Uplink-Verkehr tragen, und Enable/Auto-Neg/Duplex/
+Speed- bzw. VLAN-Filter-Änderungen können den Link/Zugriff kappen. Der Dry-Run zeigt die Vorschau
+trotzdem; nur der `--commit` erzwingt `--force`. No-op (Zielwert = Ist) löst nie den Guard aus.
+`vlan-mode`=`disabled|optional|strict`, `vlan-receive`=`any|tagged|untagged` (engine.js `fwd.b`
+`i15`/`i17`).
 
 **`speed`** (`link.b i05`, Forced-Speed) — nur **Kupferports 1–8** (Dropdown `10`/`100`/`1000`
 Mbit/s → Index `0`/`1`/`2`, per UI verifiziert; SFP+ 9/10 haben andere Werte → abgelehnt). Wirkt
