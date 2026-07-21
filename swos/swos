@@ -2,7 +2,7 @@
 
 # MikroTik SwOS read-only query helper
 # stdlib only, no pip dependencies
-# version 1.24.0
+# version 1.25.2
 #
 # Ein gemeinsamer Decoder, drei Transporte:
 #   A) direct   – urllib HTTP-Digest direkt auf die Switch-IP (Runner routbar)
@@ -10,6 +10,8 @@
 #   C) swb       – offline aus einem .swb-Backup (strings + Decoder)
 #
 # Vier SwOS-Feld-Dialekte: css326, css610_new, css610_old, swos_lite.
+# `backup` zieht das Live-Backup (GET /backup.swb) -- reines Lesen (kein POST,
+# keine Config-Aenderung), bleibt also innerhalb von Stufe 1.
 # Siehe SKILL.md. read-only (Stufe 1) — kein Schreibzugriff.
 
 import argparse
@@ -323,6 +325,42 @@ class Target:
             raise SystemExit(f"[{self.name}] ssh-curl {endpoint}: "
                              f"{proc.stderr.strip() or 'exit ' + str(proc.returncode)}")
         return parse_blob(proc.stdout)
+
+    def fetch_backup_bytes(self):
+        """GET /backup.swb roh (keine Blob-Parse -- Inhalt ist selbst ein
+        .swb-Container mehrerer Endpoints). Reines Lesen, kein Schreibzugriff
+        auf den Switch."""
+        if self.mode == "swb":
+            raise SystemExit(f"[{self.name}] backup: --swb ist bereits ein "
+                             "Backup, kein Live-Ziel")
+        if self.mode == "direct":
+            url = f"http://{self.ip}/backup.swb"
+            mgr = urllib.request.HTTPPasswordMgrWithDefaultRealm()
+            mgr.add_password(None, f"http://{self.ip}/", self.user, self.password)
+            opener = urllib.request.build_opener(
+                urllib.request.HTTPDigestAuthHandler(mgr))
+            try:
+                with opener.open(url, timeout=self.timeout) as resp:
+                    return resp.read()
+            except (urllib.error.URLError, OSError) as exc:
+                raise SystemExit(f"[{self.name}] backup: {exc}")
+        if self.mode == "ssh-curl":
+            pw = self.password.replace("'", "'\\''")
+            url = f"http://{self.ip}/backup.swb"
+            script = (f"curl -s -m {self.timeout} --digest "
+                      f"-u 'admin:{pw}' '{url}'\n")
+            cmd = ["sudo", "ssh", "-C", f"root@{self.jump}", "sh"]
+            try:
+                proc = subprocess.run(cmd, input=script.encode(),
+                                      capture_output=True,
+                                      timeout=self.timeout + 15)
+            except subprocess.TimeoutExpired:
+                raise SystemExit(f"[{self.name}] backup: timeout")
+            if proc.returncode != 0:
+                raise SystemExit(f"[{self.name}] backup: "
+                                 f"{proc.stderr.decode(errors='replace').strip() or 'exit ' + str(proc.returncode)}")
+            return proc.stdout
+        raise SystemExit(f"unknown mode: {self.mode}")
 
 
 # .swb-Backup: strings, dann jeden `<ep>:` Blob extrahieren
@@ -697,6 +735,20 @@ def cmd_raw(args):
     print(json.dumps(val, indent=2, ensure_ascii=False))
 
 
+def cmd_backup(args):
+    target = make_target(args)
+    data = target.fetch_backup_bytes()
+    if not data:
+        raise SystemExit(f"[{target.name}] backup: leere Antwort "
+                         "(Endpoint existiert vermutlich nicht auf diesem Modell)")
+    path = args.output or f"{target.name}.swb"
+    with open(path, "wb") as f:
+        f.write(data)
+    print(f"Backup gespeichert: {path} ({len(data)} Bytes)")
+    print("Achtung: .swb enthaelt das Digest-Passwort hex-kodiert (.pwd.b) -- "
+          "nicht unbedacht weitergeben/anhaengen.")
+
+
 def main():
     ap = argparse.ArgumentParser(
         prog="swos", description="MikroTik SwOS read-only Abfrage")
@@ -715,11 +767,17 @@ def main():
     add_target_args(p)
     p.add_argument("endpoint", help="z.B. sys.b, vlan.b, !dhost.b")
 
+    p = sub.add_parser("backup", help="Live-Backup ziehen (GET /backup.swb)")
+    add_target_args(p)
+    p.add_argument("--output", help="Zieldatei (default: <switch>.swb)")
+
     args = ap.parse_args()
     if args.cmd == "list":
         cmd_list(args)
     elif args.cmd == "raw":
         cmd_raw(args)
+    elif args.cmd == "backup":
+        cmd_backup(args)
     else:
         cmd_view(args, args.cmd)
 

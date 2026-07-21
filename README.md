@@ -414,6 +414,26 @@ Credentials in `.env`: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` (Auffindung wie 
 
 ## Changelog
 
+### 1.25.2
+
+- **swos: neuer Subcommand `backup` (Live-Backup ziehen, GET `/backup.swb`).** Referenz-Fund:
+  `/root/bin/swos-backup.sh` auf `gatekeeper.example.com` zeigte den bisher unbekannten
+  Backup-Endpoint (Digest-Auth, gleiches Passwort wie die `.b`-Endpoints), der denselben
+  `.swb`-Container liefert wie der SwOS-Web-UI-Backup-Knopf und den `--swb` bereits offline
+  dekodiert. Roher Byte-Dump (keine Blob-Parse) ueber `direct`/`ssh-curl`; funktioniert mit
+  Inventory-Namen, `--ip/--mode` oder Ad-hoc-Zielen, nicht mit `--swb`. Bleibt Stufe 1
+  (read-only) — reines GET, keine Config-Aenderung am Switch. Live gegen `swbs02poe` (CSS610,
+  CR4369) verifiziert: bytegenau identisch zum manuellen curl-Download. **Nebenbefund
+  dokumentiert, nicht gefixt:** ein frisches `.swb` desselben Switches wird vom bestehenden
+  Dialekt-Detector faelschlich als `css610_old` statt `css610_new` erkannt (Backup-`sys.b`
+  traegt sowohl `F`- als auch `J`-Keys) — Modell/Version/MAC/Serial/Portnamen fallen dann auf
+  Fallback-Werte zurueck, VLAN/PVID/PoE bleiben korrekt. Neue Erkenntnis (Backup-Passwort
+  hex-kodiert in `.pwd.b`) zusaetzlich in `reference_swos_lite_endpoints`-Memory festgehalten.
+
+### 1.25.1
+
+- **humanizer-de: zwei neue Leitplanken fuer explizite Nutzer-Stilvorgaben.** (1) Hat der Nutzer hinterlegt, dass er generell (ausser in Word) keine echten Gedankenstriche verwendet, geht das der Standard-Cluster-Regel vor: `—`/`–` werden dann durchgaengig durch den einfachen Bindestrich `-` ersetzt, ohne Satzumbau. (2) Nutzerspezifische Stilpraeferenzen jenseits der Muster-Kataloge (z. B. keine erklaerenden Nebensaetze fuer Offensichtliches, sparsames Bold in Aufzaehlungen, kurze sachliche Ueberschriften) werden auf Wunsch angewendet, auch wenn Preflight/Lint dafuer kein Muster findet — solche expliziten Vorgaben stehen ueber der reinen Cluster-Regel. Anlass: Abgleich eines E-Mail-Entwurfs mit der vom Nutzer final versendeten Fassung (CR4369) zeigte genau diese beiden Abweichungen, obwohl der Preflight-Audit selbst „low risk" meldete. Reiner SKILL.md-Doku-Change, keine Script-Aenderung.
+
 ### 1.25.0
 
 - **kanboard: `search` findet Text auch in Beschreibung/Kommentar (`--anywhere` / `--in`) + Doku der Feld-Filter.** Kanboards `searchTasks` matcht ein **unqualifiziertes** Stichwort nur gegen den **Titel** — steht der String nur in Beschreibung oder Kommentar, lieferte `search "printsrv"` faelschlich nichts (real erlebt: der Pfad `Print_and_Follow` in der Beschreibung von CR4271 blieb ueber bloße Wortsuche unauffindbar, obwohl Kanboard `description:`/`comment:` nativ, case-insensitiv und als Teilstring durchsucht). Neu: `--anywhere` (Kurzform fuer `--in title,description,comment`) und `--in <felder>` behandeln die `query` als reinen Begriff, wickeln sie in jeden Feld-Filter (Phrasen mit Leerzeichen werden gequotet) und unionieren die Treffer nach `id`; jeder Treffer bekommt `matched_in` (Liste der Fundfelder). Der klassische Query-Modus (Operatoren `status:`/`assignee:`/`title:` …) bleibt unveraendert. SKILL.md-Abschnitt „Tasks suchen" um die Titel-Falle, die nativen Feld-Filter (`title:`/`description:`/`comment:`), die AND/ODER-Semantik (verschiedene Felder = UND, gleiches Feld doppelt = ODER) und die neuen Flags erweitert. Live gegen die azedo-Instanz verifiziert.

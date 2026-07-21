@@ -56,7 +56,8 @@ QGIR ist kein Pass-0-Zweig, sondern eine optionale Erweiterung nach Pass 5, wenn
 
 - Zähle Cluster, nicht Einzelsignale. Ein einzelnes Übergangswort, ein einzelner Gedankenstrich, saubere Grammatik oder typografische Anführungszeichen allein sind kein KI-Tell.
 - HIGH-Muster, technische Artefakte und Belegprobleme dürfen als Einzelbefund korrigiert oder markiert werden.
-- Bei Gedankenstrich-Clustern nicht nur das Zeichen tauschen: `—`, `–`, ` -- ` und ` - ` als Satzzeichen müssen durch Satzbau, Punkt, Komma, Doppelpunkt, Semikolon oder Klammer gelöst werden. Wort-Bindestriche bleiben geschützt.
+- Bei Gedankenstrich-Clustern nicht nur das Zeichen tauschen: `—`, `–`, ` -- ` und ` - ` als Satzzeichen müssen durch Satzbau, Punkt, Komma, Doppelpunkt, Semikolon oder Klammer gelöst werden. Wort-Bindestriche bleiben geschützt. **Ausnahme:** Hat der Nutzer explizit hinterlegt, dass er generell (außer in Word) keine echten Gedankenstriche verwendet, geht diese Vorgabe vor — dann `—`/`–` durchgängig durch den einfachen Bindestrich `-` ersetzen, ohne Satzumbau.
+- Nutzerspezifische Stilpräferenzen jenseits der Muster-Kataloge (z. B. „keine erklärenden Nebensätze für Offensichtliches“, „sparsames Bold in Aufzählungen“, „kurze sachliche Überschriften statt beschreibender Formulierungen“) auf Wunsch anwenden, auch wenn Preflight/Lint dafür kein Muster oder keinen Cluster findet — solche expliziten Vorgaben stehen über der reinen Cluster-Regel.
 - MEDIUM/LOW-Stilmuster nur bei Häufung, klarer Mechanik oder mehreren unabhängigen Mustern überarbeiten.
 - Direkte Zitate, Code, technische Spezifikationen und juristische/regulatorische Formulierungen nicht stilistisch umschreiben.
 - **Claim-Lock:** Quellen, Zahlen, Namen, Daten, Quellenanker, Zitate, Code und Normverweise vor/nach jeder Änderung abgleichen. Neue konkrete Anker nur übernehmen, wenn sie im Input oder Kontext stehen; wenn eine Quelle nicht prüfbar ist, den Prüfstatus markieren.

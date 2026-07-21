@@ -55,6 +55,7 @@ swos ports  <ziel>                # Portbelegung: PVID (untagged VLAN) + PoE-Mod
 swos hosts  <ziel>                # FDB: MAC -> Port (live; im Backup leer)
 swos all    <ziel>                # alle vier Views
 swos raw    <ziel> <endpoint>     # roher Endpoint-Blob als JSON (Debug), z.B. sys.b, !dhost.b
+swos backup <ziel> [--output <pfad>]  # Live-Backup ziehen (GET /backup.swb), Default <ziel>.swb
 ```
 
 Beispiele:
@@ -64,7 +65,14 @@ python3 "$SKILL_DIR/swos" all swvs1                      # ssh-curl via gatekeep
 python3 "$SKILL_DIR/swos" ports css610test              # direct
 python3 "$SKILL_DIR/swos" vlan --swb ~/.tmp/swb/swvs1.swb
 python3 "$SKILL_DIR/swos" raw css326test '!dhost.b'
+python3 "$SKILL_DIR/swos" backup swvs1 --output ~/.tmp/swvs1.swb
 ```
+
+`backup` holt den Endpoint `/backup.swb` **roh** (keine Blob-Parse, direkter Byte-Dump) —
+denselben `.swb`-Container, den auch der SwOS-Web-UI-Backup-Knopf liefert und den `--swb`
+offline dekodiert. Funktioniert mit Inventory-Namen, `--ip/--mode` oder Ad-hoc-Zielen; **nicht**
+mit `--swb` (ein Backup ist kein Live-Ziel). **Achtung:** Die `.swb`-Datei enthaelt das
+Digest-Passwort hex-kodiert (`.pwd.b`) — nicht unbedacht weitergeben oder an Tickets anhaengen.
 
 ## Inventory-Config
 
@@ -93,13 +101,22 @@ ODER `cred: "<name>"` -> `credentials.<name>` mit `password` / `password_env` / 
 ## Grenzen / offen (Stufe 2 und Nacharbeit)
 
 - **read-only.** Keine Writes (VLAN/PVID/PoE/Mgmt-IP). Stufe 2 erst nach Verifikation des
-  POST-Formats aus `engine.js`, jeder Write mit Read-back-Verify.
+  POST-Formats aus `engine.js`, jeder Write mit Read-back-Verify. `backup` (GET `/backup.swb`)
+  ist reines Lesen und faellt weiterhin unter Stufe 1 — keine Config-Aenderung am Switch.
 - **swos_lite-PoE** (CSS106-1G-4P-1S): `poe.b` fehlt, PoE-Info steckt in `link.b` (`poe`/`poes`);
   die genaue Semantik von `poes` ist noch nicht gegen `engine.js` verifiziert und wird bewusst
   **nicht** als Modus ausgegeben (nicht raten).
 - **Link/Speed** wird noch nicht dekodiert (Speed-Codes modellabhaengig, unsicher).
 - **ssh-curl** macht pro Endpoint eine SSH-Session; `all` = mehrere Sessions (funktioniert,
   aber nicht gebuendelt).
+- **Dialekt-Fehlerkennung bei frischen `.swb`-Backups (CSS610):** Ein per `backup` gezogenes
+  `.swb` eines CSS610 mit `css610_new`-Live-Dialekt wird von `detect_dialect()` teils als
+  `css610_old` erkannt (Backup-`sys.b` enthaelt sowohl `F`- als auch `J`-Keys, was aktuell fest
+  als `css610_old`-Signatur gilt) — Modell/Version/MAC/Serial/Portnamen fallen dann auf
+  Fallback-Werte zurueck. VLAN/PVID/PoE bleiben korrekt (andere Felder). Live vs. `.swb` scheinen
+  fuer denselben physischen Switch unterschiedliche Key-Dialekte zu verwenden; noch nicht
+  gegen `engine.js` verifiziert, daher hier nur dokumentiert statt gefixt (2026-07-21,
+  aufgefallen an `swbs02poe`/CR4369).
 
 ## Hinweise
 
