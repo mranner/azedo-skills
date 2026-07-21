@@ -414,6 +414,22 @@ Credentials in `.env`: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` (Auffindung wie 
 
 ## Changelog
 
+### 1.26.2
+
+- **swos: `link.b`/`fwd.b`/`vlan.b`-Writes entsperrt — Ursache des Enabled-Vorfalls gefunden
+  (byte-aligned Hex) + `portname`/`pvid`/`vlan-set` zurückgeholt (CR4426).** Root-Cause des
+  früheren Vorfalls (ein `link.b`-Write warf die Enabled-Maske auf Ports 1–6 zurück): `_blob_hex`
+  serialisierte Werte mit **ungerader** Hex-Breite (`0x3ff`), der SwOS-Parser liest Hex aber
+  **bytewise** und interpretierte `0x3ff` als `0x3f` (=63). Fix: byte-aligned (gerade Breite,
+  `0x03ff`) wie die SwOS-Web-UI; kontrolliert an `.215` nachgewiesen (Enabled bleibt `0x3ff`,
+  nur das Zielfeld ändert sich). `poe.b` war nie betroffen (Werte 0–7 ohnehin 2-stellig). Damit
+  sind die drei zurückgestellten Befehle wieder da und live verifiziert: `portname` (link.b i0a),
+  `pvid` (fwd.b i18, Default VLAN ID), `vlan-set` (vlan.b Member-Bitmask, legt VLAN an falls neu) —
+  jeweils ändern → Read-back → Restore getestet. Gleiche Guard-Rails (writable-Flag, `--dry-run`-
+  Default, Snapshot, Read-back-Verify, css610_new/direct). **Weiterhin zurückgestellt:**
+  `poe-priority` (Rang/Permutation statt Skalar). SKILL.md-Schreib-Sektion überarbeitet
+  (fünf Befehle + zwei Kern-Lehren: byte-aligned Hex; Config-Basis ist der GET, nie der `.swb`).
+
 ### 1.26.1
 
 - **swos: zweiter Schreibbefehl `poe-voltage` (poe.b i03) + gemeinsame Write-Basis + harte

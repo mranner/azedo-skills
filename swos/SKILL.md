@@ -60,6 +60,9 @@ swos raw    <ziel> <endpoint>     # roher Endpoint-Blob als JSON (Debug), z.B. s
 swos backup <ziel> [--output <pfad>]  # Live-Backup ziehen (GET /backup.swb), Default <ziel>.swb
 swos poe-out     <ziel> --port <n> --to off|on|auto     [--commit]   # Stufe 2, schreibend (s.u.)
 swos poe-voltage <ziel> --port <n> --to auto|low|high   [--commit]   # Stufe 2, schreibend (s.u.)
+swos portname    <ziel> --port <n> --name <text>        [--commit]   # Stufe 2, schreibend (s.u.)
+swos pvid        <ziel> --port <n> --vid <1..4095>       [--commit]   # Stufe 2, schreibend (s.u.)
+swos vlan-set    <ziel> --vid <n> --members 1,2,9        [--commit]   # Stufe 2, schreibend (s.u.)
 ```
 
 Beispiele:
@@ -78,46 +81,51 @@ offline dekodiert. Funktioniert mit Inventory-Namen, `--ip/--mode` oder Ad-hoc-Z
 mit `--swb` (ein Backup ist kein Live-Ziel). **Achtung:** Die `.swb`-Datei enthaelt das
 Digest-Passwort hex-kodiert (`.pwd.b`) — nicht unbedacht weitergeben oder an Tickets anhaengen.
 
-## Schreiben (Stufe 2) — nur `poe.b` (`poe-out`, `poe-voltage`)
+## Schreiben (Stufe 2) — `poe.b`, `link.b`, `fwd.b`, `vlan.b`
 
-**Zwei** Schreibbefehle sind freigegeben, beide auf `poe.b` (dessen GET nachweislich config-treu
-ist). Alles andere bleibt bewusst offen (siehe „Bewusst zurückgestellt" unten) — nichts wird geraten.
+**Fünf** Schreibbefehle sind freigegeben, alle live an `.215` verifiziert (ändern → Read-back →
+Restore). Format je Endpoint aus DevTools-/HAR-Capture `.215` + `engine.js` hart abgeleitet (CR4426):
 
 ```bash
-swos poe-out     <ziel> --port <n> --to off|on|auto          # Dry-Run: zeigt Ist/Soll, sendet NICHTS
-swos poe-out     <ziel> --port <n> --to off|on|auto --commit # sendet + Read-back-Verify
-swos poe-voltage <ziel> --port <n> --to auto|low|high        # Voltage Level, gleiche Mechanik
+swos poe-out     <ziel> --port <n> --to off|on|auto     [--commit]   # PoE Out (poe.b i01)
+swos poe-voltage <ziel> --port <n> --to auto|low|high   [--commit]   # Voltage Level (poe.b i03)
+swos portname    <ziel> --port <n> --name <text>        [--commit]   # Port-Name (link.b i0a)
+swos pvid        <ziel> --port <n> --vid <1..4095>       [--commit]   # Default VLAN ID / PVID (fwd.b i18)
+swos vlan-set    <ziel> --vid <1..4095> --members 1,2,9  [--commit]   # VLAN-Membership (vlan.b), legt an falls neu
 ```
 
-`poe-out` setzt **„PoE Out"** (`off`|`on` forced|`auto`), `poe-voltage` das **„Voltage Level"**
-(`auto`|`low`|`high`). Format hart verifiziert (DevTools-/HAR-Capture `.215` + `engine.js`, CR4426):
-`POST /poe.b`, `Content-Type: text/plain`, Body ein roher Teil-Blob `{i01,i02,i03,i0a}` (8 Kupferports;
-`i01`=PoE Out, `i02`=Priority, `i03`=Voltage Level, `i0a`=global). Das Tool liest `poe.b`, ändert **nur**
-das Zielfeld am Zielport und postet den Rest unverändert zurück.
+Mechanik überall gleich (**wie die SwOS-Web-UI**): GET des Endpoints (= config-treu, s. u.) →
+schreibbaren Feld-Subset übernehmen → **nur das Zielfeld** ersetzen → `POST /<ep>.b`
+(`Content-Type: text/plain`, roher Blob) → Read-back-Verify. `--members` sind Portnummern
+(1..8 Kupfer, 9=SFP+1, 10=SFP+2).
 
 **Guard-Rails:**
 - **`"writable": true`** im Inventory Pflicht (nur die 3 Büro-Sandkasten-Switches). Ohne Flag,
   bei `--swb`/`--ip` oder unbekanntem Switch → Abbruch. Produktion (Seiersberg) bleibt read-only.
-- **Nur `css610_new`** und nur `direct`-Transport (css326 hat kein PoE; swos_lite/CSS106 führt PoE
-  in `link.b`, Format noch nicht gecaptured).
+- **Nur `css610_new`** und nur `direct`-Transport.
 - **`--dry-run` ist Default:** zeigt aktuelles/geplantes Feld und den exakten POST-Body, sendet
   nichts. Erst `--commit` schreibt.
-- **Snapshot vor der ersten Änderung:** zieht einmalig ein `.swb` nach `.tmp/swos-snapshot-<sw>.swb`
-  — Rollback-Punkt.
-- **Read-back-Verify** nach jedem Commit: liest `poe.b` neu, prüft dass **nur** das Zielfeld sich
-  geändert hat; sonst Abbruch mit Snapshot-Hinweis.
+- **Snapshot vor der ersten Änderung** (`.tmp/swos-snapshot-<sw>.swb`) als Rollback-Punkt.
+- **Read-back-Verify** nach jedem Commit: nur das Zielfeld darf sich geändert haben, sonst Abbruch.
 
-### Bewusst zurückgestellt (Format verifiziert, aber Semantik/Sicherheit offen — CR4426)
+### Zwei hart erkaufte Lehren (CR4426)
 
-Der Read-back-Verify hat diese beim Live-Test abgefangen, bevor Schaden blieb:
+1. **Hex byte-aligned senden (gerade Anzahl Ziffern), wie der Browser.** Der SwOS-Parser liest
+   Hex **bytewise** — ungerade Breite `0x3ff` wird zu `0x3f` (=63) fehlinterpretiert. Ein früher
+   `link.b`-Write mit `i01:0x3ff` (ungerade) warf so die **Enabled-Maske** auf Ports 1–6 zurück
+   (7–10 deaktiviert). `_blob_hex` paddet jetzt auf gerade Breite (`0x03ff`). `poe.b` war nie
+   betroffen (Werte 0–7 sind ohnehin 2-stellig).
+2. **Config-Basis für Writes ist IMMER der Live-GET**, niemals der `.swb`-Parser. Der GET ist
+   config-treu — Feld-für-Feld deckungsgleich mit der Web-UI (verifiziert: `link.b i01`=Enabled,
+   `i02`=Auto-Neg, `i03`=Full-Duplex, `i05`=Speed). Der css610_old-`.swb`-Parser lieferte dagegen
+   **falsche Bitmasken** (`0x37f/0x3ff` statt `0x37/0x3f`).
+
+### Noch zurückgestellt
 
 - **`poe-priority`** (`poe.b i02`): keine freie Zahl je Port, sondern ein **eindeutiger Rang
   (Permutation 0–7)** — der Switch schichtet beim Setzen um. Braucht ein Ranking-Modell.
-- **`portname` (`link.b`), `pvid` (`fwd.b`), `vlan-set` (`vlan.b`)**: Der `link.b`-Write hat im
-  Test die **Enabled-Maske umgeworfen** (Ports deaktiviert). **Lehre:** Config-Basis für Writes ist
-  **immer der Live-GET** (der ist config-treu — Feld-für-Feld deckungsgleich mit der Web-UI),
-  **niemals** der `.swb`-Parser (lieferte falsche Bitmasken). Der link/fwd/vlan-Write-Nebeneffekt ist
-  erst kontrolliert nachzuweisen, bevor diese Befehle zurückkommen.
+- **`sys.b`** (Identity, Mgmt-IP): Format bekannt, aber Mgmt-Zone → nur mit Extra-Vorsicht.
+  Passwort (`!pwd.b`) und `/reboot` bewusst außen vor.
 
 **Bekannter Read-only-Bug (unabhängig):** Der `ports`-View liest den PoE-**Modus** aus `poe.b i04`
 (= **Runtime-Status** `2=idle,3=liefert`), der Config-Modus steht in `i01`. Der Write nutzt korrekt

@@ -2,7 +2,7 @@
 
 # MikroTik SwOS query helper (read-only Stufe 1 + Schreibbefehle Stufe 2)
 # stdlib only, no pip dependencies
-# version 1.26.1
+# version 1.26.2
 #
 # Ein gemeinsamer Decoder, drei Transporte:
 #   A) direct   – urllib HTTP-Digest direkt auf die Switch-IP (Runner routbar)
@@ -12,8 +12,9 @@
 # Vier SwOS-Feld-Dialekte: css326, css610_new, css610_old, swos_lite.
 # `backup` zieht das Live-Backup (GET /backup.swb) -- reines Lesen (kein POST,
 # keine Config-Aenderung), bleibt also innerhalb von Stufe 1.
-# Schreibbefehle (Stufe 2, POST /poe.b, nur css610_new): `poe-out`, `poe-voltage`.
-# writable-Flag Pflicht, --dry-run als Default, Snapshot + Read-back-Verify.
+# Schreibbefehle (Stufe 2, nur css610_new, POST /<ep>.b): poe-out/poe-voltage
+# (poe.b), portname (link.b), pvid (fwd.b), vlan-set (vlan.b). writable-Flag
+# Pflicht, --dry-run als Default, Snapshot + Read-back-Verify, Hex byte-aligned.
 # Siehe SKILL.md.
 
 import argparse
@@ -779,21 +780,20 @@ def cmd_backup(args):
 
 
 # ---------------------------------------------------------------------------
-# Schreiben (Stufe 2) — nur css610_new, nur poe.b. Format per DevTools-/HAR-
-# Capture (.215) + engine.js-Feldtabelle verifiziert (CR4426), nicht geraten:
-#   POST /poe.b  Content-Type text/plain  Body = Teil-Blob {i01,i02,i03,i0a}
-#   (Arrays 8 = Kupferports, keine SFP).  i01=PoE Out, i03=Voltage Level.
-# Muster: GET -> schreibbaren Feld-Subset uebernehmen -> nur Zielfeld ersetzen
-# -> POST -> Read-back-Verify. Guard-Rails: writable-Flag Pflicht, --dry-run als
-# Default, Snapshot vor der ersten Aenderung, ein Feld/Port pro Write.
+# Schreiben (Stufe 2) — nur css610_new. Alle POST-Formate per DevTools-/HAR-
+# Capture (.215) + engine.js-Feldtabelle verifiziert (CR4426), nicht geraten.
+# Muster ueberall gleich (wie die SwOS-Web-UI): GET -> schreibbaren Feld-Subset
+# des Endpoints uebernehmen -> nur Zielfeld ersetzen -> POST /<ep>.b (text/plain,
+# roher Blob, Hex byte-aligned via _blob_hex) -> Read-back-Verify.
+#   poe.b  {i01,i02,i03,i0a}  i01=PoE Out, i03=Voltage Level (Arrays 8, keine SFP)
+#   link.b {i01,i0a,i02,i05,i03,i16,i12}  i0a=Port-Namen (hex-ASCII-Array, 10)
+#   fwd.b  {i15,i17,i18,i19}   i18=PVID (Arrays 10)
+#   vlan.b [{i01,i03,i02},...] i01=VLAN-ID, i02=Member-Bitmask
+# Guard-Rails: writable-Flag Pflicht, --dry-run als Default, Snapshot vor der
+# ersten Aenderung, Read-back-Verify, ein Feld/Port pro Write.
 #
-# BEWUSST NICHT umgesetzt (Format verifiziert, aber Semantik/Sicherheit offen —
-# siehe SKILL.md und CR4426-Handoff):
-#   poe-priority (poe.b i02) : eindeutiger Rang/Permutation, kein Skalar je Port.
-#   portname (link.b i0a)    : link.b-Write hat Enabled-Maske umgeworfen; Config-
-#                              Quelle ist der GET (nicht .swb), Write-Nebeneffekt
-#                              erst kontrolliert nachzuweisen.
-#   pvid (fwd.b i18), vlan-set (vlan.b) : gleicher link/fwd/vlan-Write-Pfad.
+# BEWUSST NICHT umgesetzt: poe-priority (poe.b i02) — eindeutiger Rang/
+# Permutation, kein Skalar je Port (Switch schichtet um), braucht Ranking-Modell.
 # ---------------------------------------------------------------------------
 
 POE_OUT_MODES = {"off": 0, "on": 1, "auto": 2}       # engine.js poe.b i01 u:[]
@@ -802,12 +802,23 @@ POE_VOLT_MODES = {"auto": 0, "low": 1, "high": 2}    # engine.js poe.b i03 u:[]
 POE_VOLT_NAMES = {v: k for k, v in POE_VOLT_MODES.items()}
 
 POST_FIELDS = {
-    "poe.b": ["i01", "i02", "i03", "i0a"],
+    "poe.b":  ["i01", "i02", "i03", "i0a"],
+    "link.b": ["i01", "i0a", "i02", "i05", "i03", "i16", "i12"],
+    "fwd.b":  ["i15", "i17", "i18", "i19"],
 }
+
+PORTNAME_MAX = 16    # konservativ; Read-back-Verify faengt Ueberlauf/Trunkierung ab
 
 
 def _blob_hex(v):
-    return f"0x{int(v):02x}"
+    # Byte-aligned: gerade Anzahl Hex-Ziffern, wie die SwOS-Web-UI sendet. Der
+    # Switch-Parser liest Hex bytewise; ungerade Breite (z.B. "0x3ff") wird
+    # falsch interpretiert (0x3ff -> 0x3f = 63) und warf im Test die
+    # link.b-Enabled-Maske um. Werte 0..0xff bleiben 2-stellig wie bisher. CR4426.
+    h = f"{int(v):x}"
+    if len(h) % 2:
+        h = "0" + h
+    return "0x" + h
 
 
 def _blob_arr(vals):
@@ -987,6 +998,99 @@ def cmd_poe_voltage(args):
                   f"Port {args.port} Voltage Level '{args.mode}'.", width=8)
 
 
+def cmd_portname(args):
+    target = _write_guard(args, "portname")
+    cur, post = _post_subset(target, "link.b")
+    names = list(post["i0a"])
+    _port_in_range("portname", args.port, len(names))
+    if len(args.name.encode("utf-8")) > PORTNAME_MAX:
+        raise SystemExit(f"portname: Name zu lang (max {PORTNAME_MAX} Bytes).")
+    old = hexascii(names[args.port - 1]) or names[args.port - 1]
+    names[args.port - 1] = args.name.encode("utf-8").hex()
+    post["i0a"] = names
+    describe = [
+        f"# {target.name}  Port-Name  Port {args.port}: '{old}' -> '{args.name}'",
+        f"  Namen geplant: {[hexascii(x) for x in names]}",
+    ]
+    _commit_write(target, "link.b", post, describe, args,
+                  f"Port {args.port} Name '{args.name}', sonst unveraendert.")
+
+
+def cmd_pvid(args):
+    target = _write_guard(args, "pvid")
+    cur, post = _post_subset(target, "fwd.b")
+    i18 = list(post["i18"])
+    _port_in_range("pvid", args.port, len(i18))
+    if not (1 <= args.vid <= 4095):
+        raise SystemExit("pvid: --vid 1..4095.")
+    old = i18[args.port - 1]
+    i18[args.port - 1] = args.vid
+    post["i18"] = i18
+    describe = [
+        f"# {target.name}  PVID (Default VLAN ID)  Port {args.port}: {old} -> {args.vid}",
+        f"  i18 aktuell : {_blob_arr(cur['i18'])}",
+        f"  i18 geplant : {_blob_arr(i18)}",
+    ]
+    _commit_write(target, "fwd.b", post, describe, args,
+                  f"Port {args.port} PVID = {args.vid}, sonst unveraendert.")
+
+
+def cmd_vlan(args):
+    target = _write_guard(args, "vlan")
+    cur = target.get("vlan.b")
+    if not isinstance(cur, list):
+        raise SystemExit(f"[{target.name}] vlan.b nicht lesbar")
+    if not (1 <= args.vid <= 4095):
+        raise SystemExit("vlan-set: --vid 1..4095.")
+    try:
+        ports = [int(x) for x in args.members.split(",") if x.strip() != ""]
+    except ValueError:
+        raise SystemExit("vlan-set: --members = Komma-Liste von Portnummern (z.B. 1,2,9).")
+    mask = 0
+    for p in ports:
+        if not (1 <= p <= 10):
+            raise SystemExit(f"vlan-set: Port {p} ungueltig (1..10; 9=SFP+1, 10=SFP+2).")
+        mask |= 1 << (p - 1)
+
+    # vlan.b als [{i01,i03,i02}] in kanonischer HAR-Reihenfolge neu aufbauen,
+    # Ziel-VLAN aktualisieren oder anhaengen.
+    found = False
+    new = []
+    for v in cur:
+        entry = {"i01": v.get("i01"), "i03": v.get("i03", 0), "i02": v.get("i02")}
+        if entry["i01"] == args.vid:
+            entry["i02"] = mask
+            found = True
+        new.append(entry)
+    if not found:
+        new.append({"i01": args.vid, "i03": 0, "i02": mask})
+
+    orig = {v.get("i01"): v.get("i02") for v in cur}
+
+    def verify(back):
+        if not isinstance(back, list):
+            return False, "vlan.b nicht als Liste zurueck"
+        bmap = {v.get("i01"): v.get("i02") for v in back}
+        if bmap.get(args.vid) != mask:
+            return False, f"VLAN {args.vid} member read-back {bmap.get(args.vid)} != {mask}"
+        for ovid, omask in orig.items():
+            if ovid == args.vid:
+                continue
+            if bmap.get(ovid) != omask:
+                return False, (f"VLAN {ovid} unerwartet veraendert "
+                               f"({omask} -> {bmap.get(ovid)})")
+        return True, ""
+
+    action = "aktualisiert" if found else "angelegt (neu)"
+    describe = [
+        f"# {target.name}  VLAN {args.vid} {action}  Members: Ports {ports} "
+        f"(mask 0x{mask:03x})",
+        f"  vlan.b geplant: {_ser(new)}",
+    ]
+    _commit_write(target, "vlan.b", new, describe, args,
+                  f"VLAN {args.vid} Members = Ports {ports}.", verify_fn=verify)
+
+
 def main():
     ap = argparse.ArgumentParser(
         prog="swos", description="MikroTik SwOS read-only Abfrage")
@@ -1029,10 +1133,35 @@ def main():
                    help="Voltage Level: auto | low | high")
     _commit_arg(p)
 
+    p = sub.add_parser("portname",
+                       help="Port-Name setzen (Stufe 2, schreibend)")
+    add_target_args(p)
+    p.add_argument("--port", type=int, required=True, help="Portnummer (1-basiert)")
+    p.add_argument("--name", required=True, help=f"neuer Name (max {PORTNAME_MAX} Bytes)")
+    _commit_arg(p)
+
+    p = sub.add_parser("pvid",
+                       help="PVID (Default VLAN ID) je Port setzen (Stufe 2, schreibend)")
+    add_target_args(p)
+    p.add_argument("--port", type=int, required=True, help="Portnummer (1-basiert)")
+    p.add_argument("--vid", type=int, required=True, help="VLAN-ID 1..4095")
+    _commit_arg(p)
+
+    p = sub.add_parser("vlan-set",
+                       help="VLAN-Membership setzen/anlegen (Stufe 2, schreibend)")
+    add_target_args(p)
+    p.add_argument("--vid", type=int, required=True, help="VLAN-ID 1..4095")
+    p.add_argument("--members", required=True,
+                   help="Komma-Liste Portnummern (1..10; 9=SFP+1, 10=SFP+2)")
+    _commit_arg(p)
+
     args = ap.parse_args()
     dispatch = {
         "poe-out": cmd_poe_out,
         "poe-voltage": cmd_poe_voltage,
+        "portname": cmd_portname,
+        "pvid": cmd_pvid,
+        "vlan-set": cmd_vlan,
     }
     if args.cmd == "list":
         cmd_list(args)
