@@ -414,6 +414,16 @@ Credentials in `.env`: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` (Auffindung wie 
 
 ## Changelog
 
+### 1.26.3
+
+- **swos: sechster Schreibbefehl `port-enable` (link.b i01, „Enabled" je Port) mit Lockout-Schutz
+  (CR4426).** `swos port-enable <sw> --port <n> --to on|off [--force] [--commit]` setzt/löscht das
+  Enabled-Bit eines Ports in der `link.b`-Bitmaske `i01`. **Lockout-Schutz:** einen Port mit
+  aktivem Link (`i06`) zu deaktivieren verlangt `--force` (sonst Abbruch — er könnte den Mgmt-/
+  Uplink-Verkehr tragen); Aktivieren ist immer erlaubt, der Dry-Run zeigt die Vorschau auch ohne
+  `--force`. Live an `.215` verifiziert (Port 7 off → Read-back `i01=0x3bf` → wieder on → `0x3ff`),
+  byte-aligned Hex greift auch hier. Gleiche Guard-Rails wie die übrigen Writes.
+
 ### 1.26.2
 
 - **swos: `link.b`/`fwd.b`/`vlan.b`-Writes entsperrt — Ursache des Enabled-Vorfalls gefunden

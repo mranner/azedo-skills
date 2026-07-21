@@ -2,7 +2,7 @@
 
 # MikroTik SwOS query helper (read-only Stufe 1 + Schreibbefehle Stufe 2)
 # stdlib only, no pip dependencies
-# version 1.26.2
+# version 1.26.3
 #
 # Ein gemeinsamer Decoder, drei Transporte:
 #   A) direct   – urllib HTTP-Digest direkt auf die Switch-IP (Runner routbar)
@@ -13,9 +13,9 @@
 # `backup` zieht das Live-Backup (GET /backup.swb) -- reines Lesen (kein POST,
 # keine Config-Aenderung), bleibt also innerhalb von Stufe 1.
 # Schreibbefehle (Stufe 2, nur css610_new, POST /<ep>.b): poe-out/poe-voltage
-# (poe.b), portname (link.b), pvid (fwd.b), vlan-set (vlan.b). writable-Flag
-# Pflicht, --dry-run als Default, Snapshot + Read-back-Verify, Hex byte-aligned.
-# Siehe SKILL.md.
+# (poe.b), portname/port-enable (link.b), pvid (fwd.b), vlan-set (vlan.b).
+# writable-Flag Pflicht, --dry-run als Default, Snapshot + Read-back-Verify,
+# Hex byte-aligned. Siehe SKILL.md.
 
 import argparse
 import json
@@ -1016,6 +1016,34 @@ def cmd_portname(args):
                   f"Port {args.port} Name '{args.name}', sonst unveraendert.")
 
 
+def cmd_port_enable(args):
+    target = _write_guard(args, "port-enable")
+    cur, post = _post_subset(target, "link.b")
+    n = len(post["i0a"])
+    _port_in_range("port-enable", args.port, n)
+    bit = 1 << (args.port - 1)
+    i01 = post["i01"]
+    want_on = args.state == "on"
+    cur_on = bool(i01 & bit)
+    # Lockout-Schutz: einen Port mit aktivem Link (i06) deaktivieren nur mit --force.
+    # Der Dry-Run zeigt die Vorschau; erst der --commit verlangt --force.
+    has_link = bool((cur.get("i06", 0) >> (args.port - 1)) & 1)
+    if not want_on and has_link and not args.force and args.commit:
+        raise SystemExit(f"port-enable: Port {args.port} hat aktuell LINK (i06) — "
+                         "Deaktivieren nur mit --force (Lockout-Gefahr: evtl. Mgmt-/Uplink-Port).")
+    new_i01 = (i01 | bit) if want_on else (i01 & ~bit)
+    post["i01"] = new_i01
+    warn = "  [LINK aktiv!]" if (has_link and not want_on) else ""
+    describe = [
+        f"# {target.name}  Port Enabled  Port {args.port}: "
+        f"{'on' if cur_on else 'off'} -> {'on' if want_on else 'off'}{warn}",
+        f"  i01 aktuell : {_blob_hex(i01)}",
+        f"  i01 geplant : {_blob_hex(new_i01)}",
+    ]
+    _commit_write(target, "link.b", post, describe, args,
+                  f"Port {args.port} Enabled = {'on' if want_on else 'off'}, sonst unveraendert.")
+
+
 def cmd_pvid(args):
     target = _write_guard(args, "pvid")
     cur, post = _post_subset(target, "fwd.b")
@@ -1140,6 +1168,16 @@ def main():
     p.add_argument("--name", required=True, help=f"neuer Name (max {PORTNAME_MAX} Bytes)")
     _commit_arg(p)
 
+    p = sub.add_parser("port-enable",
+                       help="Port aktivieren/deaktivieren (Stufe 2, schreibend)")
+    add_target_args(p)
+    p.add_argument("--port", type=int, required=True, help="Portnummer (1-basiert)")
+    p.add_argument("--to", dest="state", required=True, choices=["on", "off"],
+                   help="Enabled: on | off")
+    p.add_argument("--force", action="store_true",
+                   help="Port mit aktivem Link deaktivieren erzwingen (Lockout-Gefahr)")
+    _commit_arg(p)
+
     p = sub.add_parser("pvid",
                        help="PVID (Default VLAN ID) je Port setzen (Stufe 2, schreibend)")
     add_target_args(p)
@@ -1160,6 +1198,7 @@ def main():
         "poe-out": cmd_poe_out,
         "poe-voltage": cmd_poe_voltage,
         "portname": cmd_portname,
+        "port-enable": cmd_port_enable,
         "pvid": cmd_pvid,
         "vlan-set": cmd_vlan,
     }
