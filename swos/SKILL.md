@@ -62,6 +62,8 @@ swos poe-out     <ziel> --port <n> --to off|on|auto     [--commit]   # Stufe 2, 
 swos poe-voltage <ziel> --port <n> --to auto|low|high   [--commit]   # Stufe 2, schreibend (s.u.)
 swos portname    <ziel> --port <n> --name <text>        [--commit]   # Stufe 2, schreibend (s.u.)
 swos port-enable <ziel> --port <n> --to on|off  [--force][--commit]   # Stufe 2, schreibend (s.u.)
+swos autoneg     <ziel> --port <n> --to on|off  [--force][--commit]   # Stufe 2, schreibend (s.u.)
+swos duplex      <ziel> --port <n> --to on|off  [--force][--commit]   # Stufe 2, schreibend (s.u.)
 swos pvid        <ziel> --port <n> --vid <1..4095>       [--commit]   # Stufe 2, schreibend (s.u.)
 swos vlan-set    <ziel> --vid <n> --members 1,2,9        [--commit]   # Stufe 2, schreibend (s.u.)
 ```
@@ -84,7 +86,7 @@ Digest-Passwort hex-kodiert (`.pwd.b`) — nicht unbedacht weitergeben oder an T
 
 ## Schreiben (Stufe 2) — `poe.b`, `link.b`, `fwd.b`, `vlan.b`
 
-**Sechs** Schreibbefehle sind freigegeben, alle live an `.215` verifiziert (ändern → Read-back →
+**Acht** Schreibbefehle sind freigegeben, alle live an `.215` verifiziert (ändern → Read-back →
 Restore). Format je Endpoint aus DevTools-/HAR-Capture `.215` + `engine.js` hart abgeleitet (CR4426):
 
 ```bash
@@ -92,13 +94,21 @@ swos poe-out     <ziel> --port <n> --to off|on|auto      [--commit]   # PoE Out 
 swos poe-voltage <ziel> --port <n> --to auto|low|high    [--commit]   # Voltage Level (poe.b i03)
 swos portname    <ziel> --port <n> --name <text>         [--commit]   # Port-Name (link.b i0a)
 swos port-enable <ziel> --port <n> --to on|off  [--force] [--commit]   # Enabled (link.b i01)
+swos autoneg     <ziel> --port <n> --to on|off  [--force] [--commit]   # Auto Negotiation (link.b i02)
+swos duplex      <ziel> --port <n> --to on|off  [--force] [--commit]   # Full Duplex (link.b i03)
 swos pvid        <ziel> --port <n> --vid <1..4095>        [--commit]   # Default VLAN ID / PVID (fwd.b i18)
 swos vlan-set    <ziel> --vid <1..4095> --members 1,2,9   [--commit]   # VLAN-Membership (vlan.b), legt an falls neu
 ```
 
-**`port-enable`-Lockout-Schutz:** einen Port mit **aktivem Link** (`i06`) zu deaktivieren verlangt
-`--force` (sonst Abbruch) — er könnte den Mgmt-/Uplink-Verkehr tragen. Der Dry-Run zeigt die
-Vorschau trotzdem; nur der `--commit` erzwingt `--force`. Aktivieren ist immer erlaubt.
+**Link-/Lockout-Schutz** (`port-enable`, `autoneg`, `duplex` — die drei `link.b`-Bitmaskenfelder):
+eine **tatsächliche Änderung** an einem Port mit **aktivem Link** (`i06`) verlangt `--force` (sonst
+Abbruch) — er könnte den Mgmt-/Uplink-Verkehr tragen, und Enable/Auto-Neg/Duplex-Änderungen können
+den Link stören. Der Dry-Run zeigt die Vorschau trotzdem; nur der `--commit` erzwingt `--force`.
+No-op (Zielwert = Ist) löst nie den Guard aus.
+
+**Speed** (`link.b i05`, Forced-Speed je Port) ist bewusst **nicht** umgesetzt: die Index→Speed-Enum
+ist in `engine.js` dynamisch je Port befüllt (`a=[]`) und wird nur bei Auto-Neg=off wirksam — erst
+nach sauberem Capture der Dropdown-Werte, nicht geraten.
 
 Mechanik überall gleich (**wie die SwOS-Web-UI**): GET des Endpoints (= config-treu, s. u.) →
 schreibbaren Feld-Subset übernehmen → **nur das Zielfeld** ersetzen → `POST /<ep>.b`

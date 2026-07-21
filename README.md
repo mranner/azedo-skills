@@ -414,6 +414,18 @@ Credentials in `.env`: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` (Auffindung wie 
 
 ## Changelog
 
+### 1.26.4
+
+- **swos: `autoneg` (link.b i02) + `duplex` (link.b i03) — Auto Negotiation & Full Duplex je Port
+  (CR4426).** `swos autoneg|duplex <sw> --port <n> --to on|off [--force] [--commit]`. Beide sind
+  Bitmasken-Writes wie `port-enable`; die drei link.b-Bitmaskenfelder (i01 Enabled / i02 Auto-Neg /
+  i03 Full-Duplex) teilen jetzt einen gemeinsamen Helfer `_link_bit_write` mit **Link-/Lockout-
+  Schutz**: eine tatsächliche Änderung an einem Port mit aktivem Link (`i06`) verlangt `--force`
+  (Enable/Auto-Neg/Duplex-Änderungen können den Link stören). Live an `.215` verifiziert (autoneg
+  Port7 off→`i02=0x3bf`→on; duplex Port7 on→`i03=0x7f`→off; Guard greift an Port 2 mit Link).
+  **Speed** (link.b i05) bleibt bewusst offen: Index→Speed-Enum ist in `engine.js` dynamisch je Port
+  befüllt und nur bei Auto-Neg=off wirksam — erst nach Capture der Dropdown-Werte, nicht geraten.
+
 ### 1.26.3
 
 - **swos: sechster Schreibbefehl `port-enable` (link.b i01, „Enabled" je Port) mit Lockout-Schutz
