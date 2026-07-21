@@ -1,8 +1,10 @@
 # swos -- MikroTik SwOS read-only Abfrage
 
-Fragt MikroTik-**SwOS**-Switches (CSS-Serie und RB260/SwOS-Lite) read-only ab und
-dekodiert die SwOS-Blobs in lesbare Tabellen: System-Info, VLAN-Mitglieder,
-Portbelegung (PVID/PoE) und FDB (MAC→Port). **Stufe 1 = read-only** (kein Schreibzugriff).
+Fragt MikroTik-**SwOS**-Switches (CSS-Serie und RB260/SwOS-Lite) ab und dekodiert die
+SwOS-Blobs in lesbare Tabellen: System-Info, VLAN-Mitglieder, Portbelegung (PVID/PoE) und
+FDB (MAC→Port). **Stufe 1 = read-only** (Standard). **Stufe 2 = schreibend** ist bisher auf
+**genau einen** Befehl beschränkt: `poe-out` (PoE Out je Port, nur `css610_new`) mit strengen
+Guard-Rails — siehe Abschnitt „Schreiben".
 
 **Aufruf:** `python3 "$SKILL_DIR/swos" <subcommand> [ziel] [optionen]`
 
@@ -56,6 +58,7 @@ swos hosts  <ziel>                # FDB: MAC -> Port (live; im Backup leer)
 swos all    <ziel>                # alle vier Views
 swos raw    <ziel> <endpoint>     # roher Endpoint-Blob als JSON (Debug), z.B. sys.b, !dhost.b
 swos backup <ziel> [--output <pfad>]  # Live-Backup ziehen (GET /backup.swb), Default <ziel>.swb
+swos poe-out <ziel> --port <n> --to off|on|auto [--commit]   # Stufe 2, schreibend (s.u.)
 ```
 
 Beispiele:
@@ -73,6 +76,39 @@ denselben `.swb`-Container, den auch der SwOS-Web-UI-Backup-Knopf liefert und de
 offline dekodiert. Funktioniert mit Inventory-Namen, `--ip/--mode` oder Ad-hoc-Zielen; **nicht**
 mit `--swb` (ein Backup ist kein Live-Ziel). **Achtung:** Die `.swb`-Datei enthaelt das
 Digest-Passwort hex-kodiert (`.pwd.b`) — nicht unbedacht weitergeben oder an Tickets anhaengen.
+
+## Schreiben (Stufe 2) — bisher nur `poe-out`
+
+**Genau ein** Schreibbefehl ist implementiert; alles andere (VLAN/PVID, Portname, Mgmt-IP,
+PoE auf anderen Dialekten) bleibt bewusst offen, bis das jeweilige POST-Format per DevTools
+verifiziert ist (nicht raten).
+
+```bash
+swos poe-out <ziel> --port <n> --to off|on|auto            # Dry-Run (Default): zeigt Ist/Soll, sendet NICHTS
+swos poe-out <ziel> --port <n> --to off|on|auto --commit   # sendet + Read-back-Verify
+```
+
+Setzt **„PoE Out"** eines Kupferports: `off` | `on` (forced on) | `auto`. Format hart verifiziert
+(DevTools-Capture `.215` + `engine.js`, CR4426): `POST /poe.b`, `Content-Type: text/plain`, Body ein
+roher Teil-Blob `{i01,i02,i03,i0a}` (8 Kupferports; `i01`=PoE Out `u:[off,on,auto]`, `i02`=Priority,
+`i03`=Voltage Level, `i0a`=global). Das Tool liest `poe.b`, ändert nur `i01[port]` und postet den Rest
+unverändert zurück.
+
+**Guard-Rails:**
+- **`"writable": true`** im Inventory Pflicht (nur die 3 Büro-Sandkasten-Switches). Ohne Flag,
+  bei `--swb`/`--ip` oder unbekanntem Switch → Abbruch. Produktion (Seiersberg) bleibt read-only.
+- **Nur `css610_new`** — andere Dialekte werden abgelehnt (css326 hat kein PoE; swos_lite/CSS106
+  führt PoE in `link.b`, Format noch nicht gecaptured). Nur `direct`-Transport (nicht ssh-curl).
+- **`--dry-run` ist Default:** zeigt aktuelles/geplantes `i01` und den exakten POST-Body, sendet
+  nichts. Erst `--commit` schreibt.
+- **Snapshot vor der ersten Änderung:** zieht einmalig ein `.swb` nach `.tmp/swos-snapshot-<sw>.swb`
+  (existiert schon einer, wird er nicht überschrieben) — Rollback-Punkt.
+- **Read-back-Verify** nach jedem Commit: liest `poe.b` neu, prüft dass **nur** `i01[port]` sich
+  geändert hat; sonst Abbruch mit Snapshot-Hinweis.
+
+**Bekannter Read-only-Bug (unabhängig):** Der `ports`-View liest den PoE-**Modus** aus `poe.b i04`,
+das ist aber der **Runtime-Status** (`2=idle,3=liefert,5=?`). Der Config-Modus steht in `i01`
+(`engine.js`). Der Write nutzt korrekt `i01`; der Lese-View ist separat zu fixen.
 
 ## Inventory-Config
 
@@ -100,9 +136,15 @@ ODER `cred: "<name>"` -> `credentials.<name>` mit `password` / `password_env` / 
 
 ## Grenzen / offen (Stufe 2 und Nacharbeit)
 
-- **read-only.** Keine Writes (VLAN/PVID/PoE/Mgmt-IP). Stufe 2 erst nach Verifikation des
-  POST-Formats aus `engine.js`, jeder Write mit Read-back-Verify. `backup` (GET `/backup.swb`)
+- **Schreiben nur `poe-out` (css610_new).** VLAN/PVID, Portname/Identity, Mgmt-IP und PoE auf
+  anderen Dialekten sind **noch nicht** implementiert — jeweils erst nach DevTools-Verifikation
+  des POST-Formats (nicht raten), jeder Write mit Read-back-Verify. `backup` (GET `/backup.swb`)
   ist reines Lesen und faellt weiterhin unter Stufe 1 — keine Config-Aenderung am Switch.
+- **`.swb`-Restore-/Upload-Weg noch offen.** Der Snapshot-**Pull** vor dem ersten Write steht
+  (via `backup`), das **Einspielen** eines `.swb` (Restore-POST) ist noch nicht verifiziert — das
+  vollstaendige Rollback-Netz fehlt also noch.
+- **`ports`-View liest PoE-Modus aus dem falschen Feld** (`i04`=Runtime statt `i01`=Config, nur
+  css610) — siehe Abschnitt „Schreiben". `poe-out` selbst ist davon nicht betroffen.
 - **swos_lite-PoE** (CSS106-1G-4P-1S): `poe.b` fehlt, PoE-Info steckt in `link.b` (`poe`/`poes`);
   die genaue Semantik von `poes` ist noch nicht gegen `engine.js` verifiziert und wird bewusst
   **nicht** als Modus ausgegeben (nicht raten).

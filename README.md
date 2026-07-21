@@ -414,6 +414,24 @@ Credentials in `.env`: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` (Auffindung wie 
 
 ## Changelog
 
+### 1.26.0
+
+- **swos: erster Schreibbefehl `poe-out` (Stufe 2) — PoE Out je Port setzen, Format verifiziert
+  statt geraten.** `swos poe-out <switch> --port <n> --to off|on|auto [--commit]`. Das POST-Format
+  wurde per Browser-DevTools-Capture an `.215` (CSS610, `css610_new`) plus der `engine.js`-Feldtabelle
+  hart abgeleitet, nicht geraten: `POST /poe.b`, `Content-Type: text/plain`, Body als **roher Teil-Blob**
+  `{i01,i02,i03,i0a}` mit 8 Kupferport-Elementen (keine SFP/Runtime-Felder). Feldsemantik aus `engine.js`:
+  `i01`=**PoE Out** (`u:[off,on,auto]` → `0/1/2`), `i02`=PoE Priority, `i03`=Voltage Level, `i0a`=global.
+  **Wichtig:** der Config-Modus steht in `i01` — der bisherige read-only `ports`-View liest faelschlich
+  `i04` (= Runtime-Status), das bleibt ein offener Read-only-Bug. **Guard-Rails:** Inventory-Flag
+  `"writable": true` ist Pflicht (nur die 3 Buero-Sandkasten-Switches; Seiersberg bleibt read-only);
+  `--dry-run` ist Default (zeigt Ist-/Soll-`i01` + exakten POST-Body, sendet nichts), erst `--commit`
+  postet; vor der **ersten** Aenderung zieht das Tool automatisch einen `.swb`-Snapshot nach `.tmp/`
+  als Rollback-Punkt; nach jedem Commit **Read-back-Verify** (nur `i01[port]` darf sich geaendert haben,
+  sonst Abbruch mit Snapshot-Hinweis); Write bisher nur `css610_new` (andere Dialekte abgelehnt, bis
+  separat gecaptured), nur `direct`-Transport (nicht ssh-curl). Live gegen `css610test` (.215)
+  verifiziert: Port 8 `on`→`auto` zurueckgesetzt, Read-back + unabhaengige Gegenprobe bestaetigt. (CR4426)
+
 ### 1.25.3
 
 - **swos: Dialekt-Bug gefixt — `.swb`-Backups verlieren nicht mehr die echten Portnamen.**
