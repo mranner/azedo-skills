@@ -6,3 +6,6 @@ __pycache__/
 # Credentials / lokale Empfaenger-Verzeichnisse (nie ins Repo)
 .env
 .pushover-recipients
+
+# Temporaere Arbeitsdateien der Skills (nie ins Repo)
+.tmp/
