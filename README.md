@@ -431,15 +431,9 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.28.0
+### 1.28.1
 
-- **Neuer Skill `pushover`:** Push-Notifications von Claude Code / Loops / cron via
-  `api.pushover.net` aufs Handy (iOS/Android/Desktop). stdlib-only Python, kein Server-Prozess,
-  outbound-only. Kernbefehl `send` mit `--title`, `--priority -2..1` (Emergency=2 bewusst nicht),
-  `--sound`, `--user`/`--device` (komma-faehig), `--url`/`--url-title`, `--html`|`--monospace`,
-  `--ttl`, `--attachment` (Bild <=5 MB, multipart), `--silent`; Text via Arg/`--file`/STDIN.
-- **Vorlagen `alert`/`recovery`/`digest`** (telegram-Paritaet, Emoji-Titel + `--host`-Fusszeile,
-  Default-Prioritaeten 1/0/-1) plus `validate` und `sounds`. `.env`: `PUSHOVER_TOKEN`.
-- **Empfaenger-Verzeichnis (Adressbuch):** `recipients add/list` mappt Alias-Namen auf Keys
-  (`--user kollege` statt Roh-Key); Default-Alias `me`. Alias kann auch ein Delivery-Group-Key sein.
-  Datei `~/.pushover-recipients` (gitignored).
+- **Repo-Doku:** `CLAUDE.md` angelegt (Release-Workflow, „Neuer Skill → install.sh mitpflegen",
+  Konsumenten-Seite, Umgang mit temporaeren Dateien).
+- **`.gitignore`:** `.tmp/` ergaenzt; getrackte SwOS-Sicherung aus dem Tracking genommen
+  (temporaere Arbeitsdateien gehoeren nie ins Repo, `.swb`-Backups enthalten das Switch-Passwort).

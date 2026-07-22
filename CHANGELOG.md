@@ -3,6 +3,14 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.28.1
+
+- **Repo-Doku:** `CLAUDE.md` angelegt (Release-Workflow, „Neuer Skill → install.sh mitpflegen",
+  Konsumenten-Seite, Umgang mit temporaeren Dateien).
+- **`.gitignore`:** `.tmp/` ergaenzt; die getrackte SwOS-Sicherung
+  `.tmp/swos-snapshot-css610test.swb` aus dem Tracking genommen (temporaere Arbeitsdateien
+  gehoeren nie ins Repo — `.swb`-Backups enthalten zudem das Switch-Passwort im Klartext).
+
 ### 1.28.0
 
 - **Neuer Skill `pushover`:** Push-Notifications von Claude Code / Loops / cron via
