@@ -3,6 +3,28 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.30.0
+
+- **`swos`: CSS106-Reihe (`swos_lite`) beschreibbar (CR4428).** Stufe-2-Writes jetzt auch auf der
+  CSS106-Reihe, nicht mehr nur css610_new/css326:
+  - **`link.b`** (`en/nm/an/spdc/dpxc/fct`): portname, port-enable, autoneg, duplex, speed. Flow
+    Control ist **ein** Feld `fct` (nicht `fctc/fctr` wie css326). Nur **1** SFP-Port (Port 6) →
+    `speed` deckt Kupfer 1-5 ab (`SFP_PORTS`-Map, dialektabhaengig).
+  - **`fwd.b`** (`vlan/vlni/dvid/fvid/vlnh`, Extra-Feld `vlnh`): vlan-mode (4-Werte, `strict`=3),
+    vlan-receive, pvid, force-vlan-id.
+  - **PoE-Out in `link.b`** (`poe`/`prio`), **nicht** `poe.b` (das gibt 303). Nur beim PoE-Modell
+    `CSS106-1G-4P-1S` (engine.js `Z()`-Gate, Marker `-4P-`) → link.b-POST-Subset modellabhaengig
+    (`post_poe`). Enum **`off/auto/on/calibr`** = 0/1/2/3 (≠ css610), gueltige Ports **2-5**
+    (`O:1,P:5`). `poe-out`/`poe-voltage` loesen ihren Endpoint dialektabhaengig auf; **kein
+    `poe-voltage`** auf CSS106 (kein Voltage-Level-Feld).
+  - **`vlan-set` auf CSS106 bewusst nicht** freigegeben: Mitgliedschaft ist ein Per-Port-Egress-Enum
+    `prt` (leave/strip/add/not-member), kein Member-Bitmask — ohne verifizierte Multi-VLAN-Referenz
+    nicht ableitbar (nicht raten). `vlan-remove`/`vlan-clear` laufen generisch (`[vid,ivl,igmp,prt]`).
+  - Feldnamen/Enums/POST-Reihenfolge aus `engine.js` (Tab-Definitionen) + Live-GET `.193`
+    (CSS106-1G-4P-1S) / `.204` (CSS106-5G-1S) verifiziert, nie geraten. link.b/fwd.b/PoE live an
+    `.193` bestaetigt (aendern → Read-back → Restore). CSS106-`vlan.b`-Write nur logisch abgeleitet
+    (Sandbox-vlan.b leer).
+
 ### 1.29.0
 
 - **Neuer Skill `mail-as-me`:** Entwirft und ueberarbeitet E-Mails im persoenlichen

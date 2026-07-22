@@ -431,11 +431,13 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.29.0
+### 1.30.0
 
-- **Neuer Skill `mail-as-me`:** Entwirft und ueberarbeitet E-Mails im persoenlichen
-  Schreibstil (Register, Anrede, Sign-off, Dialekt, Hedging) statt in generischem KI-Deutsch.
-  Universelle Engine im Skill, pro-Person-Profil unter `~/.claude/mail-as-me/<profil>/`.
-- **`extract.py`** liest `.eml`/`.mbox`/Maildir/Cyrus, strippt Zitat + Signatur, ignoriert
-  Anhaenge, schlaegt Register + Dialekt-Marker vor. `setup` = Auto-Extraktion + kurzes Interview.
-  Subcommands `setup`/`draft`/`rewrite`/`learn`. KI-Tell-Audit via `humanizer-de`, Versand via `swaks`.
+- **`swos`: CSS106-Reihe (`swos_lite`) beschreibbar.** Stufe-2-Writes jetzt auch auf CSS106:
+  `link.b` (portname/port-enable/autoneg/duplex/speed) und `fwd.b` (vlan-mode/vlan-receive/pvid/
+  force-vlan-id) sowie `vlan-remove`/`vlan-clear`. **PoE-Out** liegt bei CSS106 in `link.b` (nicht
+  `poe.b`), nur beim PoE-Modell (`CSS106-1G-4P-1S`), Enum `off/auto/on/calibr`, Ports 2-5;
+  `poe-out`/`poe-voltage` loesen ihren Endpoint dialektabhaengig auf. `vlan-set` auf CSS106 bewusst
+  **nicht** (Mitgliedschaft = Per-Port-Egress-Enum `prt`, kein Member-Bitmask). Feldnamen/Enums/
+  POST-Reihenfolge aus `engine.js` + Live-GET (.193/.204) verifiziert, nicht geraten; link.b/fwd.b/
+  PoE live an `.193` bestaetigt.

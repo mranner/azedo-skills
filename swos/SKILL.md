@@ -4,9 +4,12 @@ Fragt MikroTik-**SwOS**-Switches (CSS-Serie und RB260/SwOS-Lite) ab und dekodier
 SwOS-Blobs in lesbare Tabellen: System-Info, VLAN-Mitglieder, Portbelegung (PVID/PoE) und
 FDB (MAC→Port). **Stufe 1 = read-only** (Standard). **Stufe 2 = schreibend** umfasst 12 Port-/
 VLAN-/PoE-Befehle mit strengen Guard-Rails — auf `css610_new` vollständig (poe.b/link.b/fwd.b/
-vlan.b), auf `css326` alles außer PoE (link.b/fwd.b/vlan.b: portname, port-enable, autoneg,
-duplex, speed, vlan-mode, vlan-receive, force-vlan-id, pvid, vlan-set — 10 von 12), plus
-`vlan-remove`/`vlan-clear` (Lösch­weg, dialekt-generisch). Siehe Abschnitt „Schreiben".
+vlan.b), auf `css326` alles außer PoE (link.b/fwd.b/vlan.b), auf `swos_lite` (CSS106) link.b/fwd.b
+plus PoE-Out beim PoE-Modell (`poe`/`prio` liegen in link.b): portname, port-enable, autoneg,
+duplex, speed, vlan-mode, vlan-receive, force-vlan-id, pvid, poe-out (CSS106) — sowie
+`vlan-remove`/`vlan-clear` (Lösch­weg, dialekt-generisch). `vlan-set` läuft auf css610_new/css326;
+auf CSS106 nicht (Mitgliedschaft = Per-Port-Egress-Enum `prt`, kein Member-Bitmask). Siehe
+Abschnitt „Schreiben".
 
 **Aufruf:** `python3 "$SKILL_DIR/swos" <subcommand> [ziel] [optionen]`
 
@@ -33,7 +36,7 @@ SwOS serialisiert je nach Modell/Firmware unterschiedlich. Der Dialekt wird aus 
 | `css326`     | CSS326-24G-2S+          | mnemonisch (`id,cip,brd,…`) | `{nm,mbr,vid}` | `fwd.b dvid[]` | — (kein PoE) |
 | `css610_new` | CSS610-8P-2S+ (neue FW) | numerisch `i0x`             | `{i01,i02}`   | `fwd.b i18[]`  | `poe.b i04[]` |
 | `css610_old` | CSS610-8P-2S+ (alte FW) | Einzelbuchstaben (`F,J,B,C`)| `{B,C}`       | `fwd.b Y[]`    | `poe.b E[]` |
-| `swos_lite`  | CSS106 / RB260GS       | mnemonisch (`id,ip,sip,…`)  | `{vid,prt[]}` | `fwd.b dvid[]` | (offen, s.u.) |
+| `swos_lite`  | CSS106 / RB260GS       | mnemonisch (`id,ip,sip,…`)  | `{vid,prt[]}` | `fwd.b dvid[]` | `link.b poe[]` (nur `*-4P-*`) |
 
 VLAN-Namen kommen aus dem Geraet (`vlan.b nm`, nur css326), Modell aus `brd`/`i07` --
 nichts wird hartcodiert. IP=little-endian hex, Identity/Version/Modell/Serial=hex-ASCII.
@@ -82,12 +85,14 @@ Digest-Passwort hex-kodiert (`.pwd.b`) — nicht unbedacht weitergeben oder an T
 
 ## Schreiben (Stufe 2) — `poe.b`, `link.b`, `fwd.b`, `vlan.b`
 
-**Zwölf** Schreibbefehle sind freigegeben, alle live an `.215` verifiziert (ändern → Read-back →
-Restore). Format je Endpoint aus DevTools-/HAR-Capture `.215` + `engine.js` hart abgeleitet (CR4426):
+**Zwölf** Schreibbefehle sind freigegeben, live an `.215` (css610_new), `.214` (css326) und `.193`
+(swos_lite/CSS106) verifiziert (ändern → Read-back → Restore). Format je Endpoint aus DevTools-/
+HAR-Capture + `engine.js` hart abgeleitet (CR4426/CR4428), nie geraten. Nicht jeder Befehl gilt auf
+jedem Dialekt — siehe „Verifizierte Schreib-Dialekte" und die Dialekt-Unterabschnitte:
 
 ```bash
-swos poe-out     <ziel> --port <n> --to off|on|auto      [--commit]   # PoE Out (poe.b i01)
-swos poe-voltage <ziel> --port <n> --to auto|low|high    [--commit]   # Voltage Level (poe.b i03)
+swos poe-out     <ziel> --port <n> --to off|on|auto|calibr [--commit]  # PoE Out (css610 poe.b i01; CSS106 link.b poe, Enum off/auto/on/calibr, Ports 2-5)
+swos poe-voltage <ziel> --port <n> --to auto|low|high    [--commit]   # Voltage Level (nur css610, poe.b i03)
 swos portname    <ziel> --port <n> --name <text>         [--commit]   # Port-Name (link.b i0a)
 swos port-enable <ziel> --port <n> --to on|off  [--force] [--commit]   # Enabled (link.b i01)
 swos autoneg     <ziel> --port <n> --to on|off  [--force] [--commit]   # Auto Negotiation (link.b i02)
@@ -121,10 +126,12 @@ schreibbaren Feld-Subset übernehmen → **nur das Zielfeld** ersetzen → `POST
 **Guard-Rails:**
 - **`"writable": true`** im Inventory Pflicht (nur die 3 Büro-Sandkasten-Switches). Ohne Flag,
   bei `--swb`/`--ip` oder unbekanntem Switch → Abbruch. Produktion (Seiersberg) bleibt read-only.
-- **Verifizierte Schreib-Dialekte:** `css610_new` (poe.b/link.b/fwd.b/vlan.b) und `css326`
-  (link.b/fwd.b/vlan.b; kein PoE). Andere Dialekte → sauberer Abbruch. Nur
+- **Verifizierte Schreib-Dialekte:** `css610_new` (poe.b/link.b/fwd.b/vlan.b), `css326`
+  (link.b/fwd.b/vlan.b; kein PoE) und `swos_lite`/CSS106 (link.b/fwd.b; PoE-Out in link.b nur beim
+  PoE-Modell; kein `vlan-set`). Andere Dialekte → sauberer Abbruch. Nur
   `direct`-Transport. Der geforderte Endpoint muss für den erkannten Dialekt freigegeben sein
-  (`WRITE_FIELDS`), sonst Abbruch mit klarer Meldung.
+  (`WRITE_FIELDS`), sonst Abbruch mit klarer Meldung. `poe-out`/`poe-voltage` lösen ihren Endpoint
+  dialektabhängig auf (css610 → `poe.b`, CSS106 → `link.b`; `poe-voltage` nur css610).
 - **`--dry-run` ist Default:** zeigt aktuelles/geplantes Feld und den exakten POST-Body, sendet
   nichts. Erst `--commit` schreibt.
 - **Snapshot vor der ersten Änderung** (`.tmp/swos-snapshot-<sw>.swb`) als Rollback-Punkt.
@@ -179,6 +186,31 @@ auf css610_new nur `["disabled","optional","strict"]` → `strict`=2. Das css610
 hält beide; jeder Enum-Wert wird gegen den erkannten Dialekt validiert. `vlan-receive` und der
 Kupfer-Speed-Subset (10/100/1000=0/1/2) sind dagegen identisch (SFP+-Speedstufen nicht abgedeckt).
 
+### swos_lite / CSS106-Schreibpfad (CR4428)
+
+Aus `engine.js` (Tab-Definitionen) + Live-GET `.193` (CSS106-1G-4P-1S, PoE) und `.204`
+(CSS106-5G-1S, ohne PoE) verifiziert, nicht geraten. **6 Ports** (5×Kupfer + **1** SFP → `speed`
+1–5). Feldnamen in `WRITE_FIELDS["swos_lite"]`:
+
+- **`link.b`** POST-Subset `en/nm/an/spdc/dpxc/fct` — Flow Control ist **ein** Feld `fct` (nicht
+  `fctc/fctr` wie css326). Portname/enable/autoneg/duplex/speed laufen darüber.
+- **PoE liegt in `link.b`** (`poe`=PoE Out, `prio`=Priority), **nicht** in `poe.b` (das gibt `303`).
+  Die PoE-Felder rendert `engine.js` nur beim PoE-Modell (`Z()`-Wrapper, Board `CSS106-1G-4P-1S`) —
+  daher ist der link.b-POST-Subset **modellabhängig**: mit PoE zusätzlich `poe,prio`. `poe-out`
+  erkennt das PoE-Modell an `-4P-` im Board und bricht sonst sauber ab. **PoE-Out-Enum divergiert:**
+  `["off","auto","on","calibr"]` = 0/1/2/3 (≠ css610 `off/on/auto`). Gültige PoE-Ports **2–5**
+  (`engine.js O:1,P:5`; Port 1 Uplink / Port 6 SFP haben kein PoE). **Kein `poe-voltage`** (CSS106
+  hat kein Voltage-Level-Feld).
+- **`fwd.b`** POST-Subset `vlan/vlni/dvid/fvid/vlnh` — wie css326, aber mit **Extra-Feld `vlnh`**
+  (VLAN Header, Egress). VLAN Mode 4-Werte wie css326 (`strict`=3).
+- **`vlan.b`**: Einträge `{vid,ivl,igmp,prt}`. Mitgliedschaft ist ein **Per-Port-Egress-Enum `prt`**
+  (leave/strip/add/not-member), **kein Member-Bitmask** → `vlan-set` ist auf CSS106 **nicht**
+  freigegeben (tagged/untagged-Semantik ohne verifizierte Multi-VLAN-Referenz nicht ableitbar,
+  „nicht raten"). `vlan-remove`/`vlan-clear` laufen generisch (Reihenfolge `[vid,ivl,igmp,prt]`).
+
+Live an `.193` bestätigt (ändern → Read-back → Restore): `portname` (link.b inkl. PoE-Felder im
+POST), `pvid` (fwd.b), `poe-out` (link.b, `auto`↔`on`).
+
 ### Noch zurückgestellt
 
 - **`poe-priority`** (`poe.b i02`): keine freie Zahl je Port, sondern ein **eindeutiger Rang
@@ -217,19 +249,25 @@ ODER `cred: "<name>"` -> `credentials.<name>` mit `password` / `password_env` / 
 
 ## Grenzen / offen (Stufe 2 und Nacharbeit)
 
-- **Schreiben auf `css610_new` (poe.b/link.b/fwd.b/vlan.b) und `css326` (link.b/fwd.b/vlan.b).**
-  Noch offen: Identity/Mgmt-IP (`sys.b`), CSS106-Reihe (swos_lite, PoE in link.b),
-  css610_old-Writes — jeweils erst nach DevTools-/HAR-Verifikation des POST-Formats (nicht raten),
-  jeder Write mit Read-back-Verify. `backup` (GET `/backup.swb`) ist reines Lesen und faellt
-  weiterhin unter Stufe 1 — keine Config-Aenderung am Switch.
+- **Schreiben auf `css610_new` (poe.b/link.b/fwd.b/vlan.b), `css326` (link.b/fwd.b/vlan.b) und
+  `swos_lite`/CSS106 (link.b/fwd.b, PoE-Out in link.b beim PoE-Modell).**
+  Noch offen: Identity/Mgmt-IP (`sys.b`), `vlan-set` auf CSS106 (Per-Port-Egress-Enum `prt` statt
+  Member-Bitmask — braucht verifizierte Multi-VLAN-Referenz), css610_old-Writes — jeweils erst nach
+  DevTools-/HAR-Verifikation des POST-Formats (nicht raten), jeder Write mit Read-back-Verify.
+  `backup` (GET `/backup.swb`) ist reines Lesen und faellt weiterhin unter Stufe 1 — keine
+  Config-Aenderung am Switch.
+- **CSS106 `vlan.b`-Write live noch ungetestet** (nur logisch aus `engine.js`/GET abgeleitet): die
+  Sandbox-`vlan.b` ist leer, `vlan-clear` ist dort No-op und `vlan-remove` braucht einen Eintrag.
+  link.b/fwd.b sind dagegen live an `.193` bestätigt.
 - **`.swb`-Restore-/Upload-Weg noch offen.** Der Snapshot-**Pull** vor dem ersten Write steht
   (via `backup`), das **Einspielen** eines `.swb` (Restore-POST) ist noch nicht verifiziert — das
   vollstaendige Rollback-Netz fehlt also noch.
 - **`ports`-View liest PoE-Modus aus dem falschen Feld** (`i04`=Runtime statt `i01`=Config, nur
   css610) — siehe Abschnitt „Schreiben". `poe-out` selbst ist davon nicht betroffen.
-- **swos_lite-PoE** (CSS106-1G-4P-1S): `poe.b` fehlt, PoE-Info steckt in `link.b` (`poe`/`poes`);
-  die genaue Semantik von `poes` ist noch nicht gegen `engine.js` verifiziert und wird bewusst
-  **nicht** als Modus ausgegeben (nicht raten).
+- **swos_lite-PoE** (CSS106-1G-4P-1S): `poe.b` fehlt, PoE-Info steckt in `link.b`. Der **Write**
+  ist verifiziert (`poe`=Config-Modus `off/auto/on/calibr`, siehe Schreibpfad). **Stufe-1-Read-View
+  offen:** das `ports`-View gibt den PoE-Modus für swos_lite noch nicht aus; `poes` (Status-Enum aus
+  `engine.js`: `disabled/waiting/powered on/overload/…`) ist noch nicht ins Lese-View eingearbeitet.
 - **Link/Speed** wird noch nicht dekodiert (Speed-Codes modellabhaengig, unsicher).
 - **ssh-curl** macht pro Endpoint eine SSH-Session; `all` = mehrere Sessions (funktioniert,
   aber nicht gebuendelt).

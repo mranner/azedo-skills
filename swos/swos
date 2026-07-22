@@ -2,7 +2,7 @@
 
 # MikroTik SwOS query helper (read-only Stufe 1 + Schreibbefehle Stufe 2)
 # stdlib only, no pip dependencies
-# version 1.27.0
+# version 1.30.0
 #
 # Ein gemeinsamer Decoder, drei Transporte:
 #   A) direct   – urllib HTTP-Digest direkt auf die Switch-IP (Runner routbar)
@@ -12,11 +12,16 @@
 # Vier SwOS-Feld-Dialekte: css326, css610_new, css610_old, swos_lite.
 # `backup` zieht das Live-Backup (GET /backup.swb) -- reines Lesen (kein POST,
 # keine Config-Aenderung), bleibt also innerhalb von Stufe 1.
-# Schreibbefehle (Stufe 2, nur css610_new, POST /<ep>.b): poe-out/poe-voltage
-# (poe.b), portname/port-enable/autoneg/duplex/speed (link.b), pvid/vlan-mode/
-# vlan-receive/force-vlan-id (fwd.b), vlan-set
-# (vlan.b). writable-Flag Pflicht, --dry-run als Default, Snapshot + Read-back-
-# Verify, Hex byte-aligned. Siehe SKILL.md.
+# Schreibbefehle (Stufe 2, POST /<ep>.b) je Dialekt:
+#   css610_new: alle (poe.b/link.b/fwd.b/vlan.b), inkl. poe-voltage
+#   css326:     link.b/fwd.b/vlan.b (kein PoE)
+#   swos_lite:  link.b/fwd.b (CSS106); PoE-Out in link.b nur beim PoE-Modell
+#               (CSS106-1G-4P-1S); vlan-remove/vlan-clear ja, vlan-set nein
+#               (prt = Per-Port-Egress-Enum, kein Member-Bitmask -> nicht ableitbar)
+# Befehle: poe-out/poe-voltage, portname/port-enable/autoneg/duplex/speed,
+# pvid/vlan-mode/vlan-receive/force-vlan-id, vlan-set/vlan-remove/vlan-clear.
+# writable-Flag Pflicht, --dry-run als Default, Snapshot + Read-back-Verify,
+# Hex byte-aligned. Siehe SKILL.md.
 
 import argparse
 import json
@@ -250,6 +255,11 @@ DEFAULT_PORTNAMES = {
     "swos_lite": [f"Port{i}" for i in range(1, 6)] + ["SFP"],
 }
 
+# Anzahl SFP-Ports am Ende der Portliste je Dialekt. Fuer speed relevant (SFP-Ports
+# haben andere Dropdown-Stufen -> nur Kupfer abgedeckt). css610/css326: 2 SFP,
+# CSS106 (swos_lite): nur 1 SFP (engine.js ha[5]="SFP", r=6).
+SFP_PORTS = {"css326": 2, "css610_new": 2, "css610_old": 2, "swos_lite": 1}
+
 
 def _first(sysobj, spec):
     """spec = str (ein Key) oder tuple (Keys der Reihe nach)."""
@@ -284,7 +294,9 @@ class Target:
         self.swb_data = swb_data or {}
         self.timeout = timeout
         self._cache = {}
-        self._dialect = None    # von _write_guard gesetzt (Schreibpfad)
+        self._dialect = None       # von _write_guard gesetzt (Schreibpfad)
+        self._endpoint = None      # ggf. dialekt-aufgeloester Ziel-Endpoint
+        self._link_has_poe = False # swos_lite: PoE-Felder in link.b (PoE-Modell)
 
     def get(self, endpoint):
         if endpoint in self._cache:
@@ -802,6 +814,17 @@ POE_OUT_MODES = {"off": 0, "on": 1, "auto": 2}       # engine.js poe.b i01 u:[]
 POE_OUT_NAMES = {v: k for k, v in POE_OUT_MODES.items()}
 POE_VOLT_MODES = {"auto": 0, "low": 1, "high": 2}    # engine.js poe.b i03 u:[]
 POE_VOLT_NAMES = {v: k for k, v in POE_VOLT_MODES.items()}
+# CSS106 (swos_lite) hat ein ANDERES PoE-Out-Enum und legt PoE in link.b ab
+# (nicht poe.b). engine.js link.b {id:"poe",C:["off","auto","on","calibr"]}.
+POE_OUT_MODES_LITE = {"off": 0, "auto": 1, "on": 2, "calibr": 3}
+# PoE-Out je Dialekt: Endpoint, Enum, Array-Breite (poe.b: 8), gueltiger Portbereich.
+# swos_lite: engine.js O:1,P:5 -> nur Ports 2..5 (Port1 Uplink, Port6 SFP haben kein PoE).
+POE_OUT_SPEC = {
+    "css610_new": {"endpoint": "poe.b",  "enum": POE_OUT_MODES,      "width": 8,
+                   "ports": None},
+    "swos_lite":  {"endpoint": "link.b", "enum": POE_OUT_MODES_LITE, "width": None,
+                   "ports": (2, 5)},
+}
 # Forced-Speed-Index (link.b, Kupferports). Dropdown 10/100/1000 Mbit/s
 # per UI/engine.js verifiziert (css610 i05, css326 spdc). SFP+-Ports haben
 # zusaetzliche Stufen (css326 engine.js: 10M/100M/1G/10G/5G/2.5G/40G) -> nur
@@ -819,6 +842,8 @@ VLANRECV_NAMES = {v: k for k, v in VLANRECV_MODES.items()}
 VLANMODE_BY_DIALECT = {
     "css610_new": {"disabled": 0, "optional": 1, "strict": 2},
     "css326":     {"disabled": 0, "optional": 1, "enabled": 2, "strict": 3},
+    # CSS106: engine.js fwd.b {id:"vlan",C:["disabled","optional","enabled","strict"]}
+    "swos_lite":  {"disabled": 0, "optional": 1, "enabled": 2, "strict": 3},
 }
 
 # Schreib-Feldnamen je Dialekt (engine.js-Feldtabelle + HAR-Capture verifiziert,
@@ -855,6 +880,29 @@ WRITE_FIELDS = {
                    "order": ["vid", "nm", "piso", "lrn", "mrr", "igmp", "mbr"],
                    "new": {"piso": 1, "lrn": 1, "mrr": 0, "igmp": 0}},
     },
+    "swos_lite": {
+        # CSS106-Reihe. Feld-Reihenfolge/Enums aus engine.js (Tab-Definitionen) +
+        # Live-GET (.193 PoE / .204 non-PoE) verifiziert, nicht geraten.
+        # link.b: Flow Control ist EIN Feld (fct, nicht fctc/fctr wie css326). PoE
+        # liegt in link.b (poe/prio) und nur beim PoE-Modell (CSS106-1G-4P-1S) ->
+        # "post_poe" wird dann statt "post" verwendet (engine.js Z()-Wrapper).
+        "link.b": {"post": ["en", "nm", "an", "spdc", "dpxc", "fct"],
+                   "post_poe": ["en", "nm", "an", "spdc", "dpxc", "fct",
+                                "poe", "prio"],
+                   "enable": "en", "names": "nm", "autoneg": "an",
+                   "speed": "spdc", "duplex": "dpxc", "link": "lnk",
+                   "poe_out": "poe", "poe_prio": "prio"},
+        # fwd.b VLAN-Tab: wie css326, aber mit Extra-Feld vlnh (VLAN Header, Egress).
+        "fwd.b":  {"post": ["vlan", "vlni", "dvid", "fvid", "vlnh"],
+                   "vlanmode": "vlan", "vlanrecv": "vlni", "pvid": "dvid",
+                   "forcevid": "fvid"},
+        # vlan.b: {vid,ivl,igmp,prt}. prt = Per-Port-Egress-Enum (leave/strip/add/
+        # not-member), KEIN Member-Bitmask -> kein "member"-Schluessel, daher greift
+        # vlan-set (Bitmask-Modell) hier NICHT; vlan-remove/vlan-clear sind generisch.
+        "vlan.b": {"vid": "vid",
+                   "order": ["vid", "ivl", "igmp", "prt"],
+                   "new": {"ivl": 0, "igmp": 0}},
+    },
 }
 
 # Dialekte mit verifiziertem Schreibpfad.
@@ -864,6 +912,15 @@ WRITABLE_DIALECTS = set(WRITE_FIELDS)
 def _wf(target, endpoint):
     """Schreib-Feldtabelle des Endpoints fuer den Dialekt des Targets."""
     return WRITE_FIELDS[target._dialect][endpoint]
+
+
+def _wf_post(target, endpoint):
+    """Zu postender Feld-Subset. Bei CSS106-PoE-Modell schliesst link.b zusaetzlich
+    die PoE-Felder (poe/prio) ein — genau wie die SwOS-UI sie sendet."""
+    wf = _wf(target, endpoint)
+    if (endpoint == "link.b" and target._link_has_poe and "post_poe" in wf):
+        return wf["post_poe"]
+    return wf["post"]
 
 PORTNAME_MAX = 16    # konservativ; Read-back-Verify faengt Ueberlauf/Trunkierung ab
 
@@ -950,10 +1007,22 @@ def _write_guard(args, cmd, endpoint):
         raise SystemExit(f"{cmd}: Write-Format fuer Dialekt '{dia}' nicht verifiziert "
                          f"('{target.name}'). Erst per DevTools/HAR-Capture verifizieren "
                          f"(verfuegbar: {', '.join(sorted(WRITABLE_DIALECTS))}).")
+    # Dialekt-abhaengiger Ziel-Endpoint: PoE liegt bei css610 in poe.b, bei CSS106
+    # in link.b. `endpoint` kann daher ein {dialekt: endpoint}-Mapping sein.
+    if isinstance(endpoint, dict):
+        endpoint = endpoint.get(dia)
+        if endpoint is None:
+            raise SystemExit(f"{cmd}: auf Dialekt '{dia}' nicht verfuegbar "
+                             f"('{target.name}').")
     if endpoint not in WRITE_FIELDS[dia]:
         raise SystemExit(f"{cmd}: Endpoint {endpoint} auf Dialekt '{dia}' noch nicht "
                          f"freigegeben ('{target.name}').")
     target._dialect = dia
+    target._endpoint = endpoint
+    # CSS106: PoE-Felder (poe/prio) nur beim PoE-Modell in link.b. engine.js gated
+    # das exakt auf Board "CSS106-1G-4P-1S" (Marker "-4P-").
+    model = (hexascii(sysobj.get("brd")) or "").upper()
+    target._link_has_poe = (dia == "swos_lite" and "-4P-" in model)
     return target
 
 
@@ -965,7 +1034,7 @@ def _post_subset(target, endpoint, width=None):
     if not isinstance(cur, dict):
         raise SystemExit(f"[{target.name}] {endpoint} nicht lesbar")
     post = {}
-    for f in _wf(target, endpoint)["post"]:
+    for f in _wf_post(target, endpoint):
         if f not in cur:
             raise SystemExit(f"[{target.name}] {endpoint}: Feld {f} fehlt im aktuellen Blob")
         v = cur[f]
@@ -1025,28 +1094,50 @@ def _port_in_range(cmd, port, n, extra=""):
 
 
 def cmd_poe_out(args):
-    target = _write_guard(args, "poe-out", "poe.b")
-    cur, post = _post_subset(target, "poe.b", width=8)
-    i01 = list(post["i01"])
-    _port_in_range("poe-out", args.port, len(i01), "; SFP-Ports haben kein PoE")
-    tv = POE_OUT_MODES[args.mode]
-    cur_val = i01[args.port - 1]
-    i01[args.port - 1] = tv
-    post["i01"] = i01
+    # Endpoint/Enum/Portbereich divergieren je Dialekt: css610 -> poe.b i01,
+    # CSS106 -> link.b poe (anderes Enum, nur Ports 2..5, nur PoE-Modell).
+    ep_map = {d: s["endpoint"] for d, s in POE_OUT_SPEC.items()}
+    target = _write_guard(args, "poe-out", ep_map)
+    dia = target._dialect
+    spec = POE_OUT_SPEC[dia]
+    ep, enum, width = spec["endpoint"], spec["enum"], spec["width"]
+    if dia == "swos_lite" and not target._link_has_poe:
+        raise SystemExit(f"poe-out: '{target.name}' ist kein PoE-Modell "
+                         "(nur CSS106-1G-4P-1S fuehrt PoE) — Abbruch.")
+    if args.mode not in enum:
+        raise SystemExit(f"poe-out: Modus '{args.mode}' auf Dialekt '{dia}' ungueltig "
+                         f"(erlaubt: {', '.join(enum)}).")
+    names = {v: k for k, v in enum.items()}
+    fld = _wf(target, ep)["poe_out"]
+    cur, post = _post_subset(target, ep, width=width)
+    arr = list(post[fld])
+    if spec["ports"]:
+        lo, hi = spec["ports"]
+        if not (lo <= args.port <= hi):
+            raise SystemExit(f"poe-out: Port {args.port} ungueltig (nur PoE-Ports "
+                             f"{lo}..{hi}; Port 1 Uplink / Port 6 SFP haben kein PoE).")
+    else:
+        _port_in_range("poe-out", args.port, len(arr), "; SFP-Ports haben kein PoE")
+    tv = enum[args.mode]
+    cur_val = arr[args.port - 1]
+    arr[args.port - 1] = tv
+    post[fld] = arr
+    cur_arr = cur[fld][:width] if width else cur[fld]
     describe = [
         f"# {target.name}  PoE Out  Port {args.port}: "
-        f"{POE_OUT_NAMES.get(cur_val, hex(cur_val))} -> {args.mode}",
-        f"  i01 aktuell : {_blob_arr(cur['i01'][:8])}",
-        f"  i01 geplant : {_blob_arr(i01)}",
+        f"{names.get(cur_val, hex(cur_val))} -> {args.mode}",
+        f"  {fld} aktuell : {_blob_arr(cur_arr)}",
+        f"  {fld} geplant : {_blob_arr(arr)}",
     ]
     if cur_val == tv:
         describe.append("  (keine Aenderung — Port steht bereits auf diesem Modus)")
-    _commit_write(target, "poe.b", post, describe, args,
-                  f"Port {args.port} jetzt '{args.mode}', sonst unveraendert.", width=8)
+    _commit_write(target, ep, post, describe, args,
+                  f"Port {args.port} jetzt '{args.mode}', sonst unveraendert.", width=width)
 
 
 def cmd_poe_voltage(args):
-    target = _write_guard(args, "poe-voltage", "poe.b")
+    # Voltage Level gibt es nur bei css610 (poe.b i03). CSS106 hat kein solches Feld.
+    target = _write_guard(args, "poe-voltage", {"css610_new": "poe.b"})
     cur, post = _post_subset(target, "poe.b", width=8)
     i03 = list(post["i03"])
     _port_in_range("poe-voltage", args.port, len(i03))
@@ -1134,12 +1225,12 @@ def cmd_speed(args):
     cur, post = _post_subset(target, "link.b")
     wf = _wf(target, "link.b")
     spdf, lnkf, anf = wf["speed"], wf["link"], wf["autoneg"]
-    # Nur Kupferports abgedeckt (10/100/1000 = 0/1/2). Die letzten zwei Ports
-    # sind SFP+ (andere Enum-Stufen, nicht abgedeckt) -> Kupferzahl aus der
-    # Portanzahl ableiten (css610: 8, css326: 24).
-    copper = len(post[wf["names"]]) - 2
+    # Nur Kupferports abgedeckt (10/100/1000 = 0/1/2). Die SFP(+)-Ports am Ende
+    # haben andere Enum-Stufen (nicht abgedeckt) -> Kupferzahl aus Portanzahl minus
+    # SFP-Ports je Dialekt (css610: 8, css326: 24, CSS106: 5 — nur 1 SFP).
+    copper = len(post[wf["names"]]) - SFP_PORTS.get(target._dialect, 2)
     if not (1 <= args.port <= copper):
-        raise SystemExit(f"speed: nur Kupferports 1..{copper} (SFP+-Ports haben andere "
+        raise SystemExit(f"speed: nur Kupferports 1..{copper} (SFP-Ports haben andere "
                          "Dropdown-Werte, nicht gecaptured).")
     spd = list(post[spdf])
     tv = SPEED_MODES[args.to]
@@ -1272,6 +1363,14 @@ def cmd_vlan(args):
     if not isinstance(cur, list):
         raise SystemExit(f"[{target.name}] vlan.b nicht lesbar")
     wf = _wf(target, "vlan.b")
+    if "member" not in wf:
+        raise SystemExit(
+            f"vlan-set: auf Dialekt '{target._dialect}' nicht unterstuetzt. "
+            "VLAN-Mitgliedschaft ist hier ein Per-Port-Egress-Enum (Feld 'prt': "
+            "leave as is / always strip / add if missing / not a member), kein "
+            "Member-Bitmask — das tagged/untagged-Modell laesst sich ohne verifizierte "
+            "Multi-VLAN-Referenz nicht sicher ableiten. Nutzbar: vlan-remove/vlan-clear "
+            "sowie pvid/vlan-mode/vlan-receive/force-vlan-id.")
     vidf, mbrf, order = wf["vid"], wf["member"], wf["order"]
     if not (1 <= args.vid <= 4094):
         raise SystemExit("vlan-set: --vid 1..4094.")
@@ -1362,30 +1461,35 @@ def cmd_vlan_remove(args):
     if not isinstance(cur, list):
         raise SystemExit(f"[{target.name}] vlan.b nicht lesbar")
     wf = _wf(target, "vlan.b")
-    vidf, mbrf = wf["vid"], wf["member"]
+    vidf, mbrf = wf["vid"], wf.get("member")   # mbrf fehlt bei swos_lite (prt-Modell)
     present = [v.get(vidf) for v in cur]
     if args.vid not in present:
         print(f"# {target.name}  VLAN {args.vid} nicht vorhanden — nichts zu entfernen "
               f"(vorhandene: {present or 'keine'}).")
         return
     new = [_vlan_entry_ordered(v, wf) for v in cur if v.get(vidf) != args.vid]
-    orig = {v.get(vidf): v.get(mbrf) for v in cur}
+    remaining = sorted(x for x in present if x != args.vid)
+    # Masken der uebrigen VLANs nur pruefen, wo ein Member-Bitmask existiert.
+    orig = {v.get(vidf): v.get(mbrf) for v in cur} if mbrf else {}
 
     def verify(back):
         if not isinstance(back, list):
             return False, "vlan.b nicht als Liste zurueck"
-        bmap = {v.get(vidf): v.get(mbrf) for v in back}
-        if args.vid in bmap:
+        bvids = sorted(v.get(vidf) for v in back)
+        if args.vid in bvids:
             return False, f"VLAN {args.vid} nach Entfernen noch vorhanden"
-        for ovid, omask in orig.items():
-            if ovid == args.vid:
-                continue
-            if bmap.get(ovid) != omask:
-                return False, (f"VLAN {ovid} unerwartet veraendert "
-                               f"({omask} -> {bmap.get(ovid)})")
+        if bvids != remaining:
+            return False, f"VLAN-Satz unerwartet {bvids} != erwartet {remaining}"
+        if mbrf:
+            bmap = {v.get(vidf): v.get(mbrf) for v in back}
+            for ovid, omask in orig.items():
+                if ovid == args.vid:
+                    continue
+                if bmap.get(ovid) != omask:
+                    return False, (f"VLAN {ovid} unerwartet veraendert "
+                                   f"({omask} -> {bmap.get(ovid)})")
         return True, ""
 
-    remaining = [x for x in present if x != args.vid]
     describe = [
         f"# {target.name}  VLAN {args.vid} entfernen  (verbleibend: {remaining or 'keine'})",
         f"  vlan.b geplant: {_ser(new)}",
@@ -1450,8 +1554,10 @@ def main():
                        help="PoE Out je Port setzen (Stufe 2, schreibend)")
     add_target_args(p)
     p.add_argument("--port", type=int, required=True, help="Portnummer (1-basiert)")
-    p.add_argument("--to", dest="mode", required=True, choices=["off", "on", "auto"],
-                   help="PoE Out Zielwert: off | on (forced) | auto")
+    p.add_argument("--to", dest="mode", required=True,
+                   choices=["off", "on", "auto", "calibr"],
+                   help="PoE Out Zielwert: off | on | auto (| calibr nur CSS106). "
+                        "Gueltige Werte je Dialekt werden zur Laufzeit geprueft.")
     _commit_arg(p)
 
     p = sub.add_parser("poe-voltage",
