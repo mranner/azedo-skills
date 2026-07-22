@@ -3,6 +3,21 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.29.0
+
+- **Neuer Skill `mail-as-me`:** Entwirft und ueberarbeitet E-Mails im persoenlichen
+  Schreibstil (Register, Anrede, Sign-off, Dialekt, Hedging) statt in generischem
+  KI-Deutsch. Universelle Engine im Skill, pro-Person-Profil (Beispiel-Korpus +
+  Stilregeln) unter `~/.claude/mail-as-me/<profil>/` (getrennt vom versionierten Skill).
+- **`extract.py`:** liest `.eml`/`.mbox`/Maildir/Cyrus, strippt Zitat + Signatur,
+  ignoriert Anhaenge, schlaegt je Mail Register (Domain→`register_map`) und Dialekt-Marker
+  (Wortgrenzen-Regex, kein `eh`-in-`geehrter`-Fehlgriff) vor. `setup` = Auto-Extraktion
+  + kurzes Interview (nur was Samples nicht hergeben: Sign-off-Sonderfaelle, Du/Sie,
+  Dialekt, Domain→Register).
+- **Subcommands** `setup`/`draft`/`rewrite`/`learn` (Feedback-Loop: Entwurf↔gesendet
+  diffen, Korrekturen ins Profil). **Reuse statt Duplikat:** KI-Tell-Audit ueber
+  `humanizer-de`, Versand ueber `swaks`.
+
 ### 1.28.1
 
 - **Repo-Doku:** `CLAUDE.md` angelegt (Release-Workflow, „Neuer Skill → install.sh mitpflegen",

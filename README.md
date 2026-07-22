@@ -431,9 +431,11 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.28.1
+### 1.29.0
 
-- **Repo-Doku:** `CLAUDE.md` angelegt (Release-Workflow, „Neuer Skill → install.sh mitpflegen",
-  Konsumenten-Seite, Umgang mit temporaeren Dateien).
-- **`.gitignore`:** `.tmp/` ergaenzt; getrackte SwOS-Sicherung aus dem Tracking genommen
-  (temporaere Arbeitsdateien gehoeren nie ins Repo, `.swb`-Backups enthalten das Switch-Passwort).
+- **Neuer Skill `mail-as-me`:** Entwirft und ueberarbeitet E-Mails im persoenlichen
+  Schreibstil (Register, Anrede, Sign-off, Dialekt, Hedging) statt in generischem KI-Deutsch.
+  Universelle Engine im Skill, pro-Person-Profil unter `~/.claude/mail-as-me/<profil>/`.
+- **`extract.py`** liest `.eml`/`.mbox`/Maildir/Cyrus, strippt Zitat + Signatur, ignoriert
+  Anhaenge, schlaegt Register + Dialekt-Marker vor. `setup` = Auto-Extraktion + kurzes Interview.
+  Subcommands `setup`/`draft`/`rewrite`/`learn`. KI-Tell-Audit via `humanizer-de`, Versand via `swaks`.
