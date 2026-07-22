@@ -2,7 +2,7 @@
 
 # MikroTik SwOS query helper (read-only Stufe 1 + Schreibbefehle Stufe 2)
 # stdlib only, no pip dependencies
-# version 1.26.6
+# version 1.27.0
 #
 # Ein gemeinsamer Decoder, drei Transporte:
 #   A) direct   – urllib HTTP-Digest direkt auf die Switch-IP (Runner routbar)
@@ -284,6 +284,7 @@ class Target:
         self.swb_data = swb_data or {}
         self.timeout = timeout
         self._cache = {}
+        self._dialect = None    # von _write_guard gesetzt (Schreibpfad)
 
     def get(self, endpoint):
         if endpoint in self._cache:
@@ -801,21 +802,68 @@ POE_OUT_MODES = {"off": 0, "on": 1, "auto": 2}       # engine.js poe.b i01 u:[]
 POE_OUT_NAMES = {v: k for k, v in POE_OUT_MODES.items()}
 POE_VOLT_MODES = {"auto": 0, "low": 1, "high": 2}    # engine.js poe.b i03 u:[]
 POE_VOLT_NAMES = {v: k for k, v in POE_VOLT_MODES.items()}
-# link.b i05 Forced-Speed-Index, Kupferports 1..8 (Dropdown 10/100/1000 Mbit/s,
-# per UI verifiziert). SFP+ 9/10 haben andere Werte -> nicht abgedeckt.
+# Forced-Speed-Index (link.b, Kupferports). Dropdown 10/100/1000 Mbit/s
+# per UI/engine.js verifiziert (css610 i05, css326 spdc). SFP+-Ports haben
+# zusaetzliche Stufen (css326 engine.js: 10M/100M/1G/10G/5G/2.5G/40G) -> nur
+# der Kupfer-Subset 10/100/1000 = 0/1/2 ist hier abgedeckt.
 SPEED_MODES = {"10": 0, "100": 1, "1000": 2}
 SPEED_NAMES = {v: k for k, v in SPEED_MODES.items()}
-# fwd.b Per-Port-Enums (engine.js). VLAN Mode i15 / VLAN Receive i17.
-VLANMODE_MODES = {"disabled": 0, "optional": 1, "strict": 2}
-VLANMODE_NAMES = {v: k for k, v in VLANMODE_MODES.items()}
-VLANRECV_MODES = {"any": 0, "tagged": 1, "untagged": 2}   # engine.js: any / only tagged / only untagged
+# VLAN Receive (fwd.b) -- in beiden Dialekten identisch (engine.js
+# v:["any","only tagged","only untagged"]).
+VLANRECV_MODES = {"any": 0, "tagged": 1, "untagged": 2}
 VLANRECV_NAMES = {v: k for k, v in VLANRECV_MODES.items()}
-
-POST_FIELDS = {
-    "poe.b":  ["i01", "i02", "i03", "i0a"],
-    "link.b": ["i01", "i0a", "i02", "i05", "i03", "i16", "i12"],
-    "fwd.b":  ["i15", "i17", "i18", "i19"],
+# VLAN Mode (fwd.b) DIVERGIERT je Dialekt (engine.js v:[...]):
+#   css610_new: ["disabled","optional","strict"]            -> strict=2
+#   css326:     ["disabled","optional","enabled","strict"]  -> strict=3, plus "enabled"
+# Raten des css610-Enums haette auf css326 'strict' faelschlich als 'enabled' gesetzt.
+VLANMODE_BY_DIALECT = {
+    "css610_new": {"disabled": 0, "optional": 1, "strict": 2},
+    "css326":     {"disabled": 0, "optional": 1, "enabled": 2, "strict": 3},
 }
+
+# Schreib-Feldnamen je Dialekt (engine.js-Feldtabelle + HAR-Capture verifiziert,
+# nicht geraten: css610_new .215 / css326 .214). "post" = schreibbarer Subset
+# des Endpoints (Reihenfolge wie die SwOS-Web-UI sendet); die uebrigen Keys sind
+# symbolische Rollen -> tatsaechlicher Feldname im jeweiligen Dialekt.
+WRITE_FIELDS = {
+    "css610_new": {
+        "poe.b":  {"post": ["i01", "i02", "i03", "i0a"],
+                   "poe_out": "i01", "poe_prio": "i02", "poe_volt": "i03"},
+        "link.b": {"post": ["i01", "i0a", "i02", "i05", "i03", "i16", "i12"],
+                   "enable": "i01", "names": "i0a", "autoneg": "i02",
+                   "speed": "i05", "duplex": "i03", "link": "i06"},
+        "fwd.b":  {"post": ["i15", "i17", "i18", "i19"],
+                   "vlanmode": "i15", "vlanrecv": "i17", "pvid": "i18",
+                   "forcevid": "i19"},
+        # vlan.b: pro VLAN ein Eintrag; "order" = kanonische POST-Feldreihenfolge,
+        # "new" = Defaults fuer einen frisch angelegten Eintrag.
+        "vlan.b": {"vid": "i01", "member": "i02",
+                   "order": ["i01", "i03", "i02"], "new": {"i03": 0}},
+    },
+    "css326": {
+        # CSS326-24G-2S+ hat kein PoE -> kein poe.b.
+        "link.b": {"post": ["en", "nm", "an", "spdc", "dpxc", "fctc", "fctr"],
+                   "enable": "en", "names": "nm", "autoneg": "an",
+                   "speed": "spdc", "duplex": "dpxc", "link": "lnk"},
+        "fwd.b":  {"post": ["vlan", "vlni", "dvid", "fvid"],
+                   "vlanmode": "vlan", "vlanrecv": "vlni", "pvid": "dvid",
+                   "forcevid": "fvid"},
+        # vlan.b reicher als css610: {vid,nm,piso,lrn,mrr,igmp,mbr}. GET-Reihenfolge
+        # != POST-Reihenfolge -> beim Serialisieren immer "order" verwenden. Defaults
+        # fuer neue VLANs aus HAR-Capture (.214): Isolation/Learning an, Mirror/IGMP aus.
+        "vlan.b": {"vid": "vid", "member": "mbr", "name": "nm",
+                   "order": ["vid", "nm", "piso", "lrn", "mrr", "igmp", "mbr"],
+                   "new": {"piso": 1, "lrn": 1, "mrr": 0, "igmp": 0}},
+    },
+}
+
+# Dialekte mit verifiziertem Schreibpfad.
+WRITABLE_DIALECTS = set(WRITE_FIELDS)
+
+
+def _wf(target, endpoint):
+    """Schreib-Feldtabelle des Endpoints fuer den Dialekt des Targets."""
+    return WRITE_FIELDS[target._dialect][endpoint]
 
 PORTNAME_MAX = 16    # konservativ; Read-back-Verify faengt Ueberlauf/Trunkierung ab
 
@@ -877,9 +925,11 @@ def _snapshot_once(target):
     return path, True
 
 
-def _write_guard(args, cmd):
-    """Gemeinsame Guard-Rails: nur writable Inventory-Switch, nur css610_new.
-    Liefert das Target."""
+def _write_guard(args, cmd, endpoint):
+    """Gemeinsame Guard-Rails: nur writable Inventory-Switch, nur Dialekte mit
+    verifiziertem Schreibpfad, und der geforderte `endpoint` muss fuer diesen
+    Dialekt freigegeben sein. Legt den erkannten Dialekt am Target ab
+    (`target._dialect`) und liefert das Target."""
     if args.swb:
         raise SystemExit(f"{cmd}: --swb ist offline, kein Schreibziel.")
     inv = load_inventory()
@@ -896,20 +946,26 @@ def _write_guard(args, cmd):
     if not isinstance(sysobj, dict):
         raise SystemExit(f"[{target.name}] sys.b nicht lesbar")
     dia = detect_dialect(sysobj)
-    if dia != "css610_new":
-        raise SystemExit(f"{cmd}: Write-Format bisher nur fuer css610_new verifiziert, "
-                         f"'{target.name}' ist {dia}. Erst per DevTools/HAR-Capture verifizieren.")
+    if dia not in WRITABLE_DIALECTS:
+        raise SystemExit(f"{cmd}: Write-Format fuer Dialekt '{dia}' nicht verifiziert "
+                         f"('{target.name}'). Erst per DevTools/HAR-Capture verifizieren "
+                         f"(verfuegbar: {', '.join(sorted(WRITABLE_DIALECTS))}).")
+    if endpoint not in WRITE_FIELDS[dia]:
+        raise SystemExit(f"{cmd}: Endpoint {endpoint} auf Dialekt '{dia}' noch nicht "
+                         f"freigegeben ('{target.name}').")
+    target._dialect = dia
     return target
 
 
 def _post_subset(target, endpoint, width=None):
-    """Aktuellen GET lesen und den schreibbaren Feld-Subset (POST_FIELDS) als
-    frische Kopie zurueckgeben. `width` schneidet Array-Felder ab (poe.b: 8)."""
+    """Aktuellen GET lesen und den schreibbaren Feld-Subset (WRITE_FIELDS "post")
+    des Dialekts als frische Kopie zurueckgeben. `width` schneidet Array-Felder
+    ab (poe.b: 8)."""
     cur = target.get(endpoint)
     if not isinstance(cur, dict):
         raise SystemExit(f"[{target.name}] {endpoint} nicht lesbar")
     post = {}
-    for f in POST_FIELDS[endpoint]:
+    for f in _wf(target, endpoint)["post"]:
         if f not in cur:
             raise SystemExit(f"[{target.name}] {endpoint}: Feld {f} fehlt im aktuellen Blob")
         v = cur[f]
@@ -969,7 +1025,7 @@ def _port_in_range(cmd, port, n, extra=""):
 
 
 def cmd_poe_out(args):
-    target = _write_guard(args, "poe-out")
+    target = _write_guard(args, "poe-out", "poe.b")
     cur, post = _post_subset(target, "poe.b", width=8)
     i01 = list(post["i01"])
     _port_in_range("poe-out", args.port, len(i01), "; SFP-Ports haben kein PoE")
@@ -990,7 +1046,7 @@ def cmd_poe_out(args):
 
 
 def cmd_poe_voltage(args):
-    target = _write_guard(args, "poe-voltage")
+    target = _write_guard(args, "poe-voltage", "poe.b")
     cur, post = _post_subset(target, "poe.b", width=8)
     i03 = list(post["i03"])
     _port_in_range("poe-voltage", args.port, len(i03))
@@ -1009,15 +1065,16 @@ def cmd_poe_voltage(args):
 
 
 def cmd_portname(args):
-    target = _write_guard(args, "portname")
+    target = _write_guard(args, "portname", "link.b")
     cur, post = _post_subset(target, "link.b")
-    names = list(post["i0a"])
+    fld = _wf(target, "link.b")["names"]
+    names = list(post[fld])
     _port_in_range("portname", args.port, len(names))
     if len(args.name.encode("utf-8")) > PORTNAME_MAX:
         raise SystemExit(f"portname: Name zu lang (max {PORTNAME_MAX} Bytes).")
     old = hexascii(names[args.port - 1]) or names[args.port - 1]
     names[args.port - 1] = args.name.encode("utf-8").hex()
-    post["i0a"] = names
+    post[fld] = names
     describe = [
         f"# {target.name}  Port-Name  Port {args.port}: '{old}' -> '{args.name}'",
         f"  Namen geplant: {[hexascii(x) for x in names]}",
@@ -1026,23 +1083,26 @@ def cmd_portname(args):
                   f"Port {args.port} Name '{args.name}', sonst unveraendert.")
 
 
-def _link_bit_write(args, cmd, field, label):
-    """Gemeinsam fuer link.b-Bitmaskenfelder (i01 Enabled / i02 Auto-Neg /
-    i03 Full-Duplex): ein Bit je Port on/off setzen. Lockout-/Link-Schutz:
-    eine tatsaechliche Aenderung an einem Port MIT aktivem Link (i06) verlangt
-    --force (kann den Link stoeren, evtl. Mgmt-/Uplink-Port). Der Dry-Run zeigt
-    die Vorschau; erst der --commit erzwingt --force."""
-    target = _write_guard(args, cmd)
+def _link_bit_write(args, cmd, role, label):
+    """Gemeinsam fuer link.b-Bitmaskenfelder (Enabled / Auto-Neg / Full-Duplex):
+    ein Bit je Port on/off setzen. `role` ist die symbolische Feldrolle
+    (enable/autoneg/duplex) -> Feldname je Dialekt. Lockout-/Link-Schutz: eine
+    tatsaechliche Aenderung an einem Port MIT aktivem Link verlangt --force (kann
+    den Link stoeren, evtl. Mgmt-/Uplink-Port). Der Dry-Run zeigt die Vorschau;
+    erst der --commit erzwingt --force."""
+    target = _write_guard(args, cmd, "link.b")
     cur, post = _post_subset(target, "link.b")
-    _port_in_range(cmd, args.port, len(post["i0a"]))
+    wf = _wf(target, "link.b")
+    field, lnkf = wf[role], wf["link"]
+    _port_in_range(cmd, args.port, len(post[wf["names"]]))
     bit = 1 << (args.port - 1)
     val = post[field]
     want_on = args.state == "on"
     cur_on = bool(val & bit)
     changes = cur_on != want_on
-    has_link = bool((cur.get("i06", 0) >> (args.port - 1)) & 1)
+    has_link = bool((cur.get(lnkf, 0) >> (args.port - 1)) & 1)
     if changes and has_link and not args.force and args.commit:
-        raise SystemExit(f"{cmd}: Port {args.port} hat aktuell LINK (i06) — Aenderung nur "
+        raise SystemExit(f"{cmd}: Port {args.port} hat aktuell LINK ({lnkf}) — Aenderung nur "
                          "mit --force (kann den Link stoeren, evtl. Mgmt-/Uplink-Port).")
     new_val = (val | bit) if want_on else (val & ~bit)
     post[field] = new_val
@@ -1058,61 +1118,76 @@ def _link_bit_write(args, cmd, field, label):
 
 
 def cmd_port_enable(args):
-    _link_bit_write(args, "port-enable", "i01", "Port Enabled")
+    _link_bit_write(args, "port-enable", "enable", "Port Enabled")
 
 
 def cmd_autoneg(args):
-    _link_bit_write(args, "autoneg", "i02", "Auto Negotiation")
+    _link_bit_write(args, "autoneg", "autoneg", "Auto Negotiation")
 
 
 def cmd_duplex(args):
-    _link_bit_write(args, "duplex", "i03", "Full Duplex")
+    _link_bit_write(args, "duplex", "duplex", "Full Duplex")
 
 
 def cmd_speed(args):
-    target = _write_guard(args, "speed")
+    target = _write_guard(args, "speed", "link.b")
     cur, post = _post_subset(target, "link.b")
-    if not (1 <= args.port <= 8):
-        raise SystemExit("speed: nur Kupferports 1..8 (SFP+ 9/10 haben andere "
+    wf = _wf(target, "link.b")
+    spdf, lnkf, anf = wf["speed"], wf["link"], wf["autoneg"]
+    # Nur Kupferports abgedeckt (10/100/1000 = 0/1/2). Die letzten zwei Ports
+    # sind SFP+ (andere Enum-Stufen, nicht abgedeckt) -> Kupferzahl aus der
+    # Portanzahl ableiten (css610: 8, css326: 24).
+    copper = len(post[wf["names"]]) - 2
+    if not (1 <= args.port <= copper):
+        raise SystemExit(f"speed: nur Kupferports 1..{copper} (SFP+-Ports haben andere "
                          "Dropdown-Werte, nicht gecaptured).")
-    i05 = list(post["i05"])
+    spd = list(post[spdf])
     tv = SPEED_MODES[args.to]
-    old = i05[args.port - 1]
+    old = spd[args.port - 1]
     changes = old != tv
-    has_link = bool((cur.get("i06", 0) >> (args.port - 1)) & 1)
+    has_link = bool((cur.get(lnkf, 0) >> (args.port - 1)) & 1)
     if changes and has_link and not args.force and args.commit:
-        raise SystemExit(f"speed: Port {args.port} hat aktuell LINK (i06) — Aenderung nur "
+        raise SystemExit(f"speed: Port {args.port} hat aktuell LINK ({lnkf}) — Aenderung nur "
                          "mit --force (Speed-Wechsel kann den Link stoeren, evtl. Mgmt-/Uplink-Port).")
-    i05[args.port - 1] = tv
-    post["i05"] = i05
+    spd[args.port - 1] = tv
+    post[spdf] = spd
     # Forced-Speed wirkt nur bei Auto-Neg=off fuer diesen Port
-    autoneg_on = bool((post.get("i02", 0) >> (args.port - 1)) & 1)
+    autoneg_on = bool((post.get(anf, 0) >> (args.port - 1)) & 1)
     note = "  [Auto-Neg=on -> wirkt erst bei 'autoneg off']" if autoneg_on else ""
     warn = "  [LINK aktiv!]" if (changes and has_link) else ""
     describe = [
         f"# {target.name}  Speed  Port {args.port}: "
         f"{SPEED_NAMES.get(old, old)} -> {args.to} Mbit/s{note}{warn}",
-        f"  i05 aktuell : {_blob_arr(cur['i05'])}",
-        f"  i05 geplant : {_blob_arr(i05)}",
+        f"  {spdf} aktuell : {_blob_arr(cur[spdf])}",
+        f"  {spdf} geplant : {_blob_arr(spd)}",
     ]
     _commit_write(target, "link.b", post, describe, args,
                   f"Port {args.port} Speed = {args.to} Mbit/s, sonst unveraendert.")
 
 
-def _fwd_enum_write(args, cmd, field, label, modes, names):
-    """Gemeinsam fuer fwd.b Per-Port-Enums (i15 VLAN Mode / i17 VLAN Receive):
-    ein Wert je Port. Link-Schutz: eine tatsaechliche Aenderung an einem Port mit
-    aktivem Link (i06 aus link.b) verlangt --force — VLAN-Filterung kann den
-    Zugriff kappen. Dry-Run zeigt Vorschau; erst --commit erzwingt --force."""
-    target = _write_guard(args, cmd)
+def _fwd_enum_write(args, cmd, role, label, modes_for):
+    """Gemeinsam fuer fwd.b Per-Port-Enums (VLAN Mode / VLAN Receive): ein Wert je
+    Port. `role` -> Feldname je Dialekt, `modes_for(dialect)` -> gueltige
+    Label->Wert-Zuordnung (VLAN Mode divergiert je Dialekt). Link-Schutz: eine
+    tatsaechliche Aenderung an einem Port mit aktivem Link (Link-Feld aus link.b)
+    verlangt --force — VLAN-Filterung kann den Zugriff kappen. Dry-Run zeigt
+    Vorschau; erst --commit erzwingt --force."""
+    target = _write_guard(args, cmd, "fwd.b")
     cur, post = _post_subset(target, "fwd.b")
+    field = _wf(target, "fwd.b")[role]
+    modes = modes_for(target._dialect)
+    names = {v: k for k, v in modes.items()}
+    if args.to not in modes:
+        raise SystemExit(f"{cmd}: '{args.to}' auf Dialekt '{target._dialect}' ungueltig "
+                         f"(erlaubt: {', '.join(modes)}).")
     arr = list(post[field])
     _port_in_range(cmd, args.port, len(arr))
     tv = modes[args.to]
     old = arr[args.port - 1]
     changes = old != tv
-    i06 = (target.get("link.b") or {}).get("i06", 0)
-    has_link = bool((i06 >> (args.port - 1)) & 1)
+    lnkf = _wf(target, "link.b")["link"]
+    lnk = (target.get("link.b") or {}).get(lnkf, 0)
+    has_link = bool((lnk >> (args.port - 1)) & 1)
     if changes and has_link and not args.force and args.commit:
         raise SystemExit(f"{cmd}: Port {args.port} hat aktuell LINK — Aenderung nur mit --force "
                          "(VLAN-Filterung kann den Zugriff kappen, evtl. Mgmt-/Uplink-Port).")
@@ -1130,99 +1205,130 @@ def _fwd_enum_write(args, cmd, field, label, modes, names):
 
 
 def cmd_vlan_mode(args):
-    _fwd_enum_write(args, "vlan-mode", "i15", "VLAN Mode",
-                    VLANMODE_MODES, VLANMODE_NAMES)
+    _fwd_enum_write(args, "vlan-mode", "vlanmode", "VLAN Mode",
+                    lambda d: VLANMODE_BY_DIALECT[d])
 
 
 def cmd_vlan_receive(args):
-    _fwd_enum_write(args, "vlan-receive", "i17", "VLAN Receive",
-                    VLANRECV_MODES, VLANRECV_NAMES)
+    _fwd_enum_write(args, "vlan-receive", "vlanrecv", "VLAN Receive",
+                    lambda d: VLANRECV_MODES)
 
 
 def cmd_force_vlan_id(args):
     """Force VLAN ID je Port on/off (fwd.b i19, Per-Port-Bitmaske). Link-Schutz
     wie die uebrigen VLAN-Port-Felder."""
-    target = _write_guard(args, "force-vlan-id")
+    target = _write_guard(args, "force-vlan-id", "fwd.b")
     cur, post = _post_subset(target, "fwd.b")
-    _port_in_range("force-vlan-id", args.port, len(post["i18"]))
+    wf = _wf(target, "fwd.b")
+    field = wf["forcevid"]
+    _port_in_range("force-vlan-id", args.port, len(post[wf["pvid"]]))
     bit = 1 << (args.port - 1)
-    val = post["i19"]
+    val = post[field]
     want_on = args.state == "on"
     cur_on = bool(val & bit)
     changes = cur_on != want_on
-    i06 = (target.get("link.b") or {}).get("i06", 0)
-    has_link = bool((i06 >> (args.port - 1)) & 1)
+    lnkf = _wf(target, "link.b")["link"]
+    lnk = (target.get("link.b") or {}).get(lnkf, 0)
+    has_link = bool((lnk >> (args.port - 1)) & 1)
     if changes and has_link and not args.force and args.commit:
         raise SystemExit(f"force-vlan-id: Port {args.port} hat aktuell LINK — Aenderung nur mit "
                          "--force (VLAN-Filterung kann den Zugriff kappen, evtl. Mgmt-/Uplink-Port).")
     new_val = (val | bit) if want_on else (val & ~bit)
-    post["i19"] = new_val
+    post[field] = new_val
     warn = "  [LINK aktiv!]" if (changes and has_link) else ""
     describe = [
         f"# {target.name}  Force VLAN ID  Port {args.port}: "
         f"{'on' if cur_on else 'off'} -> {'on' if want_on else 'off'}{warn}",
-        f"  i19 aktuell : {_blob_hex(val)}",
-        f"  i19 geplant : {_blob_hex(new_val)}",
+        f"  {field} aktuell : {_blob_hex(val)}",
+        f"  {field} geplant : {_blob_hex(new_val)}",
     ]
     _commit_write(target, "fwd.b", post, describe, args,
                   f"Port {args.port} Force VLAN ID = {'on' if want_on else 'off'}, sonst unveraendert.")
 
 
 def cmd_pvid(args):
-    target = _write_guard(args, "pvid")
+    target = _write_guard(args, "pvid", "fwd.b")
     cur, post = _post_subset(target, "fwd.b")
-    i18 = list(post["i18"])
-    _port_in_range("pvid", args.port, len(i18))
+    fld = _wf(target, "fwd.b")["pvid"]
+    pv = list(post[fld])
+    _port_in_range("pvid", args.port, len(pv))
     if not (1 <= args.vid <= 4095):
         raise SystemExit("pvid: --vid 1..4095.")
-    old = i18[args.port - 1]
-    i18[args.port - 1] = args.vid
-    post["i18"] = i18
+    old = pv[args.port - 1]
+    pv[args.port - 1] = args.vid
+    post[fld] = pv
     describe = [
         f"# {target.name}  PVID (Default VLAN ID)  Port {args.port}: {old} -> {args.vid}",
-        f"  i18 aktuell : {_blob_arr(cur['i18'])}",
-        f"  i18 geplant : {_blob_arr(i18)}",
+        f"  {fld} aktuell : {_blob_arr(cur[fld])}",
+        f"  {fld} geplant : {_blob_arr(pv)}",
     ]
     _commit_write(target, "fwd.b", post, describe, args,
                   f"Port {args.port} PVID = {args.vid}, sonst unveraendert.")
 
 
 def cmd_vlan(args):
-    target = _write_guard(args, "vlan")
+    target = _write_guard(args, "vlan", "vlan.b")
     cur = target.get("vlan.b")
     if not isinstance(cur, list):
         raise SystemExit(f"[{target.name}] vlan.b nicht lesbar")
-    if not (1 <= args.vid <= 4095):
-        raise SystemExit("vlan-set: --vid 1..4095.")
+    wf = _wf(target, "vlan.b")
+    vidf, mbrf, order = wf["vid"], wf["member"], wf["order"]
+    if not (1 <= args.vid <= 4094):
+        raise SystemExit("vlan-set: --vid 1..4094.")
+    # Portzahl (und damit gueltige Member-Bits) aus link.b ableiten -- dialekt-
+    # unabhaengig: len(Namen-Array) = Portzahl (css610: 10, css326: 26).
+    linkb = target.get("link.b")
+    if not isinstance(linkb, dict):
+        raise SystemExit(f"[{target.name}] link.b nicht lesbar (fuer Portzahl noetig)")
+    nports = len(linkb[_wf(target, "link.b")["names"]])
     try:
         ports = [int(x) for x in args.members.split(",") if x.strip() != ""]
     except ValueError:
         raise SystemExit("vlan-set: --members = Komma-Liste von Portnummern (z.B. 1,2,9).")
     mask = 0
     for p in ports:
-        if not (1 <= p <= 10):
-            raise SystemExit(f"vlan-set: Port {p} ungueltig (1..10; 9=SFP+1, 10=SFP+2).")
+        if not (1 <= p <= nports):
+            raise SystemExit(f"vlan-set: Port {p} ungueltig (1..{nports}; die letzten "
+                             "zwei sind SFP/SFP+).")
         mask |= 1 << (p - 1)
 
-    # vlan.b als [{i01,i03,i02}] in kanonischer HAR-Reihenfolge neu aufbauen,
-    # Ziel-VLAN aktualisieren oder anhaengen.
+    # Eintrag in kanonischer POST-Feldreihenfolge (order) aufbauen: bestehende
+    # Felder erhalten (GET-Reihenfolge != POST-Reihenfolge!), Ziel-VLAN Member
+    # ersetzen, fehlende Felder aus "new"-Defaults. Ziel-VLAN aktualisieren oder
+    # neu anhaengen.
+    def build(src):
+        e = {}
+        for k in order:
+            if k == mbrf:
+                e[k] = mask
+            elif src is not None and k in src:
+                e[k] = src[k]
+            elif k == vidf:
+                e[k] = args.vid
+            elif k == wf.get("name"):
+                e[k] = f"VLAN {args.vid}".encode("utf-8").hex()
+            else:
+                e[k] = wf["new"].get(k, 0)
+        return e
+
     found = False
     new = []
     for v in cur:
-        entry = {"i01": v.get("i01"), "i03": v.get("i03", 0), "i02": v.get("i02")}
-        if entry["i01"] == args.vid:
-            entry["i02"] = mask
+        if v.get(vidf) == args.vid:
+            new.append(build(v))
             found = True
-        new.append(entry)
+        else:
+            # unveraendert, aber in kanonische Reihenfolge gebracht
+            new.append({k: v.get(k, wf["new"].get(k, 0)) for k in order})
     if not found:
-        new.append({"i01": args.vid, "i03": 0, "i02": mask})
+        new.append(build(None))
 
-    orig = {v.get("i01"): v.get("i02") for v in cur}
+    orig = {v.get(vidf): v.get(mbrf) for v in cur}
 
     def verify(back):
         if not isinstance(back, list):
             return False, "vlan.b nicht als Liste zurueck"
-        bmap = {v.get("i01"): v.get("i02") for v in back}
+        bmap = {v.get(vidf): v.get(mbrf) for v in back}
         if bmap.get(args.vid) != mask:
             return False, f"VLAN {args.vid} member read-back {bmap.get(args.vid)} != {mask}"
         for ovid, omask in orig.items():
@@ -1236,11 +1342,82 @@ def cmd_vlan(args):
     action = "aktualisiert" if found else "angelegt (neu)"
     describe = [
         f"# {target.name}  VLAN {args.vid} {action}  Members: Ports {ports} "
-        f"(mask 0x{mask:03x})",
+        f"(mask {_blob_hex(mask)})",
         f"  vlan.b geplant: {_ser(new)}",
     ]
     _commit_write(target, "vlan.b", new, describe, args,
                   f"VLAN {args.vid} Members = Ports {ports}.", verify_fn=verify)
+
+
+def _vlan_entry_ordered(v, wf):
+    """Bestehenden vlan.b-Eintrag feldtreu in kanonische POST-Reihenfolge bringen."""
+    return {k: v.get(k, wf["new"].get(k, 0)) for k in wf["order"]}
+
+
+def cmd_vlan_remove(args):
+    """Ein VLAN aus vlan.b entfernen (dialekt-generisch ueber den vlan.b-Pfad).
+    Uebrige VLANs bleiben feldtreu erhalten."""
+    target = _write_guard(args, "vlan-remove", "vlan.b")
+    cur = target.get("vlan.b")
+    if not isinstance(cur, list):
+        raise SystemExit(f"[{target.name}] vlan.b nicht lesbar")
+    wf = _wf(target, "vlan.b")
+    vidf, mbrf = wf["vid"], wf["member"]
+    present = [v.get(vidf) for v in cur]
+    if args.vid not in present:
+        print(f"# {target.name}  VLAN {args.vid} nicht vorhanden — nichts zu entfernen "
+              f"(vorhandene: {present or 'keine'}).")
+        return
+    new = [_vlan_entry_ordered(v, wf) for v in cur if v.get(vidf) != args.vid]
+    orig = {v.get(vidf): v.get(mbrf) for v in cur}
+
+    def verify(back):
+        if not isinstance(back, list):
+            return False, "vlan.b nicht als Liste zurueck"
+        bmap = {v.get(vidf): v.get(mbrf) for v in back}
+        if args.vid in bmap:
+            return False, f"VLAN {args.vid} nach Entfernen noch vorhanden"
+        for ovid, omask in orig.items():
+            if ovid == args.vid:
+                continue
+            if bmap.get(ovid) != omask:
+                return False, (f"VLAN {ovid} unerwartet veraendert "
+                               f"({omask} -> {bmap.get(ovid)})")
+        return True, ""
+
+    remaining = [x for x in present if x != args.vid]
+    describe = [
+        f"# {target.name}  VLAN {args.vid} entfernen  (verbleibend: {remaining or 'keine'})",
+        f"  vlan.b geplant: {_ser(new)}",
+    ]
+    _commit_write(target, "vlan.b", new, describe, args,
+                  f"VLAN {args.vid} entfernt.", verify_fn=verify)
+
+
+def cmd_vlan_clear(args):
+    """Komplette vlan.b leeren ([]) -- entfernt alle VLAN-Eintraege."""
+    target = _write_guard(args, "vlan-clear", "vlan.b")
+    cur = target.get("vlan.b")
+    if not isinstance(cur, list):
+        raise SystemExit(f"[{target.name}] vlan.b nicht lesbar")
+    if not cur:
+        print(f"# {target.name}  vlan.b ist bereits leer — nichts zu tun.")
+        return
+    vids = [v.get(_wf(target, "vlan.b")["vid"]) for v in cur]
+
+    def verify(back):
+        if not isinstance(back, list):
+            return False, "vlan.b nicht als Liste zurueck"
+        if back:
+            return False, f"vlan.b nicht leer ({len(back)} Eintraege zurueck)"
+        return True, ""
+
+    describe = [
+        f"# {target.name}  vlan.b LEEREN  (entfernt VLANs {vids})",
+        "  vlan.b geplant: []",
+    ]
+    _commit_write(target, "vlan.b", [], describe, args,
+                  "alle VLANs entfernt (vlan.b leer).", verify_fn=verify)
 
 
 def main():
@@ -1318,8 +1495,10 @@ def main():
                        help="VLAN Mode je Port setzen (Stufe 2, schreibend)")
     add_target_args(p)
     p.add_argument("--port", type=int, required=True, help="Portnummer (1-basiert)")
-    p.add_argument("--to", required=True, choices=["disabled", "optional", "strict"],
-                   help="VLAN Mode: disabled | optional | strict")
+    p.add_argument("--to", required=True,
+                   choices=["disabled", "optional", "enabled", "strict"],
+                   help="VLAN Mode: disabled | optional | enabled (nur css326) | strict "
+                        "(je Dialekt gegen engine.js validiert)")
     p.add_argument("--force", action="store_true",
                    help="Aenderung an Port mit aktivem Link erzwingen (VLAN-Filter-/Lockout-Gefahr)")
     _commit_arg(p)
@@ -1354,9 +1533,21 @@ def main():
     p = sub.add_parser("vlan-set",
                        help="VLAN-Membership setzen/anlegen (Stufe 2, schreibend)")
     add_target_args(p)
-    p.add_argument("--vid", type=int, required=True, help="VLAN-ID 1..4095")
+    p.add_argument("--vid", type=int, required=True, help="VLAN-ID 1..4094")
     p.add_argument("--members", required=True,
-                   help="Komma-Liste Portnummern (1..10; 9=SFP+1, 10=SFP+2)")
+                   help="Komma-Liste Portnummern (Portzahl je Modell; die letzten "
+                        "zwei sind SFP/SFP+)")
+    _commit_arg(p)
+
+    p = sub.add_parser("vlan-remove",
+                       help="Ein VLAN aus vlan.b entfernen (Stufe 2, schreibend)")
+    add_target_args(p)
+    p.add_argument("--vid", type=int, required=True, help="zu entfernende VLAN-ID")
+    _commit_arg(p)
+
+    p = sub.add_parser("vlan-clear",
+                       help="Alle VLANs aus vlan.b entfernen (Stufe 2, schreibend)")
+    add_target_args(p)
     _commit_arg(p)
 
     args = ap.parse_args()
@@ -1373,6 +1564,8 @@ def main():
         "force-vlan-id": cmd_force_vlan_id,
         "pvid": cmd_pvid,
         "vlan-set": cmd_vlan,
+        "vlan-remove": cmd_vlan_remove,
+        "vlan-clear": cmd_vlan_clear,
     }
     if args.cmd == "list":
         cmd_list(args)

@@ -2,9 +2,11 @@
 
 Fragt MikroTik-**SwOS**-Switches (CSS-Serie und RB260/SwOS-Lite) ab und dekodiert die
 SwOS-Blobs in lesbare Tabellen: System-Info, VLAN-Mitglieder, Portbelegung (PVID/PoE) und
-FDB (MAC→Port). **Stufe 1 = read-only** (Standard). **Stufe 2 = schreibend** ist bisher auf
-**genau einen** Befehl beschränkt: `poe-out` (PoE Out je Port, nur `css610_new`) mit strengen
-Guard-Rails — siehe Abschnitt „Schreiben".
+FDB (MAC→Port). **Stufe 1 = read-only** (Standard). **Stufe 2 = schreibend** umfasst 12 Port-/
+VLAN-/PoE-Befehle mit strengen Guard-Rails — auf `css610_new` vollständig (poe.b/link.b/fwd.b/
+vlan.b), auf `css326` alles außer PoE (link.b/fwd.b/vlan.b: portname, port-enable, autoneg,
+duplex, speed, vlan-mode, vlan-receive, force-vlan-id, pvid, vlan-set — 10 von 12), plus
+`vlan-remove`/`vlan-clear` (Lösch­weg, dialekt-generisch). Siehe Abschnitt „Schreiben".
 
 **Aufruf:** `python3 "$SKILL_DIR/swos" <subcommand> [ziel] [optionen]`
 
@@ -28,7 +30,7 @@ SwOS serialisiert je nach Modell/Firmware unterschiedlich. Der Dialekt wird aus 
 
 | Dialekt | Modell | Keys | VLAN-Format | PVID | PoE |
 |---|---|---|---|---|---|
-| `css326`     | CSS326-24G-2S+          | mnemonisch (`id,cip,brd,…`) | `{nm,mbr,vid}` | `fwd.b dvid[]` | — |
+| `css326`     | CSS326-24G-2S+          | mnemonisch (`id,cip,brd,…`) | `{nm,mbr,vid}` | `fwd.b dvid[]` | — (kein PoE) |
 | `css610_new` | CSS610-8P-2S+ (neue FW) | numerisch `i0x`             | `{i01,i02}`   | `fwd.b i18[]`  | `poe.b i04[]` |
 | `css610_old` | CSS610-8P-2S+ (alte FW) | Einzelbuchstaben (`F,J,B,C`)| `{B,C}`       | `fwd.b Y[]`    | `poe.b E[]` |
 | `swos_lite`  | CSS106 / RB260GS       | mnemonisch (`id,ip,sip,…`)  | `{vid,prt[]}` | `fwd.b dvid[]` | (offen, s.u.) |
@@ -119,11 +121,25 @@ schreibbaren Feld-Subset übernehmen → **nur das Zielfeld** ersetzen → `POST
 **Guard-Rails:**
 - **`"writable": true`** im Inventory Pflicht (nur die 3 Büro-Sandkasten-Switches). Ohne Flag,
   bei `--swb`/`--ip` oder unbekanntem Switch → Abbruch. Produktion (Seiersberg) bleibt read-only.
-- **Nur `css610_new`** und nur `direct`-Transport.
+- **Verifizierte Schreib-Dialekte:** `css610_new` (poe.b/link.b/fwd.b/vlan.b) und `css326`
+  (link.b/fwd.b/vlan.b; kein PoE). Andere Dialekte → sauberer Abbruch. Nur
+  `direct`-Transport. Der geforderte Endpoint muss für den erkannten Dialekt freigegeben sein
+  (`WRITE_FIELDS`), sonst Abbruch mit klarer Meldung.
 - **`--dry-run` ist Default:** zeigt aktuelles/geplantes Feld und den exakten POST-Body, sendet
   nichts. Erst `--commit` schreibt.
 - **Snapshot vor der ersten Änderung** (`.tmp/swos-snapshot-<sw>.swb`) als Rollback-Punkt.
 - **Read-back-Verify** nach jedem Commit: nur das Zielfeld darf sich geändert haben, sonst Abbruch.
+
+**Frisch nach Factory-Reset ist kein Write möglich** (bewusst so): SwOS liefert `/backup.swb`
+unmittelbar nach einem Reset **leer** (0 Byte) — bis zum **ersten Config-Write**, der das Backup
+erst „scharf" macht. Der Snapshot-Once findet dann kein Rollback-Netz und bricht ab. Verifiziert
+identisch auf CSS610 (.215) und CSS326 (.214), also **dialektunabhängig** — und **nicht** an die
+Identity gekoppelt (ein Default-`id:'MikroTik'` mit bereits geschriebener Config liefert sehr wohl
+ein Backup). Auch das SwOS-**Failsafe-Image** liefert ein leeres Backup (engine.js-Hinweis „a
+backup version of SwOS is running"). Bewusste Entscheidung: **Write nur, wenn ein echtes
+`/backup.swb` ziehbar ist** — kein GET-Fallback-Snapshot. Konsequenz für frisch resettete Switches:
+zuerst **eine** Änderung über die Web-UI setzen (z. B. Identity), damit `/backup.swb` befüllt wird;
+danach greift der Tool-Schreibpfad normal.
 
 ### Zwei hart erkaufte Lehren (CR4426)
 
@@ -136,6 +152,32 @@ schreibbaren Feld-Subset übernehmen → **nur das Zielfeld** ersetzen → `POST
    config-treu — Feld-für-Feld deckungsgleich mit der Web-UI (verifiziert: `link.b i01`=Enabled,
    `i02`=Auto-Neg, `i03`=Full-Duplex, `i05`=Speed). Der css610_old-`.swb`-Parser lieferte dagegen
    **falsche Bitmasken** (`0x37f/0x3ff` statt `0x37/0x3f`).
+
+### css326-Schreibpfad (CR4428)
+
+`link.b`/`fwd.b` sprechen auf css326 **benannte** statt numerischer Keys, sind aber Feld-für-Feld
+1:1 zu css610_new (aus HAR `.214` + `engine.js` verifiziert, nicht geraten):
+`en/nm/an/spdc/dpxc/fctc/fctr` (link.b) und `vlan/vlni/dvid/fvid` (fwd.b), 26 Ports (24G+2×SFP+).
+Die Feldnamen je Dialekt stehen in `WRITE_FIELDS`, die Kommandos lösen Rollen darüber auf.
+
+**`vlan-set` (vlan.b)** ist ebenfalls dialekt-fähig: css326-Einträge tragen `{vid,nm,piso,lrn,mrr,
+igmp,mbr}` (Member-Maske `mbr`) statt css610 `{i01,i03,i02}`. Falle: die **GET-Reihenfolge weicht
+von der POST-Reihenfolge ab** (GET liefert `nm,mbr,vid,…`, die UI POSTet `vid,nm,…,mbr`) — daher
+wird jeder Eintrag in die kanonische `order` serialisiert (nicht verbatim durchgereicht),
+bestehende VLANs feldtreu erhalten, neue mit Defaults (Isolation/Learning an) angelegt. Portzahl
+für die Member-Maske kommt aus `link.b` (Namen-Array), nicht hartcodiert.
+
+**`vlan-remove --vid N` / `vlan-clear`** ergänzen den Löschweg (den `vlan-set` nicht abdeckt):
+`vlan-remove` entfernt einen Eintrag und erhält die übrigen feldtreu, `vlan-clear` setzt vlan.b auf
+`[]`. Beide laufen über denselben dialekt-generischen vlan.b-Pfad (css610_new + css326), No-op wenn
+das VID fehlt bzw. die Liste schon leer ist, mit Read-back-Verify (Ziel weg, Rest unverändert).
+
+**Hart erkaufte Lehre: Enums divergieren je Dialekt.** VLAN Mode ist auf css326
+`["disabled","optional","enabled","strict"]` → **`strict`=3** (plus Extra-Wert `enabled`=2),
+auf css610_new nur `["disabled","optional","strict"]` → `strict`=2. Das css610-Enum blind zu
+übernehmen hätte `strict` auf css326 fälschlich als `enabled` gesetzt. `VLANMODE_BY_DIALECT`
+hält beide; jeder Enum-Wert wird gegen den erkannten Dialekt validiert. `vlan-receive` und der
+Kupfer-Speed-Subset (10/100/1000=0/1/2) sind dagegen identisch (SFP+-Speedstufen nicht abgedeckt).
 
 ### Noch zurückgestellt
 
@@ -175,10 +217,11 @@ ODER `cred: "<name>"` -> `credentials.<name>` mit `password` / `password_env` / 
 
 ## Grenzen / offen (Stufe 2 und Nacharbeit)
 
-- **Schreiben nur `poe-out` (css610_new).** VLAN/PVID, Portname/Identity, Mgmt-IP und PoE auf
-  anderen Dialekten sind **noch nicht** implementiert — jeweils erst nach DevTools-Verifikation
-  des POST-Formats (nicht raten), jeder Write mit Read-back-Verify. `backup` (GET `/backup.swb`)
-  ist reines Lesen und faellt weiterhin unter Stufe 1 — keine Config-Aenderung am Switch.
+- **Schreiben auf `css610_new` (poe.b/link.b/fwd.b/vlan.b) und `css326` (link.b/fwd.b/vlan.b).**
+  Noch offen: Identity/Mgmt-IP (`sys.b`), CSS106-Reihe (swos_lite, PoE in link.b),
+  css610_old-Writes — jeweils erst nach DevTools-/HAR-Verifikation des POST-Formats (nicht raten),
+  jeder Write mit Read-back-Verify. `backup` (GET `/backup.swb`) ist reines Lesen und faellt
+  weiterhin unter Stufe 1 — keine Config-Aenderung am Switch.
 - **`.swb`-Restore-/Upload-Weg noch offen.** Der Snapshot-**Pull** vor dem ersten Write steht
   (via `backup`), das **Einspielen** eines `.swb` (Restore-POST) ist noch nicht verifiziert — das
   vollstaendige Rollback-Netz fehlt also noch.
