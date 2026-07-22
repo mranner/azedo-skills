@@ -42,17 +42,19 @@ printf '%s\t%s\n' "kurzname" "email@adresse" >> .claude/swaks-contacts.tsv
 
 ## Signatur
 
-Zwei Signaturdateien im Arbeitsverzeichnis:
+Zwei Signaturdateien, **automatisch aufgelöst** von `build_mail.py` – ohne `--sig-*-file` musst du nichts angeben:
 
-- `.claude/swaks-signature.txt` – Plain-Text-Signatur (für den Text-Part)
-- `.claude/swaks-signature.html` – HTML-Signatur (für den HTML-Part)
+- **Standard (global):** `~/.claude/swaks-signature.txt` / `~/.claude/swaks-signature.html`
+- **Projektlokaler Override (Vorrang):** `.claude/swaks-signature.txt` / `.html` im Arbeitsverzeichnis, falls vorhanden
 
-Beim Standardversand (Multipart, siehe unten) hängt `build_mail.py` beide automatisch an – Text-Signatur mit Leerzeile Abstand, HTML-Signatur als Block. Bei reinem Text-Body nur die `.txt`-Signatur.
+Auflösungsreihenfolge je Datei: projektlokal `.claude/` **vor** global `~/.claude/`; existiert keine, wird schlicht keine Signatur angehängt (kein Fehler). Explizite `--sig-text-file`/`--sig-html-file` überschreiben die Auto-Auflösung – ein **explizit** angegebener Pfad muss existieren (sonst Abbruch).
+
+Beim Standardversand (Multipart, siehe unten) hängt `build_mail.py` beide an – Text-Signatur mit Leerzeile Abstand, HTML-Signatur als Block. Bei reinem Text-Body nur die `.txt`-Signatur.
 
 Die Signatur wird **nicht** angehängt wenn:
 
-- Der User explizit "ohne Signatur" / "no sig" sagt
-- Die Mail im Namen einer anderen Person verfasst wird (anderer `--from`)
+- Der User explizit "ohne Signatur" / "no sig" sagt → `--no-sig` an `build_mail.py` übergeben (schaltet auch die Standard-Signatur ab)
+- Die Mail im Namen einer anderen Person verfasst wird (anderer `--from`) → dann keine Standard-Signatur, ggf. deren eigene per `--sig-*-file`
 
 ## Encoding
 
@@ -81,8 +83,6 @@ python3 ~/.claude/skills/swaks/build_mail.py \
   --from claude@azedo.at \
   --text-file .tmp/body.txt \
   --html-file .tmp/body.html \
-  --sig-text-file .claude/swaks-signature.txt \
-  --sig-html-file .claude/swaks-signature.html \
   > .tmp/mail.eml \
   && test -s .tmp/mail.eml \
   && swaks --server mom.azedo.at \
@@ -96,7 +96,7 @@ Hinweise:
 - **Cc:** `--cc "adr"` an `build_mail.py` setzt den sichtbaren `Cc:`-Header. Die Cc-Adresse **zusätzlich** in den swaks-Envelope `--to` aufnehmen (kommasepariert), sonst wird sie nicht zugestellt.
 - **Bcc:** `--bcc "adr"` an `build_mail.py` setzt **bewusst keinen** Header (sonst wären die Empfänger sichtbar). Die Bcc-Adresse **nur** in den swaks-Envelope `--to` aufnehmen — sie bleibt für die anderen Empfänger unsichtbar. Beispiel: Header via `build_mail.py --to a@x --cc cc@x --bcc bcc@x`, Envelope via `swaks --to "a@x,cc@x,bcc@x" …`.
 - **Leerer Body / Bau-Fehler:** `build_mail.py` bricht mit Exit ≠ 0 ab, wenn Text *und* HTML leer sind. Deshalb **nie direkt in `swaks` pipen** — bei einem Bau-Fehler (Exit ≠ 0 oder Interpreter nicht gefunden) läuft `swaks` sonst auf leerem STDIN und sendet seine eingebaute Default-Test-Mail. Immer erst in eine Datei bauen und mit `&& test -s <datei> && swaks … --data @<datei>` absichern. `set -o pipefail` allein genügt **nicht**, da `swaks` in der Pipe trotzdem startet.
-- Signatur weglassen: `--sig-text-file`/`--sig-html-file` einfach nicht übergeben.
+- **Signatur:** wird automatisch aus `~/.claude/swaks-signature.*` (bzw. projektlokal `.claude/`) aufgelöst – die `--sig-*-file`-Zeilen sind **optional** und nur als expliziter Override nötig. Ganz weglassen: `--no-sig`.
 - **Anhänge:** pro Datei ein `--attach <pfad>` an `build_mail.py` – dann wird `multipart/mixed` um das Text+HTML-Part gelegt (MIME-Type wird automatisch erraten):
 
 ```bash
@@ -216,7 +216,7 @@ swaks \
 1. **Empfänger auflösen:** Wenn ein Name statt E-Mail-Adresse genannt wird, `grep -i <name> .claude/swaks-contacts.tsv` ausführen. Bei Treffer: E-Mail aus zweitem Feld verwenden. Bei keinem Treffer: nachfragen.
 2. **Versandart wählen:** Default ist **Multipart (Text + HTML)** via `build_mail.py`. Nur reinen Text senden, wenn der User das will oder es rein um einen Dateiversand ohne formatierten Body geht.
 3. **Body erstellen:** Für Multipart Text- und HTML-Body in `.tmp/` ablegen (ohne Signatur). HTML schlicht halten.
-4. **Signatur:** Sofern kein Ausschlussgrund vorliegt, `--sig-text-file`/`--sig-html-file` an `build_mail.py` übergeben (bzw. bei reinem Text die `.txt`-Signatur anhängen).
+4. **Signatur:** wird automatisch aufgelöst (global `~/.claude/swaks-signature.*`, projektlokal `.claude/` mit Vorrang) – nichts zu übergeben. Bei Ausschlussgrund (anderer `--from`, "ohne Signatur") `--no-sig`; für eine abweichende Signatur explizit `--sig-text-file`/`--sig-html-file`.
 5. Fehlende Angaben aus dem Kontext ableiten (Betreff, Body, Anhänge).
 6. Befehl zusammenbauen und dem Nutzer kurz zeigen; auf Bestätigung warten – außer der Nutzer hat bereits „ja" gesagt oder den Versand klar angeordnet.
 7. Befehl ausführen und Ergebnis (Queue-ID oder Fehler) melden. Erfolg: `250 2.0.0 Ok: queued as <ID>`.

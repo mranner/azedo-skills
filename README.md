@@ -431,13 +431,10 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.30.0
+### 1.31.0
 
-- **`swos`: CSS106-Reihe (`swos_lite`) beschreibbar.** Stufe-2-Writes jetzt auch auf CSS106:
-  `link.b` (portname/port-enable/autoneg/duplex/speed) und `fwd.b` (vlan-mode/vlan-receive/pvid/
-  force-vlan-id) sowie `vlan-remove`/`vlan-clear`. **PoE-Out** liegt bei CSS106 in `link.b` (nicht
-  `poe.b`), nur beim PoE-Modell (`CSS106-1G-4P-1S`), Enum `off/auto/on/calibr`, Ports 2-5;
-  `poe-out`/`poe-voltage` loesen ihren Endpoint dialektabhaengig auf. `vlan-set` auf CSS106 bewusst
-  **nicht** (Mitgliedschaft = Per-Port-Egress-Enum `prt`, kein Member-Bitmask). Feldnamen/Enums/
-  POST-Reihenfolge aus `engine.js` + Live-GET (.193/.204) verifiziert, nicht geraten; link.b/fwd.b/
-  PoE live an `.193` bestaetigt.
+- **`swaks`: Signatur-Auto-Resolve + `--no-sig`.** `build_mail.py` loest die Signatur selbst auf —
+  projektlokal `.claude/swaks-signature.{txt,html}` (Vorrang) → global `~/.claude/swaks-signature.*`
+  → sonst keine. Explizite `--sig-*-file` ueberschreiben (muessen dann existieren); `--no-sig`
+  schaltet auch die Standard-Signatur ab. Behebt den Doku-Footgun (relativer Beispielpfad →
+  `FileNotFoundError`). SKILL.md: Beispiel ohne `--sig-*`-Zeilen, Standard = global.

@@ -3,6 +3,17 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.31.0
+
+- **`swaks`: Signatur-Auto-Resolve + `--no-sig`.** `build_mail.py` loest die Signatur jetzt selbst
+  auf — projektlokal `.claude/swaks-signature.{txt,html}` (Vorrang) → global
+  `~/.claude/swaks-signature.{txt,html}` → sonst keine (kein Fehler). Explizite
+  `--sig-text-file`/`--sig-html-file` ueberschreiben weiterhin (ein **explizit** angegebener Pfad
+  muss existieren); neues **`--no-sig`** schaltet auch die Standard-Signatur ab. Behebt den
+  Footgun der alten Doku, die den relativen Pfad `.claude/swaks-signature.txt` als Beispiel vorgab
+  → `FileNotFoundError`/Exit 1, wenn projektlokal keine Datei lag. SKILL.md: Beispielaufruf ohne
+  `--sig-*`-Zeilen, Standard = global. Standard-Signaturen nach `~/.claude/` gelegt.
+
 ### 1.30.0
 
 - **`swos`: CSS106-Reihe (`swos_lite`) beschreibbar (CR4428).** Stufe-2-Writes jetzt auch auf der

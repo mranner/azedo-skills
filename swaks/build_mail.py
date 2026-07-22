@@ -4,6 +4,7 @@
 # DATA-Sektion (Header + Body) auf STDOUT aus. Die Ausgabe wird per
 # `swaks --data @-` versendet. Bei Anhaengen wird zusaetzlich multipart/mixed
 # um das alternative-Part gelegt.
+# version 1.31.0
 
 import argparse
 import mimetypes
@@ -30,21 +31,48 @@ parser.add_argument("--bcc", help="Bcc-Empfaenger (kommasepariert). Setzt bewuss
 parser.add_argument("--from", dest="sender", required=True)
 parser.add_argument("--text-file", required=True)
 parser.add_argument("--html-file", required=True)
-parser.add_argument("--sig-text-file")
-parser.add_argument("--sig-html-file")
+parser.add_argument("--sig-text-file",
+                    help="Text-Signatur. Ohne Angabe wird die Standard-Signatur "
+                         "aufgeloest (projektlokal .claude/ vor global ~/.claude/).")
+parser.add_argument("--sig-html-file",
+                    help="HTML-Signatur. Ohne Angabe: Standard-Signatur (s. --sig-text-file).")
+parser.add_argument("--no-sig", action="store_true",
+                    help="Keine Signatur anhaengen (auch nicht die Standard-Signatur).")
 parser.add_argument("--attach", action="append", default=[])
 args = parser.parse_args()
+
+
+def resolve_sig(name):
+    """Standard-Signaturpfad aufloesen: projektlokal .claude/<name> (Vorrang) ->
+    global ~/.claude/<name>. Liefert None, wenn keine der beiden existiert (dann
+    wird schlicht keine Signatur angehaengt)."""
+    for base in (os.path.join(os.getcwd(), ".claude"),
+                 os.path.expanduser("~/.claude")):
+        p = os.path.join(base, name)
+        if os.path.isfile(p):
+            return p
+    return None
+
+
+# Signaturpfade bestimmen: explizite Flags haben Vorrang, sonst Auto-Resolve;
+# --no-sig schaltet komplett ab. Explizit angegebene Pfade muessen existieren
+# (read() bricht sonst hart ab); auto-aufgeloeste sind per isfile() gesichert.
+if args.no_sig:
+    sig_text_file = sig_html_file = None
+else:
+    sig_text_file = args.sig_text_file or resolve_sig("swaks-signature.txt")
+    sig_html_file = args.sig_html_file or resolve_sig("swaks-signature.html")
 
 text = read(args.text_file)
 html = read(args.html_file)
 
 # Signaturen anhaengen (Text mit Leerzeile Abstand, HTML als Block)
 
-if args.sig_text_file:
-    text = text.rstrip("\n") + "\n\n" + read(args.sig_text_file)
+if sig_text_file:
+    text = text.rstrip("\n") + "\n\n" + read(sig_text_file)
 
-if args.sig_html_file:
-    html = html.rstrip() + "\n" + read(args.sig_html_file)
+if sig_html_file:
+    html = html.rstrip() + "\n" + read(sig_html_file)
 
 # Hart abbrechen bei leerem Body: sonst wuerde swaks eine inhaltslose Mail
 # senden bzw. bei komplett leerer Ausgabe auf seine Default-Test-Mail zurueckfallen.
