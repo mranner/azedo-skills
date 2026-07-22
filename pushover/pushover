@@ -1,0 +1,553 @@
+#!/usr/bin/env python3
+
+# Pushover Message API helper (outbound-only)
+# Sendet Notifications via api.pushover.net/1/messages.json.
+# stdlib only, keine pip-Abhaengigkeiten. Lauffaehig auf macOS + FreeBSD.
+# version 1.28.0
+
+import argparse
+import json
+import mimetypes
+import os
+import ssl
+import sys
+import urllib.parse
+import urllib.request
+import urllib.error
+
+API_BASE = "https://api.pushover.net/1"
+
+MAX_MESSAGE = 1024
+MAX_ATTACHMENT = 5 * 1024 * 1024
+
+
+# --- .env laden -------------------------------------------------------------
+
+def _env_has_token(path):
+    """True, wenn die .env einen PUSHOVER_TOKEN enthaelt."""
+    try:
+        with open(path) as f:
+            for line in f:
+                if line.strip().startswith("PUSHOVER_TOKEN"):
+                    return True
+    except OSError:
+        pass
+    return False
+
+
+def _find_env():
+    override = os.environ.get("PUSHOVER_ENV")
+    if override:
+        return override
+    cwd_env = os.path.join(os.getcwd(), ".env")
+    if os.path.exists(cwd_env) and _env_has_token(cwd_env):
+        return cwd_env
+    return os.path.join(os.path.expanduser("~"), ".env")
+
+
+ENV_FILE = _find_env()
+
+_config = None
+
+
+def load_env(require_token=True):
+    """PUSHOVER_* aus .env lesen (gecached). Environment-Variablen haben Vorrang."""
+    global _config
+    if _config is not None:
+        return _config
+
+    config = {}
+    if os.path.exists(ENV_FILE):
+        with open(ENV_FILE) as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                if "=" in line:
+                    key, val = line.split("=", 1)
+                    config[key.strip()] = val.strip().strip('"').strip("'")
+
+    # Environment ueberschreibt .env (praktisch fuer cron/CI)
+    for key in ("PUSHOVER_TOKEN", "PUSHOVER_USER", "PUSHOVER_DEVICE",
+                "PUSHOVER_CA_BUNDLE"):
+        if os.environ.get(key):
+            config[key] = os.environ[key]
+
+    if require_token and not config.get("PUSHOVER_TOKEN"):
+        die("PUSHOVER_TOKEN nicht gesetzt (weder in %s noch als Env-Variable)."
+            % ENV_FILE)
+
+    _config = config
+    return _config
+
+
+# --- Empfaenger-Verzeichnis (Adressbuch) ------------------------------------
+# Mappt Alias-Namen auf User-/Group-Keys, damit man `--user kollege` statt des
+# 30-Zeichen-Keys tippen kann. Format je Zeile: `name = key [device]`, `#`-Kommentare.
+# Discovery wie bei der .env: PUSHOVER_RECIPIENTS > ./.pushover-recipients > ~/.
+
+def _find_recipients():
+    override = os.environ.get("PUSHOVER_RECIPIENTS")
+    if override:
+        return override
+    cwd = os.path.join(os.getcwd(), ".pushover-recipients")
+    if os.path.exists(cwd):
+        return cwd
+    return os.path.join(os.path.expanduser("~"), ".pushover-recipients")
+
+
+RECIPIENTS_FILE = _find_recipients()
+
+
+def load_recipients():
+    """{name: {'user': key, 'device': ...}} aus dem Verzeichnis-File."""
+    recips = {}
+    if not os.path.exists(RECIPIENTS_FILE):
+        return recips
+    with open(RECIPIENTS_FILE) as f:
+        for raw in f:
+            line = raw.split("#", 1)[0].strip()   # Inline-Kommentare abschneiden
+            if not line or "=" not in line:
+                continue
+            name, rest = line.split("=", 1)
+            parts = rest.split()
+            if not parts:
+                continue
+            entry = {"user": parts[0]}
+            if len(parts) > 1:
+                entry["device"] = parts[1]
+            recips[name.strip()] = entry
+    return recips
+
+
+def _write_recipient(name, key, device=None):
+    """Alias anlegen/aktualisieren, Kommentare und Reihenfolge erhalten."""
+    lines = []
+    if os.path.exists(RECIPIENTS_FILE):
+        with open(RECIPIENTS_FILE) as f:
+            lines = f.readlines()
+    newline = "%s = %s%s\n" % (name, key, (" " + device) if device else "")
+    replaced = False
+    for i, raw in enumerate(lines):
+        code = raw.split("#", 1)[0].strip()
+        if "=" in code and code.split("=", 1)[0].strip() == name:
+            lines[i] = newline
+            replaced = True
+            break
+    if not replaced:
+        if lines and not lines[-1].endswith("\n"):
+            lines[-1] += "\n"
+        lines.append(newline)
+    with open(RECIPIENTS_FILE, "w") as f:
+        f.writelines(lines)
+    return RECIPIENTS_FILE
+
+
+def _mask(key):
+    return key if len(key) <= 8 else key[:4] + "..." + key[-4:]
+
+
+# --- TLS-Kontext ------------------------------------------------------------
+
+def _ssl_context():
+    """Default-Kontext; auf FreeBSD ggf. via PUSHOVER_CA_BUNDLE ein CA-Bundle
+    (z.B. /usr/local/share/certs/ca-root-nss.crt aus ca_root_nss) erzwingen."""
+    ca = load_env(require_token=False).get("PUSHOVER_CA_BUNDLE")
+    if ca:
+        return ssl.create_default_context(cafile=ca)
+    return ssl.create_default_context()
+
+
+# --- Fehler/HTTP ------------------------------------------------------------
+
+def die(msg):
+    print("Fehler: " + msg, file=sys.stderr)
+    sys.exit(1)
+
+
+_last_headers = {}
+
+
+def _handle_payload(endpoint, payload):
+    """Pushover meldet Erfolg mit status:1, Fehler mit status:0 + errors[]."""
+    if payload.get("status") != 1:
+        errs = payload.get("errors")
+        desc = "; ".join(errs) if errs else payload.get("error", "status != 1")
+        die("Pushover-API (%s): %s" % (endpoint, desc))
+    return payload
+
+
+def api(endpoint, params=None, timeout=30, method="POST"):
+    """Ruft einen Pushover-Endpoint auf (x-www-form-urlencoded).
+    Gibt das JSON-Payload zurueck; bricht bei status:0 ab."""
+    url = "%s/%s" % (API_BASE, endpoint)
+    clean = {k: v for k, v in (params or {}).items() if v is not None}
+
+    if method == "GET":
+        if clean:
+            url = url + "?" + urllib.parse.urlencode(clean)
+        req = urllib.request.Request(url)
+    else:
+        data = urllib.parse.urlencode(clean).encode("utf-8")
+        req = urllib.request.Request(
+            url, data=data,
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+    return _request(endpoint, req, timeout)
+
+
+def api_multipart(endpoint, params, attachment_path, timeout=60):
+    """messages.json mit Bildanhang (multipart/form-data)."""
+    try:
+        with open(attachment_path, "rb") as f:
+            filedata = f.read()
+    except OSError as e:
+        die("Attachment nicht lesbar (%s): %s" % (attachment_path, e))
+    if len(filedata) > MAX_ATTACHMENT:
+        die("Attachment > 5 MB (%d Bytes) — Pushover-Limit ueberschritten."
+            % len(filedata))
+
+    filename = os.path.basename(attachment_path)
+    ctype = mimetypes.guess_type(filename)[0] or "application/octet-stream"
+    boundary = "----pushoverskill7d3f9b1c"
+    clean = {k: v for k, v in params.items() if v is not None}
+
+    body = bytearray()
+    for k, v in clean.items():
+        body += ("--%s\r\n" % boundary).encode()
+        body += ('Content-Disposition: form-data; name="%s"\r\n\r\n' % k).encode()
+        body += ("%s\r\n" % v).encode("utf-8")
+    body += ("--%s\r\n" % boundary).encode()
+    body += ('Content-Disposition: form-data; name="attachment"; filename="%s"\r\n'
+             % filename).encode()
+    body += ("Content-Type: %s\r\n\r\n" % ctype).encode()
+    body += filedata
+    body += ("\r\n--%s--\r\n" % boundary).encode()
+
+    url = "%s/%s" % (API_BASE, endpoint)
+    req = urllib.request.Request(
+        url, data=bytes(body),
+        headers={"Content-Type": "multipart/form-data; boundary=%s" % boundary},
+    )
+    return _request(endpoint, req, timeout)
+
+
+def _request(endpoint, req, timeout):
+    global _last_headers
+    try:
+        with urllib.request.urlopen(req, timeout=timeout, context=_ssl_context()) as r:
+            _last_headers = dict(r.headers)
+            payload = json.load(r)
+    except urllib.error.HTTPError as e:
+        # Pushover legt bei 4xx eine JSON-Fehlerbeschreibung in den Body
+        _last_headers = dict(e.headers or {})
+        try:
+            payload = json.load(e)
+        except Exception:
+            die("HTTP %s bei %s" % (e.code, endpoint))
+    except urllib.error.URLError as e:
+        die("Netzwerkfehler bei %s: %s" % (endpoint, e.reason))
+    return _handle_payload(endpoint, payload)
+
+
+# --- Text-Helfer ------------------------------------------------------------
+
+def html_escape(s):
+    """Escaping fuer html=1 (nur & < > sind zu escapen)."""
+    return (s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
+
+
+def resolve_text(args):
+    """Nachrichtentext aus Positional-Arg, --file oder STDIN ('-') beziehen."""
+    if getattr(args, "file", None):
+        with open(args.file, encoding="utf-8") as f:
+            return f.read().rstrip("\n")
+    if getattr(args, "text", None) in (None, "-"):
+        data = sys.stdin.read()
+        if not data.strip():
+            die("Kein Text: weder Argument noch --file noch STDIN geliefert.")
+        return data.rstrip("\n")
+    return args.text
+
+
+def resolve_recipient(args):
+    """(user_key, device) aufloesen. --user ist ein Alias aus dem Verzeichnis
+    ODER ein roher Key; ohne --user gilt der Alias 'me', sonst PUSHOVER_USER."""
+    recips = load_recipients()
+    device = getattr(args, "device", None)
+    name = getattr(args, "user", None)
+
+    if name is None:
+        if "me" in recips:
+            e = recips["me"]
+            return e["user"], device or e.get("device")
+        env_user = load_env(require_token=False).get("PUSHOVER_USER")
+        if env_user:
+            return env_user, device
+        die("Kein Empfaenger: weder Alias 'me' im Verzeichnis (%s) noch "
+            "PUSHOVER_USER gesetzt." % RECIPIENTS_FILE)
+
+    if name in recips:                 # Alias gewinnt
+        e = recips[name]
+        return e["user"], device or e.get("device")
+    return name, device                # kein Alias -> als roher Key nehmen
+
+
+def _quota_note():
+    """Verbleibendes Monatskontingent aus den Response-Headern, falls vorhanden."""
+    rem = _last_headers.get("X-Limit-App-Remaining")
+    return (" [%s Nachrichten uebrig]" % rem) if rem else ""
+
+
+# --- Sende-Kern -------------------------------------------------------------
+
+def _build_params(args, text, user, device):
+    """Gemeinsame messages.json-Parameter aus den CLI-Args."""
+    cfg = load_env(require_token=False)
+    if len(text) > MAX_MESSAGE:
+        die("Nachricht > %d Zeichen (%d) — Pushover-Limit ueberschritten."
+            % (MAX_MESSAGE, len(text)))
+    device = device or cfg.get("PUSHOVER_DEVICE")
+    p = {
+        "token": load_env()["PUSHOVER_TOKEN"],
+        "user": user,
+        "message": text,
+        "title": getattr(args, "title", None),
+        "device": device,
+        "url": getattr(args, "url", None),
+        "url_title": getattr(args, "url_title", None),
+        "sound": getattr(args, "sound", None),
+    }
+    prio = getattr(args, "priority", None)
+    if prio is not None:
+        p["priority"] = str(prio)
+    ttl = getattr(args, "ttl", None)
+    if ttl is not None:
+        p["ttl"] = str(ttl)
+    if getattr(args, "html", False):
+        p["html"] = "1"
+    elif getattr(args, "monospace", False):
+        p["monospace"] = "1"
+    if getattr(args, "silent", False):
+        # stille Zustellung = Prioritaet -1 (kein Sound/Vibration),
+        # sofern nicht ohnehin eine Prioritaet gesetzt wurde
+        p.setdefault("priority", "-1")
+        if p.get("priority") not in ("-1", "-2"):
+            p["priority"] = "-1"
+    return p
+
+
+def _do_send(args, text, user, device, html=None):
+    if html is not None:
+        args.html = html
+    params = _build_params(args, text, user, device)
+    attach = getattr(args, "attachment", None)
+    if attach:
+        return api_multipart("messages.json", params, attach)
+    return api("messages.json", params)
+
+
+def _report(result, label, count=None):
+    if getattr(_report, "_json", False):
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return
+    extra = (" %d Punkte," % count) if count is not None else ""
+    print("Gesendet (%s):%s request %s%s"
+          % (label, extra, result.get("request"), _quota_note()))
+
+
+# --- Subcommands ------------------------------------------------------------
+
+def cmd_send(args):
+    """messages.json — Kernbefehl (outbound)."""
+    _report._json = args.json
+    text = resolve_text(args)
+    user, device = resolve_recipient(args)
+    result = _do_send(args, text, user, device)
+    _report(result, "send")
+
+
+def _template_send(args, emoji, label, default_priority):
+    """Gemeinsame Logik fuer alert/recovery (html=1, Emoji + Titel)."""
+    _report._json = args.json
+    body = resolve_text(args)
+    user, device = resolve_recipient(args)
+    lines = ["%s <b>%s</b>" % (emoji, html_escape(args.title or label)), ""]
+    lines.append(html_escape(body))
+    if getattr(args, "host", None):
+        lines.append("")
+        lines.append("<i>Host: %s</i>" % html_escape(args.host))
+    text = "\n".join(lines)
+    if getattr(args, "priority", None) is None:
+        args.priority = default_priority
+    # der Titel steckt schon im Body (fett) — kein separater Pushover-Titel
+    args.title = None
+    result = _do_send(args, text, user, device, html=True)
+    _report(result, label.lower())
+
+
+def cmd_alert(args):
+    _template_send(args, "\U0001F534", "ALERT", default_priority=1)
+
+
+def cmd_recovery(args):
+    _template_send(args, "✅", "RECOVERY", default_priority=0)
+
+
+def cmd_digest(args):
+    """Daily-Digest: Titel + Bullet-Zeilen (je Zeile aus Text/STDIN ein Punkt)."""
+    _report._json = args.json
+    body = resolve_text(args)
+    user, device = resolve_recipient(args)
+    items = [ln.strip() for ln in body.splitlines() if ln.strip()]
+    lines = ["\U0001F4CB <b>%s</b>" % html_escape(args.title or "Digest"), ""]
+    for it in items:
+        lines.append("• %s" % html_escape(it))
+    text = "\n".join(lines)
+    if getattr(args, "priority", None) is None:
+        args.priority = -1
+    args.title = None
+    result = _do_send(args, text, user, device, html=True)
+    _report(result, "digest", count=len(items))
+
+
+def cmd_validate(args):
+    """users/validate.json — Token + User/Group-Key pruefen."""
+    user, device = resolve_recipient(args)
+    device = device or load_env(False).get("PUSHOVER_DEVICE")
+    result = api("users/validate.json", {
+        "token": load_env()["PUSHOVER_TOKEN"],
+        "user": user,
+        "device": device,
+    })
+    if args.json:
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return
+    devs = result.get("devices") or []
+    lics = result.get("licenses") or []
+    print("OK: Token + User-Key gueltig.")
+    print("Geraete: %s" % (", ".join(devs) if devs else "(keine)"))
+    if lics:
+        print("Lizenzen: %s" % ", ".join(lics))
+
+
+def cmd_sounds(args):
+    """sounds.json — verfuegbare Sound-Kennungen auflisten."""
+    result = api("sounds.json", {"token": load_env()["PUSHOVER_TOKEN"]},
+                 method="GET")
+    sounds = result.get("sounds") or {}
+    if args.json:
+        print(json.dumps(sounds, indent=2, ensure_ascii=False))
+        return
+    for key in sorted(sounds):
+        print("%-16s %s" % (key, sounds[key]))
+
+
+def cmd_recipients(args):
+    """Empfaenger-Verzeichnis: auflisten (Default) oder Alias hinzufuegen."""
+    if getattr(args, "raction", None) == "add":
+        path = _write_recipient(args.name, args.key, getattr(args, "device", None))
+        dev = (" (device %s)" % args.device) if getattr(args, "device", None) else ""
+        print("Alias '%s' -> %s%s gespeichert in %s"
+              % (args.name, _mask(args.key), dev, path))
+        return
+    recips = load_recipients()
+    if getattr(args, "json", False):
+        print(json.dumps(recips, indent=2, ensure_ascii=False))
+        return
+    if not recips:
+        print("Verzeichnis leer bzw. nicht vorhanden (%s)." % RECIPIENTS_FILE)
+        return
+    for name in sorted(recips):
+        e = recips[name]
+        dev = ("  device=%s" % e["device"]) if e.get("device") else ""
+        default = "  (Default)" if name == "me" else ""
+        print("%-12s %s%s%s" % (name, _mask(e["user"]), dev, default))
+
+
+# --- CLI --------------------------------------------------------------------
+
+def _add_send_opts(sp, with_priority=True):
+    sp.add_argument("--title", help="Titelzeile (Default: App-Name)")
+    sp.add_argument("--user", help="Ziel: Alias aus dem Verzeichnis oder roher "
+                    "User-/Group-Key (Default: Alias 'me' bzw. PUSHOVER_USER)")
+    sp.add_argument("--device", help="Zielgeraet(e), kommasepariert "
+                    "(Default: alle Geraete bzw. PUSHOVER_DEVICE)")
+    sp.add_argument("--sound", help="Sound-Kennung (siehe 'sounds')")
+    sp.add_argument("--url", help="anklickbarer Zusatz-Link in der Push")
+    sp.add_argument("--url-title", dest="url_title", help="Label fuer --url")
+    sp.add_argument("--ttl", type=int,
+                    help="Notification laeuft nach N Sekunden von selbst ab")
+    sp.add_argument("--attachment", help="Bilddatei (<=5 MB) mitschicken")
+    sp.add_argument("--silent", action="store_true",
+                    help="stille Zustellung (Prioritaet -1, kein Sound)")
+    sp.add_argument("--json", action="store_true", help="Roh-JSON ausgeben")
+    if with_priority:
+        sp.add_argument("--priority", type=int, choices=[-2, -1, 0, 1],
+                        help="-2 leise .. 1 hoch (Emergency=2 nicht unterstuetzt)")
+    fmt = sp.add_mutually_exclusive_group()
+    fmt.add_argument("--html", action="store_true", help="HTML-Formatierung (b/i/u/a)")
+    fmt.add_argument("--monospace", action="store_true",
+                     help="Monospace-Schrift (gut fuer Log-Schnipsel)")
+
+
+def build_parser():
+    p = argparse.ArgumentParser(
+        prog="pushover",
+        description="Pushover-Notifications senden (outbound-only, stdlib).")
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    sp = sub.add_parser("send", help="Notification senden (messages.json)")
+    sp.add_argument("text", nargs="?", default=None,
+                    help="Nachrichtentext (oder --file / STDIN mit '-')")
+    sp.add_argument("--file", help="Text aus Datei lesen")
+    _add_send_opts(sp)
+    sp.set_defaults(func=cmd_send)
+
+    for name, helptext in (("alert", "Alert-Vorlage (rot, hohe Prioritaet)"),
+                           ("recovery", "Recovery-Vorlage (gruen)")):
+        sp = sub.add_parser(name, help=helptext)
+        sp.add_argument("text", nargs="?", default=None,
+                        help="Meldungstext (oder --file / STDIN)")
+        sp.add_argument("--file", help="Text aus Datei lesen")
+        sp.add_argument("--host", help="Host/Quelle fuer die Fusszeile")
+        _add_send_opts(sp)
+        sp.set_defaults(func=cmd_alert if name == "alert" else cmd_recovery)
+
+    sp = sub.add_parser("digest", help="Digest-Vorlage (Titel + Bullet-Zeilen)")
+    sp.add_argument("text", nargs="?", default=None,
+                    help="je Zeile ein Punkt (oder --file / STDIN)")
+    sp.add_argument("--file", help="Text aus Datei lesen")
+    _add_send_opts(sp)
+    sp.set_defaults(func=cmd_digest)
+
+    sp = sub.add_parser("validate", help="Token + User/Group-Key pruefen")
+    sp.add_argument("--user", help="zu pruefender Key (Default: PUSHOVER_USER)")
+    sp.add_argument("--device", help="optional: Geraet mitpruefen")
+    sp.add_argument("--json", action="store_true")
+    sp.set_defaults(func=cmd_validate)
+
+    sp = sub.add_parser("sounds", help="verfuegbare Sound-Kennungen auflisten")
+    sp.add_argument("--json", action="store_true")
+    sp.set_defaults(func=cmd_sounds)
+
+    sp = sub.add_parser("recipients", help="Empfaenger-Verzeichnis (Adressbuch)")
+    sp.set_defaults(func=cmd_recipients, raction=None)
+    rsub = sp.add_subparsers(dest="raction")
+    rl = rsub.add_parser("list", help="Aliase auflisten (Default)")
+    rl.add_argument("--json", action="store_true")
+    ra = rsub.add_parser("add", help="Alias anlegen/aktualisieren")
+    ra.add_argument("name", help="Alias-Name (z.B. kollege)")
+    ra.add_argument("key", help="User- oder Group-Key (30 Zeichen)")
+    ra.add_argument("--device", help="optional: Standard-Geraet fuer diesen Alias")
+
+    return p
+
+
+def main():
+    args = build_parser().parse_args()
+    args.func(args)
+
+
+if __name__ == "__main__":
+    main()

@@ -3,6 +3,24 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.28.0
+
+- **Neuer Skill `pushover`:** Push-Notifications von Claude Code / Loops / cron via
+  `api.pushover.net` aufs Handy (iOS/Android/Desktop). stdlib-only Python, kein Server-Prozess,
+  outbound-only. Kernbefehl `send` mit `--title`, `--priority -2..1` (Emergency=2 bewusst nicht),
+  `--sound`, `--user`/`--device` (komma-faehig), `--url`/`--url-title`, `--html`|`--monospace`,
+  `--ttl`, `--attachment` (Bild <=5 MB, multipart), `--silent`; Text via Arg/`--file`/STDIN.
+- **Vorlagen `alert`/`recovery`/`digest`** (telegram-Paritaet, Emoji-Titel + `--host`-Fusszeile,
+  sinnvolle Default-Prioritaeten 1/0/-1) plus `validate` (Token/User-Key + Geraeteliste) und
+  `sounds`. `.env`: `PUSHOVER_TOKEN` (+ optional `PUSHOVER_USER`-Fallback/`PUSHOVER_DEVICE`/
+  `PUSHOVER_CA_BUNDLE`). Limits (1024 Zeichen / 5 MB) werden vorab geprueft, Restkontingent aus
+  den Response-Headern.
+- **Empfaenger-Verzeichnis (Adressbuch):** `recipients add/list` mappt Alias-Namen auf Keys, sodass
+  `--user kollege` statt eines 30-Zeichen-Keys genuegt (Aliase gewinnen, sonst wird der Wert als
+  roher Key genommen). Default-Empfaenger ist der Alias `me`, `PUSHOVER_USER` nur noch Fallback. Ein
+  Alias kann auch ein Delivery-Group-Key sein (ein `send` an alle). Datei `~/.pushover-recipients`
+  (Discovery cwd → home, per `PUSHOVER_RECIPIENTS` ueberschreibbar), gitignored.
+
 ### 1.27.0
 
 - **swos: css326-Schreibpfad (`link.b`/`fwd.b`/`vlan.b`) + Loeschweg `vlan-remove`/`vlan-clear`

@@ -412,20 +412,34 @@ Credentials in `.env`: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` (Auffindung wie 
 
 **Trigger:** `/telegram` oder natuerliche Sprache wie "schick mir das per Telegram", "Alert nach Telegram", "Post-Update-Status per Telegram melden".
 
+### pushover
+
+Pushover-Anbindung (outbound-only) — Push-Notifications aufs Handy (iOS/Android/Desktop). Python-Script (stdlib only, keine pip-Dependencies), lauffaehig auf macOS + FreeBSD, **kein Server-Prozess** — jeder Aufruf ist ein einzelner HTTPS-Call an `api.pushover.net` und laeuft auch aus cron:
+
+- send: Kernbefehl, Text aus Argument/`--file`/STDIN, `--title`, `--priority -2..1` (Emergency=2 bewusst nicht), `--sound`, `--user`/`--device` (komma-faehig), `--url`/`--url-title`, `--html`|`--monospace`, `--ttl`, `--attachment` (Bild <=5 MB), `--silent`, `--json`
+- Vorlagen: alert (rot, Prio 1), recovery (gruen, Prio 0), digest (Titel + Bullets, Prio -1) — html mit Emoji, dynamische Werte geescaped, `--host`-Fusszeile
+- validate: Token + User/Group-Key pruefen (zeigt aktive Geraete); sounds: verfuegbare Sound-Kennungen
+- Empfaenger-Verzeichnis (Adressbuch): `recipients add/list` mappt Alias-Namen auf Keys, `--user kollege` statt Roh-Key; Default ist der Alias `me`. Ein Alias kann auch ein Delivery-Group-Key sein (ein `send` an alle). Datei `~/.pushover-recipients` (bzw. cwd)
+
+Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env → ~/.env, Env-Variablen haben Vorrang); Empfaenger im Verzeichnis (`me` = Default) oder `PUSHOVER_USER` als Fallback, optional `PUSHOVER_DEVICE`. FreeBSD-TLS-Escape-Hatch `PUSHOVER_CA_BUNDLE`.
+
+**Voraussetzungen:** Python >= 3.11, App-Token + User-Key von pushover.net. FreeBSD: `pkg install python311 ca_root_nss`.
+
+**Trigger:** `/pushover` (Slash-Kommando; `/push` gibt es als Slash nicht — der Name des Skills ist `pushover`) oder natuerliche Sprache wie "push mir eine Nachricht", "push kollege eine Nachricht", "schick mir das per Pushover", "Alert nach Pushover".
+
 ## Changelog
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.27.0
+### 1.28.0
 
-- **swos: css326-Schreibpfad (`link.b`/`fwd.b`/`vlan.b`) + Loeschweg `vlan-remove`/`vlan-clear`
-  (CR4428).** Damit sind auf `css326` 10 der 12 Port-/VLAN-Schreibbefehle nutzbar (alles ausser
-  PoE): `portname`, `port-enable`, `autoneg`, `duplex`, `speed`, `vlan-mode`, `vlan-receive`,
-  `force-vlan-id`, `pvid`, `vlan-set`. `link.b`/`fwd.b` sprechen auf css326 **benannte** statt
-  numerischer Keys, sind aber feldweise 1:1 zu css610_new (aus HAR `.214` + `engine.js` verifiziert).
-- **`vlan-set` dialekt-faehig, plus neuer Loeschweg** `vlan-remove --vid N` / `vlan-clear`
-  (dialekt-generisch, Read-back-Verify). Enums divergieren je Dialekt (`VLANMODE_BY_DIALECT`):
-  VLAN Mode `strict` ist auf css326=3, auf css610_new=2.
-- **Frisch nach Factory-Reset kein Write moeglich** (bewusst): `/backup.swb` ist bis zum ersten
-  Config-Write leer, der Snapshot-Once bricht ohne Rollback-Netz ab. Erst eine Aenderung ueber die
-  Web-UI setzen, dann greift der Tool-Schreibpfad. Live an `.214`/`.215` verifiziert.
+- **Neuer Skill `pushover`:** Push-Notifications von Claude Code / Loops / cron via
+  `api.pushover.net` aufs Handy (iOS/Android/Desktop). stdlib-only Python, kein Server-Prozess,
+  outbound-only. Kernbefehl `send` mit `--title`, `--priority -2..1` (Emergency=2 bewusst nicht),
+  `--sound`, `--user`/`--device` (komma-faehig), `--url`/`--url-title`, `--html`|`--monospace`,
+  `--ttl`, `--attachment` (Bild <=5 MB, multipart), `--silent`; Text via Arg/`--file`/STDIN.
+- **Vorlagen `alert`/`recovery`/`digest`** (telegram-Paritaet, Emoji-Titel + `--host`-Fusszeile,
+  Default-Prioritaeten 1/0/-1) plus `validate` und `sounds`. `.env`: `PUSHOVER_TOKEN`.
+- **Empfaenger-Verzeichnis (Adressbuch):** `recipients add/list` mappt Alias-Namen auf Keys
+  (`--user kollege` statt Roh-Key); Default-Alias `me`. Alias kann auch ein Delivery-Group-Key sein.
+  Datei `~/.pushover-recipients` (gitignored).

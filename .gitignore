@@ -2,3 +2,7 @@
 
 __pycache__/
 *.pyc
+
+# Credentials / lokale Empfaenger-Verzeichnisse (nie ins Repo)
+.env
+.pushover-recipients
