@@ -3,6 +3,25 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.32.2
+
+- **Neuer Skill `jira`: Jira Data Center / Server per REST API v2 (multi-instanz).** Selbst-gehostete
+  Jira-Instanzen (z.B. `jira.example.com`, `jira.example.com`) abfragen und aendern, Auth per Personal
+  Access Token (Bearer).
+  - Subcommands: `instances`, `search` (JQL), `issue`, `comments`, `transitions` (lesend); `comment`,
+    `transition` (schreibend; `transition` mit Dry-run-Guard, echt erst mit `--yes`).
+  - Config `~/.claude/jira.json` (bewusst **ausserhalb** der Git-Repos — `~/.claude` ist kein Repo,
+    der Token landet nie in Git) mit benannten Instanzen und **Projekt-Routing**: der Issue-Key
+    (`CORTAB-1760` → `CORTAB`) bzw. `project = X` in der JQL waehlt die Instanz, `--instance`
+    ueberschreibt, sonst greift `default`. stdlib-only, keine pip-Abhaengigkeiten.
+  - Hinweis: `jira.example.com` liegt hinter Ergons SSO-Portal (Futurae-MFA/Captcha) → PAT-Zugriff von
+    aussen (noch) blockiert; Klaerung mit Ergon laeuft (CR4435).
+- **`mail-as-me`: „Gegenueber nie spiegeln" als universelle Engine-Regel verankert.** `draft`/`rewrite`
+  schreiben immer in der eigenen Stimme des Profils — weder Sprache, Stil, Register, Region/Dialekt,
+  Anrede noch Grussformel des Gegenuebers uebernehmen (bei Reply-`.eml` nicht Ton/Region des Absenders
+  spiegeln); die Sprache nur auf **explizite** Ansage wechseln. Vorher nur im `michael`-Profil vermerkt,
+  jetzt profil-unabhaengig in `SKILL.md`.
+
 ### 1.32.1
 
 - **`swaks`: Signatur-Wording geschaerft — Mails von `ich@example.org` nie mehr ohne Signatur.**

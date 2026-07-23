@@ -1,0 +1,405 @@
+#!/usr/bin/env python3
+
+# Jira Data Center / Server REST API helper (multi-instance)
+# stdlib only, no pip dependencies
+# version 1.32.2
+
+import argparse
+import json
+import os
+import re
+import sys
+import urllib.error
+import urllib.parse
+import urllib.request
+
+SKILL_DIR = os.path.dirname(os.path.realpath(__file__))
+
+
+def config_path():
+    override = os.environ.get("JIRA_CONFIG")
+    if override:
+        return override
+    return os.path.join(os.path.expanduser("~"), ".claude", "jira.json")
+
+
+CONFIG_FILE = config_path()
+_config = None
+
+
+def load_config():
+    """Read ~/.claude/jira.json (cached)"""
+    global _config
+    if _config is not None:
+        return _config
+    if not os.path.exists(CONFIG_FILE):
+        print(
+            f"Error: {CONFIG_FILE} nicht gefunden (siehe jira.json.example)",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    try:
+        with open(CONFIG_FILE) as f:
+            cfg = json.load(f)
+    except (OSError, ValueError) as e:
+        print(f"Error: {CONFIG_FILE} nicht lesbar: {e}", file=sys.stderr)
+        sys.exit(1)
+    if not isinstance(cfg.get("instances"), dict) or not cfg["instances"]:
+        print(f"Error: keine 'instances' in {CONFIG_FILE}", file=sys.stderr)
+        sys.exit(1)
+    _config = cfg
+    return cfg
+
+
+def list_instances():
+    """Return configured instance names (as written in config)"""
+    return list(load_config()["instances"].keys())
+
+
+def _project_of_key(key):
+    """CORTAB-1760 -> CORTAB"""
+    if key and "-" in key:
+        return key.split("-", 1)[0].upper()
+    return None
+
+
+def _project_of_jql(jql):
+    """Best-effort: pull the first 'project = X' / 'project in (X, ...)' from a JQL"""
+    if not jql:
+        return None
+    m = re.search(
+        r'project\s*(?:=|in)\s*\(?\s*["\']?([A-Za-z][A-Za-z0-9_]+)',
+        jql,
+        re.IGNORECASE,
+    )
+    return m.group(1).upper() if m else None
+
+
+def _instance_for_project(cfg, project):
+    """Find the instance whose 'projects' list contains project (case-insensitive)"""
+    if not project:
+        return None
+    for name, inst in cfg["instances"].items():
+        projects = [p.upper() for p in inst.get("projects", [])]
+        if project in projects:
+            return name
+    return None
+
+
+def resolve_instance(name, project_hint=None):
+    """Map (explicit name | project routing | default) to (name, host, token)"""
+    cfg = load_config()
+
+    if not name:
+        name = _instance_for_project(cfg, project_hint)
+    if not name:
+        name = cfg.get("default")
+    if not name:
+        print(
+            "Error: keine Instanz bestimmbar (kein --instance, kein Projekt-Match, "
+            "kein 'default' in der Config)",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    inst = cfg["instances"].get(name)
+    if inst is None:
+        # case-insensitive fallback
+        for k, v in cfg["instances"].items():
+            if k.lower() == str(name).lower():
+                name, inst = k, v
+                break
+    if inst is None:
+        avail = ", ".join(list_instances()) or "(keine)"
+        print(
+            f"Error: Instanz '{name}' unbekannt. Verfuegbar: {avail}", file=sys.stderr
+        )
+        sys.exit(1)
+
+    host = inst.get("host")
+    token = inst.get("token")
+    if not host or not token:
+        print(
+            f"Error: Instanz '{name}' ohne host/token in {CONFIG_FILE}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    return name, host.rstrip("/"), token
+
+
+def api_call(host, token, method, path, data=None, params=None):
+    """Make an HTTP request to the Jira Data Center REST API (v2)"""
+    url = f"{host}/rest/api/2/{path.lstrip('/')}"
+
+    if params:
+        qs = urllib.parse.urlencode({k: v for k, v in params.items() if v is not None})
+        if qs:
+            url += f"?{qs}"
+
+    body = json.dumps(data).encode("utf-8") if data is not None else None
+    req = urllib.request.Request(
+        url,
+        data=body,
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        },
+        method=method,
+    )
+
+    try:
+        with urllib.request.urlopen(req) as resp:
+            raw = resp.read()
+            return json.loads(raw.decode("utf-8")) if raw else None
+    except urllib.error.HTTPError as e:
+        err = e.read().decode("utf-8", errors="replace")
+        print(f"API error {e.code}: {err}", file=sys.stderr)
+        sys.exit(1)
+    except urllib.error.URLError as e:
+        print(f"Verbindungsfehler: {e.reason}", file=sys.stderr)
+        sys.exit(1)
+
+
+def out_json(data):
+    print(json.dumps(data, indent=2, ensure_ascii=False))
+
+
+def _field(issue, *keys, default="-"):
+    """Safely walk nested fields, returning default on any missing/None step"""
+    cur = issue.get("fields", {})
+    for k in keys:
+        if not isinstance(cur, dict):
+            return default
+        cur = cur.get(k)
+        if cur is None:
+            return default
+    return cur
+
+
+def fmt_issue_row(issue):
+    key = issue.get("key", "?")
+    status = _field(issue, "status", "name")
+    assignee = _field(issue, "assignee", "displayName")
+    summary = _field(issue, "summary", default="")
+    return f"{key:<16} {status:<16} {assignee:<22} {summary}"
+
+
+# ---- subcommands ---------------------------------------------------------
+
+
+def cmd_instances(args):
+    cfg = load_config()
+    default = cfg.get("default", "")
+    for name, inst in cfg["instances"].items():
+        host = inst.get("host", "?")
+        projects = ", ".join(inst.get("projects", [])) or "-"
+        mark = "  (default)" if name == default else ""
+        print(f"{name:<12} {host:<32} projects: {projects}{mark}")
+
+
+def cmd_search(args):
+    name, host, token = resolve_instance(args.instance, _project_of_jql(args.jql))
+    result = api_call(
+        host,
+        token,
+        "GET",
+        "search",
+        params={
+            "jql": args.jql,
+            "maxResults": args.max,
+            "startAt": args.start,
+            "fields": args.fields,
+        },
+    )
+    if args.json:
+        out_json(result)
+        return
+    issues = result.get("issues", [])
+    total = result.get("total", len(issues))
+    for issue in issues:
+        print(fmt_issue_row(issue))
+    shown = args.start + len(issues)
+    print(f"\n[{name}] {len(issues)} von {total} (bis #{shown})", file=sys.stderr)
+
+
+def cmd_issue(args):
+    name, host, token = resolve_instance(args.instance, _project_of_key(args.key))
+    result = api_call(
+        host, token, "GET", f"issue/{args.key}", params={"fields": args.fields}
+    )
+    if args.json:
+        out_json(result)
+        return
+    print(f"{result.get('key')}: {_field(result, 'summary', default='')}")
+    print(f"  Status:    {_field(result, 'status', 'name')}")
+    print(f"  Typ:       {_field(result, 'issuetype', 'name')}")
+    print(f"  Assignee:  {_field(result, 'assignee', 'displayName')}")
+    print(f"  Reporter:  {_field(result, 'reporter', 'displayName')}")
+    print(f"  Prioritaet: {_field(result, 'priority', 'name')}")
+    desc = _field(result, "description", default="")
+    if desc and desc != "-":
+        print("\n--- Beschreibung ---")
+        print(desc)
+
+
+def cmd_comments(args):
+    name, host, token = resolve_instance(args.instance, _project_of_key(args.key))
+    result = api_call(host, token, "GET", f"issue/{args.key}/comment")
+    if args.json:
+        out_json(result)
+        return
+    comments = result.get("comments", [])
+    for c in comments:
+        author = (c.get("author") or {}).get("displayName", "?")
+        created = c.get("created", "")[:16].replace("T", " ")
+        print(f"[{created}] {author}:")
+        print(c.get("body", "").rstrip())
+        print()
+    print(f"{len(comments)} Kommentar(e)", file=sys.stderr)
+
+
+def cmd_transitions(args):
+    name, host, token = resolve_instance(args.instance, _project_of_key(args.key))
+    result = api_call(host, token, "GET", f"issue/{args.key}/transitions")
+    if args.json:
+        out_json(result)
+        return
+    for t in result.get("transitions", []):
+        to = (t.get("to") or {}).get("name", "?")
+        print(f"{t.get('id'):>4}  {t.get('name'):<24} -> {to}")
+
+
+def cmd_comment(args):
+    name, host, token = resolve_instance(args.instance, _project_of_key(args.key))
+    body = args.body
+    if body == "-":
+        body = sys.stdin.read()
+    if not body or not body.strip():
+        print("Error: leerer Kommentar-Body", file=sys.stderr)
+        sys.exit(1)
+    result = api_call(
+        host, token, "POST", f"issue/{args.key}/comment", data={"body": body}
+    )
+    print(f"[{name}] Kommentar {result.get('id')} zu {args.key} hinzugefuegt.")
+
+
+def cmd_transition(args):
+    name, host, token = resolve_instance(args.instance, _project_of_key(args.key))
+    trans = api_call(host, token, "GET", f"issue/{args.key}/transitions")
+    target = args.to.strip().lower()
+
+    match = None
+    for t in trans.get("transitions", []):
+        tname = (t.get("name") or "").strip().lower()
+        to_status = ((t.get("to") or {}).get("name") or "").strip().lower()
+        if target in (tname, to_status):
+            match = t
+            break
+
+    if not match:
+        avail = [
+            f"{t.get('name')} (-> {(t.get('to') or {}).get('name')})"
+            for t in trans.get("transitions", [])
+        ]
+        print(
+            f"Error: kein Uebergang '{args.to}' fuer {args.key}. Moeglich: "
+            + "; ".join(avail),
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    to_status = (match.get("to") or {}).get("name", "?")
+    if not args.yes:
+        print(
+            f"[dry-run/{name}] {args.key}: Uebergang '{match.get('name')}' "
+            f"(id {match.get('id')}) -> Status '{to_status}'.\n"
+            f"Zum Ausfuehren --yes anhaengen."
+        )
+        return
+
+    payload = {"transition": {"id": str(match.get("id"))}}
+    if args.comment:
+        payload["update"] = {"comment": [{"add": {"body": args.comment}}]}
+    api_call(host, token, "POST", f"issue/{args.key}/transitions", data=payload)
+    print(f"[{name}] {args.key}: -> '{to_status}' ausgefuehrt.")
+
+
+# ---- CLI -----------------------------------------------------------------
+
+
+DEFAULT_FIELDS = "summary,status,assignee,updated,issuetype,priority"
+
+
+def build_parser():
+    p = argparse.ArgumentParser(
+        prog="jira", description="Jira Data Center REST API helper (multi-instance)"
+    )
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    def add_instance(sp):
+        sp.add_argument(
+            "-i",
+            "--instance",
+            help="Instanz-Name aus jira.json (ueberschreibt Projekt-Routing/Default)",
+        )
+
+    sp = sub.add_parser("instances", help="konfigurierte Instanzen auflisten")
+    sp.set_defaults(func=cmd_instances)
+
+    sp = sub.add_parser("search", help="Issues per JQL suchen")
+    add_instance(sp)
+    sp.add_argument("jql", help="JQL-Query, z.B. 'project = CORTAB AND status != Closed'")
+    sp.add_argument("--max", type=int, default=20, help="maxResults (Default 20)")
+    sp.add_argument("--start", type=int, default=0, help="startAt (Paginierung)")
+    sp.add_argument("--fields", default=DEFAULT_FIELDS, help="Feldliste (komma-getrennt)")
+    sp.add_argument("--json", action="store_true", help="rohes JSON ausgeben")
+    sp.set_defaults(func=cmd_search)
+
+    sp = sub.add_parser("issue", help="einzelnes Issue anzeigen")
+    add_instance(sp)
+    sp.add_argument("key", help="Issue-Key, z.B. CORTAB-1762")
+    sp.add_argument("--fields", default=DEFAULT_FIELDS + ",description,reporter")
+    sp.add_argument("--json", action="store_true", help="rohes JSON ausgeben")
+    sp.set_defaults(func=cmd_issue)
+
+    sp = sub.add_parser("comments", help="Kommentare eines Issues anzeigen")
+    add_instance(sp)
+    sp.add_argument("key", help="Issue-Key")
+    sp.add_argument("--json", action="store_true", help="rohes JSON ausgeben")
+    sp.set_defaults(func=cmd_comments)
+
+    sp = sub.add_parser("transitions", help="moegliche Status-Uebergaenge anzeigen")
+    add_instance(sp)
+    sp.add_argument("key", help="Issue-Key")
+    sp.add_argument("--json", action="store_true", help="rohes JSON ausgeben")
+    sp.set_defaults(func=cmd_transitions)
+
+    sp = sub.add_parser("comment", help="Kommentar hinzufuegen (schreibend)")
+    add_instance(sp)
+    sp.add_argument("key", help="Issue-Key")
+    sp.add_argument("--body", required=True, help="Kommentartext ('-' liest von stdin)")
+    sp.set_defaults(func=cmd_comment)
+
+    sp = sub.add_parser(
+        "transition", help="Status-Uebergang ausfuehren (schreibend, --yes noetig)"
+    )
+    add_instance(sp)
+    sp.add_argument("key", help="Issue-Key")
+    sp.add_argument(
+        "--to", required=True, help="Uebergangs- ODER Ziel-Status-Name (case-insensitiv)"
+    )
+    sp.add_argument("--comment", help="optionaler Kommentar beim Uebergang")
+    sp.add_argument("--yes", action="store_true", help="ausfuehren (ohne: nur dry-run)")
+    sp.set_defaults(func=cmd_transition)
+
+    return p
+
+
+def main():
+    args = build_parser().parse_args()
+    args.func(args)
+
+
+if __name__ == "__main__":
+    main()

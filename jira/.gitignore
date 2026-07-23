@@ -1,0 +1,4 @@
+# Echte Config mit Token lebt in ~/.claude/jira.json (ausserhalb des Repos).
+# Falls doch mal lokal im Skill-Ordner: nie committen.
+jira.json
+.env

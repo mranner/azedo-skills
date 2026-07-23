@@ -72,14 +72,19 @@ Eingabe: Empfaenger (+ Thema **oder** eine Reply-`.eml`). Ablauf:
 1. Register aus `config.json.register_map` bestimmen (Domain), sonst nachfragen.
 2. `referenz.md` + 1–2 Beispiele desselben Registers aus `corpus/clean/` laden.
 3. Entwurf bauen: Anrede/Sign-off/Du-Sie/Dialekt gemaess Profil, Stilmarker
-   anwenden.
+   anwenden. **Immer in der eigenen Stimme des Profils — das Gegenueber niemals
+   spiegeln** (weder Sprache, Stil, Register, Region/Dialekt, Anrede noch
+   Grussformel; bei einer Reply-`.eml` nicht Ton/Region des Absenders uebernehmen).
+   Die Sprache nur wechseln, wenn der Nutzer es **explizit** vorgibt.
 4. **Self-Audit** gegen die Anti-Patterns via **humanizer-de** (siehe unten).
 5. Entwurf zeigen. Optional Versand ueber **swaks** (Text + HTML), Signatur dort.
 
 ### rewrite — bestehenden Entwurf in-voice bringen
 
 Nimmt einen Entwurf (eigener oder fremder), gleicht ihn an das Profil an und laeuft
-denselben humanizer-de-Audit. Fuer „mach diese Mail wie ich".
+denselben humanizer-de-Audit. Fuer „mach diese Mail wie ich". Gilt auch hier: **das
+Gegenueber nie spiegeln** (Sprache/Stil/Region) — ein fremder Ausgangston wird auf die
+eigene Stimme gezogen, nicht beibehalten.
 
 ### learn — Feedback-Loop (Konvergenz)
 
