@@ -1,4 +1,4 @@
-# swos -- MikroTik SwOS read-only Abfrage
+# swos -- MikroTik SwOS abfragen und konfigurieren
 
 Fragt MikroTik-**SwOS**-Switches (CSS-Serie und RB260/SwOS-Lite) ab und dekodiert die
 SwOS-Blobs in lesbare Tabellen: System-Info, VLAN-Mitglieder, Portbelegung (PVID/PoE) und
