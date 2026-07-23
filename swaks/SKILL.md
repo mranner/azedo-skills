@@ -51,10 +51,12 @@ Auflösungsreihenfolge je Datei: projektlokal `.claude/` **vor** global `~/.clau
 
 Beim Standardversand (Multipart, siehe unten) hängt `build_mail.py` beide an – Text-Signatur mit Leerzeile Abstand, HTML-Signatur als Block. Bei reinem Text-Body nur die `.txt`-Signatur.
 
+**Wichtig – die globale Signatur ist Michaels eigene** (Ing. Michael Ranner, azedo IT Consulting & Services KG). Absender `ich@example.org` ("in Michaels Namen") → **immer** die globale Signatur dranlassen, Auto-Auflösung genügt. Das ist **kein** Ausschlussgrund. `--no-sig` hier nur, wenn Michael das **ausdrücklich** sagt.
+
 Die Signatur wird **nicht** angehängt wenn:
 
 - Der User explizit "ohne Signatur" / "no sig" sagt → `--no-sig` an `build_mail.py` übergeben (schaltet auch die Standard-Signatur ab)
-- Die Mail im Namen einer anderen Person verfasst wird (anderer `--from`) → dann keine Standard-Signatur, ggf. deren eigene per `--sig-*-file`
+- Die Mail im Namen einer **dritten** Person verfasst wird – **weder Michael noch Claude**, sondern ein anderer `--from` → dann keine Standard-Signatur, ggf. deren eigene per `--sig-*-file`. Der Wechsel von `claude@azedo.at` auf `ich@example.org` ist **kein** solcher Fall (s.o.).
 
 ## Encoding
 
@@ -216,7 +218,7 @@ swaks \
 1. **Empfänger auflösen:** Wenn ein Name statt E-Mail-Adresse genannt wird, `grep -i <name> .claude/swaks-contacts.tsv` ausführen. Bei Treffer: E-Mail aus zweitem Feld verwenden. Bei keinem Treffer: nachfragen.
 2. **Versandart wählen:** Default ist **Multipart (Text + HTML)** via `build_mail.py`. Nur reinen Text senden, wenn der User das will oder es rein um einen Dateiversand ohne formatierten Body geht.
 3. **Body erstellen:** Für Multipart Text- und HTML-Body in `.tmp/` ablegen (ohne Signatur). HTML schlicht halten.
-4. **Signatur:** wird automatisch aufgelöst (global `~/.claude/swaks-signature.*`, projektlokal `.claude/` mit Vorrang) – nichts zu übergeben. Bei Ausschlussgrund (anderer `--from`, "ohne Signatur") `--no-sig`; für eine abweichende Signatur explizit `--sig-text-file`/`--sig-html-file`.
+4. **Signatur:** wird automatisch aufgelöst (global `~/.claude/swaks-signature.*`, projektlokal `.claude/` mit Vorrang) – nichts zu übergeben. Von `ich@example.org` **immer** dranlassen (globale Signatur = Michaels eigene). `--no-sig` nur bei explizitem "ohne Signatur" oder einem **dritten** Absender (weder Michael noch Claude); für eine abweichende Signatur explizit `--sig-text-file`/`--sig-html-file`.
 5. Fehlende Angaben aus dem Kontext ableiten (Betreff, Body, Anhänge).
 6. Befehl zusammenbauen und dem Nutzer kurz zeigen; auf Bestätigung warten – außer der Nutzer hat bereits „ja" gesagt oder den Versand klar angeordnet.
 7. Befehl ausführen und Ergebnis (Queue-ID oder Fehler) melden. Erfolg: `250 2.0.0 Ok: queued as <ID>`.

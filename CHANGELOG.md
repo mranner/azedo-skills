@@ -3,6 +3,21 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.32.1
+
+- **`swaks`: Signatur-Wording geschaerft — Mails von `ich@example.org` nie mehr ohne Signatur.**
+  Ausloeser: Der „anderer `--from` → keine Standard-Signatur"-Passus wurde zweimal auf Michael selbst
+  angewandt (Default-`--from` ist `claude@azedo.at`), sodass Mails in seinem Namen faelschlich mit
+  `--no-sig` ohne Signatur rausgingen. Die globale Signatur **ist** aber Michaels eigene.
+  - `SKILL.md`: Signatur-Abschnitt + Ablauf-Schritt 4 stellen jetzt explizit klar, dass `--from
+    ich@example.org` **immer** die globale Signatur bekommt (kein Ausschlussgrund) und `--no-sig`
+    hier nur auf ausdrueckliche Ansage. Der „fremder Absender"-Ausschluss ist auf eine **dritte** Person
+    (weder Michael noch Claude) praezisiert; der Wechsel `claude@` → `michael@` ist ausdruecklich ausgenommen.
+  - Begleitend (ausserhalb dieses Repos, auf den Arbeitsrechnern): ein `PreToolUse`/`Bash`-Guard
+    `~/.claude/hooks/swaks-require-signature.py` blockt hart die Kombination `--from`/`-f` = Michael
+    **plus** `--no-sig`; bewusster Ausweg per Kommentar-Token `# SIG_GUARD_OK`. Nicht Teil des Skill-Repos,
+    hier nur zur Nachvollziehbarkeit vermerkt.
+
 ### 1.32.0
 
 - **`swos`: `vlan-set` auf CSS106 (`swos_lite`) freigegeben (CR4428).** Der in 1.30.0 bewusst
