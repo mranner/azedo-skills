@@ -7,8 +7,9 @@ VLAN-/PoE-Befehle mit strengen Guard-Rails — auf `css610_new` vollständig (po
 vlan.b), auf `css326` alles außer PoE (link.b/fwd.b/vlan.b), auf `swos_lite` (CSS106) link.b/fwd.b
 plus PoE-Out beim PoE-Modell (`poe`/`prio` liegen in link.b): portname, port-enable, autoneg,
 duplex, speed, vlan-mode, vlan-receive, force-vlan-id, pvid, poe-out (CSS106) — sowie
-`vlan-remove`/`vlan-clear` (Lösch­weg, dialekt-generisch). `vlan-set` läuft auf css610_new/css326;
-auf CSS106 nicht (Mitgliedschaft = Per-Port-Egress-Enum `prt`, kein Member-Bitmask). Siehe
+`vlan-set`/`vlan-remove`/`vlan-clear` (dialekt-generisch). `vlan-set` nutzt auf css610_new/css326
+ein Member-Bitmask (`--members`), auf CSS106 das Per-Port-Egress-Enum `prt`
+(`--tagged`/`--untagged`, Rest = not-a-member). Siehe
 Abschnitt „Schreiben".
 
 **Aufruf:** `python3 "$SKILL_DIR/swos" <subcommand> [ziel] [optionen]`
@@ -97,12 +98,13 @@ swos portname    <ziel> --port <n> --name <text>         [--commit]   # Port-Nam
 swos port-enable <ziel> --port <n> --to on|off  [--force] [--commit]   # Enabled (link.b i01)
 swos autoneg     <ziel> --port <n> --to on|off  [--force] [--commit]   # Auto Negotiation (link.b i02)
 swos duplex      <ziel> --port <n> --to on|off  [--force] [--commit]   # Full Duplex (link.b i03)
-swos speed       <ziel> --port 1..8 --to 10|100|1000 [--force][--commit]  # Forced Speed Mbit/s (link.b i05)
+swos speed       <ziel> --port <n> --to <Mbit/s>      [--force][--commit]  # Forced Speed, Kupfer+SFP+ (Enum dialektabh., z.B. 1000/2500/10000)
 swos vlan-mode   <ziel> --port <n> --to disabled|optional|strict [--force][--commit]  # VLAN Mode (fwd.b i15)
 swos vlan-receive <ziel> --port <n> --to any|tagged|untagged [--force][--commit]      # VLAN Receive (fwd.b i17)
 swos force-vlan-id <ziel> --port <n> --to on|off [--force][--commit]  # Force VLAN ID (fwd.b i19)
 swos pvid        <ziel> --port <n> --vid <1..4095>        [--commit]   # Default VLAN ID / PVID (fwd.b i18)
-swos vlan-set    <ziel> --vid <1..4095> --members 1,2,9   [--commit]   # VLAN-Membership (vlan.b), legt an falls neu
+swos vlan-set    <ziel> --vid <1..4095> --members 1,2,9   [--commit]   # VLAN-Membership (vlan.b) css610/css326, legt an falls neu
+swos vlan-set    <ziel> --vid <1..4095> --tagged 6 --untagged 2,3 [--commit]  # CSS106 (swos_lite): Egress-Enum prt, Rest = not-a-member
 ```
 
 **Link-/Lockout-Schutz** (`port-enable`, `autoneg`, `duplex`, `speed` sowie `vlan-mode`,
@@ -113,10 +115,20 @@ trotzdem; nur der `--commit` erzwingt `--force`. No-op (Zielwert = Ist) löst ni
 `vlan-mode`=`disabled|optional|strict`, `vlan-receive`=`any|tagged|untagged` (engine.js `fwd.b`
 `i15`/`i17`).
 
-**`speed`** (`link.b i05`, Forced-Speed) — nur **Kupferports 1–8** (Dropdown `10`/`100`/`1000`
-Mbit/s → Index `0`/`1`/`2`, per UI verifiziert; SFP+ 9/10 haben andere Werte → abgelehnt). Wirkt
-**nur bei Auto-Neg=off** für den Port — bei Auto-Neg=on wird der Wert gespeichert, aber der Dry-Run
-weist darauf hin, dass er erst nach `autoneg off` greift. Link-Guard wie oben.
+**`speed`** (`link.b` Forced-Speed, css610 `i05` / css326 `spdc`) — **Kupfer + SFP+**. Das
+Enum ist **dialekt-spezifisch** (`SPEED_ENUMS`) und divergiert ab Index 4, daher nicht generisch,
+sondern aus `engine.js` + Live-DAC verifiziert:
+- css326: `10M/100M/1G/10G/5G/2.5G/40G` (0–6)
+- css610_new: `10M/100M/1G/10G/200M/2.5G/5G` (0–6)
+
+`--to` in **Mbit/s** (z.B. `1000`, `2500`, `10000`), zur Laufzeit gegen das Dialekt-Enum geprüft
+(ungültiger Wert → Abbruch mit Auflistung der gültigen). Kupfer-Subset `10`/`100`/`1000` = `0`/`1`/`2`
+in allen Dialekten deckungsgleich. Wirkt **nur bei Auto-Neg=off** für den Port — bei Auto-Neg=on wird
+der Wert gespeichert, der Dry-Run weist darauf hin. Link-Guard wie oben. **Live an css610 SFP+1 und
+css326 SFP1 bestätigt** (`i05[8]`/`spdc[24]`=10G → Read-back → restauriert). CSS106 (`swos_lite`):
+die **SFP-Buchse ist 1G-only** (SFP, kein SFP+; DAC handelt auf 1G runter, engine.js-Enum
+`[10,100,1000]`) → Enum vollständig; `speed` an CSS106 SFP-Port (6) live bestätigt (`spdc[5]`=1G →
+Read-back → restauriert).
 
 Mechanik überall gleich (**wie die SwOS-Web-UI**): GET des Endpoints (= config-treu, s. u.) →
 schreibbaren Feld-Subset übernehmen → **nur das Zielfeld** ersetzen → `POST /<ep>.b`
@@ -127,14 +139,16 @@ schreibbaren Feld-Subset übernehmen → **nur das Zielfeld** ersetzen → `POST
 - **`"writable": true`** im Inventory Pflicht (nur die 3 Büro-Sandkasten-Switches). Ohne Flag,
   bei `--swb`/`--ip` oder unbekanntem Switch → Abbruch. Produktion (Seiersberg) bleibt read-only.
 - **Verifizierte Schreib-Dialekte:** `css610_new` (poe.b/link.b/fwd.b/vlan.b), `css326`
-  (link.b/fwd.b/vlan.b; kein PoE) und `swos_lite`/CSS106 (link.b/fwd.b; PoE-Out in link.b nur beim
-  PoE-Modell; kein `vlan-set`). Andere Dialekte → sauberer Abbruch. Nur
+  (link.b/fwd.b/vlan.b; kein PoE) und `swos_lite`/CSS106 (link.b/fwd.b/vlan.b; PoE-Out in link.b nur
+  beim PoE-Modell; `vlan-set` via Egress-Enum). Andere Dialekte → sauberer Abbruch. Nur
   `direct`-Transport. Der geforderte Endpoint muss für den erkannten Dialekt freigegeben sein
   (`WRITE_FIELDS`), sonst Abbruch mit klarer Meldung. `poe-out`/`poe-voltage` lösen ihren Endpoint
   dialektabhängig auf (css610 → `poe.b`, CSS106 → `link.b`; `poe-voltage` nur css610).
 - **`--dry-run` ist Default:** zeigt aktuelles/geplantes Feld und den exakten POST-Body, sendet
   nichts. Erst `--commit` schreibt.
-- **Snapshot vor der ersten Änderung** (`.tmp/swos-snapshot-<sw>.swb`) als Rollback-Punkt.
+- **Snapshot vor der ersten Änderung** (`swos-snapshot-<sw>.swb`) als Rollback-Punkt. Ablageort:
+  `SWOS_SNAPSHOT_DIR` (falls gesetzt) → sonst `<cwd>/.tmp` → Fallback `~/.cache/swos`, wenn aus dem
+  Skill-Verzeichnis aufgerufen (nie ins `$SKILL_DIR` schreiben).
 - **Read-back-Verify** nach jedem Commit: nur das Zielfeld darf sich geändert haben, sonst Abbruch.
 
 **Frisch nach Factory-Reset ist kein Write möglich** (bewusst so): SwOS liefert `/backup.swb`
@@ -167,17 +181,26 @@ danach greift der Tool-Schreibpfad normal.
 `en/nm/an/spdc/dpxc/fctc/fctr` (link.b) und `vlan/vlni/dvid/fvid` (fwd.b), 26 Ports (24G+2×SFP+).
 Die Feldnamen je Dialekt stehen in `WRITE_FIELDS`, die Kommandos lösen Rollen darüber auf.
 
-**`vlan-set` (vlan.b)** ist ebenfalls dialekt-fähig: css326-Einträge tragen `{vid,nm,piso,lrn,mrr,
-igmp,mbr}` (Member-Maske `mbr`) statt css610 `{i01,i03,i02}`. Falle: die **GET-Reihenfolge weicht
-von der POST-Reihenfolge ab** (GET liefert `nm,mbr,vid,…`, die UI POSTet `vid,nm,…,mbr`) — daher
-wird jeder Eintrag in die kanonische `order` serialisiert (nicht verbatim durchgereicht),
-bestehende VLANs feldtreu erhalten, neue mit Defaults (Isolation/Learning an) angelegt. Portzahl
-für die Member-Maske kommt aus `link.b` (Namen-Array), nicht hartcodiert.
+**`vlan-set` (vlan.b)** ist ebenfalls dialekt-fähig, in **zwei Membership-Modellen**:
 
-**`vlan-remove --vid N` / `vlan-clear`** ergänzen den Löschweg (den `vlan-set` nicht abdeckt):
-`vlan-remove` entfernt einen Eintrag und erhält die übrigen feldtreu, `vlan-clear` setzt vlan.b auf
-`[]`. Beide laufen über denselben dialekt-generischen vlan.b-Pfad (css610_new + css326), No-op wenn
-das VID fehlt bzw. die Liste schon leer ist, mit Read-back-Verify (Ziel weg, Rest unverändert).
+- **Bitmask** (css610_new/css326, `--members 1,2,9`): css326-Einträge tragen `{vid,nm,piso,lrn,mrr,
+  igmp,mbr}` (Member-Maske `mbr`) statt css610 `{i01,i03,i02}`. Falle: die **GET-Reihenfolge weicht
+  von der POST-Reihenfolge ab** (GET liefert `nm,mbr,vid,…`, die UI POSTet `vid,nm,…,mbr`) — daher
+  wird jeder Eintrag in die kanonische `order` serialisiert (nicht verbatim durchgereicht),
+  bestehende VLANs feldtreu erhalten, neue mit Defaults (Isolation/Learning an) angelegt.
+- **Egress-Enum** (swos_lite/CSS106, `--tagged`/`--untagged`): Mitgliedschaft ist das Per-Port-Feld
+  `prt` (engine.js `["leave as is","always strip","add if missing","not a member"]` = 0/1/2/3), kein
+  Bitmask. `--tagged` → `add if missing` (2), `--untagged` → `always strip` (1), alle **nicht**
+  genannten Ports → `not a member` (3). Deklarativ: der komplette Membership-Satz wird gesetzt (wie
+  die volle Maske); die Mode `leave as is` (0) ist über tagged/untagged bewusst nicht erreichbar.
+  Enum + Multi-VLAN-Struktur aus Live-Capture `.193`/`.204` (CR4428) verifiziert, nicht abgeleitet.
+
+Portzahl kommt in beiden Modellen aus `link.b` (Namen-Array), nicht hartcodiert.
+
+**`vlan-remove --vid N` / `vlan-clear`** ergänzen den Löschweg: `vlan-remove` entfernt einen Eintrag
+und erhält die übrigen feldtreu, `vlan-clear` setzt vlan.b auf `[]`. Beide laufen über denselben
+dialekt-generischen vlan.b-Pfad (css610_new + css326 + swos_lite), No-op wenn das VID fehlt bzw. die
+Liste schon leer ist, mit Read-back-Verify (Ziel weg, Rest unverändert).
 
 **Hart erkaufte Lehre: Enums divergieren je Dialekt.** VLAN Mode ist auf css326
 `["disabled","optional","enabled","strict"]` → **`strict`=3** (plus Extra-Wert `enabled`=2),
@@ -204,12 +227,15 @@ Aus `engine.js` (Tab-Definitionen) + Live-GET `.193` (CSS106-1G-4P-1S, PoE) und 
 - **`fwd.b`** POST-Subset `vlan/vlni/dvid/fvid/vlnh` — wie css326, aber mit **Extra-Feld `vlnh`**
   (VLAN Header, Egress). VLAN Mode 4-Werte wie css326 (`strict`=3).
 - **`vlan.b`**: Einträge `{vid,ivl,igmp,prt}`. Mitgliedschaft ist ein **Per-Port-Egress-Enum `prt`**
-  (leave/strip/add/not-member), **kein Member-Bitmask** → `vlan-set` ist auf CSS106 **nicht**
-  freigegeben (tagged/untagged-Semantik ohne verifizierte Multi-VLAN-Referenz nicht ableitbar,
-  „nicht raten"). `vlan-remove`/`vlan-clear` laufen generisch (Reihenfolge `[vid,ivl,igmp,prt]`).
+  (engine.js `["leave as is","always strip","add if missing","not a member"]` = 0/1/2/3), **kein
+  Member-Bitmask**. `vlan-set` bildet das über `--tagged` (→ 2) / `--untagged` (→ 1) ab, alle
+  übrigen Ports → `not a member` (3); `vlan-remove`/`vlan-clear` laufen generisch (Reihenfolge
+  `[vid,ivl,igmp,prt]`). Enum + Multi-VLAN-Struktur aus Live-Capture `.193`/`.204` (CR4428, HAR)
+  verifiziert.
 
 Live an `.193` bestätigt (ändern → Read-back → Restore): `portname` (link.b inkl. PoE-Felder im
-POST), `pvid` (fwd.b), `poe-out` (link.b, `auto`↔`on`).
+POST), `pvid` (fwd.b), `poe-out` (link.b, `auto`↔`on`), `vlan-set` (VLAN neu anlegen + aktualisieren,
+tagged/untagged), `vlan-remove` (Read-back Ziel weg, Rest feldtreu).
 
 ### Noch zurückgestellt
 
@@ -218,10 +244,13 @@ POST), `pvid` (fwd.b), `poe-out` (link.b, `auto`↔`on`).
 - **`sys.b`** (Identity, Mgmt-IP): Format bekannt, aber Mgmt-Zone → nur mit Extra-Vorsicht.
   Passwort (`!pwd.b`) und `/reboot` bewusst außen vor.
 
-**Bekannter Read-only-Bug (unabhängig):** Der `ports`-View liest den PoE-**Modus** aus `poe.b i04`
-(= **Runtime-Status** `2=idle,3=liefert`), der Config-Modus steht in `i01`. Der Write nutzt korrekt
-`i01`; der Lese-View ist separat zu fixen. Ebenso: `!dhost.b` liefert im `direct`-Modus gelegentlich
-Short-Reads (`BlobError`).
+**PoE im `ports`-View (CR4428 gefixt):** Der View zeigt jetzt den **Config-Modus** (css610
+`poe.b i01` `off/on/auto`; CSS106 `link.b poe` `off/auto/on/calibr`) plus in Klammern den
+**Runtime-Status** aus dem verifizierten Enum (`poe.b i04` / `link.b poes`: `waiting for load`,
+`powered on`, `overload`, …). Nur PoE-fähige Ports (css610 1-8, CSS106 2-5) tragen PoE; SFP(+)/
+Uplink bleiben leer. Zusätzlich zeigt der View die **ausgehandelte Ist-Geschwindigkeit**
+(css326 `spd`, css610 `i08`; z.B. der DAC-Link als `10G`). Rest-Bug unabhängig: `!dhost.b`
+liefert im `direct`-Modus gelegentlich Short-Reads (`BlobError`).
 
 ## Inventory-Config
 
@@ -250,25 +279,18 @@ ODER `cred: "<name>"` -> `credentials.<name>` mit `password` / `password_env` / 
 ## Grenzen / offen (Stufe 2 und Nacharbeit)
 
 - **Schreiben auf `css610_new` (poe.b/link.b/fwd.b/vlan.b), `css326` (link.b/fwd.b/vlan.b) und
-  `swos_lite`/CSS106 (link.b/fwd.b, PoE-Out in link.b beim PoE-Modell).**
-  Noch offen: Identity/Mgmt-IP (`sys.b`), `vlan-set` auf CSS106 (Per-Port-Egress-Enum `prt` statt
-  Member-Bitmask — braucht verifizierte Multi-VLAN-Referenz), css610_old-Writes — jeweils erst nach
+  `swos_lite`/CSS106 (link.b/fwd.b/vlan.b, PoE-Out in link.b beim PoE-Modell).**
+  Noch offen: Identity/Mgmt-IP (`sys.b`), css610_old-Writes — jeweils erst nach
   DevTools-/HAR-Verifikation des POST-Formats (nicht raten), jeder Write mit Read-back-Verify.
   `backup` (GET `/backup.swb`) ist reines Lesen und faellt weiterhin unter Stufe 1 — keine
   Config-Aenderung am Switch.
-- **CSS106 `vlan.b`-Write live noch ungetestet** (nur logisch aus `engine.js`/GET abgeleitet): die
-  Sandbox-`vlan.b` ist leer, `vlan-clear` ist dort No-op und `vlan-remove` braucht einen Eintrag.
-  link.b/fwd.b sind dagegen live an `.193` bestätigt.
 - **`.swb`-Restore-/Upload-Weg noch offen.** Der Snapshot-**Pull** vor dem ersten Write steht
   (via `backup`), das **Einspielen** eines `.swb` (Restore-POST) ist noch nicht verifiziert — das
   vollstaendige Rollback-Netz fehlt also noch.
-- **`ports`-View liest PoE-Modus aus dem falschen Feld** (`i04`=Runtime statt `i01`=Config, nur
-  css610) — siehe Abschnitt „Schreiben". `poe-out` selbst ist davon nicht betroffen.
-- **swos_lite-PoE** (CSS106-1G-4P-1S): `poe.b` fehlt, PoE-Info steckt in `link.b`. Der **Write**
-  ist verifiziert (`poe`=Config-Modus `off/auto/on/calibr`, siehe Schreibpfad). **Stufe-1-Read-View
-  offen:** das `ports`-View gibt den PoE-Modus für swos_lite noch nicht aus; `poes` (Status-Enum aus
-  `engine.js`: `disabled/waiting/powered on/overload/…`) ist noch nicht ins Lese-View eingearbeitet.
-- **Link/Speed** wird noch nicht dekodiert (Speed-Codes modellabhaengig, unsicher).
+- **PoE-Modus/-Status + Ist-Speed im `ports`-View** (CR4428 gefixt, live verifiziert): Config-Modus
+  aus `poe.b i01` (css610) bzw. `link.b poe` (CSS106), Runtime-Status aus `poe.b i04`/`link.b poes`
+  (Enum `engine.js`), Gating auf PoE-fähige Ports; Ist-Speed aus `spd`/`i08`. Offen bleibt hier nur
+  das `poes`-**Detail** über die reine Status-Anzeige hinaus (nicht nötig).
 - **ssh-curl** macht pro Endpoint eine SSH-Session; `all` = mehrere Sessions (funktioniert,
   aber nicht gebuendelt).
 - **`.swb`-Backups (jede CSS610-Generation) nutzen immer das alte Einzelbuchstaben-Schema.**

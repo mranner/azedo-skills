@@ -2,7 +2,7 @@
 
 # MikroTik SwOS query helper (read-only Stufe 1 + Schreibbefehle Stufe 2)
 # stdlib only, no pip dependencies
-# version 1.30.0
+# version 1.32.0
 #
 # Ein gemeinsamer Decoder, drei Transporte:
 #   A) direct   – urllib HTTP-Digest direkt auf die Switch-IP (Runner routbar)
@@ -16,8 +16,8 @@
 #   css610_new: alle (poe.b/link.b/fwd.b/vlan.b), inkl. poe-voltage
 #   css326:     link.b/fwd.b/vlan.b (kein PoE)
 #   swos_lite:  link.b/fwd.b (CSS106); PoE-Out in link.b nur beim PoE-Modell
-#               (CSS106-1G-4P-1S); vlan-remove/vlan-clear ja, vlan-set nein
-#               (prt = Per-Port-Egress-Enum, kein Member-Bitmask -> nicht ableitbar)
+#               (CSS106-1G-4P-1S); vlan-set/vlan-remove/vlan-clear (vlan-set via
+#               Egress-Enum prt: --tagged=add / --untagged=strip / Rest=not-member)
 # Befehle: poe-out/poe-voltage, portname/port-enable/autoneg/duplex/speed,
 # pvid/vlan-mode/vlan-receive/force-vlan-id, vlan-set/vlan-remove/vlan-clear.
 # writable-Flag Pflicht, --dry-run als Default, Snapshot + Read-back-Verify,
@@ -182,10 +182,6 @@ def le_ip(val):
 
 def bits_to_ports(mask, total):
     return [i for i in range(total) if (mask >> i) & 1]
-
-
-POE_MODES = {0x00: "off", 0x01: "forced-on", 0x02: "off",
-             0x03: "auto", 0x05: "forced-on"}
 
 
 # ---------------------------------------------------------------------------
@@ -501,30 +497,102 @@ def decode_vlans(target, dia, portnames):
     return out
 
 
+def _poe_status_names(arr):
+    return [POE_STATUS[v] if 0 <= v < len(POE_STATUS) else f"0x{v:02x}" for v in arr]
+
+
+def _is_poe_model(target, dia):
+    """CSS106 (swos_lite) fuehrt ein link.b-`poe`-Feld auch auf Nicht-PoE-Modellen
+    (z.B. CSS106-5G-1S). Echtes PoE nur beim `-4P-`-Modell (wie der Write-Pfad,
+    _link_has_poe). css610 hat immer poe.b."""
+    if dia == "swos_lite":
+        model = hexascii(_first(target.get("sys.b") or {}, DIALECTS[dia]["model"])) or ""
+        return "-4P-" in model
+    return True
+
+
+def _poe_port_range(dia, nports):
+    """PoE-faehiger Portbereich (1-basiert, inkl.) je Dialekt. Ausserhalb liegende
+    Ports (SFP(+), Uplink) haben keine PoE-Hardware -> kein Modus/Status."""
+    spec = POE_OUT_SPEC.get(dia)
+    if spec and spec.get("ports"):
+        return spec["ports"]                       # swos_lite: (2,5)
+    if dia == "css610_new":                         # Kupfer 1..8 (SFP+ 9/10 kein PoE)
+        return (1, nports - SFP_PORTS.get(dia, 2))
+    return (1, nports)                              # css610_old: Best-Effort alle
+
+
 def decode_poe(target, dia, nports):
-    """Liste der PoE-Modi je Port (oder None wenn kein PoE)."""
+    """PoE-CONFIG-Modus je Port (off/on/auto bzw. off/auto/on/calibr), oder None.
+    Wichtig: der Config-Modus, NICHT der Runtime-Status (dafuer decode_poe_status)."""
     spec = DIALECTS[dia]
     src = spec["poe"]
-    if src is None:
+    if src is None or not _is_poe_model(target, dia):
         return None
+    lo, hi = _poe_port_range(dia, nports)
+    raw = None
     if src == "poe_i04":
+        # css610_new: Config-Modus = poe.b i01 (engine.js u:["off","on","auto"]).
+        # (i04 ist der Runtime-Status -> decode_poe_status.)
         poe = target.get("poe.b")
-        if isinstance(poe, dict) and isinstance(poe.get("i04"), list):
-            return [POE_MODES.get(v, f"0x{v:02x}") for v in poe["i04"]]
+        if isinstance(poe, dict) and isinstance(poe.get("i01"), list):
+            raw = [POE_OUT_NAMES.get(v, f"0x{v:02x}") for v in poe["i01"]]
     elif src == "poe_E":
+        # css610_old (Buchstaben-Schema): kein verifiziertes Config-Feld/Enum
+        # (kein Alt-FW-Geraet zum Gegenpruefen) -> Status-Enum als Best-Effort.
         poe = target.get("poe.b")
         if isinstance(poe, dict) and isinstance(poe.get("E"), list):
-            return [POE_MODES.get(v, f"0x{v:02x}") for v in poe["E"]]
+            raw = _poe_status_names(poe["E"])
     elif src == "link":
-        # CSS106-PoE-Variante (z.B. CSS106-1G-4P-1S): poe.b fehlt (303), PoE-Info
-        # steckt in link.b (poe=Faehigkeit, poes=Status). Die genaue Semantik von
-        # `poes` ist noch nicht gegen engine.js verifiziert -> bewusst NICHT als
-        # PoE-Modus ausgeben (nicht raten). TODO Stufe-1-Nacharbeit.
+        # CSS106-PoE-Modell (CSS106-1G-4P-1S): poe.b fehlt (303), Config-Modus steht
+        # in link.b poe (engine.js C:["off","auto","on","calibr"]). Non-PoE-CSS106
+        # hat kein link.b poe -> None.
+        link = target.get("link.b")
+        if isinstance(link, dict) and isinstance(link.get("poe"), list):
+            raw = [POE_OUT_NAMES_LITE.get(v, f"0x{v:02x}") for v in link["poe"]]
+    if raw is None:
+        return None
+    return [m if lo <= i + 1 <= hi else None for i, m in enumerate(raw)]
+
+
+def decode_poe_status(target, dia, nports):
+    """PoE-Runtime-Status je Port (css610 poe.b i04 / CSS106 link.b poes), oder None.
+    Enum POE_STATUS (engine.js), Index 0 = leer -> None. Nur PoE-faehige Ports."""
+    if not _is_poe_model(target, dia):
+        return None
+    lo, hi = _poe_port_range(dia, nports)
+    raw = None
+    if dia == "css610_new":
         poe = target.get("poe.b")
         if isinstance(poe, dict) and isinstance(poe.get("i04"), list):
-            return [POE_MODES.get(v, f"0x{v:02x}") for v in poe["i04"]]
+            raw = _poe_status_names(poe["i04"])
+    elif dia == "swos_lite":
+        link = target.get("link.b")
+        if isinstance(link, dict) and isinstance(link.get("poes"), list):
+            raw = _poe_status_names(link["poes"])
+    if raw is None:
         return None
-    return None
+    return [(s or None) if lo <= i + 1 <= hi else None for i, s in enumerate(raw)]
+
+
+# Ist-Speed-Feld (ausgehandelt) je Dialekt im link.b: css326/CSS106 'spd', css610 'i08'.
+# Alle indizieren dasselbe Enum wie die Config (SPEED_ENUMS) -- Index ausserhalb =
+# kein Link. CSS106-SFP ist 1G-only (SFP, kein SFP+) -> Enum [10,100,1000] genuegt.
+_SPEED_ACTUAL_FIELD = {"css326": "spd", "css610_new": "i08", "swos_lite": "spd"}
+
+
+def decode_speed(target, dia):
+    """Ausgehandelte Ist-Geschwindigkeit je Port als Label (z.B. '10G'), oder None.
+    None je Port, wenn der Speed-Code ausserhalb des Enums liegt (= kein Link)."""
+    enum = SPEED_ENUMS.get(dia)
+    fld = _SPEED_ACTUAL_FIELD.get(dia)
+    if not enum or not fld:
+        return None
+    link = target.get("link.b")
+    if not isinstance(link, dict) or not isinstance(link.get(fld), list):
+        return None
+    idx2mbit = {v: k for k, v in enum.items()}   # Enum-Index -> Mbit/s-String
+    return [SPEED_LABELS.get(idx2mbit.get(v), None) for v in link[fld]]
 
 
 def decode_fdb(target, dia, portnames):
@@ -570,6 +638,8 @@ def build_report(target):
     portnames = decode_ports(target, dia)
     pvid = decode_pvid(target, dia)
     poe = decode_poe(target, dia, len(portnames))
+    poe_status = decode_poe_status(target, dia, len(portnames))
+    speed = decode_speed(target, dia)
     vlans = decode_vlans(target, dia, portnames)
     vlan_names = {v["vid"]: v["name"] for v in vlans if v["name"]}
 
@@ -581,6 +651,8 @@ def build_report(target):
             "pvid": vid,
             "pvid_name": vlan_names.get(vid),
             "poe": poe[i] if poe and i < len(poe) else None,
+            "poe_status": poe_status[i] if poe_status and i < len(poe_status) else None,
+            "speed": speed[i] if speed and i < len(speed) else None,
         })
     return {
         "name": target.name,
@@ -703,9 +775,13 @@ def print_ports(rep):
     for p in rep["ports"]:
         vid = p["pvid"]
         vn = p["pvid_name"] or (f"VLAN {vid}" if vid is not None else "-")
+        spd = f"  {p['speed']}" if p.get("speed") else ""
         poe = f"  PoE: {p['poe']}" if p["poe"] else ""
+        # Runtime-Status nur zeigen, wenn aussagekraeftig (nicht leer/'disabled').
+        st = p.get("poe_status")
+        poe += f" ({st})" if (poe and st and st != "disabled") else ""
         vids = f"{vid:>4}" if vid is not None else "   -"
-        print(f"  {p['port']:<10} PVID {vids}  ({vn}){poe}")
+        print(f"  {p['port']:<10} PVID {vids}  ({vn}){spd}{poe}")
 
 
 def print_fdb(rep):
@@ -817,6 +893,12 @@ POE_VOLT_NAMES = {v: k for k, v in POE_VOLT_MODES.items()}
 # CSS106 (swos_lite) hat ein ANDERES PoE-Out-Enum und legt PoE in link.b ab
 # (nicht poe.b). engine.js link.b {id:"poe",C:["off","auto","on","calibr"]}.
 POE_OUT_MODES_LITE = {"off": 0, "auto": 1, "on": 2, "calibr": 3}
+POE_OUT_NAMES_LITE = {v: k for k, v in POE_OUT_MODES_LITE.items()}
+# PoE-Runtime-Status (Index-Enum). Identisch auf css610 (poe.b i04) und CSS106
+# (link.b poes) -- engine.js 's:'/'A:'-Split, Index 0 = leer (kein Wert).
+POE_STATUS = ["", "disabled", "waiting for load", "powered on", "overload",
+              "short circuit", "voltage too low", "current too low", "power cycle",
+              "voltage too high", "controller error"]
 # PoE-Out je Dialekt: Endpoint, Enum, Array-Breite (poe.b: 8), gueltiger Portbereich.
 # swos_lite: engine.js O:1,P:5 -> nur Ports 2..5 (Port1 Uplink, Port6 SFP haben kein PoE).
 POE_OUT_SPEC = {
@@ -825,12 +907,32 @@ POE_OUT_SPEC = {
     "swos_lite":  {"endpoint": "link.b", "enum": POE_OUT_MODES_LITE, "width": None,
                    "ports": (2, 5)},
 }
-# Forced-Speed-Index (link.b, Kupferports). Dropdown 10/100/1000 Mbit/s
-# per UI/engine.js verifiziert (css610 i05, css326 spdc). SFP+-Ports haben
-# zusaetzliche Stufen (css326 engine.js: 10M/100M/1G/10G/5G/2.5G/40G) -> nur
-# der Kupfer-Subset 10/100/1000 = 0/1/2 ist hier abgedeckt.
+# Forced-Speed-Index (link.b). Das Dropdown-Enum ist DIALEKT-SPEZIFISCH und teilt
+# sich Anzeige (Ist-Speed) + Config: engine.js-Array `a`, an css326 spdc/spd, an
+# css610 i05/i08 gebunden. Ab Index 4 divergieren die Modelle -> nicht generisch:
+#   css326:     "10M 100M 1G 10G 5G 2.5G 40G"  (engine.js .214)
+#   css610_new: "10M 100M 1G 10G 200M 2.5G 5G" (engine.js .215)
+# Verifiziert engine.js + Live-DAC (css326 Port25/css610 SFP+1 handeln 10G=3 aus).
+# Werte als Mbit/s-Strings (SFP+ mit-abgedeckt: 2500/5000/10000/40000).
+SPEED_ENUMS = {
+    "css610_new": {"10": 0, "100": 1, "1000": 2, "10000": 3,
+                   "200": 4, "2500": 5, "5000": 6},
+    "css326":     {"10": 0, "100": 1, "1000": 2, "10000": 3,
+                   "5000": 4, "2500": 5, "40000": 6},
+    # CSS106 (swos_lite): SFP-Enum noch nicht gecaptured -> nur Kupfer 10/100/1000.
+    "swos_lite":  {"10": 0, "100": 1, "1000": 2},
+}
+# Gemeinsamer Kupfer-Subset (fuer Ports ohne SFP, alle Dialekte deckungsgleich 0/1/2).
 SPEED_MODES = {"10": 0, "100": 1, "1000": 2}
 SPEED_NAMES = {v: k for k, v in SPEED_MODES.items()}
+# Mbit/s-String -> menschenlesbares Label (engine.js-Array `a`) fuer die Read-View.
+SPEED_LABELS = {"10": "10M", "100": "100M", "200": "200M", "1000": "1G",
+                "2500": "2.5G", "5000": "5G", "10000": "10G", "40000": "40G"}
+
+
+def _speed_enum(dia):
+    """Speed-Enum {Mbit/s-String: index} des Dialekts; Fallback Kupfer-Subset."""
+    return SPEED_ENUMS.get(dia, SPEED_MODES)
 # VLAN Receive (fwd.b) -- in beiden Dialekten identisch (engine.js
 # v:["any","only tagged","only untagged"]).
 VLANRECV_MODES = {"any": 0, "tagged": 1, "untagged": 2}
@@ -896,10 +998,12 @@ WRITE_FIELDS = {
         "fwd.b":  {"post": ["vlan", "vlni", "dvid", "fvid", "vlnh"],
                    "vlanmode": "vlan", "vlanrecv": "vlni", "pvid": "dvid",
                    "forcevid": "fvid"},
-        # vlan.b: {vid,ivl,igmp,prt}. prt = Per-Port-Egress-Enum (leave/strip/add/
-        # not-member), KEIN Member-Bitmask -> kein "member"-Schluessel, daher greift
-        # vlan-set (Bitmask-Modell) hier NICHT; vlan-remove/vlan-clear sind generisch.
-        "vlan.b": {"vid": "vid",
+        # vlan.b: {vid,ivl,igmp,prt}. prt = Per-Port-Egress-Enum (engine.js
+        # C:["leave as is","always strip","add if missing","not a member"] = 0/1/2/3),
+        # KEIN Member-Bitmask -> "egress"-Schluessel statt "member". vlan-set nutzt
+        # hier den Egress-Pfad (--tagged=2 / --untagged=1 / Rest=3), nicht die Maske.
+        # Enum + Multi-VLAN-Struktur aus Live-Capture .193/.204 (CR4428) verifiziert.
+        "vlan.b": {"vid": "vid", "egress": "prt",
                    "order": ["vid", "ivl", "igmp", "prt"],
                    "new": {"ivl": 0, "igmp": 0}},
     },
@@ -965,12 +1069,32 @@ def _norm(v):
     return v
 
 
+def _snapshot_dir():
+    """Ablageort fuer Snapshots. Praezedenz:
+      1. SWOS_SNAPSHOT_DIR (explizit),
+      2. <cwd>/.tmp (Projekt-lokal, dokumentiert),
+      3. ~/.cache/swos als Fallback — falls cwd im Skill-Verzeichnis liegt
+         (Konvention: Temp gehoert ins Projekt-.tmp, NIE ins $SKILL_DIR).
+    So landet der Snapshot nie im Skill-Verzeichnis, egal von wo aufgerufen."""
+    override = os.environ.get("SWOS_SNAPSHOT_DIR")
+    if override:
+        d = os.path.abspath(os.path.expanduser(override))
+    else:
+        skill_dirs = {os.path.dirname(os.path.abspath(__file__)),
+                      os.path.dirname(os.path.realpath(__file__))}
+        cwd = os.path.abspath(os.getcwd())
+        in_skill = cwd in skill_dirs or any(
+            cwd.startswith(s + os.sep) for s in skill_dirs)
+        d = (os.path.join(os.path.expanduser("~"), ".cache", "swos")
+             if in_skill else os.path.join(cwd, ".tmp"))
+    os.makedirs(d, exist_ok=True)
+    return d
+
+
 def _snapshot_once(target):
-    """Zieht einmalig ein .swb als Rollback-Punkt nach .tmp/ — nur wenn fuer
-    diesen Switch noch keiner existiert ('vor der ersten Aenderung')."""
-    tmp = os.path.join(os.getcwd(), ".tmp")
-    os.makedirs(tmp, exist_ok=True)
-    path = os.path.join(tmp, f"swos-snapshot-{target.name}.swb")
+    """Zieht einmalig ein .swb als Rollback-Punkt — nur wenn fuer diesen Switch
+    noch keiner existiert ('vor der ersten Aenderung'). Ablage: _snapshot_dir()."""
+    path = os.path.join(_snapshot_dir(), f"swos-snapshot-{target.name}.swb")
     if os.path.exists(path):
         return path, False
     data = target.fetch_backup_bytes()
@@ -1225,15 +1349,19 @@ def cmd_speed(args):
     cur, post = _post_subset(target, "link.b")
     wf = _wf(target, "link.b")
     spdf, lnkf, anf = wf["speed"], wf["link"], wf["autoneg"]
-    # Nur Kupferports abgedeckt (10/100/1000 = 0/1/2). Die SFP(+)-Ports am Ende
-    # haben andere Enum-Stufen (nicht abgedeckt) -> Kupferzahl aus Portanzahl minus
-    # SFP-Ports je Dialekt (css610: 8, css326: 24, CSS106: 5 — nur 1 SFP).
-    copper = len(post[wf["names"]]) - SFP_PORTS.get(target._dialect, 2)
-    if not (1 <= args.port <= copper):
-        raise SystemExit(f"speed: nur Kupferports 1..{copper} (SFP-Ports haben andere "
-                         "Dropdown-Werte, nicht gecaptured).")
+    enum = _speed_enum(target._dialect)
+    names = {v: k for k, v in enum.items()}
+    nports = len(post[wf["names"]])
+    sfp = SFP_PORTS.get(target._dialect, 2)
+    if not (1 <= args.port <= nports):
+        raise SystemExit(f"speed: Port {args.port} ungueltig (1..{nports}; "
+                         f"die letzten {sfp} sind SFP/SFP+).")
+    if args.to not in enum:
+        valid = ", ".join(sorted(enum, key=lambda k: enum[k]))
+        raise SystemExit(f"speed: '{args.to}' fuer Dialekt '{target._dialect}' "
+                         f"ungueltig. Gueltig (Mbit/s): {valid}.")
     spd = list(post[spdf])
-    tv = SPEED_MODES[args.to]
+    tv = enum[args.to]
     old = spd[args.port - 1]
     changes = old != tv
     has_link = bool((cur.get(lnkf, 0) >> (args.port - 1)) & 1)
@@ -1248,7 +1376,7 @@ def cmd_speed(args):
     warn = "  [LINK aktiv!]" if (changes and has_link) else ""
     describe = [
         f"# {target.name}  Speed  Port {args.port}: "
-        f"{SPEED_NAMES.get(old, old)} -> {args.to} Mbit/s{note}{warn}",
+        f"{names.get(old, old)} -> {args.to} Mbit/s{note}{warn}",
         f"  {spdf} aktuell : {_blob_arr(cur[spdf])}",
         f"  {spdf} geplant : {_blob_arr(spd)}",
     ]
@@ -1357,38 +1485,129 @@ def cmd_pvid(args):
                   f"Port {args.port} PVID = {args.vid}, sonst unveraendert.")
 
 
+def _vlan_ports(target, spec, what):
+    """Komma-Portliste parsen und gegen die Portzahl (aus link.b) validieren.
+    Gibt (set_of_ports, nports) zurueck."""
+    linkb = target.get("link.b")
+    if not isinstance(linkb, dict):
+        raise SystemExit(f"[{target.name}] link.b nicht lesbar (fuer Portzahl noetig)")
+    nports = len(linkb[_wf(target, "link.b")["names"]])
+    try:
+        ports = [int(x) for x in (spec or "").split(",") if x.strip() != ""]
+    except ValueError:
+        raise SystemExit(f"vlan-set: {what} = Komma-Liste von Portnummern (z.B. 1,2,9).")
+    for p in ports:
+        if not (1 <= p <= nports):
+            raise SystemExit(f"vlan-set: Port {p} ungueltig (1..{nports}; die letzten "
+                             "sind SFP/SFP+).")
+    return set(ports), nports
+
+
 def cmd_vlan(args):
     target = _write_guard(args, "vlan", "vlan.b")
     cur = target.get("vlan.b")
     if not isinstance(cur, list):
         raise SystemExit(f"[{target.name}] vlan.b nicht lesbar")
     wf = _wf(target, "vlan.b")
-    if "member" not in wf:
-        raise SystemExit(
-            f"vlan-set: auf Dialekt '{target._dialect}' nicht unterstuetzt. "
-            "VLAN-Mitgliedschaft ist hier ein Per-Port-Egress-Enum (Feld 'prt': "
-            "leave as is / always strip / add if missing / not a member), kein "
-            "Member-Bitmask — das tagged/untagged-Modell laesst sich ohne verifizierte "
-            "Multi-VLAN-Referenz nicht sicher ableiten. Nutzbar: vlan-remove/vlan-clear "
-            "sowie pvid/vlan-mode/vlan-receive/force-vlan-id.")
-    vidf, mbrf, order = wf["vid"], wf["member"], wf["order"]
     if not (1 <= args.vid <= 4094):
         raise SystemExit("vlan-set: --vid 1..4094.")
-    # Portzahl (und damit gueltige Member-Bits) aus link.b ableiten -- dialekt-
-    # unabhaengig: len(Namen-Array) = Portzahl (css610: 10, css326: 26).
-    linkb = target.get("link.b")
-    if not isinstance(linkb, dict):
-        raise SystemExit(f"[{target.name}] link.b nicht lesbar (fuer Portzahl noetig)")
-    nports = len(linkb[_wf(target, "link.b")["names"]])
-    try:
-        ports = [int(x) for x in args.members.split(",") if x.strip() != ""]
-    except ValueError:
+    if "egress" in wf:
+        return _vlan_set_egress(target, args, cur, wf)
+    if "member" not in wf:
+        raise SystemExit(
+            f"vlan-set: auf Dialekt '{target._dialect}' nicht unterstuetzt.")
+    return _vlan_set_bitmask(target, args, cur, wf)
+
+
+def _vlan_set_egress(target, args, cur, wf):
+    """swos_lite (CSS106): VLAN-Membership ueber das Per-Port-Egress-Enum 'prt'
+    setzen. --tagged -> 'add if missing' (2), --untagged -> 'always strip' (1),
+    alle uebrigen Ports -> 'not a member' (3). Deklarativ: setzt den KOMPLETTEN
+    Membership-Satz des VLANs (wie der Bitmask-Pfad die volle Maske); die Mode
+    'leave as is' (0) ist ueber tagged/untagged bewusst nicht erreichbar."""
+    if args.members:
+        raise SystemExit(
+            f"vlan-set: Dialekt '{target._dialect}' nutzt kein Member-Bitmask — "
+            "Ports ueber --tagged/--untagged angeben, nicht --members.")
+    vidf, egf, order = wf["vid"], wf["egress"], wf["order"]
+    tagged, nports = _vlan_ports(target, args.tagged, "--tagged")
+    untagged, _ = _vlan_ports(target, args.untagged, "--untagged")
+    overlap = tagged & untagged
+    if overlap:
+        raise SystemExit(f"vlan-set: Port(s) {sorted(overlap)} zugleich tagged und untagged.")
+    if not tagged and not untagged:
+        raise SystemExit("vlan-set: mindestens --tagged oder --untagged angeben.")
+    # prt-Array in Portreihenfolge: Default 3 (not a member), dann Overrides.
+    prt = [3] * nports
+    for p in tagged:
+        prt[p - 1] = 2      # add if missing (tagged egress)
+    for p in untagged:
+        prt[p - 1] = 1      # always strip (untagged egress)
+
+    def build(src):
+        e = {}
+        for k in order:
+            if k == egf:
+                e[k] = list(prt)
+            elif src is not None and k in src:
+                e[k] = src[k]
+            elif k == vidf:
+                e[k] = args.vid
+            else:
+                e[k] = wf["new"].get(k, 0)
+        return e
+
+    found = False
+    new = []
+    for v in cur:
+        if v.get(vidf) == args.vid:
+            new.append(build(v))
+            found = True
+        else:
+            new.append({k: v.get(k, wf["new"].get(k, 0)) for k in order})
+    if not found:
+        new.append(build(None))
+
+    orig = {v.get(vidf): v.get(egf) for v in cur}
+
+    def verify(back):
+        if not isinstance(back, list):
+            return False, "vlan.b nicht als Liste zurueck"
+        bmap = {v.get(vidf): v.get(egf) for v in back}
+        if bmap.get(args.vid) != prt:
+            return False, f"VLAN {args.vid} prt read-back {bmap.get(args.vid)} != {prt}"
+        for ovid, oprt in orig.items():
+            if ovid == args.vid:
+                continue
+            if bmap.get(ovid) != oprt:
+                return False, (f"VLAN {ovid} prt unerwartet veraendert "
+                               f"({oprt} -> {bmap.get(ovid)})")
+        return True, ""
+
+    action = "aktualisiert" if found else "angelegt (neu)"
+    describe = [
+        f"# {target.name}  VLAN {args.vid} {action}  tagged={sorted(tagged) or '-'} "
+        f"untagged={sorted(untagged) or '-'}  (Rest: not a member)",
+        f"  prt geplant : {_blob_arr(prt)}",
+        f"  vlan.b geplant: {_ser(new)}",
+    ]
+    _commit_write(target, "vlan.b", new, describe, args,
+                  f"VLAN {args.vid} tagged={sorted(tagged)} untagged={sorted(untagged)}.",
+                  verify_fn=verify)
+
+
+def _vlan_set_bitmask(target, args, cur, wf):
+    vidf, mbrf, order = wf["vid"], wf["member"], wf["order"]
+    if args.tagged or args.untagged:
+        raise SystemExit(
+            f"vlan-set: --tagged/--untagged nur fuer CSS106 (swos_lite); Dialekt "
+            f"'{target._dialect}' nutzt --members (Member-Bitmask).")
+    if not args.members:
         raise SystemExit("vlan-set: --members = Komma-Liste von Portnummern (z.B. 1,2,9).")
+    ports_set, nports = _vlan_ports(target, args.members, "--members")
+    ports = sorted(ports_set)
     mask = 0
     for p in ports:
-        if not (1 <= p <= nports):
-            raise SystemExit(f"vlan-set: Port {p} ungueltig (1..{nports}; die letzten "
-                             "zwei sind SFP/SFP+).")
         mask |= 1 << (p - 1)
 
     # Eintrag in kanonischer POST-Feldreihenfolge (order) aufbauen: bestehende
@@ -1588,11 +1807,12 @@ def main():
         _commit_arg(p)
 
     p = sub.add_parser("speed",
-                       help="Forced Speed je Kupferport setzen (Stufe 2, schreibend)")
+                       help="Forced Speed je Port setzen (Kupfer + SFP+; Stufe 2, schreibend)")
     add_target_args(p)
-    p.add_argument("--port", type=int, required=True, help="Portnummer 1..8 (Kupfer)")
-    p.add_argument("--to", required=True, choices=["10", "100", "1000"],
-                   help="Speed in Mbit/s (nur bei Auto-Neg=off wirksam)")
+    p.add_argument("--port", type=int, required=True, help="Portnummer (1-basiert, inkl. SFP+)")
+    p.add_argument("--to", required=True,
+                   help="Speed in Mbit/s (Enum dialektabhaengig, zur Laufzeit geprueft: "
+                        "Kupfer 10/100/1000; SFP+ z.B. 2500/10000). Nur bei Auto-Neg=off wirksam.")
     p.add_argument("--force", action="store_true",
                    help="Aenderung an Port mit aktivem Link erzwingen (Link-/Lockout-Gefahr)")
     _commit_arg(p)
@@ -1640,9 +1860,14 @@ def main():
                        help="VLAN-Membership setzen/anlegen (Stufe 2, schreibend)")
     add_target_args(p)
     p.add_argument("--vid", type=int, required=True, help="VLAN-ID 1..4094")
-    p.add_argument("--members", required=True,
-                   help="Komma-Liste Portnummern (Portzahl je Modell; die letzten "
-                        "zwei sind SFP/SFP+)")
+    p.add_argument("--members",
+                   help="Bitmask-Dialekte (css610/css326): Komma-Liste Portnummern "
+                        "(Portzahl je Modell; die letzten zwei sind SFP/SFP+)")
+    p.add_argument("--tagged",
+                   help="CSS106 (swos_lite): Ports mit tagged Egress (add if missing)")
+    p.add_argument("--untagged",
+                   help="CSS106 (swos_lite): Ports mit untagged Egress (always strip); "
+                        "nicht genannte Ports werden not-a-member")
     _commit_arg(p)
 
     p = sub.add_parser("vlan-remove",

@@ -3,6 +3,51 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.32.0
+
+- **`swos`: `vlan-set` auf CSS106 (`swos_lite`) freigegeben (CR4428).** Der in 1.30.0 bewusst
+  offengelassene Fall — CSS106-VLAN-Membership ist ein Per-Port-Egress-Enum `prt`, kein
+  Member-Bitmask — ist jetzt umgesetzt:
+  - Neue Flags **`--tagged <ports>`** (→ `add if missing`/2) und **`--untagged <ports>`**
+    (→ `always strip`/1); alle **nicht** genannten Ports → `not a member` (3). Deklarativ: setzt den
+    kompletten Membership-Satz des VLANs (wie das Bitmask-`--members` die volle Maske). Die vierte
+    Mode `leave as is` (0) ist ueber tagged/untagged bewusst **nicht** erreichbar.
+  - `WRITE_FIELDS["swos_lite"]["vlan.b"]` bekommt `"egress": "prt"`; `cmd_vlan` verzweigt ueber
+    `member` (Bitmask-Pfad css610/css326) vs. `egress` (CSS106). Die jeweils falschen Flags werden
+    sauber abgewiesen (`--members` auf CSS106 / `--tagged` auf Bitmask-Dialekten), ebenso
+    tagged∩untagged-Ueberschneidung und leere Auswahl.
+  - Enum-Werte + Multi-VLAN-Struktur `{vid,ivl,igmp,prt[]}` aus **Live-HAR** `.193` (CSS106-1G-4P-1S)
+    und `.204` (CSS106-5G-1S) + `engine.js` verifiziert, nicht geraten. `vlan-set`
+    (neu-anlegen + aktualisieren, tagged/untagged) und `vlan-remove` **live an `.193`** mit
+    Read-back bestaetigt (aendern → verify → restore). Damit ist der in 1.30.0 vermerkte offene Punkt
+    „CSS106-`vlan.b`-Write live noch ungetestet" geschlossen.
+- **`swos`: `speed` deckt jetzt auch SFP+-Ports ab (CR4428).** Das Forced-Speed-Enum ist
+  **dialekt-spezifisch** und divergiert ab Index 4 — aus `engine.js` + Live-DAC verifiziert (nicht
+  generisch): css326 `10M/100M/1G/10G/5G/2.5G/40G`, css610_new `10M/100M/1G/10G/200M/2.5G/5G` (10G=3
+  in beiden). Neu `SPEED_ENUMS` je Dialekt; `cmd_speed` laesst SFP-Ports zu und prueft den Wert
+  gegen das Dialekt-Enum (`--to` in Mbit/s, z.B. `2500`/`10000`). Kupfer-Subset 10/100/1000
+  unveraendert. Live an **css610 SFP+1, css326 SFP1 UND CSS106 SFP (Port 6)** bestaetigt
+  (`i05[8]`/`spdc[24]`/`spdc[5]` gesetzt → Read-back → restauriert). CSS106-SFP ist **1G-only**
+  (SFP, kein SFP+; engine.js-Enum `[10,100,1000]`), Enum damit vollstaendig. Read-View dekodiert
+  jetzt auch CSS106-Ist-Speed (`spd`).
+  - **Bestaetigt das bekannte Leeres-Backup-Verhalten** (SKILL.md „Frisch nach Factory-Reset kein
+    Write"): css326test lieferte `/backup.swb` erst leer (0 B) → Snapshot-Guard brach ab; nach einem
+    einmaligen Backup im SwOS-UI liefert es Daten (0 B → 2847 B) und css326-Writes laufen normal.
+    Also **kein** css326-Modelldefizit, sondern der noch nicht „scharf" gemachte Snapshot.
+- **`swos`: `ports`-View zeigt PoE-Modus/-Status korrekt + Ist-Speed (CR4428).** Behebt drei
+  Lese-Bugs, alle live verifiziert:
+  - **PoE-Modus** aus dem **Config**-Feld statt Runtime: css610 `poe.b i01` (`off/on/auto`) statt
+    faelschlich `i04`; CSS106 neu aus `link.b poe` (`off/auto/on/calibr`, vorher gar nicht angezeigt).
+  - **PoE-Status** als eigene Angabe aus dem verifizierten Enum (`poe.b i04` / `link.b poes`:
+    `waiting for load/powered on/overload/…`, engine.js). Falsches `POE_MODES`-Enum entfernt.
+  - **Gating** auf PoE-faehige Ports (css610 1-8, CSS106 2-5) — SFP(+)/Uplink tragen kein PoE mehr.
+  - **Ist-Speed** dekodiert (`spd`/`i08` ueber `SPEED_ENUMS`, Index ausserhalb = kein Link) — zeigt
+    z.B. den DAC-Link als `10G`.
+- **`swos`: Snapshot-Ablage cwd-robust (CR4428).** `_snapshot_once` legte den `.swb`-Snapshot in
+  `os.getcwd()/.tmp` — bei Aufruf aus dem Skill-Verzeichnis landete er faelschlich in `$SKILL_DIR/.tmp`.
+  Neues `_snapshot_dir()` mit Praezedenz `SWOS_SNAPSHOT_DIR` → `<cwd>/.tmp` → `~/.cache/swos` (Fallback,
+  wenn cwd im Skill-Verzeichnis liegt) — schreibt nie mehr ins Skill-Verzeichnis.
+
 ### 1.31.0
 
 - **`swaks`: Signatur-Auto-Resolve + `--no-sig`.** `build_mail.py` loest die Signatur jetzt selbst

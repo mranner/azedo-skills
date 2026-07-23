@@ -431,10 +431,21 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.31.0
+### 1.32.0
 
-- **`swaks`: Signatur-Auto-Resolve + `--no-sig`.** `build_mail.py` loest die Signatur selbst auf —
-  projektlokal `.claude/swaks-signature.{txt,html}` (Vorrang) → global `~/.claude/swaks-signature.*`
-  → sonst keine. Explizite `--sig-*-file` ueberschreiben (muessen dann existieren); `--no-sig`
-  schaltet auch die Standard-Signatur ab. Behebt den Doku-Footgun (relativer Beispielpfad →
-  `FileNotFoundError`). SKILL.md: Beispiel ohne `--sig-*`-Zeilen, Standard = global.
+- **`swos`: `vlan-set` jetzt auch auf CSS106 (`swos_lite`, CR4428).** VLAN-Membership auf der
+  CSS106-Reihe ueber das Per-Port-Egress-Enum `prt` (engine.js `["leave as is","always strip","add
+  if missing","not a member"]` = 0/1/2/3): neue Flags **`--tagged`** (→ add/2) / **`--untagged`**
+  (→ strip/1), alle uebrigen Ports → not-a-member (3). Deklarativ (voller Membership-Satz wie das
+  Bitmask-`--members`), Mode `leave as is` (0) bewusst nicht exponiert. Bitmask-Pfad
+  (css610/css326, `--members`) unveraendert; die drei Modelle sind ueber `WRITE_FIELDS`
+  (`member` vs. `egress`) getrennt und weisen die jeweils falschen Flags sauber ab. Enum +
+  Multi-VLAN-Struktur aus Live-HAR `.193`/`.204` verifiziert; `vlan-set` neu-anlegen/aktualisieren
+  und `vlan-remove` live an `.193` mit Read-back bestaetigt.
+- **`swos`: `speed` deckt SFP+-Ports ab (CR4428).** Dialekt-spezifisches Forced-Speed-Enum
+  (`SPEED_ENUMS`), aus `engine.js` + Live-DAC verifiziert (css326 vs. css610 divergieren ab Index 4,
+  10G=3 in beiden). Live an css610 SFP+1 **und** css326 SFP1 bestaetigt (nach einmaligem UI-Backup auf
+  css326 — bekanntes Leeres-`.swb`-Verhalten bis zum ersten Config-Write, sonst Snapshot-Guard-Abbruch).
+- **`swos`: `ports`-View — PoE-Modus/-Status + Ist-Speed gefixt (CR4428).** PoE-Modus jetzt aus dem
+  Config-Feld (css610 `poe.b i01`, CSS106 `link.b poe`) statt Runtime; Runtime-Status separat aus
+  verifiziertem Enum (`i04`/`poes`); Gating auf PoE-faehige Ports; Ist-Speed dekodiert (DAC = `10G`).
