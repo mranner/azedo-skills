@@ -1,9 +1,10 @@
 ---
 name: kanboard
 description: >
-  Verwaltet Tasks auf einer Kanboard-Instanz via JSON-RPC API. Nutze diesen
-  Skill wenn der User Tasks erstellen, anzeigen, verschieben, zuweisen,
-  schliessen, kommentieren oder Dateien anhaengen will.
+  Verwaltet eine Kanboard-Instanz via JSON-RPC API: Tasks (erstellen, anzeigen,
+  verschieben, zuweisen, schliessen, kommentieren, Subtasks, Tags, Verknuepfungen,
+  Handoff-Feld, Dateien) sowie Projekte inkl. Anlage und Mitglieder-/Rollen-Verwaltung.
+  Nutze diesen Skill wenn der User Tasks oder Projekte verwalten will.
   Auch aktiv verwenden wenn der User sagt "leg mir ein Ticket an",
   "mach ein Task draus", "ins Kanboard eintragen", o.ae.
   Trigger: /kanboard.
