@@ -431,9 +431,12 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.32.3
+### 1.32.4
 
-- **`pushover`: `--host` bei der `digest`-Vorlage nachgeruestet.** Die `SKILL.md` dokumentierte `--host`
-  pauschal fuer alle drei Vorlagen, `alert`/`recovery` implementierten es auch — nur `digest` kannte den
-  Parameter nicht (`unrecognized arguments: --host`). Jetzt akzeptiert `digest` `--host` ebenfalls und
-  haengt dieselbe Fusszeile `<i>Host: …</i>` wie `alert`/`recovery` an (CR4436).
+- **`mail-as-me`: „nie spiegeln"-Regel als prominente Grundregel + konkretes Anti-Beispiel; Trigger
+  geschaerft.** Bei „schreib eine Mail wie ich" wurde der Skill mehrfach uebersprungen und direkt in
+  swaks getextet — Ergebnis war die schweizerische Grussformel „Hoi" statt des korrekten „Hallo Tanja,".
+  Neue Sektion **„Grundregel: eigene Stimme, nie spiegeln"** mit dem Fehlgriff als konkretem
+  Anti-Beispiel (CH/DE-Empfaenger bekommen trotzdem „Hallo {Vorname},", nie „Hoi"/„Grüezi"); die
+  Trigger-Beschreibung weist an, bei „wie ich"-Mails **immer zuerst** `mail-as-me` aufzurufen statt
+  direkt in swaks zu texten (CR4437).

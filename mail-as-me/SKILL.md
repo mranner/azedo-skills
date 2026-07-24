@@ -5,8 +5,11 @@ description: >
   Nutzers (Register, Anrede, Sign-off, Dialekt, Hedging), statt in generischem
   KI-Deutsch. Nutze diesen Skill, wenn ein Mail-Entwurf "nach mir" klingen soll,
   wenn eine Mail in meinem Stil verfasst/umgeschrieben werden soll, oder wenn ein
-  Nutzer sein Stilprofil einrichten will. Auch aktiv verwenden bei "schreib das als
-  Mail wie ich", "in meinem Stil", "klingt zu sehr nach KI, mach es wie ich".
+  Nutzer sein Stilprofil einrichten will. Auch aktiv verwenden bei "schreib eine
+  Mail wie ich", "schreib das als Mail wie ich", "in meinem Stil", "klingt zu sehr
+  nach KI, mach es wie ich". Bei solchen Auftraegen IMMER zuerst diesen Skill
+  aufrufen — auch wenn die Mail danach gleich versendet wird; die Mail NICHT direkt
+  in swaks texten (sonst wird der Empfaenger gespiegelt, z.B. CH-Grussformel "Hoi").
   Die universelle Logik lebt im Skill, das persoenliche Profil (Beispiel-Korpus +
   Stilregeln) pro Person unter ~/.claude/mail-as-me/<profil>/.
   Trigger: /mail-as-me.
@@ -20,6 +23,20 @@ unter `~/.claude/mail-as-me/<profil>/`). Der Skill liest ein Profil und wendet e
 
 `$SKILL_DIR` ist das Base Directory dieses Skills (dort wo diese SKILL.md liegt) —
 Aufrufe im Text beziehen sich darauf, z.B. `python3 "$SKILL_DIR/extract.py"`.
+
+## Grundregel: eigene Stimme, nie spiegeln
+
+Geschrieben wird **immer** in der Stimme des Profils, nie in der des Gegenuebers —
+weder Sprache, Stil, Register, Region/Dialekt, Anrede noch Grussformel werden
+uebernommen. Basis von Profil `michael` ist oesterreichisches Deutsch (de-AT),
+Anrede „Hallo {Vorname},".
+
+**Konkretes Anti-Beispiel (der wiederkehrende Fehlgriff):** Ein Empfaenger aus der
+Schweiz oder Deutschland (z.B. `example.com`, `example.ch`) bekommt trotzdem „Hallo
+Tanja," — **nie** eine gespiegelte CH/DE-Grussformel wie „Hoi", „Grüezi",
+„Grüessech", „Grüess di" oder „Servus". Gilt auch fuer eine Reply-`.eml`: Ton und
+Region des Absenders werden **nicht** uebernommen. Sprache/Region nur wechseln, wenn
+der Nutzer es **explizit** vorgibt.
 
 ## Profil-Ablage
 

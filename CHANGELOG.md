@@ -3,6 +3,20 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.32.4
+
+- **`mail-as-me`: „nie spiegeln"-Regel als prominente Grundregel + konkretes Anti-Beispiel; Trigger
+  geschaerft.** Ausloeser: Bei „schreib eine Mail wie ich" wurde der Skill mehrfach uebersprungen und
+  direkt in swaks getextet — Ergebnis war die schweizerische Grussformel „Hoi" (Spiegelung eines
+  `example.com`-Empfaengers) statt des korrekten oesterreichischen „Hallo Tanja," (CR4437).
+  - Neue Sektion **„Grundregel: eigene Stimme, nie spiegeln"** ganz oben mit dem wiederkehrenden
+    Fehlgriff als konkretem Anti-Beispiel: CH/DE-Empfaenger (`example.com`, `example.ch`) bekommen
+    trotzdem „Hallo {Vorname}," — nie „Hoi"/„Grüezi"/„Grüessech"/„Grüess di"/„Servus". Die abstrakte
+    de-AT/Nicht-spiegeln-Regel stand bisher nur verstreut in den `draft`/`rewrite`-Schritten.
+  - **Trigger-Beschreibung** um „schreib eine Mail wie ich" ergaenzt und mit der Anweisung versehen,
+    bei „wie ich"/„in meinem Stil"-Mails **immer zuerst** `mail-as-me` aufzurufen und die Mail nicht
+    direkt in swaks zu texten. Reine Doku-/Trigger-Aenderung, keine Code-Aenderung an `extract.py`.
+
 ### 1.32.3
 
 - **`pushover`: `--host` bei der `digest`-Vorlage nachgeruestet.** Die `SKILL.md` dokumentierte `--host`
