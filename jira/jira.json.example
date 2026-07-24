@@ -7,9 +7,11 @@
       "projects": ["CORTAB"]
     },
     "corris": {
-      "host": "https://jira.example.com",
-      "token": "<CORRIS_PERSONAL_ACCESS_TOKEN>",
-      "projects": []
+      "host": "https://example.atlassian.net",
+      "type": "cloud",
+      "email": "<ATLASSIAN_ACCOUNT_EMAIL>",
+      "token": "<CORRIS_API_TOKEN>",
+      "projects": ["SADM", "ITSD", "CSW"]
     }
   }
 }

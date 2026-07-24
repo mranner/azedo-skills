@@ -431,12 +431,21 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.32.4
+### 1.33.0
 
-- **`mail-as-me`: „nie spiegeln"-Regel als prominente Grundregel + konkretes Anti-Beispiel; Trigger
-  geschaerft.** Bei „schreib eine Mail wie ich" wurde der Skill mehrfach uebersprungen und direkt in
-  swaks getextet — Ergebnis war die schweizerische Grussformel „Hoi" statt des korrekten „Hallo Tanja,".
-  Neue Sektion **„Grundregel: eigene Stimme, nie spiegeln"** mit dem Fehlgriff als konkretem
-  Anti-Beispiel (CH/DE-Empfaenger bekommen trotzdem „Hallo {Vorname},", nie „Hoi"/„Grüezi"); die
-  Trigger-Beschreibung weist an, bei „wie ich"-Mails **immer zuerst** `mail-as-me` aufzurufen statt
-  direkt in swaks zu texten (CR4437).
+- **`kanboard`: CR<->Jira-Verknuepfung ueber `jira:<KEY>`-Tag.** Analog zu `kimai:<shortcut>` merkt
+  ein Tag `jira:<KEY>` das zum CR gehoerende Jira-Issue; `cr` hebt es als Feld `jira` heraus, sodass
+  der `jira`-Skill ohne erneute Key-Angabe darauf arbeitet. Neuer Subcommand `set-jira <task_id>
+  --key <KEY>`. Kein Commit-Prefix — der CR bleibt der einzige Commit-Anker (CR4435).
+- **`jira`: Jira-Cloud-Unterstuetzung (`*.atlassian.net`) neben Data Center.** Corris laeuft auf
+  `example.atlassian.net` (Cloud); der Skill sprach bisher nur DC und konnte Cloud gar nicht
+  erreichen. Der Instanz-Typ wird jetzt automatisch erkannt (Host `*.atlassian.net` oder
+  `"type": "cloud"`), die Subcommands bleiben identisch. Cloud nutzt REST v3, **Basic-Auth**
+  `email:API-Token` (daher `email`+`token` in der Config noetig), Suche ueber `/search/jql` mit
+  Token-Paginierung (`--token`). ADF-Bodies werden beim Lesen zu Plaintext verflacht und beim
+  Schreiben aus Plaintext erzeugt. DC-Pfad (v2, PAT-Bearer, `--start`) unveraendert. Zusaetzlich
+  neue Subcommands **`assign`** (`--to me` / accountId|Username / `--unassign`), **`describe`**
+  (Beschreibung setzen), **`subtask`** (Unteraufgabe anlegen, `--owner`), **`attach`** (Datei
+  anhaengen), **`attachments`** (auflisten) und **`download`** (einen/alle Anhaenge laden; folgt dem
+  302 auf Media/S3 ohne Auth-Leak). Live gegen Corris verifiziert inkl. komplettem Datei-Pfad auf
+  SADM-69 (CR4435).

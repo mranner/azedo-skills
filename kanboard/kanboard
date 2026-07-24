@@ -2,7 +2,7 @@
 
 # Kanboard JSON-RPC 2.0 API helper
 # stdlib only, no pip dependencies
-# version 1.25.0
+# version 1.33.0
 
 import argparse
 import base64
@@ -974,6 +974,21 @@ def cmd_set_kimai(args):
     output({"success": bool(ok), "kimai": shortcut, "tags": sorted(names)})
 
 
+def cmd_set_jira(args):
+    """Tag the task with a linked Jira issue key as 'jira:<KEY>'.
+
+    One Jira key per task: any existing 'jira:*' tag is replaced. cr surfaces this
+    as the 'jira' field so the jira skill can act on the linked issue without the
+    key being restated.
+    """
+    project_id = _task_project_id(args.task_id)
+    key = args.key.strip().upper()
+    names = [n for n in _get_tag_names(args.task_id) if not n.lower().startswith("jira:")]
+    names.append(f"jira:{key}")
+    ok = _set_tag_names(args.task_id, project_id, sorted(names))
+    output({"success": bool(ok), "jira": key, "tags": sorted(names)})
+
+
 def parse_cr_id(raw):
     """Normalize CR input: CR4326, cr4326, CR 4326, #4326, 4326 -> 4326"""
     s = raw.strip().lstrip("#")
@@ -1057,18 +1072,21 @@ def cmd_cr(args):
         if handoff:
             entry["handoff"] = handoff
 
-        # Tags. Ein Tag der Form 'kimai:<shortcut>' verknuepft den Task mit einem
-        # Kimai-Shortcut (.claude/kimai-shortcuts.json) und wird als eigenes Feld
-        # 'kimai' herausgehoben — damit steht der Zeiterfassungs-Kontext direkt im
-        # CR-Kontext. getTaskTags liefert {tag_id: name}.
+        # Tags. Zwei Praefix-Tags werden als eigene Felder herausgehoben, damit ihr
+        # Kontext direkt im CR steht: 'kimai:<shortcut>' -> Feld 'kimai' (Zeiterfassungs-
+        # Shortcut aus .claude/kimai-shortcuts.json) und 'jira:<KEY>' -> Feld 'jira'
+        # (verknuepftes Jira-Issue, z.B. SADM-69 / CORTAB-1762 fuer den jira-Skill).
+        # getTaskTags liefert {tag_id: name}.
         tags_map = rpc_try("getTaskTags", {"task_id": task_id})
         tag_names = sorted(tags_map.values()) if isinstance(tags_map, dict) else []
         if tag_names:
             entry["tags"] = tag_names
             for t in tag_names:
-                if t.lower().startswith("kimai:"):
+                low = t.lower()
+                if low.startswith("kimai:") and "kimai" not in entry:
                     entry["kimai"] = t.split(":", 1)[1].strip()
-                    break
+                elif low.startswith("jira:") and "jira" not in entry:
+                    entry["jira"] = t.split(":", 1)[1].strip()
 
         # Zaehler fuer Kommentare/Anhaenge — nur wenn > 0, damit leere Tasks
         # schlank bleiben. Kanboard hat keine Count-Methode; len() der Liste.
@@ -1401,6 +1419,12 @@ def main():
     p.add_argument("task_id")
     p.add_argument("--shortcut", required=True, help="Kimai-Shortcut-Key (.claude/kimai-shortcuts.json)")
     p.set_defaults(func=cmd_set_kimai)
+
+    # set-jira (verknuepftes Jira-Issue als 'jira:<KEY>'-Tag; ersetzt vorhandenen)
+    p = sub.add_parser("set-jira")
+    p.add_argument("task_id")
+    p.add_argument("--key", required=True, help="Jira-Issue-Key, z.B. SADM-69 / CORTAB-1762")
+    p.set_defaults(func=cmd_set_jira)
 
     # create-project
     p = sub.add_parser("create-project")

@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 
-# Jira Data Center / Server REST API helper (multi-instance)
+# Jira REST API helper (multi-instance): Data Center/Server (v2, Bearer-PAT)
+# und Cloud (*.atlassian.net, v3, Basic email:token, ADF-Bodies)
 # stdlib only, no pip dependencies
-# version 1.32.2
+# version 1.33.0
 
 import argparse
+import base64
 import json
 import os
 import re
@@ -12,8 +14,13 @@ import sys
 import urllib.error
 import urllib.parse
 import urllib.request
+import uuid
+from collections import namedtuple
 
 SKILL_DIR = os.path.dirname(os.path.realpath(__file__))
+
+# Aufgeloeste Instanz: name + host + Cloud-Flag + fertiger Authorization-Header
+Instance = namedtuple("Instance", "name host is_cloud auth")
 
 
 def config_path():
@@ -86,8 +93,15 @@ def _instance_for_project(cfg, project):
     return None
 
 
+def _is_cloud(host, inst):
+    """Cloud, wenn type=cloud gesetzt ist oder der Host auf .atlassian.net endet"""
+    if (inst.get("type") or "").lower() == "cloud":
+        return True
+    return host.lower().endswith(".atlassian.net")
+
+
 def resolve_instance(name, project_hint=None):
-    """Map (explicit name | project routing | default) to (name, host, token)"""
+    """Map (explicit name | project routing | default) to an Instance"""
     cfg = load_config()
 
     if not name:
@@ -124,12 +138,29 @@ def resolve_instance(name, project_hint=None):
             file=sys.stderr,
         )
         sys.exit(1)
-    return name, host.rstrip("/"), token
+    host = host.rstrip("/")
+
+    cloud = _is_cloud(host, inst)
+    if cloud:
+        email = inst.get("email")
+        if not email:
+            print(
+                f"Error: Cloud-Instanz '{name}' braucht 'email' in {CONFIG_FILE} "
+                "(Basic-Auth email:token)",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        auth = "Basic " + base64.b64encode(f"{email}:{token}".encode()).decode()
+    else:
+        auth = f"Bearer {token}"
+
+    return Instance(name, host, cloud, auth)
 
 
-def api_call(host, token, method, path, data=None, params=None):
-    """Make an HTTP request to the Jira Data Center REST API (v2)"""
-    url = f"{host}/rest/api/2/{path.lstrip('/')}"
+def api_call(inst, method, path, data=None, params=None):
+    """HTTP request an die Jira REST API (v2 fuer DC, v3 fuer Cloud)"""
+    ver = "3" if inst.is_cloud else "2"
+    url = f"{inst.host}/rest/api/{ver}/{path.lstrip('/')}"
 
     if params:
         qs = urllib.parse.urlencode({k: v for k, v in params.items() if v is not None})
@@ -141,7 +172,7 @@ def api_call(host, token, method, path, data=None, params=None):
         url,
         data=body,
         headers={
-            "Authorization": f"Bearer {token}",
+            "Authorization": inst.auth,
             "Content-Type": "application/json",
             "Accept": "application/json",
         },
@@ -161,8 +192,165 @@ def api_call(host, token, method, path, data=None, params=None):
         sys.exit(1)
 
 
+def api_upload(inst, path, filepath):
+    """Multipart-Upload (Datei-Anhang). Braucht X-Atlassian-Token: no-check (DC + Cloud)"""
+    ver = "3" if inst.is_cloud else "2"
+    url = f"{inst.host}/rest/api/{ver}/{path.lstrip('/')}"
+    fname = os.path.basename(filepath)
+    with open(filepath, "rb") as f:
+        content = f.read()
+
+    boundary = "----jira" + uuid.uuid4().hex
+    body = b"".join(
+        [
+            (f"--{boundary}\r\n").encode(),
+            (
+                f'Content-Disposition: form-data; name="file"; filename="{fname}"\r\n'
+            ).encode(),
+            b"Content-Type: application/octet-stream\r\n\r\n",
+            content,
+            (f"\r\n--{boundary}--\r\n").encode(),
+        ]
+    )
+    req = urllib.request.Request(
+        url,
+        data=body,
+        method="POST",
+        headers={
+            "Authorization": inst.auth,
+            "X-Atlassian-Token": "no-check",
+            "Content-Type": f"multipart/form-data; boundary={boundary}",
+            "Accept": "application/json",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req) as resp:
+            raw = resp.read()
+            return json.loads(raw.decode("utf-8")) if raw else None
+    except urllib.error.HTTPError as e:
+        err = e.read().decode("utf-8", errors="replace")
+        print(f"API error {e.code}: {err}", file=sys.stderr)
+        sys.exit(1)
+    except urllib.error.URLError as e:
+        print(f"Verbindungsfehler: {e.reason}", file=sys.stderr)
+        sys.exit(1)
+
+
+class _StripAuthOnRedirect(urllib.request.HTTPRedirectHandler):
+    """Beim Redirect auf einen fremden Host den Authorization-Header entfernen.
+    Jira-Attachment-Downloads antworten mit 302 auf Media/S3 — der Bearer/Basic-
+    Header wuerde dort abgelehnt."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        newreq = super().redirect_request(req, fp, code, msg, headers, newurl)
+        if newreq is not None:
+            same_host = (
+                urllib.parse.urlparse(newurl).netloc
+                == urllib.parse.urlparse(req.full_url).netloc
+            )
+            if not same_host:
+                for h in list(newreq.headers):
+                    if h.lower() == "authorization":
+                        del newreq.headers[h]
+        return newreq
+
+
+def api_download(inst, content_url, output_path):
+    """Anhang-Inhalt von der content-URL laden (folgt dem 302 ohne Auth-Leak)"""
+    req = urllib.request.Request(content_url, headers={"Authorization": inst.auth})
+    opener = urllib.request.build_opener(_StripAuthOnRedirect)
+    try:
+        with opener.open(req) as resp:
+            data = resp.read()
+    except urllib.error.HTTPError as e:
+        err = e.read().decode("utf-8", errors="replace")
+        print(f"API error {e.code}: {err}", file=sys.stderr)
+        sys.exit(1)
+    except urllib.error.URLError as e:
+        print(f"Verbindungsfehler: {e.reason}", file=sys.stderr)
+        sys.exit(1)
+    with open(output_path, "wb") as f:
+        f.write(data)
+    return len(data)
+
+
 def out_json(data):
     print(json.dumps(data, indent=2, ensure_ascii=False))
+
+
+# ---- ADF (Cloud) <-> Plaintext -------------------------------------------
+#
+# Cloud liefert Beschreibungen und Kommentar-Bodies als ADF (Atlassian Document
+# Format, verschachteltes JSON) und erwartet sie auch so beim Schreiben. DC nutzt
+# an denselben Stellen Plaintext/Wiki-Markup. Diese zwei Helfer ueberbruecken das.
+
+_ADF_BLOCK = {
+    "paragraph",
+    "heading",
+    "blockquote",
+    "codeBlock",
+    "listItem",
+    "rule",
+    "panel",
+    "mediaSingle",
+}
+
+
+def adf_to_text(node):
+    """ADF-Knoten best-effort zu Plaintext verflachen (fuer die Anzeige)"""
+    if node is None:
+        return ""
+    if isinstance(node, str):
+        return node
+    if isinstance(node, list):
+        return "".join(adf_to_text(n) for n in node)
+    if not isinstance(node, dict):
+        return str(node)
+
+    t = node.get("type")
+    if t == "text":
+        return node.get("text", "")
+    if t == "hardBreak":
+        return "\n"
+    attrs = node.get("attrs") or {}
+    if t == "mention":
+        # attrs.text enthaelt i.d.R. bereits das fuehrende '@'
+        label = attrs.get("text") or attrs.get("displayName") or ""
+        return label if label.startswith("@") else "@" + label
+    if t == "emoji":
+        return attrs.get("text") or attrs.get("shortName") or ""
+
+    inner = adf_to_text(node.get("content"))
+    if t in _ADF_BLOCK:
+        return inner + "\n"
+    return inner
+
+
+def text_to_adf(text):
+    """Plaintext zu einem minimalen ADF-Dokument (fuer Cloud-Writes)"""
+    paras = []
+    for line in text.split("\n"):
+        if line == "":
+            paras.append({"type": "paragraph", "content": []})
+        else:
+            paras.append(
+                {"type": "paragraph", "content": [{"type": "text", "text": line}]}
+            )
+    if not paras:
+        paras = [{"type": "paragraph", "content": []}]
+    return {"type": "doc", "version": 1, "content": paras}
+
+
+def render_body(inst, value):
+    """Body-Wert (Beschreibung/Kommentar) fuer die Anzeige zu Text machen"""
+    if isinstance(value, (dict, list)):
+        return adf_to_text(value).strip()
+    return value
+
+
+def comment_body_payload(inst, text):
+    """Body im richtigen Format: ADF fuer Cloud, Plaintext fuer DC"""
+    return text_to_adf(text) if inst.is_cloud else text
 
 
 def _field(issue, *keys, default="-"):
@@ -193,16 +381,44 @@ def cmd_instances(args):
     default = cfg.get("default", "")
     for name, inst in cfg["instances"].items():
         host = inst.get("host", "?")
+        kind = "cloud" if _is_cloud(host.rstrip("/"), inst) else "dc"
         projects = ", ".join(inst.get("projects", [])) or "-"
         mark = "  (default)" if name == default else ""
-        print(f"{name:<12} {host:<32} projects: {projects}{mark}")
+        print(f"{name:<12} {host:<32} [{kind:<5}] projects: {projects}{mark}")
 
 
 def cmd_search(args):
-    name, host, token = resolve_instance(args.instance, _project_of_jql(args.jql))
+    inst = resolve_instance(args.instance, _project_of_jql(args.jql))
+
+    if inst.is_cloud:
+        # Cloud: /search/jql loest den 2025 entfernten /search-Endpoint ab.
+        # Token-basierte Paginierung (nextPageToken) statt startAt, kein 'total'.
+        result = api_call(
+            inst,
+            "GET",
+            "search/jql",
+            params={
+                "jql": args.jql,
+                "maxResults": args.max,
+                "fields": args.fields,
+                "nextPageToken": args.token,
+            },
+        )
+        if args.json:
+            out_json(result)
+            return
+        issues = result.get("issues", [])
+        for issue in issues:
+            print(fmt_issue_row(issue))
+        next_tok = result.get("nextPageToken")
+        msg = f"\n[{inst.name}] {len(issues)} Treffer"
+        if next_tok and not result.get("isLast"):
+            msg += f" -- weiter mit --token {next_tok}"
+        print(msg, file=sys.stderr)
+        return
+
     result = api_call(
-        host,
-        token,
+        inst,
         "GET",
         "search",
         params={
@@ -220,14 +436,12 @@ def cmd_search(args):
     for issue in issues:
         print(fmt_issue_row(issue))
     shown = args.start + len(issues)
-    print(f"\n[{name}] {len(issues)} von {total} (bis #{shown})", file=sys.stderr)
+    print(f"\n[{inst.name}] {len(issues)} von {total} (bis #{shown})", file=sys.stderr)
 
 
 def cmd_issue(args):
-    name, host, token = resolve_instance(args.instance, _project_of_key(args.key))
-    result = api_call(
-        host, token, "GET", f"issue/{args.key}", params={"fields": args.fields}
-    )
+    inst = resolve_instance(args.instance, _project_of_key(args.key))
+    result = api_call(inst, "GET", f"issue/{args.key}", params={"fields": args.fields})
     if args.json:
         out_json(result)
         return
@@ -237,15 +451,15 @@ def cmd_issue(args):
     print(f"  Assignee:  {_field(result, 'assignee', 'displayName')}")
     print(f"  Reporter:  {_field(result, 'reporter', 'displayName')}")
     print(f"  Prioritaet: {_field(result, 'priority', 'name')}")
-    desc = _field(result, "description", default="")
+    desc = render_body(inst, _field(result, "description", default=""))
     if desc and desc != "-":
         print("\n--- Beschreibung ---")
         print(desc)
 
 
 def cmd_comments(args):
-    name, host, token = resolve_instance(args.instance, _project_of_key(args.key))
-    result = api_call(host, token, "GET", f"issue/{args.key}/comment")
+    inst = resolve_instance(args.instance, _project_of_key(args.key))
+    result = api_call(inst, "GET", f"issue/{args.key}/comment")
     if args.json:
         out_json(result)
         return
@@ -254,14 +468,14 @@ def cmd_comments(args):
         author = (c.get("author") or {}).get("displayName", "?")
         created = c.get("created", "")[:16].replace("T", " ")
         print(f"[{created}] {author}:")
-        print(c.get("body", "").rstrip())
+        print(render_body(inst, c.get("body", "")).rstrip())
         print()
     print(f"{len(comments)} Kommentar(e)", file=sys.stderr)
 
 
 def cmd_transitions(args):
-    name, host, token = resolve_instance(args.instance, _project_of_key(args.key))
-    result = api_call(host, token, "GET", f"issue/{args.key}/transitions")
+    inst = resolve_instance(args.instance, _project_of_key(args.key))
+    result = api_call(inst, "GET", f"issue/{args.key}/transitions")
     if args.json:
         out_json(result)
         return
@@ -271,7 +485,7 @@ def cmd_transitions(args):
 
 
 def cmd_comment(args):
-    name, host, token = resolve_instance(args.instance, _project_of_key(args.key))
+    inst = resolve_instance(args.instance, _project_of_key(args.key))
     body = args.body
     if body == "-":
         body = sys.stdin.read()
@@ -279,14 +493,17 @@ def cmd_comment(args):
         print("Error: leerer Kommentar-Body", file=sys.stderr)
         sys.exit(1)
     result = api_call(
-        host, token, "POST", f"issue/{args.key}/comment", data={"body": body}
+        inst,
+        "POST",
+        f"issue/{args.key}/comment",
+        data={"body": comment_body_payload(inst, body)},
     )
-    print(f"[{name}] Kommentar {result.get('id')} zu {args.key} hinzugefuegt.")
+    print(f"[{inst.name}] Kommentar {result.get('id')} zu {args.key} hinzugefuegt.")
 
 
 def cmd_transition(args):
-    name, host, token = resolve_instance(args.instance, _project_of_key(args.key))
-    trans = api_call(host, token, "GET", f"issue/{args.key}/transitions")
+    inst = resolve_instance(args.instance, _project_of_key(args.key))
+    trans = api_call(inst, "GET", f"issue/{args.key}/transitions")
     target = args.to.strip().lower()
 
     match = None
@@ -312,7 +529,7 @@ def cmd_transition(args):
     to_status = (match.get("to") or {}).get("name", "?")
     if not args.yes:
         print(
-            f"[dry-run/{name}] {args.key}: Uebergang '{match.get('name')}' "
+            f"[dry-run/{inst.name}] {args.key}: Uebergang '{match.get('name')}' "
             f"(id {match.get('id')}) -> Status '{to_status}'.\n"
             f"Zum Ausfuehren --yes anhaengen."
         )
@@ -320,9 +537,157 @@ def cmd_transition(args):
 
     payload = {"transition": {"id": str(match.get("id"))}}
     if args.comment:
-        payload["update"] = {"comment": [{"add": {"body": args.comment}}]}
-    api_call(host, token, "POST", f"issue/{args.key}/transitions", data=payload)
-    print(f"[{name}] {args.key}: -> '{to_status}' ausgefuehrt.")
+        payload["update"] = {
+            "comment": [{"add": {"body": comment_body_payload(inst, args.comment)}}]
+        }
+    api_call(inst, "POST", f"issue/{args.key}/transitions", data=payload)
+    print(f"[{inst.name}] {args.key}: -> '{to_status}' ausgefuehrt.")
+
+
+def _assignee_ref(inst, who):
+    """Assignee-Referenz: {'accountId': ...} (Cloud) / {'name': ...} (DC).
+    'me' wird ueber myself aufgeloest (Cloud: accountId, DC: name/key)."""
+    id_field = "accountId" if inst.is_cloud else "name"
+    val = who
+    if who.lower() == "me":
+        me = api_call(inst, "GET", "myself")
+        val = me.get("accountId") if inst.is_cloud else (me.get("name") or me.get("key"))
+        if not val:
+            print("Error: eigener Account nicht ermittelbar", file=sys.stderr)
+            sys.exit(1)
+    return {id_field: val}
+
+
+def _subtask_issuetype_id(inst, project):
+    """Subtask-Issuetype-ID des Projekts (Cloud: 'Unteraufgabe', DC: 'Sub-task' o.ae.)"""
+    if inst.is_cloud:
+        meta = api_call(inst, "GET", f"issue/createmeta/{project}/issuetypes")
+        types = meta.get("issueTypes") or meta.get("values") or []
+    else:
+        meta = api_call(
+            inst,
+            "GET",
+            "issue/createmeta",
+            params={"projectKeys": project, "expand": "projects.issuetypes"},
+        )
+        projs = meta.get("projects", [])
+        types = projs[0].get("issuetypes", []) if projs else []
+    for it in types:
+        if it.get("subtask"):
+            return it.get("id")
+    return None
+
+
+def cmd_assign(args):
+    inst = resolve_instance(args.instance, _project_of_key(args.key))
+    id_field = "accountId" if inst.is_cloud else "name"
+    if args.unassign:
+        payload = {id_field: None}
+        who = "(unassigned)"
+    else:
+        payload = _assignee_ref(inst, args.to)
+        who = payload[id_field]
+    api_call(inst, "PUT", f"issue/{args.key}/assignee", data=payload)
+    print(f"[{inst.name}] {args.key}: Assignee -> {who}")
+
+
+def cmd_describe(args):
+    inst = resolve_instance(args.instance, _project_of_key(args.key))
+    body = args.body
+    if body == "-":
+        body = sys.stdin.read()
+    value = text_to_adf(body) if inst.is_cloud else body
+    api_call(inst, "PUT", f"issue/{args.key}", data={"fields": {"description": value}})
+    print(f"[{inst.name}] {args.key}: Beschreibung gesetzt.")
+
+
+def cmd_subtask(args):
+    inst = resolve_instance(args.instance, _project_of_key(args.parent))
+    project = _project_of_key(args.parent)
+    st_id = _subtask_issuetype_id(inst, project)
+    if not st_id:
+        print(
+            f"Error: kein Subtask-Issuetype im Projekt {project} gefunden",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    fields = {
+        "project": {"key": project},
+        "parent": {"key": args.parent},
+        "summary": args.title,
+        "issuetype": {"id": st_id},
+    }
+    result = api_call(inst, "POST", "issue", data={"fields": fields})
+    key = result.get("key")
+
+    # Assignee separat per PUT — beim Create wird das Feld je nach Screen-Config
+    # (v.a. Cloud) still ignoriert.
+    who = ""
+    if args.owner:
+        ref = _assignee_ref(inst, args.owner)
+        api_call(inst, "PUT", f"issue/{key}/assignee", data=ref)
+        who = f", Assignee {list(ref.values())[0]}"
+    print(f"[{inst.name}] Subtask {key} unter {args.parent} angelegt{who}.")
+
+
+def cmd_attach(args):
+    inst = resolve_instance(args.instance, _project_of_key(args.key))
+    if not os.path.isfile(args.file):
+        print(f"Error: Datei nicht gefunden: {args.file}", file=sys.stderr)
+        sys.exit(1)
+    result = api_upload(inst, f"issue/{args.key}/attachments", args.file)
+    names = ", ".join(a.get("filename", "?") for a in (result or []))
+    print(f"[{inst.name}] {args.key}: angehaengt -> {names}")
+
+
+def cmd_attachments(args):
+    inst = resolve_instance(args.instance, _project_of_key(args.key))
+    r = api_call(inst, "GET", f"issue/{args.key}", params={"fields": "attachment"})
+    atts = (r.get("fields") or {}).get("attachment") or []
+    if args.json:
+        out_json(atts)
+        return
+    for a in atts:
+        created = (a.get("created", "") or "")[:16].replace("T", " ")
+        author = (a.get("author") or {}).get("displayName", "?")
+        print(
+            f"{str(a.get('id')):>8}  {a.get('filename')}  "
+            f"({a.get('size')} bytes, {a.get('mimeType')}, {created}, {author})"
+        )
+    print(f"{len(atts)} Anhang/Anhaenge", file=sys.stderr)
+
+
+def cmd_download(args):
+    inst = resolve_instance(args.instance, _project_of_key(args.key))
+    r = api_call(inst, "GET", f"issue/{args.key}", params={"fields": "attachment"})
+    atts = (r.get("fields") or {}).get("attachment") or []
+    if args.id:
+        atts = [a for a in atts if str(a.get("id")) == str(args.id)]
+        if not atts:
+            print(f"Error: kein Anhang {args.id} an {args.key}", file=sys.stderr)
+            sys.exit(1)
+    if not atts:
+        print(f"[{inst.name}] {args.key}: keine Anhaenge", file=sys.stderr)
+        return
+
+    # --output: Verzeichnis -> Dateien darin; einzelne Datei nur bei genau 1 Anhang
+    out_is_dir = args.output and os.path.isdir(args.output)
+    single_file = args.output if (args.output and not out_is_dir and len(atts) == 1) else None
+    outdir = args.output if out_is_dir else "."
+
+    used = set()
+    for a in atts:
+        fname = a.get("filename") or f"attachment-{a.get('id')}"
+        if single_file:
+            dest = single_file
+        else:
+            dest = os.path.join(outdir, fname)
+            # Namenskollision im selben Lauf -> ID voranstellen (kein stilles Ueberschreiben)
+            if dest in used:
+                dest = os.path.join(outdir, f"{a.get('id')}_{fname}")
+            used.add(dest)
+        n = api_download(inst, a.get("content"), dest)
+        print(f"[{inst.name}] {a.get('id')} {fname} -> {dest} ({n} bytes)")
 
 
 # ---- CLI -----------------------------------------------------------------
@@ -333,7 +698,8 @@ DEFAULT_FIELDS = "summary,status,assignee,updated,issuetype,priority"
 
 def build_parser():
     p = argparse.ArgumentParser(
-        prog="jira", description="Jira Data Center REST API helper (multi-instance)"
+        prog="jira",
+        description="Jira REST API helper (multi-instance): Data Center + Cloud",
     )
     sub = p.add_subparsers(dest="cmd", required=True)
 
@@ -351,7 +717,8 @@ def build_parser():
     add_instance(sp)
     sp.add_argument("jql", help="JQL-Query, z.B. 'project = CORTAB AND status != Closed'")
     sp.add_argument("--max", type=int, default=20, help="maxResults (Default 20)")
-    sp.add_argument("--start", type=int, default=0, help="startAt (Paginierung)")
+    sp.add_argument("--start", type=int, default=0, help="startAt (DC-Paginierung)")
+    sp.add_argument("--token", help="nextPageToken (Cloud-Paginierung)")
     sp.add_argument("--fields", default=DEFAULT_FIELDS, help="Feldliste (komma-getrennt)")
     sp.add_argument("--json", action="store_true", help="rohes JSON ausgeben")
     sp.set_defaults(func=cmd_search)
@@ -392,6 +759,54 @@ def build_parser():
     sp.add_argument("--comment", help="optionaler Kommentar beim Uebergang")
     sp.add_argument("--yes", action="store_true", help="ausfuehren (ohne: nur dry-run)")
     sp.set_defaults(func=cmd_transition)
+
+    sp = sub.add_parser("assign", help="Assignee setzen/entfernen (schreibend)")
+    add_instance(sp)
+    sp.add_argument("key", help="Issue-Key")
+    g = sp.add_mutually_exclusive_group(required=True)
+    g.add_argument(
+        "--to", help="'me' (eigener Account) ODER Cloud-accountId / DC-Username"
+    )
+    g.add_argument("--unassign", action="store_true", help="Assignee entfernen")
+    sp.set_defaults(func=cmd_assign)
+
+    sp = sub.add_parser("describe", help="Beschreibung setzen (schreibend)")
+    add_instance(sp)
+    sp.add_argument("key", help="Issue-Key")
+    sp.add_argument(
+        "--body", required=True, help="Beschreibungstext ('-' liest von stdin)"
+    )
+    sp.set_defaults(func=cmd_describe)
+
+    sp = sub.add_parser("subtask", help="Unteraufgabe anlegen (schreibend)")
+    add_instance(sp)
+    sp.add_argument("parent", help="Parent-Issue-Key, z.B. SADM-69")
+    sp.add_argument("--title", required=True, help="Titel der Unteraufgabe")
+    sp.add_argument(
+        "--owner", help="Assignee: 'me' / accountId (Cloud) / Username (DC)"
+    )
+    sp.set_defaults(func=cmd_subtask)
+
+    sp = sub.add_parser("attach", help="Datei anhaengen (schreibend)")
+    add_instance(sp)
+    sp.add_argument("key", help="Issue-Key")
+    sp.add_argument("--file", required=True, help="absoluter Pfad zur Datei")
+    sp.set_defaults(func=cmd_attach)
+
+    sp = sub.add_parser("attachments", help="Anhaenge eines Issues auflisten")
+    add_instance(sp)
+    sp.add_argument("key", help="Issue-Key")
+    sp.add_argument("--json", action="store_true", help="rohes JSON ausgeben")
+    sp.set_defaults(func=cmd_attachments)
+
+    sp = sub.add_parser("download", help="Anhaenge eines Issues herunterladen")
+    add_instance(sp)
+    sp.add_argument("key", help="Issue-Key")
+    sp.add_argument("--id", help="nur diesen Anhang (Attachment-ID); sonst alle")
+    sp.add_argument(
+        "--output", help="Zielpfad: Verzeichnis, oder Dateiname (nur bei genau 1 Anhang)"
+    )
+    sp.set_defaults(func=cmd_download)
 
     return p
 

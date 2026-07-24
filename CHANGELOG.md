@@ -3,6 +3,52 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.33.0
+
+- **`kanboard`: CR<->Jira-Verknuepfung ueber `jira:<KEY>`-Tag.** Analog zum bestehenden
+  `kimai:<shortcut>` merkt ein Tag `jira:<KEY>` (z.B. `jira:SADM-69`) das zum CR gehoerende
+  Jira-Issue; `cr` hebt es als eigenes Feld `jira` heraus, sodass der `jira`-Skill ohne erneute
+  Key-Angabe darauf arbeiten kann. Neuer Subcommand `set-jira <task_id> --key <KEY>` (ersetzt einen
+  vorhandenen `jira:*`-Tag, normiert auf Grossschreibung). Bewusst **kein** Commit-Prefix — der CR
+  bleibt der einzige Commit-Anker, keine Kollision. SKILL.md: Tag-Konvention, `cr`-Feld und
+  Write-back-Regel dokumentiert (CR4435).
+- **`jira`: Jira-Cloud-Unterstuetzung (`*.atlassian.net`) neben Data Center.** Ausloeser: Corris
+  laeuft auf `example.atlassian.net` (Cloud), der Skill sprach bisher nur DC (REST v2, PAT-Bearer)
+  und konnte Cloud gar nicht erreichen (CR4435).
+  - **Auto-Erkennung** des Instanz-Typs: Host `*.atlassian.net` oder `"type": "cloud"` in der
+    Config schaltet auf den Cloud-Pfad; die Subcommands (`search`/`issue`/`comments`/`transitions`/
+    `comment`/`transition`) bleiben identisch.
+  - **Cloud-Pfad:** REST API v3, **Basic-Auth** `base64(email:API-Token)` (Cloud braucht daher
+    `email` **und** `token` in der Config), Suche ueber `/rest/api/3/search/jql` mit
+    Token-Paginierung (`--token`, da der alte `/search`-Endpoint 2025 fuer Cloud entfernt wurde;
+    kein `total` mehr). DC-Pfad (v2, Bearer, `--start`) unveraendert.
+  - **ADF-Bruecke:** Cloud liefert/erwartet Bodies als ADF (JSON). Beim **Lesen** werden
+    Beschreibung und Kommentare zu Plaintext verflacht (Absaetze, Zeilenumbrueche, `@`-Mentions ohne
+    Doppel-`@`, Emojis); beim **Schreiben** (Kommentar, Transition-Kommentar) wird Plaintext zu ADF
+    gewandelt (ein Absatz je Zeile). DC-Bodies weiter 1:1 Plaintext.
+  - Config-Refactor: `resolve_instance` liefert jetzt ein `Instance`-Objekt (name/host/is_cloud/
+    fertiger Auth-Header), `api_call` waehlt v2/v3 danach. `instances` zeigt `[dc]`/`[cloud]`.
+  - **Neue Subcommands** `assign`, `describe`, `subtask`, `attach`:
+    - `assign` (`--to me` / `--to <accountId|Username>` / `--unassign`) ueber `PUT
+      /issue/{key}/assignee`; DC vs. Cloud waehlt automatisch das Identifikator-Feld (`name` vs.
+      `accountId`), `me` wird via `myself` aufgeloest.
+    - `describe <key> --body <text|->` setzt die Beschreibung (Cloud -> ADF, DC -> Plaintext).
+    - `subtask <parent> --title <t> [--owner]` legt eine Unteraufgabe an; der Subtask-Issuetype
+      wird per createmeta ermittelt (Cloud „Unteraufgabe", DC „Sub-task" o.ae.). `--owner` wird
+      **nach** dem Create per separatem Assignee-Call gesetzt, da Jira den Assignee beim Create je
+      nach Screen-Config (v.a. Cloud) still ignoriert.
+    - `attach <key> --file <pfad>` haengt eine Datei an (multipart, `X-Atlassian-Token: no-check`).
+    - `attachments <key>` listet die Anhaenge (id, Name, Groesse, Typ, Datum, Autor).
+    - `download <key> [--id <att-id>] [--output <pfad>]` laedt einen oder alle Anhaenge eines Issues.
+      Folgt dem 302 auf den Media-/S3-Host und entfernt dabei den `Authorization`-Header (sonst
+      Ablehnung); gleichnamige Anhaenge bekommen beim Sammel-Download die ID vorangestellt (kein
+      stilles Ueberschreiben).
+  - Live gegen `example.atlassian.net` verifiziert: Login, Projekt-Discovery, Suche mit Routing,
+    Issue-/Kommentar-Anzeige inkl. Umlaute/Emojis/Mentions, Transition-Dry-Run. **Schreib-Pfad
+    komplett live bestaetigt** am Test-Ticket SADM-69: Kommentar (ADF, mehrzeilig), `assign` (alle
+    Varianten), `describe`, `subtask` (inkl. `--owner`), `attach`, `attachments` und `download`
+    (Inhalt byte-identisch verifiziert). Nur `transition` mit `--yes` bislang nur als Dry-Run.
+
 ### 1.32.4
 
 - **`mail-as-me`: „nie spiegeln"-Regel als prominente Grundregel + konkretes Anti-Beispiel; Trigger

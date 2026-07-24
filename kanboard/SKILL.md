@@ -85,6 +85,7 @@ nicht nur die Metadaten.
 | `handoff` | nur wenn befuellt (TaskHandoff-Plugin) |
 | `tags` | nur wenn vorhanden — Liste der Tag-Namen |
 | `kimai` | nur wenn ein Tag `kimai:<shortcut>` gesetzt ist (siehe Tags) |
+| `jira` | nur wenn ein Tag `jira:<KEY>` gesetzt ist — verknuepftes Jira-Issue (siehe Tags) |
 | `comments`, `attachments` | Zaehler, nur wenn > 0 |
 
 `description` und `handoff` sind **nicht** redundant: Description = *was ist die
@@ -463,6 +464,22 @@ Genau **ein** Kimai-Shortcut pro Task: `set-kimai` entfernt einen evtl. schon
 vorhandenen `kimai:*`-Tag, bevor der neue gesetzt wird. Wann der Tag gesetzt wird,
 regelt der Abschnitt [Kimai-Prefixing](#kimai-prefixing).
 
+#### Jira-Verknuepfung: `jira:<KEY>`-Tag
+
+Ein Tag der Form `jira:<KEY>` verknuepft den Task mit einem **Jira-Issue** (z.B.
+`jira:SADM-69`, `jira:CORTAB-1762`). `cr` hebt ihn als eigenes Feld `jira` heraus —
+damit steht der Jira-Bezug direkt im CR-Kontext und der `jira`-Skill kann auf dem
+Issue arbeiten (`issue`/`comment`/`transition`/`attach` …), ohne dass der Key erneut
+genannt werden muss. Analog zu `kimai:` und ohne Kollision mit dem CR-Commit-Prefix.
+
+```bash
+# Jira-Issue am Task hinterlegen (ersetzt einen bereits vorhandenen jira:*-Tag)
+python3 "$SKILL_DIR/kanboard" set-jira <task_id> --key SADM-69
+```
+
+Genau **ein** Jira-Key pro Task: `set-jira` entfernt einen evtl. schon vorhandenen
+`jira:*`-Tag, bevor der neue gesetzt wird (Key wird auf Grossschreibung normiert).
+
 ## Workflow
 
 1. Parameter aus der Nutzeranfrage ableiten (Projekt, Titel, Beschreibung, Zuweisung, Spalte).
@@ -531,6 +548,25 @@ So steht der Shortcut beim naechsten `cr <id>` im Feld `kimai` und die Zeiterfas
 kann ihn direkt uebernehmen, ohne erneut zu suchen. Steht der `kimai:`-Tag bereits und
 passt, entfaellt der Aufruf. (Der Tag traegt den Shortcut-**Key** aus
 `.claude/kimai-shortcuts.json`, nicht Projekt-/Aktivitaets-IDs.)
+
+### Jira-Verknuepfung
+
+Anders als `kimai:` prefixt die Jira-Verknuepfung **nichts** — sie merkt sich nur das
+zum CR gehoerende Jira-Issue, damit der `jira`-Skill ohne erneute Key-Angabe darauf
+arbeiten kann. Es gibt daher **keinen** Jira-Commit-Prefix (der CR bleibt der einzige
+Commit-Anker).
+
+**Write-back:** Sobald unter aktivem CR ein Jira-Issue eindeutig zum Task gehoert (der
+User nennt es, oder es wird im Zuge der Arbeit angelegt/bearbeitet), den Key am Task als
+Tag `jira:<KEY>` ablegen, falls noch nicht vorhanden:
+
+```bash
+python3 "$SKILL_DIR/kanboard" set-jira <task_id> --key <KEY>
+```
+
+So erscheint der Key beim naechsten `cr <id>` im Feld `jira`. Steht der `jira:`-Tag schon
+und passt, entfaellt der Aufruf. Anders als beim Kimai-Shortcut **nicht ungefragt raten**,
+welches Issue gemeint ist — nur setzen, wenn der Bezug eindeutig ist.
 
 ### Mehrere aktive CRs
 

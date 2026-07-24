@@ -1,14 +1,16 @@
 ---
 name: jira
 description: >
-  Jira Data Center / Server (self-hosted, z.B. jira.example.com, jira.example.com):
-  Issues per JQL suchen, einzelnes Issue + Kommentare anzeigen, moegliche
-  Status-Uebergaenge auflisten sowie schreibend Kommentare hinzufuegen und
-  Status-Uebergaenge (Transitions) ausfuehren. Multi-Instanz ueber benannte
-  Profile in ~/.claude/jira.json mit Projekt-Routing (z.B. CORTAB-* -> Ergon),
-  Auth per Personal Access Token (Bearer), REST API v2.
+  Jira Data Center / Server (self-hosted, z.B. jira.example.com) UND Jira Cloud
+  (*.atlassian.net, z.B. example.atlassian.net): Issues per JQL suchen, einzelnes
+  Issue + Kommentare anzeigen, moegliche Status-Uebergaenge auflisten sowie
+  schreibend Kommentare hinzufuegen, Status-Uebergaenge (Transitions) ausfuehren,
+  Issues zuweisen, Beschreibungen setzen, Unteraufgaben anlegen sowie Dateien
+  anhaengen, auflisten und herunterladen. Multi-Instanz ueber benannte Profile in ~/.claude/jira.json mit
+  Projekt-Routing (z.B. CORTAB-* -> Ergon, SADM-* -> Corris). DC: PAT-Bearer,
+  REST API v2. Cloud: Basic-Auth email:API-Token, REST API v3, ADF-Bodies.
   Nutze diesen Skill wenn der User Jira-Tickets abfragen, kommentieren oder
-  deren Status aendern will (z.B. CORTAB-*). Auch aktiv verwenden bei
+  deren Status aendern will (z.B. CORTAB-*, SADM-*). Auch aktiv verwenden bei
   "schau in Jira", "welchen Status hat CORTAB-...", "kommentier das Ticket",
   "setz das Issue auf ...". Trigger: /jira.
 trigger:
@@ -18,12 +20,23 @@ trigger:
   - "ticket status"
 ---
 
-# jira -- Jira Data Center REST API
+# jira -- Jira REST API (Data Center + Cloud)
 
-Fragt selbst-gehostete **Jira Data Center / Server**-Instanzen (nicht Jira Cloud) ueber die
-REST API v2 ab und aendert Issues gezielt. Mehrere Instanzen (z.B. Ergon, Corris) werden ueber
-benannte Profile in `~/.claude/jira.json` unterschieden; die tatsaechlichen Rechte richten sich
-pro Instanz nach dem eigenen User (API-Rechte = UI-Rechte).
+Fragt Jira-Instanzen ueber die REST API ab und aendert Issues gezielt — sowohl selbst-gehostetes
+**Data Center / Server** (Ergon, `jira.example.com`) als auch **Jira Cloud** (`*.atlassian.net`,
+Corris, `example.atlassian.net`). Mehrere Instanzen werden ueber benannte Profile in
+`~/.claude/jira.json` unterschieden; die tatsaechlichen Rechte richten sich pro Instanz nach dem
+eigenen User (API-Rechte = UI-Rechte).
+
+**DC vs. Cloud** — der Skill waehlt den Pfad automatisch (Host `*.atlassian.net` oder
+`"type": "cloud"` in der Config); die Subcommands sind identisch:
+
+| | Data Center | Cloud |
+|---|---|---|
+| API | `/rest/api/2/` | `/rest/api/3/` |
+| Auth | `Authorization: Bearer <PAT>` | `Basic base64(email:API-Token)` |
+| Body (Beschreibung/Kommentar) | Plaintext/Wiki-Markup | ADF (JSON) — vom Skill transparent gewandelt |
+| Such-Paginierung | `--start` (startAt) | `--token` (nextPageToken) |
 
 **Aufruf:** `python3 "$SKILL_DIR/jira" <subcommand> [--instance <name>] [optionen]`
 
@@ -31,23 +44,31 @@ pro Instanz nach dem eigenen User (API-Rechte = UI-Rechte).
 
 ## Setup
 
-1. **Personal Access Token (PAT)** in der Jira-Instanz erzeugen: oben rechts Avatar -> Profil ->
-   **Personal Access Tokens** -> *Create token* (Data Center 8.14+). Token wird nur einmal angezeigt.
-2. `jira.json.example` als **`~/.claude/jira.json`** anlegen (bewusst ausserhalb der Skill-/Projekt-
-   Repos, da `~/.claude` kein Git-Repo ist — der Token landet so nie in Git) und pro Instanz
-   `host` / `token` / `projects` eintragen, dazu `default`.
+`jira.json.example` als **`~/.claude/jira.json`** anlegen (bewusst ausserhalb der Skill-/Projekt-
+Repos, da `~/.claude` kein Git-Repo ist — der Token landet so nie in Git). Pro Instanz je nach Typ:
+
+**Data Center** — Personal Access Token: oben rechts Avatar -> Profil -> **Personal Access Tokens**
+-> *Create token* (DC 8.14+). Felder: `host`, `token`, `projects`.
+
+**Cloud** — API-Token am Atlassian-Account: **https://id.atlassian.com/manage-profile/security/api-tokens**
+-> *Create API token* (eingeloggt mit der E-Mail des Cloud-Accounts). Der Token gilt kontoweit fuer
+alle Cloud-Sites. Felder: `host` (`https://<site>.atlassian.net`), `email`, `token`, `projects`, und
+`"type": "cloud"` (bei `*.atlassian.net`-Hosts optional — wird sonst am Host erkannt).
 
 ```json
 {
   "default": "ergon",
   "instances": {
-    "ergon":  { "host": "https://jira.example.com",  "token": "<PAT>", "projects": ["CORTAB"] },
-    "corris": { "host": "https://jira.example.com", "token": "<PAT>", "projects": [] }
+    "ergon":  { "host": "https://jira.example.com", "token": "<PAT>", "projects": ["CORTAB"] },
+    "corris": { "host": "https://example.atlassian.net", "type": "cloud",
+                "email": "<account-email>", "token": "<API-Token>",
+                "projects": ["SADM", "ITSD", "CSW"] }
   }
 }
 ```
 
-Alternativer Pfad per `JIRA_CONFIG=/pfad/jira.json` (sonst: `~/.claude/jira.json`).
+Cloud braucht **email + token** (Basic-Auth) — der Token allein reicht nicht. Alternativer
+Config-Pfad per `JIRA_CONFIG=/pfad/jira.json` (sonst: `~/.claude/jira.json`).
 
 ## Instanzen & Routing
 
@@ -69,8 +90,10 @@ python3 "$SKILL_DIR/jira" instances          # Instanzen, Hosts, Projekte, Defau
 # Issues per JQL (Default: 20 Treffer, kompakte Tabelle)
 python3 "$SKILL_DIR/jira" search "project = CORTAB AND status != Closed ORDER BY updated DESC"
 
-# Paginierung / mehr Felder / rohes JSON
+# Paginierung: DC ueber --start (startAt), Cloud ueber --token (nextPageToken,
+# die Suche zeigt den Folge-Token am Ende an)
 python3 "$SKILL_DIR/jira" search "assignee = currentUser()" --max 50 --start 0
+python3 "$SKILL_DIR/jira" search "project = SADM ORDER BY updated DESC" --token <nextPageToken>
 python3 "$SKILL_DIR/jira" search "project = CORTAB" --fields summary,status --json
 
 # Einzelnes Issue (mit Beschreibung)
@@ -81,7 +104,18 @@ python3 "$SKILL_DIR/jira" comments CORTAB-1762
 
 # Moegliche Status-Uebergaenge (id, Name, Ziel-Status)
 python3 "$SKILL_DIR/jira" transitions CORTAB-1762
+
+# Anhaenge auflisten (id, Name, Groesse, Typ, Datum, Autor)
+python3 "$SKILL_DIR/jira" attachments SADM-69
+
+# Anhaenge herunterladen: alle in ein Verzeichnis, oder einen per --id
+python3 "$SKILL_DIR/jira" download SADM-69 --output ./.tmp
+python3 "$SKILL_DIR/jira" download SADM-69 --id 107792 --output ./bericht.pdf
 ```
+
+`download` folgt dem 302 auf den Media-/S3-Host und entfernt dabei den Auth-Header (sonst Ablehnung).
+Ohne `--id` werden alle Anhaenge geladen; gleichnamige bekommen die Attachment-ID vorangestellt, damit
+nichts still ueberschrieben wird.
 
 ## Schreiben
 
@@ -100,10 +134,41 @@ python3 "$SKILL_DIR/jira" transition CORTAB-1762 --to "Done" --comment "erledigt
 `--to` matcht case-insensitiv auf den **Uebergangs-Namen** ODER den **Ziel-Status-Namen**. Passt
 nichts, werden die moeglichen Uebergaenge aufgelistet. Ohne `--yes` wird nichts geaendert.
 
+```
+# Assignee setzen / entfernen
+python3 "$SKILL_DIR/jira" assign SADM-69 --to me            # eigener Account (myself)
+python3 "$SKILL_DIR/jira" assign SADM-69 --to <accountId>   # Cloud: accountId, DC: Username
+python3 "$SKILL_DIR/jira" assign SADM-69 --unassign         # Assignee entfernen
+```
+
+`--to me` loest den eigenen Account auf (Cloud: `accountId`, DC: `name`). Ansonsten ist der Wert bei
+**Cloud eine accountId**, bei **DC ein Username** — Cloud kennt keine Zuweisung per Username mehr.
+
+```
+# Beschreibung setzen ('-' liest den Body von stdin; Cloud -> ADF, DC -> Plaintext)
+python3 "$SKILL_DIR/jira" describe SADM-69 --body "Neue Beschreibung, mehrere Zeilen moeglich."
+
+# Unteraufgabe anlegen (Subtask-Issuetype wird automatisch ermittelt; --owner optional)
+python3 "$SKILL_DIR/jira" subtask SADM-69 --title "Teilaufgabe X" --owner me
+
+# Datei anhaengen (absoluter Pfad)
+python3 "$SKILL_DIR/jira" attach SADM-69 --file /pfad/zur/datei.pdf
+```
+
+Bei `subtask` wird ein evtl. `--owner` **nach** dem Anlegen per separatem Assignee-Call gesetzt —
+Jira ignoriert den Assignee beim Create je nach Screen-Konfiguration (v.a. Cloud) still.
+
 ## Hinweise
 
-- **Data Center, nicht Cloud:** Endpoint ist `/rest/api/2/`, Auth `Authorization: Bearer <PAT>`.
-  Kommentar-/Beschreibungs-Bodies sind Plaintext/Wiki-Markup (kein Cloud-ADF).
-- **Body-Text** wird 1:1 gesendet; keine Formatierungs-Konvertierung.
-- Fehlt der Menuepunkt *Personal Access Tokens*, hat die Instanz PATs deaktiviert -> bei der
+- **DC vs. Cloud wird automatisch erkannt** (Host `*.atlassian.net` oder `"type": "cloud"`), die
+  Subcommands sind identisch. DC: `/rest/api/2/` + `Bearer <PAT>`. Cloud: `/rest/api/3/` +
+  `Basic email:token`.
+- **Body-Format:** DC-Bodies sind Plaintext/Wiki-Markup und werden 1:1 gesendet. Cloud nutzt ADF
+  (JSON): beim **Lesen** wandelt der Skill ADF zu Plaintext (Absaetze, Zeilenumbrueche, `@`-Mentions,
+  Emojis), beim **Schreiben** Plaintext zu ADF (ein Absatz je Zeile). Rich-Formatierung (Tabellen,
+  Panels, Bilder) wird beim Lesen best-effort verflacht.
+- **Cloud-Suche** laeuft ueber `/rest/api/3/search/jql` (der alte `/search`-Endpoint wurde 2025 fuer
+  Cloud entfernt): Token-Paginierung (`--token`), **kein** `total` — die Suche meldet nur die Anzahl
+  der aktuellen Seite und ggf. den Folge-Token.
+- Fehlt bei DC der Menuepunkt *Personal Access Tokens*, hat die Instanz PATs deaktiviert -> bei der
   jeweiligen Administration nachfragen.
