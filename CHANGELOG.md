@@ -3,6 +3,14 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.32.3
+
+- **`pushover`: `--host` bei der `digest`-Vorlage nachgeruestet.** Die `SKILL.md` dokumentierte `--host`
+  („ergaenzt eine Fusszeile") pauschal fuer alle drei Vorlagen, `alert`/`recovery` implementierten es auch
+  — nur `digest` kannte den Parameter nicht (`unrecognized arguments: --host`). Jetzt akzeptiert `digest`
+  `--host` ebenfalls und haengt dieselbe Fusszeile `<i>Host: …</i>` wie `alert`/`recovery` an. Aufgefallen
+  beim Umstellen des corris Post-Update-Monitoring-Loops von Telegram auf Pushover (CR4436).
+
 ### 1.32.2
 
 - **Neuer Skill `jira`: Jira Data Center / Server per REST API v2 (multi-instanz).** Selbst-gehostete

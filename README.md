@@ -431,15 +431,9 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.32.2
+### 1.32.3
 
-- **Neuer Skill `jira`: Jira Data Center / Server per REST API v2 (multi-instanz).** Selbst-gehostete
-  Jira-Instanzen (z.B. `jira.example.com`, `jira.example.com`) abfragen und aendern, Auth per Personal
-  Access Token (Bearer). Subcommands `instances`/`search`/`issue`/`comments`/`transitions` (lesend) und
-  `comment`/`transition` (schreibend, `transition` erst mit `--yes`). Config `~/.claude/jira.json`
-  (ausserhalb der Git-Repos) mit benannten Instanzen und **Projekt-Routing** (Issue-Key bzw. `project = X`
-  in der JQL waehlt die Instanz, `--instance` ueberschreibt, sonst `default`). stdlib-only.
-- **`mail-as-me`: „Gegenueber nie spiegeln" als universelle Engine-Regel verankert.** `draft`/`rewrite`
-  schreiben immer in der eigenen Stimme des Profils — weder Sprache, Stil, Region/Dialekt, Anrede noch
-  Grussformel des Gegenuebers uebernehmen; Sprache nur auf explizite Ansage. Vorher nur im `michael`-Profil,
-  jetzt profil-unabhaengig in `SKILL.md`.
+- **`pushover`: `--host` bei der `digest`-Vorlage nachgeruestet.** Die `SKILL.md` dokumentierte `--host`
+  pauschal fuer alle drei Vorlagen, `alert`/`recovery` implementierten es auch — nur `digest` kannte den
+  Parameter nicht (`unrecognized arguments: --host`). Jetzt akzeptiert `digest` `--host` ebenfalls und
+  haengt dieselbe Fusszeile `<i>Host: …</i>` wie `alert`/`recovery` an (CR4436).

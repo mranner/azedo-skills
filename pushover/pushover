@@ -3,7 +3,7 @@
 # Pushover Message API helper (outbound-only)
 # Sendet Notifications via api.pushover.net/1/messages.json.
 # stdlib only, keine pip-Abhaengigkeiten. Lauffaehig auf macOS + FreeBSD.
-# version 1.28.0
+# version 1.32.3
 
 import argparse
 import json
@@ -403,6 +403,9 @@ def cmd_digest(args):
     lines = ["\U0001F4CB <b>%s</b>" % html_escape(args.title or "Digest"), ""]
     for it in items:
         lines.append("• %s" % html_escape(it))
+    if getattr(args, "host", None):
+        lines.append("")
+        lines.append("<i>Host: %s</i>" % html_escape(args.host))
     text = "\n".join(lines)
     if getattr(args, "priority", None) is None:
         args.priority = -1
@@ -518,6 +521,7 @@ def build_parser():
     sp.add_argument("text", nargs="?", default=None,
                     help="je Zeile ein Punkt (oder --file / STDIN)")
     sp.add_argument("--file", help="Text aus Datei lesen")
+    sp.add_argument("--host", help="Host/Quelle fuer die Fusszeile")
     _add_send_opts(sp)
     sp.set_defaults(func=cmd_digest)
 
