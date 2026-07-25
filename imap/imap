@@ -1,0 +1,1034 @@
+#!/usr/bin/env python3
+
+# IMAP-Helper fuer Posteingang-Triage
+# Liest Zugangsdaten aus muttrc, arbeitet gegen mehrere Konten.
+# stdlib only, keine pip-Abhaengigkeiten. Lauffaehig auf macOS + FreeBSD.
+# version 1.34.0
+
+import argparse
+import email
+import email.header
+import email.utils
+import html as html_mod
+import imaplib
+import json
+import os
+import re
+import subprocess
+import sys
+import time
+
+DEFAULT_MUTTRC = os.path.expanduser("~/.muttrc")
+
+DEFAULT_LIMIT = 50
+DEFAULT_MAX_CHARS = 4000
+
+# IMAP erlaubt Literale bis 10 KB im Default; grosse Mailboxen brauchen mehr
+
+imaplib._MAXLINE = 1000000
+
+
+def die(msg, code=1):
+    print(f"FEHLER: {msg}", file=sys.stderr)
+    sys.exit(code)
+
+
+# --- muttrc-Parser ----------------------------------------------------------
+
+# muttrc ist eine Befehlssprache, keine Konfigurationsdatei. Ausgewertet wird
+# bewusst nur eine Teilmenge: set, account-hook, source und Backticks.
+# Alles andere wird ignoriert; fehlt eine Angabe, bricht der Aufruf ab,
+# statt auf ein falsches Konto zu raten.
+
+# mutts set nimmt mehrere Zuweisungen auf einmal:
+#   set imap_user="x" imap_pass="y"
+# Deshalb wird auf Zuweisungen gematcht, nicht auf das set davor. Die
+# Whitelist verhindert, dass Treffer aus Makros oder Formatstrings hereinlaufen.
+
+KNOWN_KEYS = {"imap_user", "imap_pass", "folder", "spoolfile"}
+
+SET_RE = re.compile(r'\b([a-z_]+)\s*=\s*("([^"]*)"|\'([^\']*)\'|`([^`]*)`|(\S+))')
+
+ACCOUNT_HOOK_RE = re.compile(
+    r'^\s*account-hook\s+(?P<url>\S+)\s+(?P<quote>[\'"])(?P<body>.*)(?P=quote)\s*$'
+)
+
+SOURCE_RE = re.compile(r'^\s*source\s+(?P<quote>[\'"]?)(?P<path>.*?)(?P=quote)\s*$')
+
+URL_RE = re.compile(r'imaps?://(?:(?P<user>[^:@/]+)(?::[^@/]*)?@)?(?P<host>[^:/]+)(?::(?P<port>\d+))?')
+
+
+def backtick(cmd):
+    """Backtick-Substitution wie mutt sie macht."""
+    try:
+        out = subprocess.run(
+            cmd, shell=True, capture_output=True, text=True, timeout=30
+        )
+    except subprocess.TimeoutExpired:
+        die(f"Backtick-Befehl lief in einen Timeout: {cmd}")
+    if out.returncode != 0:
+        die(f"Backtick-Befehl fehlgeschlagen ({out.returncode}): {cmd}")
+    return out.stdout.strip()
+
+
+def parse_set_values(text):
+    """Alle set key=value aus einem Textstueck ziehen."""
+    values = {}
+    for m in SET_RE.finditer(text):
+        key = m.group(1)
+        if key not in KNOWN_KEYS:
+            continue
+        if m.group(3) is not None:
+            val = m.group(3)
+        elif m.group(4) is not None:
+            val = m.group(4)
+        elif m.group(5) is not None:
+            val = backtick(m.group(5))
+        else:
+            val = m.group(6)
+        values[key] = val
+    return values
+
+
+def host_from_url(url):
+    m = URL_RE.search(url)
+    if not m:
+        return None, None, None
+    return m.group("host"), m.group("user"), m.group("port")
+
+
+def parse_muttrc(path, _seen=None):
+    """muttrc lesen und Konten als dict host -> {user, password, port} liefern."""
+    _seen = _seen or set()
+    real = os.path.realpath(path)
+    if real in _seen:
+        return {}, {}
+    _seen.add(real)
+
+    if not os.path.exists(path):
+        die(f"muttrc nicht gefunden: {path}")
+
+    accounts = {}
+    globals_ = {}
+
+    with open(path, encoding="utf-8", errors="replace") as f:
+        for raw in f:
+            line = raw.rstrip("\n")
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#"):
+                continue
+
+            m = SOURCE_RE.match(line)
+            if m and "account-hook" not in line:
+                sub = m.group("path")
+
+                # source "cmd |" fuehrt einen Befehl aus statt eine Datei zu lesen
+
+                if sub.endswith("|"):
+                    text = backtick(sub[:-1].strip())
+                    globals_.update(parse_set_values(text))
+                    continue
+                sub_path = os.path.expanduser(sub)
+                if not os.path.isabs(sub_path):
+                    sub_path = os.path.join(os.path.dirname(path), sub_path)
+                sub_acc, sub_glob = parse_muttrc(sub_path, _seen)
+                accounts.update(sub_acc)
+                globals_.update(sub_glob)
+                continue
+
+            m = ACCOUNT_HOOK_RE.match(line)
+            if m:
+                host, _, port = host_from_url(m.group("url"))
+                if not host:
+                    continue
+                vals = parse_set_values(m.group("body"))
+                entry = accounts.setdefault(host, {})
+                if vals.get("imap_user"):
+                    entry["user"] = vals["imap_user"]
+                if vals.get("imap_pass"):
+                    entry["password"] = vals["imap_pass"]
+                if port:
+                    entry["port"] = int(port)
+                continue
+
+            if re.match(r"^\s*(un)?set\s", line):
+                globals_.update(parse_set_values(line))
+
+    return accounts, globals_
+
+
+def load_accounts(muttrc_path):
+    """Konten aus muttrc bauen, Default-Konto aus set folder ergaenzen."""
+    accounts, globals_ = parse_muttrc(muttrc_path)
+
+    folder = globals_.get("folder", "")
+    if folder.startswith("imap"):
+        host, _, port = host_from_url(folder)
+        if host:
+            entry = accounts.setdefault(host, {})
+            entry.setdefault("user", globals_.get("imap_user"))
+            entry.setdefault("password", globals_.get("imap_pass"))
+            if port:
+                entry.setdefault("port", int(port))
+            entry["default"] = True
+
+    result = {}
+    for host, data in accounts.items():
+        if not data.get("user") or not data.get("password"):
+            continue
+
+        # Kurzalias = erstes Label des Hostnamens (mail.example.at -> mail)
+
+        alias = host.split(".")[0]
+        result[alias] = {
+            "alias": alias,
+            "host": host,
+            "user": data["user"],
+            "password": data["password"],
+            "port": data.get("port", 993),
+            "default": data.get("default", False),
+        }
+
+    if not result:
+        die(f"keine vollstaendigen IMAP-Zugangsdaten in {muttrc_path} gefunden")
+    return result
+
+
+def pick_account(accounts, name):
+    if name:
+        if name in accounts:
+            return accounts[name]
+        for acc in accounts.values():
+            if acc["host"] == name:
+                return acc
+        die(f"Konto '{name}' nicht gefunden. Bekannt: {', '.join(sorted(accounts))}")
+    defaults = [a for a in accounts.values() if a["default"]]
+    if defaults:
+        return defaults[0]
+    if len(accounts) == 1:
+        return next(iter(accounts.values()))
+    die(f"mehrere Konten vorhanden, --account noetig: {', '.join(sorted(accounts))}")
+
+
+# --- IMAP-Verbindung --------------------------------------------------------
+
+class Account:
+    """Eine IMAP-Verbindung mit Ordner-Discovery und Triage-Operationen."""
+
+    def __init__(self, cfg):
+        self.cfg = cfg
+        self.alias = cfg["alias"]
+        self.host = cfg["host"]
+        self.conn = None
+        self.caps = set()
+        self.delim = "."
+        self._folders = None
+        self._selected = None
+
+    def __enter__(self):
+        try:
+            self.conn = imaplib.IMAP4_SSL(self.host, self.cfg["port"], timeout=30)
+        except Exception as e:
+            die(f"[{self.alias}] Verbindung zu {self.host} fehlgeschlagen: {e}")
+        try:
+            self.conn.login(self.cfg["user"], self.cfg["password"])
+        except imaplib.IMAP4.error as e:
+
+            # Passwort nie mit ausgeben
+
+            die(f"[{self.alias}] Login als {self.cfg['user']} abgelehnt: {e}")
+
+        # Capabilities nach dem Login neu holen: imaplib behaelt die aus dem
+        # Greeting, Dovecot meldet MOVE und UIDPLUS aber erst im
+        # authentifizierten Zustand. Mit den alten Caps liefe move() unnoetig
+        # in den COPY-Fallback.
+
+        self.caps = {c.upper() for c in self.conn.capabilities}
+        try:
+            typ, data = self.conn.capability()
+            if typ == "OK" and data and data[0]:
+                self.caps = set(data[0].decode("ascii", errors="replace").upper().split())
+        except imaplib.IMAP4.error:
+            pass
+        return self
+
+    def __exit__(self, *exc):
+        if self.conn:
+            try:
+                if self._selected:
+                    self.conn.close()
+                self.conn.logout()
+            except Exception:
+                pass
+        return False
+
+    # --- Ordner ---
+
+    LIST_RE = re.compile(
+        r'^\((?P<flags>[^)]*)\)\s+(?:"(?P<delim>[^"]*)"|(?P<nildelim>NIL))\s+(?P<name>.*)$'
+    )
+
+    def folders(self):
+        if self._folders is not None:
+            return self._folders
+        typ, data = self.conn.list()
+        if typ != "OK":
+            die(f"[{self.alias}] LIST fehlgeschlagen")
+        out = []
+        for item in data:
+            if item is None:
+                continue
+            if isinstance(item, tuple):
+                item = b" ".join(x for x in item if isinstance(x, bytes))
+            line = item.decode("utf-8", errors="replace")
+            m = self.LIST_RE.match(line.strip())
+            if not m:
+                continue
+            name = m.group("name").strip()
+            if name.startswith('"') and name.endswith('"'):
+                name = name[1:-1]
+            delim = m.group("delim")
+            if delim:
+                self.delim = delim
+            flags = m.group("flags").split()
+            out.append({
+                "name": decode_mailbox(name),
+                "raw": name,
+                "flags": flags,
+                "special": [f for f in flags if f.lower() in SPECIAL_FLAGS],
+            })
+        self._folders = out
+        return out
+
+    def special_folder(self, kind):
+        """Sonderordner ueber SPECIAL-USE finden, sonst ueber Namensheuristik."""
+        want = "\\" + kind.capitalize()
+        for f in self.folders():
+            if any(s.lower() == want.lower() for s in f["special"]):
+                return f["raw"]
+
+        names = SPECIAL_FALLBACK.get(kind.lower(), [])
+        for f in self.folders():
+            leaf = f["name"].split(self.delim)[-1].lower()
+            if leaf in names:
+                return f["raw"]
+        return None
+
+    # --- Auswahl und Abruf ---
+
+    def select(self, folder="INBOX", readonly=True):
+        if self._selected == (folder, readonly):
+            return
+        if self._selected:
+            self.conn.close()
+        typ, data = self.conn.select(quote_mailbox(folder), readonly=readonly)
+        if typ != "OK":
+            die(f"[{self.alias}] Ordner '{folder}' nicht waehlbar: {as_text(data)}")
+        self._selected = (folder, readonly)
+
+    def search_uids(self, criteria):
+        typ, data = self.conn.uid("SEARCH", None, criteria)
+        if typ != "OK":
+            die(f"[{self.alias}] SEARCH fehlgeschlagen: {as_text(data)}")
+        if not data or not data[0]:
+            return []
+        return data[0].split()
+
+    def envelopes(self, folder="INBOX", limit=DEFAULT_LIMIT, criteria="ALL"):
+        """Kopfdaten holen - ohne Body, ohne \\Seen zu setzen."""
+        self.select(folder, readonly=True)
+        uids = self.search_uids(criteria)
+        if not uids:
+            return []
+        uids = uids[-limit:] if limit else uids
+        uid_set = b",".join(uids).decode()
+
+        typ, data = self.conn.uid(
+            "FETCH", uid_set,
+            "(FLAGS INTERNALDATE RFC822.SIZE "
+            "BODY.PEEK[HEADER.FIELDS (FROM TO SUBJECT DATE MESSAGE-ID LIST-ID)])"
+        )
+        if typ != "OK":
+            die(f"[{self.alias}] FETCH fehlgeschlagen: {as_text(data)}")
+
+        out = []
+        for meta, header_bytes in walk_fetch(data):
+            uid = find_int(meta, "UID")
+            if uid is None:
+                continue
+            msg = email.message_from_bytes(header_bytes)
+            flags = imaplib.ParseFlags(meta.encode()) if "FLAGS" in meta else ()
+            flags = [f.decode() if isinstance(f, bytes) else f for f in flags]
+            out.append({
+                "account": self.alias,
+                "folder": folder,
+                "uid": uid,
+                "from": hdr(msg, "From"),
+                "to": hdr(msg, "To"),
+                "subject": hdr(msg, "Subject"),
+                "date": hdr(msg, "Date"),
+                "message_id": hdr(msg, "Message-ID"),
+                "list_id": hdr(msg, "List-Id"),
+                "size": find_int(meta, "RFC822.SIZE"),
+                "flags": flags,
+                "seen": any(f.lower() == "\\seen" for f in flags),
+            })
+        out.sort(key=lambda m: m["uid"])
+        return out
+
+    def body(self, uid, folder="INBOX", max_chars=DEFAULT_MAX_CHARS):
+        """Textkoerper lesen. BODY.PEEK laesst den Ungelesen-Status unangetastet."""
+        self.select(folder, readonly=True)
+        typ, data = self.conn.uid("FETCH", str(uid), "(BODY.PEEK[])")
+        if typ != "OK":
+            die(f"[{self.alias}] FETCH BODY uid {uid} fehlgeschlagen: {as_text(data)}")
+        raw = None
+        for _, payload in walk_fetch(data):
+            raw = payload
+            break
+        if raw is None:
+            die(f"[{self.alias}] uid {uid} nicht gefunden in {folder}")
+
+        msg = email.message_from_bytes(raw)
+        text = extract_text(msg)
+        truncated = len(text) > max_chars
+        return {
+            "account": self.alias,
+            "folder": folder,
+            "uid": uid,
+            "from": hdr(msg, "From"),
+            "to": hdr(msg, "To"),
+            "cc": hdr(msg, "Cc"),
+            "subject": hdr(msg, "Subject"),
+            "date": hdr(msg, "Date"),
+            "attachments": attachment_names(msg),
+            "body": text[:max_chars],
+            "truncated": truncated,
+        }
+
+    def raw_message(self, uid, folder="INBOX"):
+        """Rohmail samt Flags und INTERNALDATE - Basis fuer kontouebergreifende Kopien."""
+        self.select(folder, readonly=True)
+        typ, data = self.conn.uid(
+            "FETCH", str(uid), "(FLAGS INTERNALDATE BODY.PEEK[])"
+        )
+        if typ != "OK":
+            die(f"[{self.alias}] FETCH uid {uid} fehlgeschlagen: {as_text(data)}")
+        for meta, payload in walk_fetch(data):
+            flags = imaplib.ParseFlags(meta.encode()) if "FLAGS" in meta else ()
+            flags = [f.decode() if isinstance(f, bytes) else f for f in flags]
+
+            # \Recent laesst sich per APPEND nicht setzen
+
+            flags = [f for f in flags if f.lower() != "\\recent"]
+            m = re.search(r'INTERNALDATE "([^"]+)"', meta)
+            internaldate = m.group(1) if m else None
+            return payload, flags, internaldate
+        die(f"[{self.alias}] uid {uid} nicht gefunden in {folder}")
+
+    # --- Schreibende Operationen ---
+
+    def move(self, uid, target, folder="INBOX"):
+        """Innerhalb des Kontos verschieben - serverseitig, ohne Datentransfer."""
+        self.select(folder, readonly=False)
+        tgt = quote_mailbox(target)
+
+        if "MOVE" in self.caps:
+            typ, data = self.conn.uid("MOVE", str(uid), tgt)
+            if typ != "OK":
+                return False, as_text(data)
+            return True, "MOVE"
+
+        # Fallback fuer Server ohne RFC 6851
+
+        typ, data = self.conn.uid("COPY", str(uid), tgt)
+        if typ != "OK":
+            return False, f"COPY: {as_text(data)}"
+        typ, data = self.conn.uid("STORE", str(uid), "+FLAGS", "(\\Deleted)")
+        if typ != "OK":
+            return False, f"STORE: {as_text(data)}"
+
+        # UID EXPUNGE loescht gezielt diese UID; nacktes EXPUNGE wuerde alle
+        # als geloescht markierten Mails im Ordner mitnehmen
+
+        if "UIDPLUS" in self.caps:
+            typ, data = self.conn.uid("EXPUNGE", str(uid))
+            if typ != "OK":
+                return False, f"UID EXPUNGE: {as_text(data)}"
+            return True, "COPY+UID EXPUNGE"
+        return True, "COPY+FLAGS (kein UIDPLUS - Quelle bleibt als geloescht markiert)"
+
+    def copy_local(self, uid, target, folder="INBOX"):
+        self.select(folder, readonly=False)
+        typ, data = self.conn.uid("COPY", str(uid), quote_mailbox(target))
+        if typ != "OK":
+            return False, as_text(data)
+        return True, "COPY"
+
+    def set_flag(self, uid, flag, on=True, folder="INBOX"):
+        self.select(folder, readonly=False)
+        op = "+FLAGS" if on else "-FLAGS"
+        typ, data = self.conn.uid("STORE", str(uid), op, f"({flag})")
+        if typ != "OK":
+            return False, as_text(data)
+        return True, f"{op} {flag}"
+
+    def find_by_message_id(self, message_id, folder):
+        """Vorhandene Kopie erkennen, damit ein abgebrochener Lauf wiederholbar ist."""
+        if not message_id:
+            return None
+        self.select(folder, readonly=True)
+        try:
+            typ, data = self.conn.uid(
+                "SEARCH", None, "HEADER", "Message-ID", f'"{message_id}"'
+            )
+        except imaplib.IMAP4.error:
+            return None
+        if typ != "OK" or not data or not data[0]:
+            return None
+        return data[0].split()
+
+    def append(self, folder, raw, flags, internaldate):
+        """Rohmail in einen Ordner einfuegen."""
+
+        # Cyrus weist Mails mit bare LF zurueck; die Normalisierung ist verlustfrei
+
+        raw = re.sub(rb"(?<!\r)\n", b"\r\n", raw)
+
+        flag_str = "(" + " ".join(flags) + ")" if flags else None
+        date = None
+        if internaldate:
+            try:
+                date = f'"{internaldate}"'
+            except Exception:
+                date = None
+        try:
+            typ, data = self.conn.append(quote_mailbox(folder), flag_str, date, raw)
+        except imaplib.IMAP4.error as e:
+            return False, str(e)
+        if typ != "OK":
+            return False, as_text(data)
+        return True, "APPEND"
+
+
+# --- Hilfsfunktionen --------------------------------------------------------
+
+SPECIAL_FLAGS = {
+    "\\junk", "\\trash", "\\sent", "\\drafts", "\\archive", "\\all", "\\flagged"
+}
+
+SPECIAL_FALLBACK = {
+    "junk": ["junk", "spam", "junk-e-mail"],
+    "trash": ["trash", "papierkorb", "deleted items", "geloeschte objekte"],
+    "sent": ["sent", "gesendet", "sent items", "gesendete objekte"],
+    "drafts": ["drafts", "entwuerfe"],
+    "archive": ["archive", "archiv"],
+}
+
+
+def as_text(data):
+    if isinstance(data, (list, tuple)):
+        parts = []
+        for d in data:
+            if isinstance(d, bytes):
+                parts.append(d.decode("utf-8", errors="replace"))
+            elif d is not None:
+                parts.append(str(d))
+        return " ".join(parts)
+    if isinstance(data, bytes):
+        return data.decode("utf-8", errors="replace")
+    return str(data)
+
+
+def walk_fetch(data):
+    """FETCH-Antwort in (meta, payload)-Paare zerlegen."""
+    out = []
+    for item in data:
+        if isinstance(item, tuple) and len(item) >= 2:
+            meta = item[0].decode("utf-8", errors="replace") if isinstance(item[0], bytes) else str(item[0])
+            payload = item[1] if isinstance(item[1], bytes) else b""
+            out.append((meta, payload))
+    return out
+
+
+def find_int(meta, key):
+    m = re.search(rf"\b{re.escape(key)}\s+(\d+)", meta)
+    return int(m.group(1)) if m else None
+
+
+def hdr(msg, name):
+    raw = msg.get(name)
+    if not raw:
+        return ""
+    try:
+        return str(email.header.make_header(email.header.decode_header(raw))).strip()
+    except Exception:
+        return raw.strip()
+
+
+def decode_mailbox(name):
+    """Modified UTF-7 der IMAP-Ordnernamen aufloesen (RFC 3501)."""
+    if "&" not in name:
+        return name
+    try:
+        out = []
+        i = 0
+        while i < len(name):
+            if name[i] == "&":
+                end = name.find("-", i)
+                if end == -1:
+                    out.append(name[i:])
+                    break
+                chunk = name[i + 1:end]
+                if chunk == "":
+                    out.append("&")
+                else:
+                    b64 = chunk.replace(",", "/") + "=" * (-len(chunk) % 4)
+                    import base64
+                    out.append(base64.b64decode(b64).decode("utf-16-be"))
+                i = end + 1
+            else:
+                out.append(name[i])
+                i += 1
+        return "".join(out)
+    except Exception:
+        return name
+
+
+def quote_mailbox(name):
+    if re.search(r"[\s\"\\]", name):
+        escaped = name.replace("\\", "\\\\").replace('"', '\\"')
+        return f'"{escaped}"'
+    return name
+
+
+def html_to_text(raw):
+    raw = re.sub(r"(?is)<(script|style).*?</\1>", " ", raw)
+    raw = re.sub(r"(?i)<br\s*/?>", "\n", raw)
+    raw = re.sub(r"(?i)</p\s*>", "\n\n", raw)
+    raw = re.sub(r"(?s)<[^>]+>", " ", raw)
+    raw = html_mod.unescape(raw)
+    raw = re.sub(r"[ \t]+", " ", raw)
+    return re.sub(r"\n{3,}", "\n\n", raw).strip()
+
+
+def part_text(part):
+    payload = part.get_payload(decode=True)
+    if payload is None:
+        return ""
+    charset = part.get_content_charset() or "utf-8"
+    try:
+        return payload.decode(charset, errors="replace")
+    except LookupError:
+        return payload.decode("utf-8", errors="replace")
+
+
+def extract_text(msg):
+    """text/plain bevorzugen, sonst HTML entschlacken."""
+    plain, rich = [], []
+    if msg.is_multipart():
+        for part in msg.walk():
+            if part.get_content_maintype() == "multipart":
+                continue
+            disp = (part.get("Content-Disposition") or "").lower()
+            if "attachment" in disp:
+                continue
+            ctype = part.get_content_type()
+            if ctype == "text/plain":
+                plain.append(part_text(part))
+            elif ctype == "text/html":
+                rich.append(html_to_text(part_text(part)))
+    else:
+        if msg.get_content_type() == "text/html":
+            rich.append(html_to_text(part_text(msg)))
+        else:
+            plain.append(part_text(msg))
+
+    text = "\n".join(t for t in plain if t.strip()) or "\n".join(rich)
+    return re.sub(r"\n{3,}", "\n\n", text).strip()
+
+
+def attachment_names(msg):
+    out = []
+    if not msg.is_multipart():
+        return out
+    for part in msg.walk():
+        disp = (part.get("Content-Disposition") or "").lower()
+        fname = part.get_filename()
+        if fname and ("attachment" in disp or "inline" in disp):
+            try:
+                fname = str(email.header.make_header(email.header.decode_header(fname)))
+            except Exception:
+                pass
+            out.append({"name": fname, "type": part.get_content_type()})
+    return out
+
+
+def short(text, width):
+    text = re.sub(r"\s+", " ", text or "").strip()
+    return text if len(text) <= width else text[: width - 1] + "…"
+
+
+def sender_short(addr):
+    name, mail = email.utils.parseaddr(addr or "")
+    return name or mail or addr or ""
+
+
+def out_json(obj):
+    print(json.dumps(obj, indent=2, ensure_ascii=False))
+
+
+# --- Subcommands ------------------------------------------------------------
+
+def cmd_accounts(args, accounts):
+    rows = sorted(accounts.values(), key=lambda a: a["alias"])
+    if args.json:
+        out_json([
+            {k: v for k, v in a.items() if k != "password"} for a in rows
+        ])
+        return
+    for a in rows:
+        mark = " (default)" if a["default"] else ""
+        print(f"{a['alias']:<10} {a['user']}@{a['host']}:{a['port']}{mark}")
+
+
+def cmd_folders(args, accounts):
+    acc = pick_account(accounts, args.account)
+    with Account(acc) as a:
+        folders = a.folders()
+        info = {
+            "account": a.alias,
+            "host": a.host,
+            "separator": a.delim,
+            "server": sorted(a.caps & {"MOVE", "UIDPLUS", "SPECIAL-USE", "QUOTA", "IDLE"}),
+            "special": {
+                k: a.special_folder(k)
+                for k in ("junk", "trash", "sent", "drafts", "archive")
+            },
+            "folders": folders,
+        }
+        if args.json:
+            out_json(info)
+            return
+        print(f"{a.alias} ({a.host})  Separator '{a.delim}'  Caps: {', '.join(info['server'])}")
+        print()
+        for k, v in info["special"].items():
+            print(f"  {k:<9} {v or '-'}")
+        print()
+        for f in folders:
+            sp = " ".join(f["special"])
+            print(f"  {f['name']:<40} {sp}")
+
+
+def cmd_list(args, accounts):
+    targets = ([pick_account(accounts, args.account)] if args.account
+               else sorted(accounts.values(), key=lambda a: a["alias"]))
+
+    criteria = "ALL"
+    if args.unseen:
+        criteria = "UNSEEN"
+    elif args.since:
+        since = time.strftime("%d-%b-%Y", time.localtime(time.time() - args.since * 86400))
+        criteria = f'SINCE "{since}"'
+
+    result = []
+    for cfg in targets:
+        with Account(cfg) as a:
+            result.extend(a.envelopes(args.folder, args.limit, criteria))
+
+    if args.json:
+        out_json(result)
+        return
+
+    for m in result:
+        flag = " " if m["seen"] else "*"
+        date = short(m["date"], 31)
+        print(f"{flag} {m['account']}/{m['uid']:<7} {short(sender_short(m['from']), 26):<26} "
+              f"{short(m['subject'], 58):<58} {date}")
+    print(f"\n{len(result)} Mails")
+
+
+def cmd_read(args, accounts):
+    acc = pick_account(accounts, args.account)
+    with Account(acc) as a:
+        msg = a.body(args.uid, args.folder, args.max_chars)
+    if args.json:
+        out_json(msg)
+        return
+    for k in ("from", "to", "subject", "date"):
+        if msg[k]:
+            print(f"{k.capitalize():<9}{msg[k]}")
+    if msg["attachments"]:
+        names = ", ".join(x["name"] for x in msg["attachments"])
+        print(f"{'Anhang':<9}{names}")
+    print("-" * 72)
+    print(msg["body"])
+    if msg["truncated"]:
+        print(f"\n[gekuerzt auf {args.max_chars} Zeichen]")
+
+
+def resolve_target(a, target):
+    """Zielordner aufloesen: Sonderrolle (junk/trash/...) oder echter Name."""
+    key = target.lower()
+    if key in SPECIAL_FALLBACK:
+        found = a.special_folder(key)
+        if not found:
+            die(f"[{a.alias}] kein Ordner fuer '{target}' gefunden - echten Namen angeben")
+        return found
+    return target
+
+
+def cmd_batch(args, accounts):
+    """Operationen gebuendelt ausfuehren - ein Login je Konto statt eins je Mail."""
+    if args.file == "-":
+        payload = sys.stdin.read()
+    else:
+        with open(args.file, encoding="utf-8") as f:
+            payload = f.read()
+    try:
+        ops = json.loads(payload)
+    except json.JSONDecodeError as e:
+        die(f"Batch-Datei ist kein gueltiges JSON: {e}")
+    if isinstance(ops, dict):
+        ops = ops.get("operations", [])
+    if not isinstance(ops, list) or not ops:
+        die("Batch enthaelt keine Operationen")
+
+    by_account = {}
+    for op in ops:
+        by_account.setdefault(op.get("account"), []).append(op)
+
+    results = []
+    for alias, group in by_account.items():
+        cfg = pick_account(accounts, alias)
+
+        # Ziel-Konten fuer kontouebergreifende Kopien erst bei Bedarf oeffnen
+
+        with Account(cfg) as a:
+            targets = {}
+            try:
+                for op in group:
+                    results.append(run_op(a, op, accounts, targets, args.dry_run))
+            finally:
+                for t in targets.values():
+                    t.__exit__(None, None, None)
+
+    ok = sum(1 for r in results if r["ok"])
+    if args.json:
+        out_json({"ok": ok, "failed": len(results) - ok, "results": results})
+        return
+    for r in results:
+        mark = "ok  " if r["ok"] else "FEHL"
+        print(f"{mark} {r['action']:<8} {r['account']}/{r['uid']:<7} {r['detail']}")
+    print(f"\n{ok} von {len(results)} Operationen erfolgreich")
+
+
+def run_op(a, op, accounts, targets, dry_run):
+    """Einzelne Operation gegen ein offenes Konto ausfuehren."""
+    action = (op.get("action") or "").lower()
+    uid = op.get("uid")
+    folder = op.get("folder", "INBOX")
+    base = {"account": a.alias, "uid": uid, "action": action}
+
+    if uid is None:
+        return {**base, "ok": False, "detail": "uid fehlt"}
+
+    try:
+        if action in ("move", "copy", "delete", "spam"):
+            if action == "delete":
+                target_name = "trash"
+            elif action == "spam":
+                target_name = "junk"
+            else:
+                target_name = op.get("target")
+            if not target_name:
+                return {**base, "ok": False, "detail": "target fehlt"}
+
+            to_account = op.get("to_account")
+
+            if to_account and to_account != a.alias:
+                return run_cross(a, op, accounts, targets, target_name, dry_run, base)
+
+            resolved = resolve_target(a, target_name)
+            if dry_run:
+                return {**base, "ok": True, "detail": f"[dry-run] -> {resolved}"}
+            if action == "copy":
+                ok, detail = a.copy_local(uid, resolved, folder)
+            else:
+                ok, detail = a.move(uid, resolved, folder)
+            return {**base, "ok": ok, "detail": f"{detail} -> {resolved}"}
+
+        if action in ("seen", "unseen", "flag", "unflag"):
+            flag = "\\Seen" if action in ("seen", "unseen") else "\\Flagged"
+            on = action in ("seen", "flag")
+            if dry_run:
+                return {**base, "ok": True, "detail": f"[dry-run] {flag} {'setzen' if on else 'entfernen'}"}
+            ok, detail = a.set_flag(uid, flag, on, folder)
+            return {**base, "ok": ok, "detail": detail}
+
+        return {**base, "ok": False, "detail": f"unbekannte Aktion '{action}'"}
+
+    except Exception as e:
+        return {**base, "ok": False, "detail": f"{type(e).__name__}: {e}"}
+
+
+def run_cross(a, op, accounts, targets, target_name, dry_run, base):
+    """Kontouebergreifend: FETCH, APPEND ins Ziel, erst danach Quelle aufraeumen."""
+    uid = op["uid"]
+    folder = op.get("folder", "INBOX")
+    to_alias = op["to_account"]
+
+    if to_alias not in targets:
+        t = Account(pick_account(accounts, to_alias))
+        t.__enter__()
+        targets[to_alias] = t
+    tgt = targets[to_alias]
+
+    resolved = resolve_target(tgt, target_name)
+
+    raw, flags, internaldate = a.raw_message(uid, folder)
+
+    msg = email.message_from_bytes(raw)
+    mid = (msg.get("Message-ID") or "").strip()
+
+    existing = tgt.find_by_message_id(mid, resolved)
+    if existing:
+        detail = f"schon vorhanden in {to_alias}/{resolved}, uebersprungen"
+        if op.get("action") == "move" and not dry_run:
+            ok, d = a.move(uid, resolve_target(a, "trash"), folder)
+            detail += f"; Quelle: {d}"
+        return {**base, "ok": True, "detail": detail}
+
+    if dry_run:
+        return {**base, "ok": True, "detail": f"[dry-run] -> {to_alias}/{resolved} ({len(raw)} B)"}
+
+    ok, detail = tgt.append(resolved, raw, flags, internaldate)
+    if not ok:
+
+        # Quelle bleibt unangetastet - lieber ein fehlender Transfer als eine verlorene Mail
+
+        return {**base, "ok": False, "detail": f"APPEND nach {to_alias}/{resolved}: {detail}"}
+
+    result = f"-> {to_alias}/{resolved}"
+    if op.get("action") == "move":
+        trash = resolve_target(a, "trash")
+        ok2, d2 = a.move(uid, trash, folder)
+        result += f"; Quelle -> {trash} ({d2})" if ok2 else f"; Quelle NICHT geraeumt: {d2}"
+    return {**base, "ok": True, "detail": result}
+
+
+def cmd_op(args, accounts):
+    """Einzeloperation - identische Semantik wie ein Batch mit einem Eintrag."""
+    op = {
+        "account": args.account,
+        "action": args.command,
+        "uid": args.uid,
+        "folder": args.folder,
+    }
+    if args.command in ("move", "copy"):
+        op["target"] = args.target
+    if getattr(args, "to_account", None):
+        op["to_account"] = args.to_account
+
+    cfg = pick_account(accounts, args.account)
+    with Account(cfg) as a:
+        targets = {}
+        try:
+            r = run_op(a, op, accounts, targets, args.dry_run)
+        finally:
+            for t in targets.values():
+                t.__exit__(None, None, None)
+
+    if args.json:
+        out_json(r)
+        return
+    mark = "ok" if r["ok"] else "FEHLER"
+    print(f"{mark}: {r['action']} {r['account']}/{r['uid']} - {r['detail']}")
+    if not r["ok"]:
+        sys.exit(1)
+
+
+# --- CLI --------------------------------------------------------------------
+
+def build_parser():
+    p = argparse.ArgumentParser(
+        prog="imap",
+        description="IMAP-Helper fuer Posteingang-Triage (Zugangsdaten aus muttrc)",
+    )
+    p.add_argument("--muttrc", default=DEFAULT_MUTTRC, help="Pfad zur muttrc")
+    p.add_argument("--json", action="store_true", help="Ausgabe als JSON")
+
+    # Dieselben Optionen zusaetzlich hinter dem Subcommand erlauben.
+    # SUPPRESS ist noetig, sonst ueberschreibt der Default des Subparsers
+    # einen vor dem Subcommand gesetzten Wert wieder mit False.
+
+    common = argparse.ArgumentParser(add_help=False)
+    common.add_argument("--muttrc", default=argparse.SUPPRESS)
+    common.add_argument("--json", action="store_true", default=argparse.SUPPRESS)
+
+    sub = p.add_subparsers(dest="command", required=True)
+
+    sp = sub.add_parser("accounts", parents=[common], help="konfigurierte Konten zeigen")
+    sp.set_defaults(func=cmd_accounts)
+
+    sp = sub.add_parser("folders", parents=[common], help="Ordner und Sonderordner eines Kontos")
+    sp.add_argument("--account", "-a")
+    sp.set_defaults(func=cmd_folders)
+
+    sp = sub.add_parser("list", parents=[common], help="Kopfdaten des Posteingangs (ohne Body)")
+    sp.add_argument("--account", "-a", help="ohne Angabe: alle Konten")
+    sp.add_argument("--folder", "-f", default="INBOX")
+    sp.add_argument("--limit", "-n", type=int, default=DEFAULT_LIMIT)
+    sp.add_argument("--unseen", action="store_true", help="nur ungelesene")
+    sp.add_argument("--since", type=int, metavar="TAGE")
+    sp.set_defaults(func=cmd_list)
+
+    sp = sub.add_parser("read", parents=[common],
+                        help="Textkoerper einer Mail (setzt \\Seen nicht)")
+    sp.add_argument("uid", type=int)
+    sp.add_argument("--account", "-a")
+    sp.add_argument("--folder", "-f", default="INBOX")
+    sp.add_argument("--max-chars", type=int, default=DEFAULT_MAX_CHARS)
+    sp.set_defaults(func=cmd_read)
+
+    for name, help_text in (
+        ("move", "verschieben"),
+        ("copy", "kopieren"),
+        ("delete", "in den Papierkorb verschieben"),
+        ("spam", "in den Junk-Ordner verschieben"),
+        ("seen", "als gelesen markieren"),
+        ("unseen", "als ungelesen markieren"),
+        ("flag", "markieren"),
+        ("unflag", "Markierung entfernen"),
+    ):
+        sp = sub.add_parser(name, parents=[common], help=help_text)
+        sp.add_argument("uid", type=int)
+        sp.add_argument("--account", "-a")
+        sp.add_argument("--folder", "-f", default="INBOX")
+        if name in ("move", "copy"):
+            sp.add_argument("--target", "-t", required=True,
+                            help="Ordnername oder Sonderrolle (junk/trash/archive/sent/drafts)")
+            sp.add_argument("--to-account", help="Zielkonto fuer kontouebergreifende Kopien")
+        sp.add_argument("--dry-run", action="store_true")
+        sp.set_defaults(func=cmd_op)
+
+    sp = sub.add_parser("batch", parents=[common],
+                        help="Operationen gebuendelt ausfuehren (ein Login je Konto)")
+    sp.add_argument("file", help="JSON-Datei mit Operationen, '-' fuer stdin")
+    sp.add_argument("--dry-run", action="store_true")
+    sp.set_defaults(func=cmd_batch)
+
+    return p
+
+
+def main():
+    args = build_parser().parse_args()
+    accounts = load_accounts(os.path.expanduser(args.muttrc))
+    args.func(args, accounts)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        sys.exit(130)

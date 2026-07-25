@@ -3,6 +3,45 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.34.0
+
+- **Neuer Skill `imap`: Posteingang-Triage ueber mehrere Konten.** Gegenstueck zu `swaks` — der
+  bestehende Skill versendet, dieser liest und raeumt auf. stdlib-only Python, kein Daemon, kein
+  MCP-Server. Verifiziert gegen beide Konten: `mail.example.at` (Dovecot) und `office.example.at`
+  (Cyrus IMAP 2.5.17).
+  - **Zugangsdaten aus der muttrc**, keine zweite Credential-Datei. Ausgewertet wird eine
+    Teilmenge der muttrc-Syntax: `set`, `account-hook`, `source` (auch `source "cmd |"`) und
+    Backtick-Substitution — damit funktioniert auch `imap_pass=\`pass show ...\`` aus einem
+    Keystore. Konten ohne vollstaendige Angaben werden uebersprungen statt geraten. Kontoname ist
+    das erste Label des Hostnamens (`mail.example.at` -> `mail`).
+  - **Lesend:** `accounts`, `folders` (Ordner, Separator, Sonderordner, Capabilities), `list`
+    (Envelopes ohne Body, `--unseen`/`--since`/`-n`, ohne `--account` ueber alle Konten) und
+    `read` (Textkoerper, HTML wird entschlackt). Gelesen wird durchgehend mit **`BODY.PEEK`**, der
+    Ungelesen-Status bleibt also unangetastet.
+  - **Schreibend:** `move`, `copy`, `spam`, `delete`, `seen`/`unseen`, `flag`/`unflag`, jeweils mit
+    `--dry-run`. `delete` verschiebt in den Papierkorb und expunged **nie**. Als Ziel sind
+    Sonderrollen (`junk`, `trash`, `archive`, `sent`, `drafts`) erlaubt, die per SPECIAL-USE beim
+    Server aufgeloest werden; findet sich nichts, bricht der Aufruf ab, statt einen Ordner anzulegen.
+  - **`batch`** fuehrt eine JSON-Liste von Operationen mit **einem Login je Konto** aus statt einem
+    je Mail — schneller und ohne Login-Serie in den Auth-Logs, die die Brute-Force-Erkennung
+    streift. Das ist der vorgesehene Weg fuer alle Aktionen, nachdem der Nutzer den Vorschlag
+    freigegeben hat.
+  - **Kontouebergreifend** kennt IMAP kein `MOVE`: die Mail wird geholt und per `APPEND` im Ziel
+    eingefuegt (mit Flags und `INTERNALDATE`), die Quelle wird **erst nach** erfolgreichem `APPEND`
+    geraeumt. Schlaegt er fehl, bleibt die Quelle unangetastet — im schlimmsten Fall ein Duplikat,
+    nie ein Verlust. Vorherige Message-ID-Pruefung macht einen abgebrochenen Lauf wiederholbar.
+    Bare LF wird vor dem `APPEND` verlustfrei auf CRLF normalisiert, sonst weist Cyrus Mails
+    zurueck, die Dovecot klaglos gespeichert hat.
+  - **Capabilities werden nach dem Login erneut geholt.** imaplib behaelt die aus dem Greeting;
+    Dovecot meldet `MOVE` und `UIDPLUS` aber erst im authentifizierten Zustand — ohne den
+    zusaetzlichen `CAPABILITY`-Call waere der Skill unnoetig in den COPY-Fallback gelaufen und
+    haette Mails in der Quelle als geloescht markiert liegen gelassen. Der Fallback nutzt
+    **`UID EXPUNGE`**, nicht das nackte `EXPUNGE`, das alle als geloescht markierten Mails des
+    Ordners mitnehmen wuerde.
+  - **Triage-Ablauf in der SKILL.md festgeschrieben:** erst Zusammenfassung (Antwort noetig /
+    Kenntnisnahme / Unsicher), dann Vorschlag (Spam / Ablage / Loeschen), dann **warten**. Keine
+    schreibende Aktion ohne ausdrueckliche Zustimmung; Zweifelhaftes bleibt liegen.
+
 ### 1.33.0
 
 - **`kanboard`: CR<->Jira-Verknuepfung ueber `jira:<KEY>`-Tag.** Analog zum bestehenden
