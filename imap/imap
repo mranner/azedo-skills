@@ -3,7 +3,7 @@
 # IMAP-Helper fuer Posteingang-Triage
 # Liest Zugangsdaten aus muttrc, arbeitet gegen mehrere Konten.
 # stdlib only, keine pip-Abhaengigkeiten. Lauffaehig auf macOS + FreeBSD.
-# version 1.34.0
+# version 1.34.1
 
 import argparse
 import email

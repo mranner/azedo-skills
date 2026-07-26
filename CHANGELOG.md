@@ -3,6 +3,27 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.34.1
+
+- **`imap`: persoenliche Triage-Regeln aus `~/.claude/imap-triage.md`.** Wie eine Inbox
+  einzuordnen ist, ist Praeferenz und keine Skill-Logik: welche Absender Rauschen sind, was einen
+  Push wert ist, was ohne Rueckfrage weggeraeumt werden darf. Der Skill liest die Datei jetzt
+  **vor** jeder Triage (Schritt 1 des Ablaufs); fehlt sie, gilt der Default unveraendert und es
+  wird auch nicht nach ihr gefragt. Widerspricht sie einer Regel im Skill, gewinnt die Datei --
+  ausser bei den Sicherheitszusagen des Skripts (`BODY.PEEK`, `delete` = Papierkorb, nie
+  `expunge`).
+  - **Autonomie-Ausnahme praezisiert:** Der Skill raeumt weiterhin nichts ohne Zustimmung auf.
+    Einzige Ausnahme sind Kategorien, die die Regeldatei **namentlich** als automatisch erlaubt
+    kennzeichnet -- das ist die stehende Freigabe des Nutzers, kein Freibrief fuer den ganzen
+    Posteingang.
+  - **Neuer Abschnitt "Alert-Mails gegenpruefen".** Monitoring- und Reminder-Mails beschreiben
+    einen vergangenen Zustand; vor Meldung oder Push wird der Ist-Zustand geprueft
+    (`nc -z <host> 22` beim sshd-Alert, `openssl s_client` beim Zertifikats-Reminder). Das aendert
+    die Bewertung regelmaessig: ein "Wildcard laeuft morgen ab" ist harmlos, wenn der Host laengst
+    ein Let's-Encrypt-Zertifikat ausliefert. Umgekehrt werden Alert-Paare erst nach einem
+    Monitoring-Intervall bewertet -- monit schickt die Recovery typisch nach ~2 Minuten, vorher
+    gilt ein Failed-Alert zu Unrecht als offener Befund.
+
 ### 1.34.0
 
 - **Neuer Skill `imap`: Posteingang-Triage ueber mehrere Konten.** Gegenstueck zu `swaks` — der

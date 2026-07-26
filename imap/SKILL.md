@@ -135,13 +135,59 @@ Bare LF wird vor dem `APPEND` auf CRLF normalisiert (verlustfrei). Cyrus weist
 solche Mails sonst mit `NO` zurueck, waehrend Dovecot sie klaglos gespeichert
 hat -- Richtung Dovecot -> Cyrus ist das der haeufigste Fehlerfall.
 
+## Persoenliche Regeldatei (`~/.claude/imap-triage.md`)
+
+Wie eine Inbox einzuordnen ist, ist **persoenlich**: welche Absender Rauschen
+sind, was einen Push wert ist, was ohne Rueckfrage weggeraeumt werden darf.
+Solche Praeferenzen gehoeren nicht in diesen Skill und nicht in ein Wiki,
+sondern in `~/.claude/imap-triage.md`.
+
+**Vor jeder Triage diese Datei lesen, falls vorhanden.** Existiert sie nicht,
+gilt der Default-Ablauf unten unveraendert -- kein Grund, sie anzulegen oder
+danach zu fragen.
+
+Was sie typischerweise festlegt:
+
+- **Klassifikation je Absender/Muster** (Rauschen, Spam, Push, Kenntnisnahme).
+- **Autonomie:** welche Kategorien ohne Rueckfrage in den Papierkorb duerfen.
+  Nur was dort ausdruecklich als automatisch markiert ist -- der Default bleibt
+  "nichts ohne Zustimmung".
+- **Eskalationsschwellen**, z.B. Flapping-Alerts erst ab N Paaren melden.
+- **Gegenchecks** vor einem Alarm (siehe naechster Abschnitt).
+
+Widerspricht die Datei einer Regel hier, gewinnt die Datei -- ausser bei den
+Sicherheitszusagen des Skripts (`BODY.PEEK`, `delete` = Papierkorb, nie
+`expunge`).
+
+## Alert-Mails gegenpruefen, nicht weiterreichen
+
+Monitoring- und Reminder-Mails beschreiben einen **vergangenen** Zustand. Bevor
+so eine Mail als Befund gemeldet oder gepusht wird, den Ist-Zustand pruefen:
+
+```
+# sshd-Alert -- antwortet der Port jetzt?
+nc -z -w 5 <host> 22
+
+# Zertifikats-Reminder -- welches Cert laeuft dort wirklich?
+echo | openssl s_client -servername <host> -connect <host>:443 2>/dev/null \
+  | openssl x509 -noout -subject -issuer -dates
+```
+
+Das aendert die Bewertung regelmaessig: ein "Wildcard laeuft morgen ab" ist
+harmlos, wenn der Host laengst ein Let's-Encrypt-Zertifikat ausliefert -- und
+ein Alert ohne Recovery-Mail ist erledigt, wenn der Dienst wieder antwortet.
+Umgekehrt gilt: **Alert-Paare erst nach einem Monitoring-Intervall bewerten**
+(monit schickt die Recovery typisch nach ~2 Minuten), sonst wird jedes
+Failed-Alert einmal zu frueh als offener Befund gemeldet.
+
 ## Triage-Ablauf
 
 Der eigentliche Zweck des Skills. Ablauf bei "geh meine Inbox durch":
 
-1. `list --json` ueber alle Konten
-2. Bodies **nur** fuer die inhaltlich relevanten Mails per `read --json`
-3. Zusammenfassung ausgeben, dann Vorschlag -- in dieser Reihenfolge:
+1. `~/.claude/imap-triage.md` lesen, falls vorhanden
+2. `list --json` ueber alle Konten
+3. Bodies **nur** fuer die inhaltlich relevanten Mails per `read --json`
+4. Zusammenfassung ausgeben, dann Vorschlag -- in dieser Reihenfolge:
 
 ```
 ── Antwort noetig ──
@@ -162,8 +208,8 @@ Loeschen → office/8819
 ok / einzeln anpassen?
 ```
 
-4. **Warten.** Nichts ausfuehren, bevor der User zugestimmt hat.
-5. Nach Freigabe: ein `batch`-Aufruf, danach das Ergebnis melden.
+5. **Warten.** Nichts ausfuehren, bevor der User zugestimmt hat.
+6. Nach Freigabe: ein `batch`-Aufruf, danach das Ergebnis melden.
 
 **Regeln fuer die Vorschlagsgruppen:**
 
@@ -173,7 +219,10 @@ ok / einzeln anpassen?
   im Posteingang als eine wichtige Mail weggeraeumt.
 - `delete` heisst Papierkorb, nicht weg. Endgueltiges Loeschen gibt es nicht.
 - Keine schreibende Aktion ohne ausdrueckliche Zustimmung. "Geh die Inbox
-  durch" ist eine Leseaufforderung, keine Freigabe zum Aufraeumen.
+  durch" ist eine Leseaufforderung, keine Freigabe zum Aufraeumen. Einzige
+  Ausnahme: Kategorien, die `~/.claude/imap-triage.md` **namentlich** als
+  automatisch erlaubt kennzeichnet -- die stehende Freigabe des Nutzers. Alles
+  andere bleibt im Vorschlag.
 
 ## Fallstricke
 

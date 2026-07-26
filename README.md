@@ -448,21 +448,16 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.34.0
+### 1.34.1
 
-- **Neuer Skill `imap`: Posteingang-Triage ueber mehrere Konten.** Gegenstueck zu `swaks` — der
-  versendet, dieser liest und raeumt auf. stdlib-only Python, kein Daemon, kein MCP-Server.
-  Verifiziert gegen `mail.example.at` (Dovecot) und `office.example.at` (Cyrus IMAP 2.5.17).
-  Zugangsdaten kommen aus der **muttrc** (`set`, `account-hook`, `source`, Backticks — damit auch
-  aus einem Keystore), es gibt keine zweite Credential-Datei. Lesend: `accounts`, `folders`,
-  `list` (Envelopes, ohne Konto ueber alle Konten) und `read`, durchgehend mit **`BODY.PEEK`**,
-  der Ungelesen-Status bleibt also unangetastet. Schreibend: `move`, `copy`, `spam`, `delete`
-  (Papierkorb, **nie** expunge), `seen`/`unseen`, `flag`/`unflag`, jeweils mit `--dry-run`;
-  Sonderrollen (`junk`, `trash`, `archive`) werden per SPECIAL-USE am Server aufgeloest statt
-  geraten. **`batch`** fuehrt Aktionen mit einem Login je Konto aus — schneller und ohne
-  Login-Serie in den Auth-Logs. **Kontouebergreifend** wird per `APPEND` ins Ziel kopiert und die
-  Quelle **erst danach** geraeumt (im Fehlerfall lieber ein Duplikat als ein Verlust);
-  Message-ID-Pruefung macht abgebrochene Laeufe wiederholbar, bare LF wird fuer Cyrus auf CRLF
-  normalisiert. Capabilities werden **nach** dem Login erneut geholt, sonst liefe Dovecot unnoetig
-  in den COPY-Fallback. Der Triage-Ablauf (erst Zusammenfassung, dann Vorschlag, dann warten) ist
-  in der SKILL.md festgeschrieben; keine schreibende Aktion ohne ausdrueckliche Zustimmung.
+- **`imap`: persoenliche Triage-Regeln aus `~/.claude/imap-triage.md`.** Wie eine Inbox
+  einzuordnen ist, ist Praeferenz und keine Skill-Logik — welche Absender Rauschen sind, was einen
+  Push wert ist, was ohne Rueckfrage weggeraeumt werden darf. Der Skill liest die Datei jetzt vor
+  jeder Triage; fehlt sie, gilt der Default unveraendert. Widerspricht sie dem Skill, gewinnt die
+  Datei — ausser bei den Sicherheitszusagen des Skripts (`BODY.PEEK`, `delete` = Papierkorb, nie
+  `expunge`). Aufgeraeumt wird weiterhin nichts ohne Zustimmung; einzige Ausnahme sind Kategorien,
+  die die Regeldatei **namentlich** als automatisch erlaubt kennzeichnet. Neu ausserdem: Alert- und
+  Reminder-Mails werden vor Meldung/Push **gegengeprueft** (`nc -z <host> 22`, `openssl s_client`)
+  und Alert-Paare erst nach einem Monitoring-Intervall bewertet — monit schickt die Recovery
+  typisch nach ~2 Minuten.
+
