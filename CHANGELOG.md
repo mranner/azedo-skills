@@ -3,6 +3,26 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.34.2
+
+- **`mail-as-me`: humanizer-de-Audit ist verbindlich, plus Ausfuehrungsnachweis (CR4439).**
+  Schritt 4 von `draft`/`rewrite` war als "Self-Audit ... via humanizer-de" formuliert und
+  liess sich als manueller Abgleich gegen die Anti-Pattern-Liste in `referenz.md` lesen. Genau
+  das ist beim Entwurf an einen Kunden passiert: der Skill wurde nie aufgerufen, der Fehler fiel
+  erst auf Nachfrage auf. Schritt 4 verlangt jetzt den **Aufruf** des Skills `humanizer-de`
+  (Modus Sachlich, Zweig Nur Audit) und haelt fest, dass der manuelle Abgleich ihn nicht ersetzt.
+  Umgekehrt gilt genauso: die Linter finden die inhaltliche Klasse nicht (Zeitkolorit im
+  Einstieg, Abstraktum statt Sachverhalt, Nebenbefunde ohne Handlungsrelevanz, doppeltes
+  Hedging), deshalb bleibt die `referenz.md`-Checkliste als zweiter Durchgang daneben stehen.
+  - **Neuer Abschnitt "Ausfuehrungszeile".** Jeder gezeigte Entwurf beginnt mit einer Zeile
+    ueber die tatsaechlich gelaufenen Schritte (Profil, Register + Herkunft, geladene Beispiele,
+    humanizer-de-Modus + Ergebnis). Ein uebersprungener Schritt wird damit sofort sichtbar,
+    statt unbemerkt zu bleiben. Nicht Gelaufenes wird ausgeschrieben (`humanizer-de: nicht
+    gelaufen`), nicht weggelassen; die Zeile ist Arbeitsprotokoll und geht nicht mit der Mail
+    raus.
+  - **Verworfen:** ein PreToolUse-Hook, der `swaks` blockt, wenn kein humanizer-de-Lauf
+    stattfand. Er traefe auch reine Dateiversendungen ohne Textentwurf.
+
 ### 1.34.1
 
 - **`imap`: persoenliche Triage-Regeln aus `~/.claude/imap-triage.md`.** Wie eine Inbox

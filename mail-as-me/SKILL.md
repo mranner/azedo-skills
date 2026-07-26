@@ -93,14 +93,25 @@ Eingabe: Empfaenger (+ Thema **oder** eine Reply-`.eml`). Ablauf:
    spiegeln** (weder Sprache, Stil, Register, Region/Dialekt, Anrede noch
    Grussformel; bei einer Reply-`.eml` nicht Ton/Region des Absenders uebernehmen).
    Die Sprache nur wechseln, wenn der Nutzer es **explizit** vorgibt.
-4. **Self-Audit** gegen die Anti-Patterns via **humanizer-de** (siehe unten).
-5. Entwurf zeigen. Optional Versand ueber **swaks** (Text + HTML), Signatur dort.
+4. **Pflicht-Audit via humanizer-de.** Den Skill `humanizer-de` **tatsaechlich
+   aufrufen** (Skill-Tool bzw. `/humanizer-de`), Modus **Sachlich**, Zweig **Nur
+   Audit**. Ein manueller Abgleich gegen die Anti-Pattern-Liste in `referenz.md`
+   ersetzt den Lauf **nicht** und zaehlt nicht als erledigter Schritt 4. Der Lauf
+   entfaellt auch bei kurzen Mails, Routinemeldungen oder Zeitdruck nicht.
+   Anschliessend die profilspezifischen Anti-Patterns aus `referenz.md` zusaetzlich
+   inhaltlich durchgehen: die Linter finden diese Klasse nicht (Zeitkolorit im
+   Einstieg, Abstraktum statt konkretem Sachverhalt, Nebenbefunde ohne
+   Handlungsrelevanz, doppeltes Hedging, "Rueckfall" fuer Software).
+   Beides ist noetig, keines ersetzt das andere.
+5. Entwurf zeigen, **immer mit der Ausfuehrungszeile** (siehe unten). Optional
+   Versand ueber **swaks** (Text + HTML), Signatur dort.
 
 ### rewrite — bestehenden Entwurf in-voice bringen
 
 Nimmt einen Entwurf (eigener oder fremder), gleicht ihn an das Profil an und laeuft
-denselben humanizer-de-Audit. Fuer „mach diese Mail wie ich". Gilt auch hier: **das
-Gegenueber nie spiegeln** (Sprache/Stil/Region) — ein fremder Ausgangston wird auf die
+denselben **verbindlichen** humanizer-de-Audit aus Schritt 4 von `draft`, inklusive
+Ausfuehrungszeile beim Zeigen. Fuer „mach diese Mail wie ich". Gilt auch hier: **das
+Gegenueber nie spiegeln** (Sprache/Stil/Region), ein fremder Ausgangston wird auf die
 eigene Stimme gezogen, nicht beibehalten.
 
 ### learn — Feedback-Loop (Konvergenz)
@@ -115,17 +126,46 @@ anhaengen — dabei generelle Stilregeln von inhaltlichen Einzelfall-Aenderungen
 So wird jede korrigierte Mail zum Trainingssignal; die Korrekturen pro Mail nehmen mit
 der Zeit ab.
 
+## Ausfuehrungszeile (Pflicht bei draft und rewrite)
+
+Jeder gezeigte Entwurf beginnt mit **einer** Zeile, die belegt, welche Schritte
+tatsaechlich gelaufen sind. Sie steht vor dem Entwurf, nicht danach, und wird auch bei
+kurzen Mails gesetzt:
+
+```
+Schritte: Profil michael · Register sachlich (example.ch) · Beispiele 76421, 76512 · humanizer-de Sachlich/Nur-Audit: Preflight low, keine HIGH-Cluster
+```
+
+Vier Felder, immer in dieser Reihenfolge:
+
+| Feld | Inhalt |
+|---|---|
+| Profil | Name des geladenen Profils |
+| Register | bestimmtes Register + Herkunft (Domain aus `register_map`, sonst „nachgefragt") |
+| Beispiele | IDs/Dateinamen der geladenen Beispiele aus `corpus/clean/` |
+| humanizer-de | Modus/Zweig + Ergebnis in Kurzform (Preflight-Stufe, Cluster-Befund) |
+
+Ist ein Schritt nicht gelaufen, wird das **ausgeschrieben** (`humanizer-de: nicht
+gelaufen`), statt das Feld wegzulassen. Ein fehlendes Feld ist genau der Fall, der
+unbemerkt durchrutscht; eine Zeile, die einen Schritt als gelaufen ausweist, der nicht
+gelaufen ist, ist eine Falschaussage und schlimmer als gar keine Zeile.
+
+Die Zeile ist Arbeitsprotokoll fuer den Nutzer und **kein Teil der Mail**: beim Versand
+ueber swaks wird sie nicht mitgeschickt.
+
 ## Anti-Patterns / KI-Tells → humanizer-de
 
 Die sprachlichen Anti-Patterns (Gedankenstrich, Nominalkomposita, elliptische
 Antithese, erfundene Zusagen, Anfuehrungszeichen um Paraphrasen, Absolutheit ohne
 Hedge, Bestaetigungsfloskeln) sind personenunabhaengig und werden **nicht** hier
-dupliziert, sondern ueber den **humanizer-de**-Skill geprueft. `referenz.md` fuehrt
-sie nur als Checkliste mit dem persoenlichen Bezug.
+dupliziert, sondern ueber einen **Aufruf** des **humanizer-de**-Skills geprueft, nicht
+aus dem Gedaechtnis. `referenz.md` fuehrt sie nur als Checkliste mit dem persoenlichen
+Bezug; diese Checkliste ist die **Ergaenzung** zum Skill-Lauf, nicht sein Ersatz.
 
 ## Integration
 
-- **humanizer-de** — KI-Tell-Audit im `draft`/`rewrite`-Self-Check.
+- **humanizer-de** - verbindlicher KI-Tell-Audit in Schritt 4 von `draft`/`rewrite`,
+  kein optionaler Self-Check; Ergebnis gehoert in die Ausfuehrungszeile.
 - **swaks** — Versand (`mail-as-me` schreibt, `swaks` sendet; Signatur kommt aus swaks).
 - **kanboard/handoff** — optional CR-Kontext fuer den `learn`-Loop.
 

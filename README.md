@@ -448,16 +448,16 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.34.1
+### 1.34.2
 
-- **`imap`: persoenliche Triage-Regeln aus `~/.claude/imap-triage.md`.** Wie eine Inbox
-  einzuordnen ist, ist Praeferenz und keine Skill-Logik — welche Absender Rauschen sind, was einen
-  Push wert ist, was ohne Rueckfrage weggeraeumt werden darf. Der Skill liest die Datei jetzt vor
-  jeder Triage; fehlt sie, gilt der Default unveraendert. Widerspricht sie dem Skill, gewinnt die
-  Datei — ausser bei den Sicherheitszusagen des Skripts (`BODY.PEEK`, `delete` = Papierkorb, nie
-  `expunge`). Aufgeraeumt wird weiterhin nichts ohne Zustimmung; einzige Ausnahme sind Kategorien,
-  die die Regeldatei **namentlich** als automatisch erlaubt kennzeichnet. Neu ausserdem: Alert- und
-  Reminder-Mails werden vor Meldung/Push **gegengeprueft** (`nc -z <host> 22`, `openssl s_client`)
-  und Alert-Paare erst nach einem Monitoring-Intervall bewertet — monit schickt die Recovery
-  typisch nach ~2 Minuten.
+- **`mail-as-me`: humanizer-de-Audit ist verbindlich, plus Ausfuehrungsnachweis (CR4439).**
+  Schritt 4 von `draft`/`rewrite` war als "Self-Audit ... via humanizer-de" formuliert und liess
+  sich als manueller Abgleich gegen `referenz.md` lesen; genau so ist der Skill-Lauf bei einem
+  Kundenentwurf ausgefallen. Schritt 4 verlangt jetzt den **Aufruf** von `humanizer-de` (Sachlich /
+  Nur Audit), der manuelle Abgleich ersetzt ihn nicht und bleibt als zweiter Durchgang daneben
+  stehen: die Linter finden Zeitkolorit, Abstrakta, Nebenbefunde und doppeltes Hedging nicht.
+  Neuer Abschnitt **Ausfuehrungszeile** -- jeder gezeigte Entwurf beginnt mit einer Zeile ueber die
+  tatsaechlich gelaufenen Schritte (Profil, Register + Herkunft, geladene Beispiele, humanizer-de
+  Modus + Ergebnis); Nicht-Gelaufenes wird ausgeschrieben statt weggelassen, und die Zeile geht
+  nicht mit der Mail raus.
 
