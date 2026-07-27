@@ -3,6 +3,34 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.34.3
+
+- **`jira`: Kommentare bearbeiten, @-Mentions im Body, Nutzersuche (CR4444).** Aufgefallen an
+  ITSD-16162: eine Mention musste ueber ein Ad-hoc-Skript direkt gegen die REST API gesetzt werden,
+  weil der Skill weder bestehende Kommentare aendern noch Erwaehnungen erzeugen konnte.
+  - **`comment-edit <ISSUE> --id <commentId> --body ...`** ueberschreibt einen bestehenden
+    Kommentar (`PUT issue/{key}/comment/{id}`, Cloud ADF / DC Plaintext, `--body -` liest stdin).
+    Damit die id ohne `--json` auffindbar ist, steht sie jetzt in der Kopfzeile von `comments`:
+    `[2026-07-27 22:50] MRanner (id 214989):`.
+  - **`@[<schluessel>]` im Body wird zur echten Erwaehnung** — Cloud als ADF-`mention`-Knoten, DC
+    als Wiki-Markup `[~username]`. Gilt fuer jeden geschriebenen Body (`comment`, `comment-edit`,
+    `describe`, `transition --comment`); enthaelt ein Text keine `@[...]`, laeuft auch kein
+    zusaetzlicher API-Call. Schluessel ist eine E-Mail (exakter Treffer auf `emailAddress`), eine
+    accountId/ein Username (direkt uebernommen) oder ein Anzeigename.
+  - **Mehrdeutigkeit bricht ab, statt zu raten.** Auf der Corris-Cloud liefert `@[Max Mustermann]`
+    drei aktive Accounts gleichen Namens (nur einer mit sichtbarer E-Mail) — der Skill listet die
+    Kandidaten mit accountId und E-Mail und schreibt nichts. Ein Schluessel ohne Treffer bricht
+    ebenso ab; unaufgeloester `@[...]`-Text landet nie im Ticket. Umgekehrt gilt: verbirgt Cloud die
+    E-Mail in der Antwort, matcht die Suche sie trotzdem — bleibt genau ein Kandidat, wird er
+    genommen.
+  - **`users --query <suchbegriff>`** schlaegt die noetigen Kennungen nach (Cloud
+    `user/search?query=` -> accountId, DC `user/search?username=` -> Username), mit Anzeigename,
+    E-Mail und Inaktiv-Markierung.
+  - **Nicht-JSON-Antworten melden sich lesbar** statt mit `JSONDecodeError`-Traceback: liefert die
+    Instanz auf 200 eine HTML-Login-/SSO-Seite (bei `jira.example.com` derzeit auf **allen**
+    Endpoints, auch `myself` — abgelaufener PAT), nennt der Fehler Content-Type und Ziel-URL. Der
+    DC-Pfad dieses Release ist daher nur gegen Cloud verifiziert.
+
 ### 1.34.2
 
 - **`mail-as-me`: humanizer-de-Audit ist verbindlich, plus Ausfuehrungsnachweis (CR4439).**

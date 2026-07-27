@@ -106,6 +106,19 @@ python3 ~/.claude/skills/kimai/kimai setup
 
 **Trigger:** `/kimai` oder natürliche Sprache wie "wieviele Stunden habe ich diese Woche", "Zeiteintrag anlegen".
 
+### jira
+
+Jira über die REST API — sowohl selbst-gehostetes **Data Center/Server** (`/rest/api/2/`, PAT-Bearer, Plaintext/Wiki-Markup) als auch **Cloud** (`*.atlassian.net`, `/rest/api/3/`, Basic-Auth `email:token`, ADF-Bodies). Mehrere Instanzen als benannte Profile in `~/.claude/jira.json`, Ziel-Instanz per Projekt-Routing aus dem Issue-Key (`CORTAB-*` → Ergon, `SADM-*`/`ITSD-*` → Corris) oder `--instance`:
+
+- Lesen: `search` (JQL, Paginierung DC `--start` / Cloud `--token`), `issue`, `comments` (mit Kommentar-id), `transitions`, `attachments`, `download`, `users` (Nutzersuche → accountId bzw. Username)
+- Schreiben: `comment`, `comment-edit` (bestehenden Kommentar überschreiben), `transition` (dry-run, erst mit `--yes`), `assign`, `describe`, `subtask`, `attach`
+- `@[<schlüssel>]` im Body wird zur echten Erwähnung: Cloud als ADF-`mention`-Knoten, DC als `[~username]`. Schlüssel ist E-Mail (eindeutig, bevorzugt), accountId/Username oder Anzeigename — bei mehreren Treffern bricht der Skill mit Kandidatenliste ab, statt zu raten
+- ADF ↔ Plaintext transparent: beim Lesen verflacht, beim Schreiben aus Plaintext aufgebaut
+
+**Voraussetzungen:** Python ≥ 3.11, DC: Personal Access Token; Cloud: API-Token von id.atlassian.com + Account-E-Mail. Config `~/.claude/jira.json` (Vorlage: `jira/jira.json.example`), alternativ `JIRA_CONFIG=`.
+
+**Trigger:** `/jira` oder natürliche Sprache wie "schau in Jira", "welchen Status hat CORTAB-…", "kommentier das Ticket".
+
 ### imap
 
 Posteingang-Triage über mehrere IMAP-Konten — das Gegenstück zu `swaks`. Unterstützt:
@@ -448,16 +461,15 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.34.2
+### 1.34.3
 
-- **`mail-as-me`: humanizer-de-Audit ist verbindlich, plus Ausfuehrungsnachweis (CR4439).**
-  Schritt 4 von `draft`/`rewrite` war als "Self-Audit ... via humanizer-de" formuliert und liess
-  sich als manueller Abgleich gegen `referenz.md` lesen; genau so ist der Skill-Lauf bei einem
-  Kundenentwurf ausgefallen. Schritt 4 verlangt jetzt den **Aufruf** von `humanizer-de` (Sachlich /
-  Nur Audit), der manuelle Abgleich ersetzt ihn nicht und bleibt als zweiter Durchgang daneben
-  stehen: die Linter finden Zeitkolorit, Abstrakta, Nebenbefunde und doppeltes Hedging nicht.
-  Neuer Abschnitt **Ausfuehrungszeile** -- jeder gezeigte Entwurf beginnt mit einer Zeile ueber die
-  tatsaechlich gelaufenen Schritte (Profil, Register + Herkunft, geladene Beispiele, humanizer-de
-  Modus + Ergebnis); Nicht-Gelaufenes wird ausgeschrieben statt weggelassen, und die Zeile geht
-  nicht mit der Mail raus.
+- **`jira`: Kommentare bearbeiten, @-Mentions im Body, Nutzersuche (CR4444).** Aufgefallen an
+  ITSD-16162, wo eine Mention über ein Ad-hoc-Skript direkt gegen die REST API gesetzt werden musste.
+  Neu: **`comment-edit --id <commentId>`** überschreibt einen bestehenden Kommentar (die id steht
+  jetzt in der Kopfzeile von `comments`), **`@[<schlüssel>]`** in jedem geschriebenen Body wird zur
+  echten Erwähnung (Cloud ADF-`mention`, DC `[~username]`) und **`users --query`** schlägt accountId
+  bzw. Username nach. Schlüssel ist E-Mail, accountId/Username oder Anzeigename; ist er nicht
+  eindeutig — auf der Corris-Cloud gibt es drei aktive Accounts „Max Mustermann" — bricht der Skill
+  mit Kandidatenliste ab und schreibt nichts, statt die falsche Person zu erwähnen. Ausserdem melden
+  sich Nicht-JSON-Antworten (HTML-Login-/SSO-Seite auf Status 200) lesbar statt als Traceback.
 

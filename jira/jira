@@ -3,7 +3,7 @@
 # Jira REST API helper (multi-instance): Data Center/Server (v2, Bearer-PAT)
 # und Cloud (*.atlassian.net, v3, Basic email:token, ADF-Bodies)
 # stdlib only, no pip dependencies
-# version 1.33.0
+# version 1.34.3
 
 import argparse
 import base64
@@ -182,7 +182,20 @@ def api_call(inst, method, path, data=None, params=None):
     try:
         with urllib.request.urlopen(req) as resp:
             raw = resp.read()
-            return json.loads(raw.decode("utf-8")) if raw else None
+            if not raw:
+                return None
+            try:
+                return json.loads(raw.decode("utf-8"))
+            except ValueError:
+                # 200 mit HTML statt JSON: typisch eine vorgeschaltete
+                # SSO-/Login-Seite (abgelaufener PAT, Auth-Gateway davor)
+                print(
+                    f"Error: Antwort von {url} ist kein JSON "
+                    f"({resp.headers.get('Content-Type', '?')}, Ziel {resp.geturl()}) "
+                    "-- vermutlich eine Login-/SSO-Seite: Token pruefen.",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
     except urllib.error.HTTPError as e:
         err = e.read().decode("utf-8", errors="replace")
         print(f"API error {e.code}: {err}", file=sys.stderr)
@@ -326,16 +339,36 @@ def adf_to_text(node):
     return inner
 
 
-def text_to_adf(text):
+def _adf_inline(line, mentions):
+    """Zeile in ADF-Inline-Knoten zerlegen; @[...] wird zum mention-Knoten"""
+    nodes = []
+    pos = 0
+    for m in _MENTION_RE.finditer(line):
+        if m.start() > pos:
+            nodes.append({"type": "text", "text": line[pos : m.start()]})
+        ref = mentions.get(m.group(1).strip())
+        if ref:
+            nodes.append(
+                {
+                    "type": "mention",
+                    "attrs": {"id": ref["id"], "text": "@" + ref["display"]},
+                }
+            )
+        else:
+            nodes.append({"type": "text", "text": m.group(0)})
+        pos = m.end()
+    if pos < len(line):
+        nodes.append({"type": "text", "text": line[pos:]})
+    return nodes
+
+
+def text_to_adf(text, mentions=None):
     """Plaintext zu einem minimalen ADF-Dokument (fuer Cloud-Writes)"""
+    mentions = mentions or {}
     paras = []
     for line in text.split("\n"):
-        if line == "":
-            paras.append({"type": "paragraph", "content": []})
-        else:
-            paras.append(
-                {"type": "paragraph", "content": [{"type": "text", "text": line}]}
-            )
+        content = _adf_inline(line, mentions) if line else []
+        paras.append({"type": "paragraph", "content": content})
     if not paras:
         paras = [{"type": "paragraph", "content": []}]
     return {"type": "doc", "version": 1, "content": paras}
@@ -348,9 +381,126 @@ def render_body(inst, value):
     return value
 
 
+# ---- @-Mentions ----------------------------------------------------------
+#
+# Im Body markiert `@[<schluessel>]` eine Erwaehnung. Schluessel ist eine
+# E-Mail-Adresse (eindeutig), eine Cloud-accountId bzw. ein DC-Username, oder
+# ein Anzeigename. Cloud bekommt daraus einen ADF-mention-Knoten, DC die
+# Wiki-Markup-Form `[~username]`. Ein Schluessel, der nicht eindeutig
+# aufloesbar ist, bricht ab — lieber kein Schreibvorgang als die falsche Person.
+
+_MENTION_RE = re.compile(r"@\[([^\]\n]+)\]")
+
+# Cloud-accountId: 24 Hex-Zeichen (alt) oder '<praefix>:<uuid>' (neu)
+_ACCOUNT_ID_RE = re.compile(
+    r"^(?:[0-9a-f]{24}|[0-9a-zA-Z]+:[0-9a-fA-F]{8}-[0-9a-fA-F-]{27})$"
+)
+
+
+def user_search(inst, query, max_results=50):
+    """Nutzersuche: Cloud ueber 'query', DC ueber 'username'"""
+    key = "query" if inst.is_cloud else "username"
+    result = api_call(
+        inst, "GET", "user/search", params={key: query, "maxResults": max_results}
+    )
+    return result or []
+
+
+def _user_ident(inst, user):
+    """Mention-Id: accountId (Cloud) bzw. Username (DC)"""
+    if inst.is_cloud:
+        return user.get("accountId")
+    return user.get("name") or user.get("key")
+
+
+def _mention_ambiguous(token, candidates, inst):
+    """Kandidaten ausgeben statt raten"""
+    print(
+        f"Error: '@[{token}]' ist nicht eindeutig ({len(candidates)} Treffer). "
+        "Eindeutigen Schluessel verwenden (E-Mail, accountId/Username):",
+        file=sys.stderr,
+    )
+    for u in candidates:
+        print(
+            f"  {_user_ident(inst, u)}  {u.get('displayName', '?')}  "
+            f"<{u.get('emailAddress') or '-'}>",
+            file=sys.stderr,
+        )
+    sys.exit(1)
+
+
+def resolve_mention(inst, token):
+    """Einen Mention-Schluessel zu {'id', 'display'} aufloesen"""
+    token = token.strip()
+
+    # accountId direkt angegeben -> nur noch den Anzeigenamen holen
+    if inst.is_cloud and _ACCOUNT_ID_RE.match(token):
+        user = api_call(inst, "GET", "user", params={"accountId": token})
+        return {"id": token, "display": user.get("displayName") or token}
+
+    candidates = [u for u in user_search(inst, token) if u.get("active", True)]
+    if not candidates:
+        print(
+            f"Error: kein Nutzer zu '@[{token}]' gefunden ({inst.name})",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    low = token.lower()
+    if "@" in token:
+        exact = [
+            u for u in candidates if (u.get("emailAddress") or "").lower() == low
+        ]
+    else:
+        # DC: Username schlaegt Anzeigename; Cloud kennt keinen Username mehr
+        exact = [u for u in candidates if (u.get("name") or "").lower() == low]
+        if not exact:
+            exact = [
+                u for u in candidates if (u.get("displayName") or "").lower() == low
+            ]
+
+    if len(exact) == 1:
+        pick = exact[0]
+    elif len(exact) > 1:
+        _mention_ambiguous(token, exact, inst)
+    elif len(candidates) == 1:
+        # Kein exakter Treffer, aber nur ein Kandidat (Cloud verbirgt E-Mails
+        # oft in der Antwort — die Suche selbst matcht sie trotzdem)
+        pick = candidates[0]
+    else:
+        _mention_ambiguous(token, candidates, inst)
+
+    ident = _user_ident(inst, pick)
+    if not ident:
+        print(f"Error: Nutzer zu '@[{token}]' ohne Kennung", file=sys.stderr)
+        sys.exit(1)
+    return {"id": ident, "display": pick.get("displayName") or ident}
+
+
+def resolve_mentions(inst, text):
+    """Alle @[...]-Schluessel im Text einmalig aufloesen"""
+    tokens = {m.group(1).strip() for m in _MENTION_RE.finditer(text or "")}
+    return {t: resolve_mention(inst, t) for t in sorted(tokens)}
+
+
+def apply_dc_mentions(text, mentions):
+    """DC-Body: @[...] durch die Wiki-Markup-Erwaehnung [~username] ersetzen"""
+
+    def repl(m):
+        ref = mentions.get(m.group(1).strip())
+        return f"[~{ref['id']}]" if ref else m.group(0)
+
+    return _MENTION_RE.sub(repl, text)
+
+
 def comment_body_payload(inst, text):
-    """Body im richtigen Format: ADF fuer Cloud, Plaintext fuer DC"""
-    return text_to_adf(text) if inst.is_cloud else text
+    """Body im richtigen Format: ADF fuer Cloud, Plaintext/Wiki-Markup fuer DC.
+    @[...]-Erwaehnungen werden vorher aufgeloest (API-Calls nur, wenn welche
+    im Text stehen)."""
+    mentions = resolve_mentions(inst, text)
+    if inst.is_cloud:
+        return text_to_adf(text, mentions)
+    return apply_dc_mentions(text, mentions)
 
 
 def _field(issue, *keys, default="-"):
@@ -467,7 +617,8 @@ def cmd_comments(args):
     for c in comments:
         author = (c.get("author") or {}).get("displayName", "?")
         created = c.get("created", "")[:16].replace("T", " ")
-        print(f"[{created}] {author}:")
+        # Die id steht mit in der Kopfzeile — comment-edit braucht sie
+        print(f"[{created}] {author} (id {c.get('id')}):")
         print(render_body(inst, c.get("body", "")).rstrip())
         print()
     print(f"{len(comments)} Kommentar(e)", file=sys.stderr)
@@ -499,6 +650,39 @@ def cmd_comment(args):
         data={"body": comment_body_payload(inst, body)},
     )
     print(f"[{inst.name}] Kommentar {result.get('id')} zu {args.key} hinzugefuegt.")
+
+
+def cmd_comment_edit(args):
+    inst = resolve_instance(args.instance, _project_of_key(args.key))
+    body = args.body
+    if body == "-":
+        body = sys.stdin.read()
+    if not body or not body.strip():
+        print("Error: leerer Kommentar-Body", file=sys.stderr)
+        sys.exit(1)
+    result = api_call(
+        inst,
+        "PUT",
+        f"issue/{args.key}/comment/{args.id}",
+        data={"body": comment_body_payload(inst, body)},
+    )
+    print(f"[{inst.name}] Kommentar {result.get('id')} an {args.key} ueberschrieben.")
+
+
+def cmd_users(args):
+    inst = resolve_instance(args.instance)
+    users = user_search(inst, args.query, args.max)
+    if args.json:
+        out_json(users)
+        return
+    for u in users:
+        ident = _user_ident(inst, u) or "?"
+        mark = "" if u.get("active", True) else "  (inaktiv)"
+        print(
+            f"{ident:<34} {u.get('displayName', '?'):<28} "
+            f"{u.get('emailAddress') or '-'}{mark}"
+        )
+    print(f"[{inst.name}] {len(users)} Treffer", file=sys.stderr)
 
 
 def cmd_transition(args):
@@ -596,7 +780,7 @@ def cmd_describe(args):
     body = args.body
     if body == "-":
         body = sys.stdin.read()
-    value = text_to_adf(body) if inst.is_cloud else body
+    value = comment_body_payload(inst, body)
     api_call(inst, "PUT", f"issue/{args.key}", data={"fields": {"description": value}})
     print(f"[{inst.name}] {args.key}: Beschreibung gesetzt.")
 
@@ -747,6 +931,26 @@ def build_parser():
     sp.add_argument("key", help="Issue-Key")
     sp.add_argument("--body", required=True, help="Kommentartext ('-' liest von stdin)")
     sp.set_defaults(func=cmd_comment)
+
+    sp = sub.add_parser(
+        "comment-edit", help="bestehenden Kommentar ueberschreiben (schreibend)"
+    )
+    add_instance(sp)
+    sp.add_argument("key", help="Issue-Key")
+    sp.add_argument("--id", required=True, help="Kommentar-ID (siehe 'comments')")
+    sp.add_argument(
+        "--body", required=True, help="neuer Kommentartext ('-' liest von stdin)"
+    )
+    sp.set_defaults(func=cmd_comment_edit)
+
+    sp = sub.add_parser("users", help="Nutzer suchen (accountId / Username)")
+    add_instance(sp)
+    sp.add_argument(
+        "--query", required=True, help="Suchbegriff: E-Mail, Name, (DC) Username"
+    )
+    sp.add_argument("--max", type=int, default=50, help="maxResults (Default 50)")
+    sp.add_argument("--json", action="store_true", help="rohes JSON ausgeben")
+    sp.set_defaults(func=cmd_users)
 
     sp = sub.add_parser(
         "transition", help="Status-Uebergang ausfuehren (schreibend, --yes noetig)"

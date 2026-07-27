@@ -3,8 +3,10 @@ name: jira
 description: >
   Jira Data Center / Server (self-hosted, z.B. jira.example.com) UND Jira Cloud
   (*.atlassian.net, z.B. example.atlassian.net): Issues per JQL suchen, einzelnes
-  Issue + Kommentare anzeigen, moegliche Status-Uebergaenge auflisten sowie
-  schreibend Kommentare hinzufuegen, Status-Uebergaenge (Transitions) ausfuehren,
+  Issue + Kommentare anzeigen, moegliche Status-Uebergaenge auflisten, Nutzer
+  suchen (accountId/Username) sowie schreibend Kommentare hinzufuegen und
+  bestehende Kommentare bearbeiten (inkl. @-Mentions im Text),
+  Status-Uebergaenge (Transitions) ausfuehren,
   Issues zuweisen, Beschreibungen setzen, Unteraufgaben anlegen sowie Dateien
   anhaengen, auflisten und herunterladen. Multi-Instanz ueber benannte Profile in ~/.claude/jira.json mit
   Projekt-Routing (z.B. CORTAB-* -> Ergon, SADM-* -> Corris). DC: PAT-Bearer,
@@ -99,8 +101,12 @@ python3 "$SKILL_DIR/jira" search "project = CORTAB" --fields summary,status --js
 # Einzelnes Issue (mit Beschreibung)
 python3 "$SKILL_DIR/jira" issue CORTAB-1762
 
-# Kommentare
+# Kommentare (Kopfzeile enthaelt die Kommentar-id -- die braucht comment-edit)
 python3 "$SKILL_DIR/jira" comments CORTAB-1762
+
+# Nutzer suchen: Cloud accountId, DC Username (Suchbegriff = E-Mail, Name, Username)
+python3 "$SKILL_DIR/jira" users -i corris --query "philippe.bucher@corris.com"
+python3 "$SKILL_DIR/jira" users -i corris --query "bucher" --json
 
 # Moegliche Status-Uebergaenge (id, Name, Ziel-Status)
 python3 "$SKILL_DIR/jira" transitions CORTAB-1762
@@ -125,6 +131,9 @@ Schreibende Operationen nur, soweit der eigene User es in der jeweiligen Instanz
 # Kommentar hinzufuegen ('-' liest den Body von stdin)
 python3 "$SKILL_DIR/jira" comment CORTAB-1762 --body "Deploy auf DEV erledigt, bitte pruefen."
 
+# Bestehenden Kommentar ueberschreiben (id aus 'comments')
+python3 "$SKILL_DIR/jira" comment-edit ITSD-16162 --id 214989 --body "Korrigierter Text."
+
 # Status-Uebergang: erst dry-run (zeigt gematchten Uebergang + Ziel-Status), dann --yes
 python3 "$SKILL_DIR/jira" transition CORTAB-1762 --to "In Progress"          # dry-run
 python3 "$SKILL_DIR/jira" transition CORTAB-1762 --to "In Progress" --yes    # ausfuehren
@@ -133,6 +142,35 @@ python3 "$SKILL_DIR/jira" transition CORTAB-1762 --to "Done" --comment "erledigt
 
 `--to` matcht case-insensitiv auf den **Uebergangs-Namen** ODER den **Ziel-Status-Namen**. Passt
 nichts, werden die moeglichen Uebergaenge aufgelistet. Ohne `--yes` wird nichts geaendert.
+
+### @-Mentions im Body
+
+`@[<schluessel>]` im Text wird zur echten Erwaehnung — bei **Cloud** als ADF-`mention`-Knoten
+(loest die Benachrichtigung aus), bei **DC** als Wiki-Markup `[~username]`. Gilt in jedem
+geschriebenen Body: `comment`, `comment-edit`, `describe` und `transition --comment`.
+
+```
+python3 "$SKILL_DIR/jira" comment ITSD-16162 --body "Hallo @[philippe.bucher@corris.com], bitte pruefen."
+python3 "$SKILL_DIR/jira" comment ITSD-16162 --body "cc @[0123456789abcdef01234567]"
+```
+
+Als Schluessel taugt:
+
+| Schluessel | Aufloesung |
+|---|---|
+| E-Mail-Adresse | `user/search`, exakter Treffer auf `emailAddress` — **eindeutig, bevorzugen** |
+| accountId (Cloud) / Username (DC) | direkt uebernommen, nur der Anzeigename wird nachgeladen |
+| Anzeigename | `user/search`, exakter Treffer auf `displayName` |
+
+**Bei Mehrdeutigkeit wird abgebrochen, nicht geraten.** Auf der Corris-Cloud gibt es mehrere aktive
+Accounts mit identischem Anzeigenamen (`@[Max Mustermann]` -> 3 Treffer, nur einer mit sichtbarer
+E-Mail). Der Skill listet dann die Kandidaten mit accountId und E-Mail auf und schreibt nichts —
+danach mit E-Mail oder accountId wiederholen. Ein Schluessel ohne Treffer bricht ebenfalls ab; es
+landet nie unaufgeloester `@[...]`-Text im Ticket.
+
+Cloud verbirgt E-Mail-Adressen je nach Profil-Einstellung in der Antwort. Die Suche matcht sie
+trotzdem: bleibt genau ein Kandidat uebrig, wird er genommen, auch wenn `emailAddress` leer ist.
+`@[...]` wird immer als Mention gelesen — fuer literalen Text diese Schreibweise meiden.
 
 ```
 # Assignee setzen / entfernen
@@ -167,6 +205,12 @@ Jira ignoriert den Assignee beim Create je nach Screen-Konfiguration (v.a. Cloud
   (JSON): beim **Lesen** wandelt der Skill ADF zu Plaintext (Absaetze, Zeilenumbrueche, `@`-Mentions,
   Emojis), beim **Schreiben** Plaintext zu ADF (ein Absatz je Zeile). Rich-Formatierung (Tabellen,
   Panels, Bilder) wird beim Lesen best-effort verflacht.
+- **Nutzersuche:** Cloud `user/search?query=` (matcht Anzeigename **und** E-Mail), DC
+  `user/search?username=` (matcht Username, Name, E-Mail). `users` gibt links die Kennung aus, die
+  anderswo gebraucht wird: Cloud die `accountId` (fuer `assign --to` und `@[...]`), DC den Username.
+- **Antwort ist kein JSON:** kommt statt der API-Antwort eine HTML-Seite (Status 200, Redirect auf
+  eine Login-/SSO-URL), meldet der Skill das mit Ziel-URL statt mit einem Traceback. Ursache ist
+  praktisch immer ein abgelaufener PAT bzw. ein vorgeschaltetes Auth-Gateway — Token erneuern.
 - **Cloud-Suche** laeuft ueber `/rest/api/3/search/jql` (der alte `/search`-Endpoint wurde 2025 fuer
   Cloud entfernt): Token-Paginierung (`--token`), **kein** `total` — die Suche meldet nur die Anzahl
   der aktuellen Seite und ggf. den Folge-Token.
