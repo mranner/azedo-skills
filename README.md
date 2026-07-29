@@ -461,15 +461,10 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.34.3
+### 1.34.4
 
-- **`jira`: Kommentare bearbeiten, @-Mentions im Body, Nutzersuche (CR4444).** Aufgefallen an
-  ITSD-16162, wo eine Mention über ein Ad-hoc-Skript direkt gegen die REST API gesetzt werden musste.
-  Neu: **`comment-edit --id <commentId>`** überschreibt einen bestehenden Kommentar (die id steht
-  jetzt in der Kopfzeile von `comments`), **`@[<schlüssel>]`** in jedem geschriebenen Body wird zur
-  echten Erwähnung (Cloud ADF-`mention`, DC `[~username]`) und **`users --query`** schlägt accountId
-  bzw. Username nach. Schlüssel ist E-Mail, accountId/Username oder Anzeigename; ist er nicht
-  eindeutig — auf der Corris-Cloud gibt es drei aktive Accounts „Max Mustermann" — bricht der Skill
-  mit Kandidatenliste ab und schreibt nichts, statt die falsche Person zu erwähnen. Ausserdem melden
-  sich Nicht-JSON-Antworten (HTML-Login-/SSO-Seite auf Status 200) lesbar statt als Traceback.
-
+- **`wiki`: Lint ignoriert Code-Bereiche bei der Wikilink-Prüfung (CR4440).** Ein Shell-Beispiel mit
+  POSIX-Zeichenklasse — `grep -E "class[[:space:]]+timthumb"` — wurde als toter Wikilink
+  `[[:space:]]` gemeldet, also genau dort, wo Befehle wortgetreu dokumentiert werden sollen.
+  `find_wikilinks()` blendet jetzt Code-Fences (``` und ~~~, auch unterminiert) und Inline-Code aus;
+  die Index-Prüfung nutzt dieselbe Regel. Links in Frontmatter und Fließtext zählen unverändert.

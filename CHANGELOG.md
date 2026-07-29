@@ -3,6 +3,17 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.34.4
+
+- **`wiki`: Lint ignoriert Code-Bereiche bei der Wikilink-Pruefung (CR4440).** Ein Shell-Beispiel
+  mit POSIX-Zeichenklasse — `grep -E "class[[:space:]]+timthumb"` in `apache-fry` — wurde als
+  toter Wikilink `[[:space:]]` gemeldet. Betroffen ist jede Zeichenklasse in einem Code-Block
+  oder Inline-Code, also genau die Stellen, an denen Befehle wortgetreu dokumentiert werden
+  sollen. `find_wikilinks()` entfernt jetzt vorher Code-Fences (``` und ~~~, auch unterminiert
+  bis Dateiende) und Inline-Code; die Index-Pruefung nutzt dieselbe Regel, damit ein `[[slug]]`
+  im Code-Beispiel des Index nicht als Index-Eintrag zaehlt. Links in Frontmatter und Fliesstext
+  zaehlen unveraendert. Regressionslauf ueber das azedo-Wiki (139 Artikel): unveraendert sauber.
+
 ### 1.34.3
 
 - **`jira`: Kommentare bearbeiten, @-Mentions im Body, Nutzersuche (CR4444).** Aufgefallen an

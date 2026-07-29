@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # stdlib only, no pip dependencies
-# version 1.15.0
+# version 1.34.4
 
 """
 lint-wiki.py — Strukturpruefung fuer LLM Wikis (Infra + Projekt-Doku).
@@ -89,6 +89,18 @@ def load_remotes(wiki_root):
 
 FILENAME_PATTERN = re.compile(r"^[a-z0-9][a-z0-9-]*\.md$")
 WIKILINK_PATTERN = re.compile(r"\[\[([^\]|]+?)(?:\|[^\]]+?)?\]\]")
+# Code-Bereiche, die von der Wikilink-Erkennung ausgenommen werden. Ein Regex
+# wie `class[[:space:]]+timthumb` in einem Shell-Beispiel ist kein Wikilink —
+# jede POSIX-Zeichenklasse sieht fuer WIKILINK_PATTERN wie [[...]] aus und
+# wurde bis 1.34.3 als toter Link gemeldet.
+# Fence: ``` oder ~~~ (auch laenger), bis zum passenden Schluss-Fence oder EOF
+# (ein unterminierter Block am Dateiende zaehlt komplett als Code).
+CODE_FENCE_PATTERN = re.compile(
+    r"^(?P<fence>```+|~~~+)[^\n]*\n.*?(?:^(?P=fence)[^\n]*$|\Z)",
+    re.S | re.M,
+)
+# Inline-Code `...` bzw. ``...`` — die Backtick-Anzahl muss beidseitig passen.
+INLINE_CODE_PATTERN = re.compile(r"(?<!`)(`+)(?!`).+?(?<!`)\1(?!`)", re.S)
 # Remote-Pointer [[<remote>:<slug>]] — beide Teile in Slug-Schreibweise
 REMOTE_TARGET_PATTERN = re.compile(r"^([a-z0-9-]+):([a-z0-9-]+)$")
 MIN_WIKILINKS = 3
@@ -194,9 +206,20 @@ def parse_frontmatter(filepath):
     return fm, body
 
 
+def strip_code(text):
+    """Entfernt Code-Fences und Inline-Code aus dem Text.
+
+    Damit zaehlt nur Fliesstext als Wikilink-Quelle. Betrifft beide Auswertungen:
+    tote Links (ein Regex im Code-Beispiel ist kein Link) und die Konnektivitaet
+    (ein Link im Code-Block ist kein Beleg fuer Vernetzung).
+    """
+    text = CODE_FENCE_PATTERN.sub("", text)
+    return INLINE_CODE_PATTERN.sub("", text)
+
+
 def find_wikilinks(text):
-    """Findet alle Wikilinks im Text."""
-    return WIKILINK_PATTERN.findall(text)
+    """Findet alle Wikilinks im Text (Code-Bereiche ausgenommen)."""
+    return WIKILINK_PATTERN.findall(strip_code(text))
 
 
 def check_filename(filepath):
@@ -318,7 +341,9 @@ def lint_wiki(wiki_root, check_remotes=False):
 
     # Index-Eintraege pruefen
     if index_file.exists():
-        index_text = index_file.read_text(encoding="utf-8")
+        # Gleiche Regel wie bei den Wikilinks: ein [[slug]] in einem Code-Block
+        # des Index ist ein Beispiel, kein Index-Eintrag.
+        index_text = strip_code(index_file.read_text(encoding="utf-8"))
         for slug in all_slugs:
             if f"[[{slug}]]" not in index_text:
                 warnings.append(f"{articles[slug]['rel_path']}: Nicht in index.md gelistet")
