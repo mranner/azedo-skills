@@ -3,6 +3,20 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.34.5
+
+- **`kimai`: `import-hours` konfiguriert sich aus der Eingabedatei (CR4455).** Projekte, User und
+  Stundensaetze standen hartcodiert in `cmd_import_hours` — und weil das Repo auf GitHub liegt,
+  mussten die echten Projektnamen durch Platzhalter ersetzt werden. Da die Dict-Schluessel zugleich
+  die JSON-Schluessel der Eingabedatei sind, zwang das die private Eingabedatei zu denselben
+  Fantasienamen; die echten Namen brachen den Import mit "Unbekanntes Projekt" ab.
+  Die Eingabedatei traegt jetzt `user`, `raten` (`extern`/`kimai`) und `projekte`
+  (`id`, `activity_id`, optional `name`); der Skill kennt weder Projekte noch Raten noch
+  Mitarbeiter. `user` darf ein Username sein (Aufloesung ueber `instance.json`) oder eine
+  numerische ID. Fehlende Felder brechen mit einer benannten Meldung ab statt still einen
+  fremden Stundensatz anzuwenden. **Breaking:** bestehende Eingabedateien brauchen die drei
+  neuen Bloecke.
+
 ### 1.34.4
 
 - **`wiki`: Lint ignoriert Code-Bereiche bei der Wikilink-Pruefung (CR4440).** Ein Shell-Beispiel

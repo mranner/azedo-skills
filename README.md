@@ -461,10 +461,12 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.34.4
+### 1.34.5
 
-- **`wiki`: Lint ignoriert Code-Bereiche bei der Wikilink-Prüfung (CR4440).** Ein Shell-Beispiel mit
-  POSIX-Zeichenklasse — `grep -E "class[[:space:]]+timthumb"` — wurde als toter Wikilink
-  `[[:space:]]` gemeldet, also genau dort, wo Befehle wortgetreu dokumentiert werden sollen.
-  `find_wikilinks()` blendet jetzt Code-Fences (``` und ~~~, auch unterminiert) und Inline-Code aus;
-  die Index-Prüfung nutzt dieselbe Regel. Links in Frontmatter und Fließtext zählen unverändert.
+- **`kimai`: `import-hours` konfiguriert sich aus der Eingabedatei (CR4455).** Projekte, User und
+  Stundensätze standen hartcodiert im Skill; weil das Repo öffentlich ist, mussten in der privaten
+  Eingabedatei Platzhalter-Projektnamen verwendet werden. Die Eingabedatei trägt jetzt `user`,
+  `raten` (`extern`/`kimai`) und `projekte` (`id`, `activity_id`, optional `name`); der Skill kennt
+  weder Projekte noch Raten noch Mitarbeiter. `user` darf ein Username sein (Auflösung über
+  `instance.json`) oder eine numerische ID. **Breaking:** bestehende Eingabedateien brauchen die
+  drei neuen Blöcke.

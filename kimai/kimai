@@ -2,7 +2,7 @@
 
 # Kimai REST API helper
 # stdlib only, no pip dependencies
-# version 1.23.1
+# version 1.34.5
 
 import argparse
 import json
@@ -39,8 +39,6 @@ ENV_FILE = _find_env()
 
 _config = None
 
-RATE_KH = 55
-RATE_KIMAI = 77
 MAX_PER_DAY = 7
 
 
@@ -192,9 +190,9 @@ def working_days(year, month):
 # ── Stundenverteilung ─────────────────────────────────────────────────────
 
 
-def to_kimai_hours(actual_h):
+def to_kimai_hours(actual_h, rate_extern, rate_kimai):
     """Konvertiert tatsächliche Stunden in Kimai-Stunden (aufgerundet)."""
-    return math.ceil(actual_h * RATE_KH / RATE_KIMAI)
+    return math.ceil(actual_h * rate_extern / rate_kimai)
 
 
 def distribute_hours(total, num_days):
@@ -795,17 +793,58 @@ def cmd_setup(args):
 # ── Import Hours (replaces kimai_stunden.py) ──────────────────────────────
 
 
+def import_hours_config(data):
+    """Liest Projekte, User und Raten aus der Eingabedatei (keine Defaults im Skill)."""
+
+    def need(key):
+        if key not in data:
+            sys.exit(f"Eingabedatei: Schlüssel {key!r} fehlt.")
+        return data[key]
+
+    projekte = need("projekte")
+    if not isinstance(projekte, dict) or not projekte:
+        sys.exit("Eingabedatei: 'projekte' muss ein nicht-leeres Objekt sein.")
+
+    projekte = {pk.lower(): p for pk, p in projekte.items()}
+    if "beide" in projekte:
+        sys.exit("Eingabedatei: 'beide' ist reserviert (50:50-Split) und kein Projektschlüssel.")
+
+    for pk, p in projekte.items():
+        for f in ("id", "activity_id"):
+            if not isinstance(p, dict) or f not in p:
+                sys.exit(f"Eingabedatei: Projekt {pk!r} ohne Feld {f!r}.")
+        p.setdefault("name", pk)
+
+    raten = need("raten")
+    for f in ("extern", "kimai"):
+        if f not in raten:
+            sys.exit(f"Eingabedatei: 'raten' ohne Feld {f!r}.")
+    if not raten["kimai"]:
+        sys.exit("Eingabedatei: 'raten.kimai' darf nicht 0 sein.")
+
+    # user: numerische ID oder Username (wird über instance.json aufgelöst)
+    user = need("user")
+    users = load_instance().get("users", [])
+    if isinstance(user, str):
+        match = [u for u in users if u["username"].lower() == user.lower()]
+        if not match:
+            sys.exit(f"Eingabedatei: User {user!r} nicht in instance.json — 'setup' ausführen oder ID angeben.")
+        user_id, user_label = match[0]["id"], match[0]["username"]
+    else:
+        user_id = int(user)
+        match = [u for u in users if u["id"] == user_id]
+        user_label = match[0]["username"] if match else f"User {user_id}"
+
+    return projekte, user_id, user_label, raten["extern"], raten["kimai"]
+
+
 def cmd_import_hours(args):
     """Import external hours from JSON file"""
 
-    PROJEKTE = {
-        "myglobex": {"id": 107, "activity_id": 230, "name": "myglobex Entwicklung"},
-        "myacme": {"id": 108, "activity_id": 239, "name": "myacme Entwicklung (BBT)"},
-    }
-    USER_ID = 9  # khpongratz
-
     with open(args.file, encoding="utf-8") as f:
         data = json.load(f)
+
+    PROJEKTE, USER_ID, user_label, rate_extern, rate_kimai = import_hours_config(data)
 
     year, month = map(int, data["monat"].split("-"))
     wdays = working_days(year, month)
@@ -823,11 +862,11 @@ def cmd_import_hours(args):
             half = h / 2
             for pk in PROJEKTE:
                 proj_actual[pk] += half
-                proj_kimai[pk] += to_kimai_hours(half)
+                proj_kimai[pk] += to_kimai_hours(half, rate_extern, rate_kimai)
                 proj_descs[pk].append(desc)
         elif proj in PROJEKTE:
             proj_actual[proj] += h
-            proj_kimai[proj] += to_kimai_hours(h)
+            proj_kimai[proj] += to_kimai_hours(h, rate_extern, rate_kimai)
             proj_descs[proj].append(desc)
         else:
             sys.exit(f"Unbekanntes Projekt: {proj!r}  (erlaubt: {', '.join(PROJEKTE)}, beide)")
@@ -874,16 +913,16 @@ def cmd_import_hours(args):
     monat_label = f"{MONATE_DE[month]} {year}"
     W = 62
     print(f"\n{'═' * W}")
-    print(f"  Externe Stunden {monat_label} — khpongratz")
+    print(f"  Externe Stunden {monat_label} — {user_label}")
     print(f"{'═' * W}")
-    print(f"  {'Projekt':<32} {'tats.h':>6}  {'Kimai h':>7}  {'€ Kimai':>8}  {'€ KH':>7}")
+    print(f"  {'Projekt':<32} {'tats.h':>6}  {'Kimai h':>7}  {'€ Kimai':>8}  {'€ ext':>7}")
     print(f"  {'─' * 32}  {'─' * 6}  {'─' * 7}  {'─' * 8}  {'─' * 7}")
 
     g_actual = g_kimai = g_eur_k = g_eur_kh = 0
     for pk, kimai_h in active.items():
         actual_h = proj_actual[pk]
-        eur_k = kimai_h * RATE_KIMAI
-        eur_kh = actual_h * RATE_KH
+        eur_k = kimai_h * rate_kimai
+        eur_kh = actual_h * rate_extern
         g_actual += actual_h
         g_kimai += kimai_h
         g_eur_k += eur_k
