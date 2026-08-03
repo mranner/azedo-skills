@@ -3,6 +3,21 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.34.6
+
+- **`mail-as-me`: Absender und Bcc kommen aus dem Profil (CR4459).** Gesendet wird ueber
+  `swaks`, und dessen Defaults sind die von Claude — eine Mail in der eigenen Stimme ging
+  deshalb von `claude@azedo.at` raus, solange `--from` nicht bei jedem Versand haendisch
+  mitgegeben wurde; dasselbe fuer die Bcc-Kopie an sich selbst. `config.json` traegt jetzt
+  einen Block `send` mit `from` und `bcc` (beide optional: ohne `from` gilt der
+  swaks-Default, ohne `bcc` geht keine Kopie raus, mehrere Adressen kommasepariert). Beim
+  Versand eines Entwurfs aus `draft`/`rewrite` wird er ohne Rueckfrage angewendet — eine
+  Vorgabe des Nutzers im Auftrag hat Vorrang. `from` geht an Header **und** Envelope, `bcc`
+  **nur** in den Envelope-`--to` von swaks (`build_mail.py --bcc` setzt bewusst keinen
+  Header; fehlt die Adresse im Envelope, kommt trotz `--bcc` nichts an). Das `setup`-Interview
+  fragt die beiden Adressen mit ab, der swaks-Skill verweist bei mail-as-me-Entwuerfen auf
+  den Profil-Block statt auf seine eigenen Defaults.
+
 ### 1.34.5
 
 - **`kimai`: `import-hours` konfiguriert sich aus der Eingabedatei (CR4455).** Projekte, User und

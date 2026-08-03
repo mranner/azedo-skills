@@ -26,6 +26,13 @@ E-Mails werden über `swaks` via `mom.azedo.at` (Postfix) versendet.
 
 Abweichende Werte übernimmst du aus der Nutzeranfrage.
 
+**Kommt der Entwurf aus `mail-as-me`**, gelten nicht diese Defaults, sondern der
+`send`-Block aus dem Profil (`~/.claude/mail-as-me/<profil>/config.json`): `send.from`
+als Absender (Header **und** Envelope), `send.bcc` als stille Kopie (**nur** im
+Envelope-`--to`). Das ist ohne Rückfrage anzuwenden — eine Mail in Michaels Stimme,
+die von `claude@azedo.at` kommt, ist beim Empfänger falsch. Details im
+mail-as-me-Skill, Abschnitt „Versand".
+
 ## Kontakte
 
 Bekannte Empfänger sind in `.claude/swaks-contacts.tsv` im Arbeitsverzeichnis hinterlegt (TSV: `kurzname<TAB>email`, eine Zeile pro Kontakt).

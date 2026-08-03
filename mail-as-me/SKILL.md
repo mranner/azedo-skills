@@ -45,7 +45,8 @@ der Nutzer es **explizit** vorgibt.
   referenz.md          # das Stilprofil (aus templates/referenz.template.md)
   corpus/clean/*.md    # bereinigte Beispiel-Mails (Frontmatter + Eigentext)
   config.json          # Name, Dialekt, Sign-off (+Sonderfaelle), Anrede,
-                        # register_map (Domain->Register), Signatur-Pfade
+                        # register_map (Domain->Register), Signatur-Pfade,
+                        # send (Absender + Bcc fuer den Versand)
 ```
 
 Profil-Wahl: `--profile <name>`; ohne Angabe das einzige vorhandene bzw. `default`.
@@ -77,6 +78,8 @@ python3 "$SKILL_DIR/extract.py" --input <ordner|datei> \
    - Dialekt (Auto-Detect bestaetigen; z.B. de-AT: „eh", „Jänner", „schlimmster
      Fall"). Achtung Fehlgriffe des Auto-Detects hier wegklicken.
    - Empfaenger/Domain → Register (`register_map`).
+   - Versand-Adressen: eigene Absenderadresse und — falls gewuenscht — eine
+     Bcc-Kopie an sich selbst (`send.from`, `send.bcc`, siehe unten).
 4. **Profil schreiben.** `config.json` aus dem Interview, `referenz.md` aus
    `templates/referenz.template.md` mit den abgeleiteten Markern + Beispiel-Index
    fuellen. Re-Run erweitert den Korpus (bestehende `clean/` bleiben).
@@ -104,7 +107,8 @@ Eingabe: Empfaenger (+ Thema **oder** eine Reply-`.eml`). Ablauf:
    Handlungsrelevanz, doppeltes Hedging, "Rueckfall" fuer Software).
    Beides ist noetig, keines ersetzt das andere.
 5. Entwurf zeigen, **immer mit der Ausfuehrungszeile** (siehe unten). Optional
-   Versand ueber **swaks** (Text + HTML), Signatur dort.
+   Versand ueber **swaks** (Text + HTML), Signatur dort; Absender und Bcc kommen
+   aus `config.json.send` (siehe Abschnitt Versand).
 
 ### rewrite — bestehenden Entwurf in-voice bringen
 
@@ -153,6 +157,53 @@ gelaufen ist, ist eine Falschaussage und schlimmer als gar keine Zeile.
 Die Zeile ist Arbeitsprotokoll fuer den Nutzer und **kein Teil der Mail**: beim Versand
 ueber swaks wird sie nicht mitgeschickt.
 
+## Versand: Absender und Bcc aus dem Profil
+
+Gesendet wird ueber **swaks** — dessen Defaults (`--from claude@azedo.at`) sind aber
+die von Claude, nicht die des Profils. Eine Mail, die in der eigenen Stimme verfasst
+wurde, aber von `claude@azedo.at` kommt, ist beim Empfaenger schlicht falsch. Damit
+das nicht bei jedem Versand haendisch nachgezogen werden muss, steht die
+Versand-Identitaet im Profil:
+
+```json
+"send": {
+  "from": "ich@example.org",
+  "bcc": "ich@example.org"
+}
+```
+
+Beide Felder sind optional: fehlt `from`, gilt der swaks-Default; fehlt `bcc` (oder
+ist es leer), geht keine Kopie raus. Mehrere Bcc-Adressen kommasepariert.
+
+**Regel:** Wird ein Entwurf aus `draft`/`rewrite` versendet, wird `send` aus dem
+geladenen Profil gelesen und angewendet — ohne Rueckfrage, wie die Signatur. Eine
+Angabe des Nutzers im Auftrag ("schick das von X") hat Vorrang.
+
+Umsetzung im swaks-Aufruf — `from` geht an **beide** Seiten (Header und Envelope),
+`bcc` **nur** in den Envelope, sonst wird die Kopie fuer die Empfaenger sichtbar:
+
+```bash
+python3 ~/.claude/skills/swaks/build_mail.py \
+  --subject "Betreff" \
+  --to "empfaenger@example.com" \
+  --from ich@example.org \
+  --bcc ich@example.org \
+  --text-file .tmp/body.txt \
+  --html-file .tmp/body.html \
+  > .tmp/mail.eml \
+  && test -s .tmp/mail.eml \
+  && swaks --server mom.azedo.at \
+      --to "empfaenger@example.com,ich@example.org" \
+      --from ich@example.org \
+      --data @.tmp/mail.eml
+```
+
+`--bcc` an `build_mail.py` setzt bewusst **keinen** Header; zugestellt wird die Kopie
+allein ueber den Envelope-`--to` von swaks. Fehlt sie dort, kommt trotz `--bcc` nichts
+an. Die Signatur bleibt bei Absender `ich@example.org` dran (globale Signatur
+= Michaels eigene, siehe swaks-Skill) — der Wechsel des Absenders ist **kein**
+Ausschlussgrund.
+
 ## Anti-Patterns / KI-Tells → humanizer-de
 
 Die sprachlichen Anti-Patterns (Gedankenstrich, Nominalkomposita, elliptische
@@ -166,7 +217,8 @@ Bezug; diese Checkliste ist die **Ergaenzung** zum Skill-Lauf, nicht sein Ersatz
 
 - **humanizer-de** - verbindlicher KI-Tell-Audit in Schritt 4 von `draft`/`rewrite`,
   kein optionaler Self-Check; Ergebnis gehoert in die Ausfuehrungszeile.
-- **swaks** — Versand (`mail-as-me` schreibt, `swaks` sendet; Signatur kommt aus swaks).
+- **swaks** — Versand (`mail-as-me` schreibt, `swaks` sendet; Signatur kommt aus
+  swaks, Absender und Bcc aus `config.json.send` des Profils).
 - **kanboard/handoff** — optional CR-Kontext fuer den `learn`-Loop.
 
 ## Hinweise

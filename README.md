@@ -461,12 +461,11 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.34.5
+### 1.34.6
 
-- **`kimai`: `import-hours` konfiguriert sich aus der Eingabedatei (CR4455).** Projekte, User und
-  Stundensätze standen hartcodiert im Skill; weil das Repo öffentlich ist, mussten in der privaten
-  Eingabedatei Platzhalter-Projektnamen verwendet werden. Die Eingabedatei trägt jetzt `user`,
-  `raten` (`extern`/`kimai`) und `projekte` (`id`, `activity_id`, optional `name`); der Skill kennt
-  weder Projekte noch Raten noch Mitarbeiter. `user` darf ein Username sein (Auflösung über
-  `instance.json`) oder eine numerische ID. **Breaking:** bestehende Eingabedateien brauchen die
-  drei neuen Blöcke.
+- **`mail-as-me`: Absender und Bcc kommen aus dem Profil (CR4459).** Gesendet wird über `swaks`,
+  und dessen Defaults sind die von Claude — eine Mail in der eigenen Stimme ging deshalb von
+  `claude@azedo.at` raus, solange `--from` nicht jedes Mal händisch mitgegeben wurde; dasselbe für
+  die Bcc-Kopie an sich selbst. `config.json` trägt jetzt einen Block `send` mit `from` und `bcc`
+  (beide optional), der beim Versand eines Entwurfs ohne Rückfrage angewendet wird. `from` geht an
+  Header und Envelope, `bcc` nur in den Envelope-`--to` von swaks.
