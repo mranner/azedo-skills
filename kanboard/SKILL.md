@@ -49,7 +49,7 @@ Falls doch direkt gelesen wird, ist das Schema:
       "swimlanes": ["Standard-Swimlane"],   // Liste von STRINGS (nur Namen)
       "columns":   ["Ideen", "Bereit", "In Arbeit", "Erledigt"] }  // STRINGS
   ],
-  "users": [ { "id": 4, "username": "kollege", "name": "Karin Musterfrau" } ]
+  "users": [ { "id": 4, "username": "musterfrau", "name": "Karin Musterfrau" } ]
 }
 ```
 

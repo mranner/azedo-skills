@@ -1,0 +1,6 @@
+{
+  "//": "Kopie nach ~/.claude/wetter.json (ausserhalb der Git-Repos).",
+  "//_contact": "Kontaktadresse fuer die User-Agent-Zeile. Nominatim wuenscht sie bei nennenswertem Abrufvolumen; alternativ per Umgebungsvariable WETTER_CONTACT. Ohne beides laeuft der Skill ohne Kontaktangabe.",
+
+  "contact": "ich@example.org"
+}

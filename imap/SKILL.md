@@ -33,11 +33,11 @@ gemeinsam genutzt. Es gibt bewusst **keine** zweite Credential-Datei.
 
 ```
 set folder    = "imaps://mail.example.at/"
-set imap_user = "mmuster"
+set imap_user = "<username>"
 set imap_pass = "..."
 
-account-hook imaps://mail.example.at/   'set imap_user="mmuster" imap_pass="..."'
-account-hook imaps://office.example.at/ 'set imap_user="mmuster" imap_pass="..."'
+account-hook imaps://mail.example.at/   'set imap_user="<username>" imap_pass="..."'
+account-hook imaps://office.example.at/ 'set imap_user="<username>" imap_pass="..."'
 ```
 
 Ausgewertet wird eine Teilmenge der muttrc-Syntax: `set`, `account-hook`,
@@ -45,7 +45,7 @@ Ausgewertet wird eine Teilmenge der muttrc-Syntax: `set`, `account-hook`,
 auch ein Keystore statt Klartext:
 
 ```
-account-hook imaps://mail.example.at/ 'set imap_user="mmuster" imap_pass=`pass show mail/azedo`'
+account-hook imaps://mail.example.at/ 'set imap_user="<username>" imap_pass=`pass show mail/example`'
 ```
 
 Anderer Pfad per `--muttrc /pfad/zur/datei`. Fehlen User oder Passwort fuer ein

@@ -4,7 +4,7 @@
 # Kurzfristvorhersage (AROME, stuendlich ~60 h), Nowcast (15-min, ~3 h)
 # und amtliche Wetterwarnungen fuer Oesterreich.
 # stdlib only, keine pip-Abhaengigkeiten, keine Authentifizierung noetig.
-# version 1.11.5
+# version 1.35.0
 
 import argparse
 import json
@@ -31,12 +31,31 @@ STATION_BASE = "https://dataset.api.hub.geosphere.at/v1/station/current/tawes-v1
 WARN_BASE = "https://warnungen.zamg.at/wsapp/api/getWarningsForCoords"
 NOMINATIM = "https://nominatim.openstreetmap.org/search"
 
-USER_AGENT = "azedo-wetter-skill/1.0 (ich@example.org)"
-
 # Favoriten-Stationen (kuratierte Liste) und Frische-Grenze fuer Messwerte
 
 FAV_PATH = os.path.expanduser("~/.claude/wetter-favorites.json")
+CONFIG_PATH = os.path.expanduser("~/.claude/wetter.json")
 FRESH_MAX_SEC = 2 * 3600
+
+
+def build_user_agent():
+    """Kennung fuer die API-Aufrufe. Nominatim verlangt eine identifizierende
+    User-Agent-Zeile und wuenscht eine Kontaktadresse — die steht bewusst nicht
+    im Code, sondern kommt aus WETTER_CONTACT bzw. 'contact' in wetter.json.
+    Ohne beides bleibt die Kennung ohne Kontakt (fuer geringe Abrufzahlen ok)."""
+    contact = os.environ.get("WETTER_CONTACT", "").strip()
+
+    if not contact:
+        try:
+            with open(CONFIG_PATH, encoding="utf-8") as f:
+                contact = (json.load(f).get("contact") or "").strip()
+        except (OSError, ValueError, AttributeError):
+            contact = ""
+
+    return ("azedo-wetter-skill/1.0 (%s)" % contact) if contact else "azedo-wetter-skill/1.0"
+
+
+USER_AGENT = build_user_agent()
 
 # Gueltiger Koordinaten-Bereich der Modelle (bbox aus Metadaten)
 

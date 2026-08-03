@@ -346,4 +346,5 @@ Zielhost.
 - **KEINE Klartext-Passwoerter** in Wiki-Entities — nur Verweis auf Passwortmanager
 - **KEINE Private Keys oder API-Tokens**
 - Vor dem Kompilieren Quellen auf Secrets scannen und diese durch Platzhalter ersetzen
-- IP-Whitelist (203.0.113.10, 203.0.113.20) niemals als "zu blockieren" dokumentieren
+- Geschuetzte Verwaltungs- und Kundenzugaenge (IP-Whitelist) niemals als "zu blockieren"
+  dokumentieren — die konkreten Adressen stehen ausserhalb des Repos

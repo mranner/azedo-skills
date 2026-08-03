@@ -33,7 +33,7 @@ Anrede „Hallo {Vorname},".
 
 **Konkretes Anti-Beispiel (der wiederkehrende Fehlgriff):** Ein Empfaenger aus der
 Schweiz oder Deutschland (z.B. `example.com`, `example.ch`) bekommt trotzdem „Hallo
-Tanja," — **nie** eine gespiegelte CH/DE-Grussformel wie „Hoi", „Grüezi",
+Karin," — **nie** eine gespiegelte CH/DE-Grussformel wie „Hoi", „Grüezi",
 „Grüessech", „Grüess di" oder „Servus". Gilt auch fuer eine Reply-`.eml`: Ton und
 Region des Absenders werden **nicht** uebernommen. Sprache/Region nur wechseln, wenn
 der Nutzer es **explizit** vorgibt.
@@ -192,7 +192,7 @@ python3 ~/.claude/skills/swaks/build_mail.py \
   --html-file .tmp/body.html \
   > .tmp/mail.eml \
   && test -s .tmp/mail.eml \
-  && swaks --server mom.azedo.at \
+  && swaks --server <server> \
       --to "empfaenger@example.com,ich@example.org" \
       --from ich@example.org \
       --data @.tmp/mail.eml

@@ -391,7 +391,7 @@ wp search-replace 'alt' 'neu' --all-tables
 
 ## 9. Workflow
 
-1. **Server und Jail ermitteln** — Aus dem Kontext oder beim User nachfragen: Server (z.B. webhost1.example.at), Jail-Typ (ezjail/iocage), Jail-ID/Name, wwwuser, Domain/Pfad. Siehe `server/overview.md` fuer Details
+1. **Server und Jail ermitteln** — Aus dem Kontext oder beim User nachfragen: Server (z.B. `webhost1.example.at`), Jail-Typ (ezjail/iocage), Jail-ID/Name, wwwuser, Domain/Pfad. Siehe `server/overview.md` fuer Details
 2. **Befehl zusammenbauen** — Mit dem passenden Zugriffs-Template (ezjail/iocage) aus Abschnitt 1
 3. **Bei destruktiven Operationen** — Befehl dem User zeigen und Bestaetigung abwarten
 4. **Ausfuehren** — Befehl via Bash ausfuehren

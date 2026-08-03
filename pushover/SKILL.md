@@ -144,7 +144,7 @@ Format je Zeile `name = key [device]`, `#`-Kommentare erlaubt:
 
 ```
 # ~/.pushover-recipients
-me     = uAAAAAAAAAAAAAAAAAAAAAAAAAAAAA   # eigenes Handy (Default)
+me      = uAAAAAAAAAAAAAAAAAAAAAAAAAAAAA   # eigenes Handy (Default)
 kollege = uBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
 ```
 

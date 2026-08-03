@@ -1,36 +1,73 @@
 ---
 name: swaks
 description: >
-  Sends emails via swaks through mom.azedo.at (Postfix). Use this skill whenever
+  Sends emails via swaks through a Postfix relay. Use this skill whenever
   the user wants to send an email, forward a file, share documentation, or
   deliver any content by mail — even if they just say "schick mir das",
   "sende das per Mail", "mail me the result", or "send this to X".
   Standardversand ist eine multipart/alternative-Mail (Text + HTML) via
   build_mail.py; zusaetzlich moeglich: reiner Text-Body und Dateianhaenge (any type).
-  Default recipient is ich@example.org, default sender is claude@azedo.at,
-  default server is mom.azedo.at.
+  Empfaenger, Absender und Mailserver kommen als Defaults aus .claude/swaks.json.
   Trigger with /swaks.
 ---
 
 # swaks – E-Mail versenden
 
-E-Mails werden über `swaks` via `mom.azedo.at` (Postfix) versendet.
+E-Mails werden über `swaks` via einen Postfix-Server versendet.
 
-## Defaults
+## Defaults (`.claude/swaks.json`)
 
-| Feld       | Wert                        |
-|------------|-----------------------------|
-| `--to`     | `ich@example.org`   |
-| `--from`   | `claude@azedo.at`           |
-| `--server` | `mom.azedo.at`              |
+Empfänger, Absender, Server und Message-ID-Domain stehen in einer Config-Datei,
+nicht in dieser Doku. **Auflösungsreihenfolge:** projektlokal `.claude/swaks.json`
+im Arbeitsverzeichnis (Vorrang) → global `~/.claude/swaks.json`.
+
+```json
+{
+  "to": "ich@example.org",
+  "from": "claude@example.org",
+  "server": "mail.example.org",
+  "message_id_domain": "example.org"
+}
+```
+
+| Schlüssel           | Wirkung                                                        |
+|---------------------|----------------------------------------------------------------|
+| `to`                | Default für `--to` (Header und Envelope)                        |
+| `from`              | Default für `--from` (Header und Envelope)                      |
+| `server`            | Mailserver für `swaks --server`                                 |
+| `message_id_domain` | Domain der `Message-ID`; ohne Angabe die Domain des Absenders    |
+
+`build_mail.py` liest `to` und `from` selbst — ohne `--to`/`--from` greifen die
+Config-Werte, mit Angabe gewinnt die Kommandozeile. `server` braucht **swaks**,
+nicht der Helper; den Wert vor dem Versand auslesen:
+
+```bash
+python3 "$SKILL_DIR/build_mail.py" --show-config
+```
+
+Fehlt die Config und stehen auch keine `--to`/`--from` auf der Kommandozeile,
+bricht der Helper mit einer klaren Meldung ab (kein Versand). Vorlage:
+`swaks.json.example` im Skill-Verzeichnis.
+
+**Fehlt die Config, nicht raten und nicht mit Platzhaltern senden** — sonst geht
+Post an eine `example.org`-Adresse. Stattdessen die Einrichtung anstossen:
+
+```bash
+cp "$SKILL_DIR/swaks.json.example" ~/.claude/swaks.json
+# danach to/from/server eintragen
+```
+
+Fuer `server` ist auf azedo-Installationen `mom.azedo.at` der uebliche Relay —
+als Vorschlag brauchbar, aber vor dem ersten Versand vom Nutzer bestaetigen
+lassen. `to`/`from` immer erfragen, nie annehmen.
 
 Abweichende Werte übernimmst du aus der Nutzeranfrage.
 
 **Kommt der Entwurf aus `mail-as-me`**, gelten nicht diese Defaults, sondern der
 `send`-Block aus dem Profil (`~/.claude/mail-as-me/<profil>/config.json`): `send.from`
 als Absender (Header **und** Envelope), `send.bcc` als stille Kopie (**nur** im
-Envelope-`--to`). Das ist ohne Rückfrage anzuwenden — eine Mail in Michaels Stimme,
-die von `claude@azedo.at` kommt, ist beim Empfänger falsch. Details im
+Envelope-`--to`). Das ist ohne Rückfrage anzuwenden — eine Mail in der Stimme des
+Nutzers, die vom Default-Absender kommt, ist beim Empfänger falsch. Details im
 mail-as-me-Skill, Abschnitt „Versand".
 
 ## Kontakte
@@ -39,7 +76,7 @@ Bekannte Empfänger sind in `.claude/swaks-contacts.tsv` im Arbeitsverzeichnis h
 
 **Lookup:** `grep -i <name> .claude/swaks-contacts.tsv` — liefert direkt die Zeile mit der E-Mail-Adresse (zweites Feld).
 
-Wenn der User einen Namen statt einer E-Mail-Adresse nennt (z.B. "schick das an Dagmar"), zuerst per grep nachschlagen. Nur wenn kein Treffer: nachfragen.
+Wenn der User einen Namen statt einer E-Mail-Adresse nennt (z.B. "schick das an Karin"), zuerst per grep nachschlagen. Nur wenn kein Treffer: nachfragen.
 
 Neue Kontakte nach dem Versand ergänzen:
 
@@ -58,12 +95,12 @@ Auflösungsreihenfolge je Datei: projektlokal `.claude/` **vor** global `~/.clau
 
 Beim Standardversand (Multipart, siehe unten) hängt `build_mail.py` beide an – Text-Signatur mit Leerzeile Abstand, HTML-Signatur als Block. Bei reinem Text-Body nur die `.txt`-Signatur.
 
-**Wichtig – die globale Signatur ist Michaels eigene** (Ing. Michael Ranner, azedo IT Consulting & Services KG). Absender `ich@example.org` ("in Michaels Namen") → **immer** die globale Signatur dranlassen, Auto-Auflösung genügt. Das ist **kein** Ausschlussgrund. `--no-sig` hier nur, wenn Michael das **ausdrücklich** sagt.
+**Wichtig – die globale Signatur ist die persönliche des Nutzers** (Name und Firmenwortlaut stehen in der Signaturdatei, nicht hier). Geht die Mail unter der eigenen Adresse des Nutzers raus ("in seinem Namen") → **immer** die globale Signatur dranlassen, Auto-Auflösung genügt. Das ist **kein** Ausschlussgrund. `--no-sig` hier nur, wenn der Nutzer das **ausdrücklich** sagt.
 
 Die Signatur wird **nicht** angehängt wenn:
 
 - Der User explizit "ohne Signatur" / "no sig" sagt → `--no-sig` an `build_mail.py` übergeben (schaltet auch die Standard-Signatur ab)
-- Die Mail im Namen einer **dritten** Person verfasst wird – **weder Michael noch Claude**, sondern ein anderer `--from` → dann keine Standard-Signatur, ggf. deren eigene per `--sig-*-file`. Der Wechsel von `claude@azedo.at` auf `ich@example.org` ist **kein** solcher Fall (s.o.).
+- Die Mail im Namen einer **dritten** Person verfasst wird – **weder der Nutzer noch Claude**, sondern ein anderer `--from` → dann keine Standard-Signatur, ggf. deren eigene per `--sig-*-file`. Der Wechsel vom Default-Absender (`from` aus der Config) auf die eigene Adresse des Nutzers ist **kein** solcher Fall (s.o.).
 
 ## Encoding
 
@@ -89,14 +126,14 @@ Ablauf: `build_mail.py` baut die MIME-DATA (korrekte Boundaries/Encoding, hängt
 python3 ~/.claude/skills/swaks/build_mail.py \
   --subject "Betreff" \
   --to "empfaenger@example.com" \
-  --from claude@azedo.at \
+  --from <absender> \
   --text-file .tmp/body.txt \
   --html-file .tmp/body.html \
   > .tmp/mail.eml \
   && test -s .tmp/mail.eml \
-  && swaks --server mom.azedo.at \
+  && swaks --server <server> \
       --to "empfaenger@example.com" \
-      --from claude@azedo.at \
+      --from <absender> \
       --data @.tmp/mail.eml
 ```
 
@@ -114,7 +151,7 @@ python3 ~/.claude/skills/swaks/build_mail.py ... \
   --attach /pfad/zu/datei2.png \
   > .tmp/mail.eml \
   && test -s .tmp/mail.eml \
-  && swaks --server mom.azedo.at --to "..." --from claude@azedo.at --data @.tmp/mail.eml
+  && swaks --server <server> --to "..." --from <absender> --data @.tmp/mail.eml
 ```
 
 Die folgenden Abschnitte (reiner Text-Body, HTML-Body, `--attach` direkt an swaks) sind **einfachere Sonderfälle** – nur nutzen, wenn explizit nur Text gewünscht ist oder es rein um einen Dateiversand ohne formatierten Body geht.
@@ -123,7 +160,7 @@ Die folgenden Abschnitte (reiner Text-Body, HTML-Body, `--attach` direkt an swak
 
 ```bash
 swaks \
-  --server mom.azedo.at \
+  --server <server> \
   --to <empfänger> \
   --from <absender> \
   --header "Subject: <betreff>" \
@@ -135,9 +172,9 @@ swaks \
 
 ```bash
 swaks \
-  --server mom.azedo.at \
-  --to ich@example.org \
-  --from claude@azedo.at \
+  --server <server> \
+  --to <empfaenger> \
+  --from <absender> \
   --header "Subject: Betreff" \
   --header "Content-Type: text/plain; charset=utf-8" \
   --header "Content-Transfer-Encoding: 8bit" \
@@ -150,9 +187,9 @@ Mehrere Adressen kommasepariert an `--to` übergeben:
 
 ```bash
 swaks \
-  --server mom.azedo.at \
+  --server <server> \
   --to "alice@example.com,bob@example.com" \
-  --from claude@azedo.at \
+  --from <absender> \
   --header "Subject: Betreff" \
   --header "Content-Type: text/plain; charset=utf-8" \
   --header "Content-Transfer-Encoding: 8bit" \
@@ -165,9 +202,9 @@ Für HTML-Mails `Content-Type: text/html` setzen:
 
 ```bash
 swaks \
-  --server mom.azedo.at \
-  --to ich@example.org \
-  --from claude@azedo.at \
+  --server <server> \
+  --to <empfaenger> \
+  --from <absender> \
   --header "Subject: Betreff" \
   --header "Content-Type: text/html; charset=utf-8" \
   --header "Content-Transfer-Encoding: 8bit" \
@@ -180,9 +217,9 @@ Wichtig: Dateipfad **immer** mit `@`-Präfix übergeben, sonst wird der Pfad als
 
 ```bash
 swaks \
-  --server mom.azedo.at \
-  --to ich@example.org \
-  --from claude@azedo.at \
+  --server <server> \
+  --to <empfaenger> \
+  --from <absender> \
   --header "Subject: Betreff" \
   --body "Siehe Anhang." \
   --attach-type <mime-type> \
@@ -209,9 +246,9 @@ Für jeden Anhang ein eigenes `--attach-type` / `--attach`-Paar:
 
 ```bash
 swaks \
-  --server mom.azedo.at \
-  --to ich@example.org \
-  --from claude@azedo.at \
+  --server <server> \
+  --to <empfaenger> \
+  --from <absender> \
   --header "Subject: Mehrere Anhänge" \
   --body "Zwei Dateien im Anhang." \
   --attach-type text/markdown \
@@ -225,7 +262,7 @@ swaks \
 1. **Empfänger auflösen:** Wenn ein Name statt E-Mail-Adresse genannt wird, `grep -i <name> .claude/swaks-contacts.tsv` ausführen. Bei Treffer: E-Mail aus zweitem Feld verwenden. Bei keinem Treffer: nachfragen.
 2. **Versandart wählen:** Default ist **Multipart (Text + HTML)** via `build_mail.py`. Nur reinen Text senden, wenn der User das will oder es rein um einen Dateiversand ohne formatierten Body geht.
 3. **Body erstellen:** Für Multipart Text- und HTML-Body in `.tmp/` ablegen (ohne Signatur). HTML schlicht halten.
-4. **Signatur:** wird automatisch aufgelöst (global `~/.claude/swaks-signature.*`, projektlokal `.claude/` mit Vorrang) – nichts zu übergeben. Von `ich@example.org` **immer** dranlassen (globale Signatur = Michaels eigene). `--no-sig` nur bei explizitem "ohne Signatur" oder einem **dritten** Absender (weder Michael noch Claude); für eine abweichende Signatur explizit `--sig-text-file`/`--sig-html-file`.
+4. **Signatur:** wird automatisch aufgelöst (global `~/.claude/swaks-signature.*`, projektlokal `.claude/` mit Vorrang) – nichts zu übergeben. Unter der eigenen Adresse des Nutzers **immer** dranlassen (globale Signatur = dessen persönliche). `--no-sig` nur bei explizitem "ohne Signatur" oder einem **dritten** Absender (weder der Nutzer noch Claude); für eine abweichende Signatur explizit `--sig-text-file`/`--sig-html-file`.
 5. Fehlende Angaben aus dem Kontext ableiten (Betreff, Body, Anhänge).
 6. Befehl zusammenbauen und dem Nutzer kurz zeigen; auf Bestätigung warten – außer der Nutzer hat bereits „ja" gesagt oder den Versand klar angeordnet.
 7. Befehl ausführen und Ergebnis (Queue-ID oder Fehler) melden. Erfolg: `250 2.0.0 Ok: queued as <ID>`.
@@ -234,6 +271,6 @@ swaks \
 ## Hinweise
 
 - `--subject` existiert in dieser swaks-Version nicht → immer `--header "Subject: ..."` verwenden.
-- MX-Routing ist nicht verfügbar (Net::DNS fehlt) – kein Problem, da mom.azedo.at verwendet wird.
+- MX-Routing ist nicht verfügbar (Net::DNS fehlt) – kein Problem, da ein fester Relay aus `server` verwendet wird.
 - Erfolg erkennbar an: `250 2.0.0 Ok: queued as <ID>`.
 

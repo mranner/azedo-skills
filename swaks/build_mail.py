@@ -4,9 +4,10 @@
 # DATA-Sektion (Header + Body) auf STDOUT aus. Die Ausgabe wird per
 # `swaks --data @-` versendet. Bei Anhaengen wird zusaetzlich multipart/mixed
 # um das alternative-Part gelegt.
-# version 1.31.0
+# version 1.35.0
 
 import argparse
+import json
 import mimetypes
 import os
 import sys
@@ -23,12 +24,56 @@ def read(path):
         return f.read()
 
 
+def resolve_claude_file(name):
+    """Datei in .claude/ aufloesen: projektlokal (Vorrang) -> global ~/.claude/.
+    Liefert None, wenn keine der beiden existiert."""
+    for base in (os.path.join(os.getcwd(), ".claude"),
+                 os.path.expanduser("~/.claude")):
+        p = os.path.join(base, name)
+        if os.path.isfile(p):
+            return p
+    return None
+
+
+def load_config():
+    """Versand-Defaults aus swaks.json lesen (to, from, server,
+    message_id_domain). Fehlt die Datei, gilt ein leerer Satz — dann muessen
+    --to und --from auf der Kommandozeile stehen."""
+    path = resolve_claude_file("swaks.json")
+
+    if not path:
+        return {}
+
+    try:
+        with open(path, encoding="utf-8") as f:
+            cfg = json.load(f)
+    except (OSError, ValueError) as exc:
+        sys.exit(f"build_mail.py: Fehler — {path} nicht lesbar: {exc}")
+
+    if not isinstance(cfg, dict):
+        sys.exit(f"build_mail.py: Fehler — {path} enthaelt kein JSON-Objekt.")
+
+    return cfg
+
+
+config = load_config()
+
+# --show-config wird vor argparse abgefangen, damit die Abfrage ohne die sonst
+# noetigen Pflichtargumente (--subject, --text-file, ...) funktioniert.
+
+if "--show-config" in sys.argv[1:]:
+    print(json.dumps(config, indent=2, ensure_ascii=False))
+    sys.exit(0)
+
 parser = argparse.ArgumentParser()
+parser.add_argument("--show-config", action="store_true",
+                    help="Aufgeloeste Versand-Defaults aus swaks.json ausgeben und beenden.")
 parser.add_argument("--subject", required=True)
-parser.add_argument("--to", required=True)
+parser.add_argument("--to", help="Empfaenger. Ohne Angabe gilt 'to' aus swaks.json.")
 parser.add_argument("--cc", help="Sichtbarer Cc:-Header (kommasepariert). Die Adressen zusaetzlich in den swaks-Envelope --to aufnehmen.")
 parser.add_argument("--bcc", help="Bcc-Empfaenger (kommasepariert). Setzt bewusst KEINEN Header (sonst waeren die Empfaenger sichtbar) — die Adressen nur in den swaks-Envelope --to aufnehmen.")
-parser.add_argument("--from", dest="sender", required=True)
+parser.add_argument("--from", dest="sender",
+                    help="Absender. Ohne Angabe gilt 'from' aus swaks.json.")
 parser.add_argument("--text-file", required=True)
 parser.add_argument("--html-file", required=True)
 parser.add_argument("--sig-text-file",
@@ -41,17 +86,18 @@ parser.add_argument("--no-sig", action="store_true",
 parser.add_argument("--attach", action="append", default=[])
 args = parser.parse_args()
 
+# Empfaenger und Absender: Kommandozeile hat Vorrang, sonst swaks.json.
 
-def resolve_sig(name):
-    """Standard-Signaturpfad aufloesen: projektlokal .claude/<name> (Vorrang) ->
-    global ~/.claude/<name>. Liefert None, wenn keine der beiden existiert (dann
-    wird schlicht keine Signatur angehaengt)."""
-    for base in (os.path.join(os.getcwd(), ".claude"),
-                 os.path.expanduser("~/.claude")):
-        p = os.path.join(base, name)
-        if os.path.isfile(p):
-            return p
-    return None
+recipient = args.to or config.get("to")
+sender = args.sender or config.get("from")
+
+if not recipient:
+    sys.exit("build_mail.py: Fehler — kein Empfaenger. Entweder --to angeben "
+             "oder 'to' in .claude/swaks.json (projektlokal oder ~/) setzen.")
+
+if not sender:
+    sys.exit("build_mail.py: Fehler — kein Absender. Entweder --from angeben "
+             "oder 'from' in .claude/swaks.json (projektlokal oder ~/) setzen.")
 
 
 # Signaturpfade bestimmen: explizite Flags haben Vorrang, sonst Auto-Resolve;
@@ -60,8 +106,8 @@ def resolve_sig(name):
 if args.no_sig:
     sig_text_file = sig_html_file = None
 else:
-    sig_text_file = args.sig_text_file or resolve_sig("swaks-signature.txt")
-    sig_html_file = args.sig_html_file or resolve_sig("swaks-signature.html")
+    sig_text_file = args.sig_text_file or resolve_claude_file("swaks-signature.txt")
+    sig_html_file = args.sig_html_file or resolve_claude_file("swaks-signature.html")
 
 text = read(args.text_file)
 html = read(args.html_file)
@@ -107,8 +153,8 @@ else:
     msg = alt
 
 msg["Subject"] = args.subject
-msg["From"] = args.sender
-msg["To"] = args.to
+msg["From"] = sender
+msg["To"] = recipient
 
 if args.cc:
     msg["Cc"] = args.cc
@@ -124,7 +170,12 @@ if args.bcc:
     )
 
 msg["Date"] = formatdate(localtime=True)
-msg["Message-ID"] = make_msgid(domain="azedo.at")
+
+# Message-ID-Domain: aus swaks.json, sonst die Domain des Absenders. Ohne
+# beides entscheidet make_msgid selbst (FQDN des Hosts).
+
+msgid_domain = config.get("message_id_domain") or sender.rpartition("@")[2].strip("> ")
+msg["Message-ID"] = make_msgid(domain=msgid_domain) if msgid_domain else make_msgid()
 
 out = msg.as_string()
 

@@ -37,7 +37,7 @@ Grenzt an zwei Nachbar-Skills und dupliziert deren Wissen bewusst **nicht**:
   CSS-Click-Tracking: PYS liefert den **Selektor**, das NF-Feld die **Klasse**
   (`element_class`). Siehe Abschnitt 6.
 
-Belegte Evidenzbasis: CR4266 (customer, GA4-CSS-Click-Events auf webhost1).
+Belegte Evidenzbasis: CR4266 (Kundenprojekt, GA4-CSS-Click-Events auf einem Shared-Webhost).
 Verifiziert gegen **Ninja Forms 3.14.8** auf apache1.acme.com.
 
 ---
@@ -48,7 +48,7 @@ Kein eigener Zugriffsweg — es gilt der aus **[[wp-cli]]** (Jail → `wp eval-f
 Bei komplexem Quoting das PHP-Script ins Jail legen und dort ausfuehren (csh-Fallstricke,
 siehe [[freebsd-shell-pitfalls]]).
 
-Beispiel (customer, Multisite; Form-IDs sind **subsite-spezifisch**):
+Beispiel (Multisite; Form-IDs sind **subsite-spezifisch**):
 
 ```
 sudo ssh -C root@jailer.acme.com "iocage exec apache1.acme.com sh -c \
@@ -121,7 +121,7 @@ Dies ist der zentrale Footgun. Fuer NF **3.14.8** gilt (aus dem Plugin-Quellcode
 - HTML-Feld-Inhalt (Feldtyp `html`) steht im Meta-Key **`default`** — dort sitzt z.B.
   ein Link mit/ohne CSS-Klasse.
 - **Submissions/Entries** liegen grundsaetzlich als CPT `nf_sub` vor — koennen aber
-  **leer** sein (auf customer gehen Formulare direkt an CRIS, `nf_sub` ist ueber
+  **leer** sein (im belegten Fall gingen Formulare direkt an ein externes CRM, `nf_sub` ist ueber
   alle Zeiten leer). Ein Abgleich „Einreichungen vs. Events" ist dann ueber die WP-DB
   **nicht** moeglich. Vor Auswertung pruefen, ob lokal ueberhaupt gespeichert wird.
 

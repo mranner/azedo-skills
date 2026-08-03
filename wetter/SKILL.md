@@ -106,9 +106,25 @@ orange/rot), Zeitraum sowie Text, Auswirkungen und Empfehlungen.
    eigentlichen Subcommand fortfahren. Existiert die Datei bereits, diesen
    Schritt ueberspringen. (Bei `warnungen` entfaellt der Schritt — Warnungen
    nutzen keine Favoriten.)
-3. Passenden Subcommand waehlen: `forecast` (heute/morgen), `nowcast`
+3. **Kontakt sicherstellen (nur beim Geocoding per Ortsname):** Ist der Ort ein
+   **Name** und existiert weder die Umgebungsvariable `WETTER_CONTACT` noch
+   `~/.claude/wetter.json`, den User **einmalig** fragen, ob eine
+   Kontaktadresse fuer die User-Agent-Zeile hinterlegt werden soll (Nominatim
+   wuenscht sie, siehe Hinweise). Bei Zusage die Datei anlegen:
+   ```bash
+   printf '{\n  "contact": "<adresse>"\n}\n' > ~/.claude/wetter.json
+   ```
+   Bei **Ablehnung** die Datei mit leerem Wert anlegen, damit die Frage nicht
+   in jeder neuen Session wiederkommt — der Skill wertet das wie "kein Kontakt"
+   und laeuft vollstaendig:
+   ```bash
+   printf '{\n  "contact": ""\n}\n' > ~/.claude/wetter.json
+   ```
+   Wurden **Koordinaten** (`lat,lon`) angegeben, entfaellt der Schritt: dann
+   geht gar kein Request an Nominatim.
+4. Passenden Subcommand waehlen: `forecast` (heute/morgen), `nowcast`
    (naechste Stunden), `warnungen` (Unwetter/Warnlage).
-4. Ausgabe dem User lesbar zusammenfassen; bei Bedarf `--json` fuer Weiter-
+5. Ausgabe dem User lesbar zusammenfassen; bei Bedarf `--json` fuer Weiter-
    verarbeitung.
 
 ## Hinweise
@@ -124,6 +140,17 @@ orange/rot), Zeitraum sowie Text, Auswirkungen und Empfehlungen.
   (`rr_acc`/`rain_acc`/`snow_acc`) pro Intervall differenziert.
 - Geocoding nutzt OpenStreetMap/Nominatim (Fair-Use, ein Request pro Ortsname).
   Fuer wiederholte Abfragen desselben Orts besser Koordinaten verwenden.
+- **Kontaktadresse im User-Agent.** Nominatim verlangt eine identifizierende
+  User-Agent-Zeile und wuenscht bei nennenswertem Abrufvolumen eine
+  Kontaktmoeglichkeit. Sie steht **nicht** im Skript, sondern kommt aus
+  `WETTER_CONTACT` (Umgebungsvariable, hat Vorrang) oder `contact` in
+  `~/.claude/wetter.json`:
+  ```json
+  { "contact": "ich@example.org" }
+  ```
+  Ohne beides sendet der Skill `azedo-wetter-skill/1.0` ohne Kontakt — fuer
+  gelegentliche Abfragen ausreichend. Vorlage: `wetter.json.example` im
+  Skill-Verzeichnis.
 - **Favoritenstationen** liegen in `~/.claude/wetter-favorites.json`:
   ```json
   { "favorites": [

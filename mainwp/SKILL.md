@@ -1,7 +1,7 @@
 ---
 name: mainwp
 description: >
-  MainWP Dashboard (office.example.at): WordPress-Sites netzwerkuebergreifend
+  MainWP Dashboard: WordPress-Sites netzwerkuebergreifend
   verwalten. Sites auflisten, Updates pruefen und installieren, Plugins und
   Themes verwalten, Clients und Tags organisieren. Generischer Abilities-
   Executor — kann dynamisch alle verfuegbaren MainWP-Abilities ausfuehren.
@@ -21,12 +21,12 @@ ausfuehren.
 
 ## Setup
 
-1. WordPress Application Password auf office.example.at erstellen
+1. WordPress Application Password auf dem MainWP-Dashboard-Host erstellen
    (Users → Profile → Application Passwords).
 
 2. Credentials in `.env` eintragen (cwd oder `~/.env`):
    ```
-   MAINWP_HOST=https://office.example.at
+   MAINWP_HOST=https://dashboard.example.at
    MAINWP_USER=<wp-username>
    MAINWP_APP_PASSWORD=<xxxx xxxx xxxx xxxx>
    MAINWP_V2_CONSUMER_KEY=<consumer-key>

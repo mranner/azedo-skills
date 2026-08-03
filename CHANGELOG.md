@@ -3,6 +3,73 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.35.0
+
+- **Kunden-, Personen- und Infrastrukturdaten aus dem public Repo entfernt (CR4461).** 1.34.7 hatte
+  nur die Mailadressen erwischt; ein vollstaendiger Durchgang foerderte deutlich mehr zutage.
+  - **Credentials:** `pushover/SKILL.md` fuehrte **zwei echte Pushover-User-Keys** im Klartext
+    (Adressbuch-Beispiel und `recipients add`) — der eigene und der einer Kollegin. Beide gegen
+    `~/.pushover-recipients` als produktiv verifiziert, ersetzt durch `uAAA…`/`uBBB…`. Die Keys
+    stehen weiter in der Git-Historie und muessen in der Pushover-App neu ausgestellt werden; ein
+    Doku-Fix allein reicht dafuer nicht.
+  - **Personen:** Klarname und Login einer Kollegin (`kanboard/SKILL.md` -> `Karin Musterfrau`),
+    der Alias einer Kollegin an 11 Stellen (`pushover`, `README.md`) -> `kollege`, Klarname eines
+    Kunden-Accounts (`jira/SKILL.md` -> `Max Mustermann`), `imap_user` (`imap/SKILL.md` ->
+    `<username>`), ein Vorname in `swaks`/`mail-as-me`. Bei den `pushover`-Trigger-Phrasen im
+    Frontmatter bewusst ein Platzhalter-**Name** statt einer namenlosen Umschreibung: was das
+    Triggering traegt, ist das Muster „push + Empfaenger + Nachricht", nicht die Zeichenkette.
+  - **Kunden:** Jira-Instanzen und -Profile (Kunden-Hosts ->
+    `jira.example.com`/`example.atlassian.net`, Profile -> `dc`/`cloud`), ein Kundenprojekt samt
+    Domain, wwwuser und Jail-Pfad (`wp-nf`), Empfaenger-Beispiele (`mail-as-me`), ein Gateway
+    (`swos`). Im `CHANGELOG.md` zusaetzlich die **Sicherheitsarchitektur** eines Kunden
+    (SSO-Portal, MFA-Produkt) — inhaltlich heikler als der blosse Name.
+  - **Eigene Infrastruktur:** DEV-Host, Jail-Name, Vhost-Pfade und Dateigruppe (`wp-sync-dev`),
+    Dashboard-Host (`mainwp`), IMAP-Hosts (`imap`), Beispielserver (`wp-cli`), die beiden
+    Whitelist-IPs (`wiki/SKILL.md`).
+  - **Konkrete Vorgangs-IDs** (Issue-, Kommentar-, Attachment-IDs, eine Atlassian-accountId) durch
+    formatgleiche Platzhalter ersetzt, damit die Beispiele die Syntax weiter zeigen.
+  - Changelog-Eintraege ab 1.30 wurden **umformuliert** statt ersetzt — ein Suchen-und-Ersetzen
+    haette Saetze wie „Ausloeser: <Kundenname> laeuft auf Cloud" unverstaendlich oder falsch gemacht.
+    Aeltere Eintraege nur bei den harten Identifiern angefasst.
+  - `CLAUDE.md`: neuer Abschnitt **„Das Repo ist public"** mit den fuenf verbotenen Kategorien, der
+    Ersatzstrategie und zwei Pruef-Greps fuer vor dem Push.
+- **`swaks`: Versand-Defaults kommen aus `.claude/swaks.json` (CR4461).** Der Skill hatte fuer
+  Empfaenger, Absender und Server keine Config-Quelle — die Werte standen als Prosa in der
+  `SKILL.md`, `build_mail.py` verlangte `--to`/`--from` als Pflichtargumente.
+  - Neue Config mit `to`, `from`, `server`, `message_id_domain`; Aufloesung projektlokal
+    `.claude/` **vor** global `~/.claude/`, also dieselbe Reihenfolge wie bei den Signaturen
+    (`resolve_sig()` ist zu `resolve_claude_file()` verallgemeinert und wird von beiden genutzt).
+  - `--to`/`--from` sind jetzt **optional**: Kommandozeile schlaegt Config. Fehlt beides, bricht
+    der Helper mit einer Meldung ab, die Datei und Schluessel nennt — statt eine unadressierte
+    Mail zu bauen.
+  - `--show-config` gibt die aufgeloeste Config aus (vor argparse abgefangen, damit die Abfrage
+    ohne `--subject`/`--text-file`/`--html-file` funktioniert). Daraus holt der Aufrufer den
+    `server` fuer die swaks-Zeile, den der Helper selbst nicht braucht.
+  - Die Message-ID-Domain war hartkodiert und kommt jetzt aus `message_id_domain`; ohne Eintrag
+    faellt sie auf die Domain des Absenders zurueck. Bei abweichendem `--from` gewinnt weiterhin
+    die Config — die Message-ID gehoert zum sendenden System, nicht zum From-Header.
+  - `install.sh` meldet eine fehlende `~/.claude/swaks.json`, legt sie aber **nicht** an: eine mit
+    `example.org` vorbelegte Config wuerde Mail an eine Platzhalter-Adresse zustellen statt
+    hoerbar zu scheitern. Vorlage `swaks/swaks.json.example`.
+- **`wetter`: Kontaktadresse im User-Agent aus Config oder Environment (CR4461).** Die Adresse war
+  hartkodiert und ging bei **jedem** Aufruf an GeoSphere, die Warn-API und Nominatim. Jetzt
+  `WETTER_CONTACT` (Vorrang) -> `contact` aus `~/.claude/wetter.json` -> Fallback ohne Kontakt.
+  Bewusst **kein** Abbruch ohne Config: Nominatim verlangt nur eine identifizierende
+  User-Agent-Zeile, die Kontaktadresse ist eine Empfehlung fuer nennenswertes Abrufvolumen — der
+  Skill bleibt auf einem frischen Rechner voll funktionsfaehig. Die `SKILL.md` fragt einmalig
+  danach (nur beim Geocoding per **Ortsname**, bei Koordinaten geht kein Request an Nominatim);
+  eine Ablehnung wird als leerer `contact` festgehalten, damit die Frage nicht wiederkommt.
+  Vorlage `wetter/wetter.json.example`.
+- **`wp-sync-dev`: DEV-Umgebung kommt aus dem Infra-Wiki.** Die Prod-Seite war laengst
+  parametrisiert (`<jailer>`, `<jailname>`, `<wwwuser>`, `<domain>`), die DEV-Seite hartkodiert.
+  Jetzt symmetrisch ueber `<dev-host>`, `<dev-jail>` und `<dev-group>`, die per
+  `/wiki query "DEV-Webhost"` aus der Server-Entity kommen — dort sind sie samt Jail-IP, Pfaden
+  und Zugang ohnehin gepflegt, das Duplikat im Skill war reine Redundanz.
+- **`jira`: Doku nennt keine Profilnamen mehr.** Die Profile heissen pro Rechner anders; ein
+  Beispiel `-i cloud` waere gegen eine bestehende Config ins Leere gelaufen. Beispiele nutzen
+  `-i <instanz>`, dazu der Hinweis, die vorhandenen Namen per `instances` aufzulisten statt sie
+  aus der Doku zu raten. Bestehende `~/.claude/jira.json` bleiben unveraendert gueltig.
+
 ### 1.34.7
 
 - **Echte Mailadressen aus der Doku entfernt.** `mail-as-me/SKILL.md` fuehrte die private Adresse
@@ -12,7 +79,7 @@ Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version 
   `mail-as-me` zur Laufzeit aus `config.json.send` des Profils, der Jira-Aufruf bekommt die Adresse
   als Argument mit. Ersetzt durch `ich@example.org` bzw. `vorname.nachname@example.org`; die
   Formulierungen drumherum kommen ohne Personenbezug aus.
-- `claude@azedo.at` bleibt in `mail-as-me/SKILL.md` und im Changelog stehen — das ist der
+- Der swaks-Default-Absender bleibt in `mail-as-me/SKILL.md` und im Changelog stehen — das ist der
   tatsaechliche swaks-Default, ein Platzhalter wuerde die Aussage falsch machen. `swaks/SKILL.md`
   nennt die eigene Adresse weiterhin als dokumentierten Default-Empfaenger: der Skill hat dafuer
   keine Config-Quelle (`build_mail.py` verlangt `--to`/`--from`), die Angabe steht nur in der Prosa.
@@ -60,18 +127,18 @@ Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version 
 ### 1.34.3
 
 - **`jira`: Kommentare bearbeiten, @-Mentions im Body, Nutzersuche (CR4444).** Aufgefallen an
-  ITSD-16162: eine Mention musste ueber ein Ad-hoc-Skript direkt gegen die REST API gesetzt werden,
+  ITSD-2000: eine Mention musste ueber ein Ad-hoc-Skript direkt gegen die REST API gesetzt werden,
   weil der Skill weder bestehende Kommentare aendern noch Erwaehnungen erzeugen konnte.
   - **`comment-edit <ISSUE> --id <commentId> --body ...`** ueberschreibt einen bestehenden
     Kommentar (`PUT issue/{key}/comment/{id}`, Cloud ADF / DC Plaintext, `--body -` liest stdin).
     Damit die id ohne `--json` auffindbar ist, steht sie jetzt in der Kopfzeile von `comments`:
-    `[2026-07-27 22:50] MRanner (id 214989):`.
+    `[2026-07-27 22:50] MMuster (id 20001):`.
   - **`@[<schluessel>]` im Body wird zur echten Erwaehnung** — Cloud als ADF-`mention`-Knoten, DC
     als Wiki-Markup `[~username]`. Gilt fuer jeden geschriebenen Body (`comment`, `comment-edit`,
     `describe`, `transition --comment`); enthaelt ein Text keine `@[...]`, laeuft auch kein
     zusaetzlicher API-Call. Schluessel ist eine E-Mail (exakter Treffer auf `emailAddress`), eine
     accountId/ein Username (direkt uebernommen) oder ein Anzeigename.
-  - **Mehrdeutigkeit bricht ab, statt zu raten.** Auf der Corris-Cloud liefert `@[Max Mustermann]`
+  - **Mehrdeutigkeit bricht ab, statt zu raten.** Auf einer der Cloud-Instanzen liefert `@[Max Mustermann]`
     drei aktive Accounts gleichen Namens (nur einer mit sichtbarer E-Mail) — der Skill listet die
     Kandidaten mit accountId und E-Mail und schreibt nichts. Ein Schluessel ohne Treffer bricht
     ebenso ab; unaufgeloester `@[...]`-Text landet nie im Ticket. Umgekehrt gilt: verbirgt Cloud die
@@ -81,7 +148,7 @@ Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version 
     `user/search?query=` -> accountId, DC `user/search?username=` -> Username), mit Anzeigename,
     E-Mail und Inaktiv-Markierung.
   - **Nicht-JSON-Antworten melden sich lesbar** statt mit `JSONDecodeError`-Traceback: liefert die
-    Instanz auf 200 eine HTML-Login-/SSO-Seite (bei `jira.example.com` derzeit auf **allen**
+    Instanz auf 200 eine HTML-Login-/SSO-Seite (bei der DC-Instanz derzeit auf **allen**
     Endpoints, auch `myself` — abgelaufener PAT), nennt der Fehler Content-Type und Ziel-URL. Der
     DC-Pfad dieses Release ist daher nur gegen Cloud verifiziert.
 
@@ -130,8 +197,8 @@ Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version 
 
 - **Neuer Skill `imap`: Posteingang-Triage ueber mehrere Konten.** Gegenstueck zu `swaks` — der
   bestehende Skill versendet, dieser liest und raeumt auf. stdlib-only Python, kein Daemon, kein
-  MCP-Server. Verifiziert gegen beide Konten: `mail.example.at` (Dovecot) und `office.example.at`
-  (Cyrus IMAP 2.5.17).
+  MCP-Server. Verifiziert gegen zwei Konten auf getrennten Servern: einmal Dovecot, einmal
+  Cyrus IMAP 2.5.17.
   - **Zugangsdaten aus der muttrc**, keine zweite Credential-Datei. Ausgewertet wird eine
     Teilmenge der muttrc-Syntax: `set`, `account-hook`, `source` (auch `source "cmd |"`) und
     Backtick-Substitution — damit funktioniert auch `imap_pass=\`pass show ...\`` aus einem
@@ -168,14 +235,14 @@ Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version 
 ### 1.33.0
 
 - **`kanboard`: CR<->Jira-Verknuepfung ueber `jira:<KEY>`-Tag.** Analog zum bestehenden
-  `kimai:<shortcut>` merkt ein Tag `jira:<KEY>` (z.B. `jira:SADM-69`) das zum CR gehoerende
+  `kimai:<shortcut>` merkt ein Tag `jira:<KEY>` (z.B. `jira:SADM-100`) das zum CR gehoerende
   Jira-Issue; `cr` hebt es als eigenes Feld `jira` heraus, sodass der `jira`-Skill ohne erneute
   Key-Angabe darauf arbeiten kann. Neuer Subcommand `set-jira <task_id> --key <KEY>` (ersetzt einen
   vorhandenen `jira:*`-Tag, normiert auf Grossschreibung). Bewusst **kein** Commit-Prefix — der CR
   bleibt der einzige Commit-Anker, keine Kollision. SKILL.md: Tag-Konvention, `cr`-Feld und
   Write-back-Regel dokumentiert (CR4435).
-- **`jira`: Jira-Cloud-Unterstuetzung (`*.atlassian.net`) neben Data Center.** Ausloeser: Corris
-  laeuft auf `example.atlassian.net` (Cloud), der Skill sprach bisher nur DC (REST v2, PAT-Bearer)
+- **`jira`: Jira-Cloud-Unterstuetzung (`*.atlassian.net`) neben Data Center.** Ausloeser: eine der genutzten
+  Instanzen laeuft auf Cloud (`*.atlassian.net`), der Skill sprach bisher nur DC (REST v2, PAT-Bearer)
   und konnte Cloud gar nicht erreichen (CR4435).
   - **Auto-Erkennung** des Instanz-Typs: Host `*.atlassian.net` oder `"type": "cloud"` in der
     Config schaltet auf den Cloud-Pfad; die Subcommands (`search`/`issue`/`comments`/`transitions`/
@@ -205,9 +272,9 @@ Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version 
       Folgt dem 302 auf den Media-/S3-Host und entfernt dabei den `Authorization`-Header (sonst
       Ablehnung); gleichnamige Anhaenge bekommen beim Sammel-Download die ID vorangestellt (kein
       stilles Ueberschreiben).
-  - Live gegen `example.atlassian.net` verifiziert: Login, Projekt-Discovery, Suche mit Routing,
+  - Live gegen eine Cloud-Instanz verifiziert: Login, Projekt-Discovery, Suche mit Routing,
     Issue-/Kommentar-Anzeige inkl. Umlaute/Emojis/Mentions, Transition-Dry-Run. **Schreib-Pfad
-    komplett live bestaetigt** am Test-Ticket SADM-69: Kommentar (ADF, mehrzeilig), `assign` (alle
+    komplett live bestaetigt** am Test-Ticket SADM-100: Kommentar (ADF, mehrzeilig), `assign` (alle
     Varianten), `describe`, `subtask` (inkl. `--owner`), `attach`, `attachments` und `download`
     (Inhalt byte-identisch verifiziert). Nur `transition` mit `--yes` bislang nur als Dry-Run.
 
@@ -216,7 +283,7 @@ Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version 
 - **`mail-as-me`: „nie spiegeln"-Regel als prominente Grundregel + konkretes Anti-Beispiel; Trigger
   geschaerft.** Ausloeser: Bei „schreib eine Mail wie ich" wurde der Skill mehrfach uebersprungen und
   direkt in swaks getextet — Ergebnis war die schweizerische Grussformel „Hoi" (Spiegelung eines
-  `example.com`-Empfaengers) statt des korrekten oesterreichischen „Hallo Tanja," (CR4437).
+  `example.com`-Empfaengers) statt des korrekten oesterreichischen „Hallo Karin," (CR4437).
   - Neue Sektion **„Grundregel: eigene Stimme, nie spiegeln"** ganz oben mit dem wiederkehrenden
     Fehlgriff als konkretem Anti-Beispiel: CH/DE-Empfaenger (`example.com`, `example.ch`) bekommen
     trotzdem „Hallo {Vorname}," — nie „Hoi"/„Grüezi"/„Grüessech"/„Grüess di"/„Servus". Die abstrakte
@@ -231,21 +298,21 @@ Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version 
   („ergaenzt eine Fusszeile") pauschal fuer alle drei Vorlagen, `alert`/`recovery` implementierten es auch
   — nur `digest` kannte den Parameter nicht (`unrecognized arguments: --host`). Jetzt akzeptiert `digest`
   `--host` ebenfalls und haengt dieselbe Fusszeile `<i>Host: …</i>` wie `alert`/`recovery` an. Aufgefallen
-  beim Umstellen des corris Post-Update-Monitoring-Loops von Telegram auf Pushover (CR4436).
+  beim Umstellen eines Post-Update-Monitoring-Loops von Telegram auf Pushover (CR4436).
 
 ### 1.32.2
 
 - **Neuer Skill `jira`: Jira Data Center / Server per REST API v2 (multi-instanz).** Selbst-gehostete
-  Jira-Instanzen (z.B. `jira.example.com`, `jira.example.com`) abfragen und aendern, Auth per Personal
+  Jira-Instanzen (z.B. `jira.example.com`) abfragen und aendern, Auth per Personal
   Access Token (Bearer).
   - Subcommands: `instances`, `search` (JQL), `issue`, `comments`, `transitions` (lesend); `comment`,
     `transition` (schreibend; `transition` mit Dry-run-Guard, echt erst mit `--yes`).
   - Config `~/.claude/jira.json` (bewusst **ausserhalb** der Git-Repos — `~/.claude` ist kein Repo,
     der Token landet nie in Git) mit benannten Instanzen und **Projekt-Routing**: der Issue-Key
-    (`CORTAB-1760` → `CORTAB`) bzw. `project = X` in der JQL waehlt die Instanz, `--instance`
+    (`CORTAB-1000` → `CORTAB`) bzw. `project = X` in der JQL waehlt die Instanz, `--instance`
     ueberschreibt, sonst greift `default`. stdlib-only, keine pip-Abhaengigkeiten.
-  - Hinweis: `jira.example.com` liegt hinter Ergons SSO-Portal (Futurae-MFA/Captcha) → PAT-Zugriff von
-    aussen (noch) blockiert; Klaerung mit Ergon laeuft (CR4435).
+  - Hinweis: eine der DC-Instanzen liegt hinter einem SSO-Portal mit MFA → PAT-Zugriff von
+    aussen (noch) blockiert; Klaerung mit dem Betreiber laeuft (CR4435).
 - **`mail-as-me`: „Gegenueber nie spiegeln" als universelle Engine-Regel verankert.** `draft`/`rewrite`
   schreiben immer in der eigenen Stimme des Profils — weder Sprache, Stil, Register, Region/Dialekt,
   Anrede noch Grussformel des Gegenuebers uebernehmen (bei Reply-`.eml` nicht Ton/Region des Absenders
@@ -569,11 +636,11 @@ Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version 
 
 ### 1.22.3
 
-- **wp-sync-dev: Scope-Grenze Host-Dateizugriff vs. Jail-Laufzeit klargestellt.** Der Skill beschrieb die DEV-Pfade als host-seitig (korrekt fuer rsync/chmod), sagte aber nicht, dass `dev.example.at` ein iocage-Jail ist und alles Laufzeitartige (`wp`-CLI, WordPress) **im Jail** laufen muss (`iocage exec dev.example.at … sudo -u www wp …`). Fuehrte in dieser Session zur Fehlannahme, `wp` liefe direkt auf dem mom-Host (`command not found`). DEV-Abschnitt umbenannt + Notiz mit Verweis auf Skill `wp-cli` / Wiki `wp-cli-in-jails` / `mom-azedo-at`.
+- **wp-sync-dev: Scope-Grenze Host-Dateizugriff vs. Jail-Laufzeit klargestellt.** Der Skill beschrieb die DEV-Pfade als host-seitig (korrekt fuer rsync/chmod), sagte aber nicht, dass die DEV-Umgebung ein iocage-Jail ist und alles Laufzeitartige (`wp`-CLI, WordPress) **im Jail** laufen muss (`iocage exec <dev-jail> … sudo -u www wp …`). Fuehrte in dieser Session zur Fehlannahme, `wp` liefe direkt auf dem Jail-Host (`command not found`). DEV-Abschnitt umbenannt + Notiz mit Verweis auf Skill `wp-cli` / Wiki `wp-cli-in-jails` / Server-Entity des DEV-Hosts.
 
 ### 1.22.2
 
-- **wp-nf: Export-Snippet faengt Schreibfehler ab.** `nf-export-form.php` pruefte den Rueckgabewert von `file_put_contents()` nicht und meldete „OK … Bytes" auch dann, wenn die Datei gar nicht geschrieben wurde (aufgefallen beim Live-Test auf dev.example.at, als `wp` als `www` nicht ins Jail-`/tmp` schreiben durfte). Jetzt: bei `false` Abbruch mit Fehlermeldung und Exit 1. §5-Write und §8-Import wurden dabei end-to-end gegen NF 3.14.9 verifiziert (Export→Import→`element_class`-Write→Cache-Rebuild, Meta↔Cache konsistent). (CR4409)
+- **wp-nf: Export-Snippet faengt Schreibfehler ab.** `nf-export-form.php` pruefte den Rueckgabewert von `file_put_contents()` nicht und meldete „OK … Bytes" auch dann, wenn die Datei gar nicht geschrieben wurde (aufgefallen beim Live-Test auf DEV, als `wp` als `www` nicht ins Jail-`/tmp` schreiben durfte). Jetzt: bei `false` Abbruch mit Fehlermeldung und Exit 1. §5-Write und §8-Import wurden dabei end-to-end gegen NF 3.14.9 verifiziert (Export→Import→`element_class`-Write→Cache-Rebuild, Meta↔Cache konsistent). (CR4409)
 
 ### 1.22.1
 
@@ -581,7 +648,7 @@ Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version 
 
 ### 1.22.0
 
-- **Neuer Skill `wp-nf` (Ninja-Forms-Administration).** Reiner Referenz-Skill (nur SKILL.md, PHP-Snippets fuer `wp eval-file` im FreeBSD-Jail), verifiziert am Plugin-Quellcode von **Ninja Forms 3.14.8** auf apache1.acme.com. Anlass: das bei CR4266 (customer, GA4-CSS-Click-Events) entstandene, bisher nur im Handoff lebende NF-Wissen reproduzierbar kodieren. Inhalt: Datenmodell + Footguns (`element_class` liegt in `nf3_field_meta`, **keine** `settings`-Spalte in 3.14.8 — die aeltere Annahme ist damit widerlegt; Render-Quelle ist der Form-Cache `nf3_upgrades`, `WPN_Helper::use_cache()` liefert hart `true`), Formulare auflisten + Titel→ID-Mapping, Felder+Settings dumpen (Model-API), `element_class`-Write nach dem Muster Backup→Write→**Cache invalidieren**→Verify, **Export/Import** (`.nff`, Backend-identisch, ueber `export_form()`/`import_form()`; Import legt immer ein neues Formular an), Settings-Preflight (Meta↔Cache-Drift), Diagnose-Muster PYS-CSS-Click ↔ `element_class`, sowie eine Uebersicht der nativen `wp ninja-forms`-Extension und ihrer Grenzen (kein Export/Import, keine Settings-Details). `install.sh`-Liste ergaenzt. (CR4409)
+- **Neuer Skill `wp-nf` (Ninja-Forms-Administration).** Reiner Referenz-Skill (nur SKILL.md, PHP-Snippets fuer `wp eval-file` im FreeBSD-Jail), verifiziert am Plugin-Quellcode von **Ninja Forms 3.14.8** auf apache1.acme.com. Anlass: das bei CR4266 (Kundenprojekt, GA4-CSS-Click-Events) entstandene, bisher nur im Handoff lebende NF-Wissen reproduzierbar kodieren. Inhalt: Datenmodell + Footguns (`element_class` liegt in `nf3_field_meta`, **keine** `settings`-Spalte in 3.14.8 — die aeltere Annahme ist damit widerlegt; Render-Quelle ist der Form-Cache `nf3_upgrades`, `WPN_Helper::use_cache()` liefert hart `true`), Formulare auflisten + Titel→ID-Mapping, Felder+Settings dumpen (Model-API), `element_class`-Write nach dem Muster Backup→Write→**Cache invalidieren**→Verify, **Export/Import** (`.nff`, Backend-identisch, ueber `export_form()`/`import_form()`; Import legt immer ein neues Formular an), Settings-Preflight (Meta↔Cache-Drift), Diagnose-Muster PYS-CSS-Click ↔ `element_class`, sowie eine Uebersicht der nativen `wp ninja-forms`-Extension und ihrer Grenzen (kein Export/Import, keine Settings-Details). `install.sh`-Liste ergaenzt. (CR4409)
 - **wp-pys: NF-ID-Wissen nach `wp-nf` migriert.** Abschnitt „3.8 Ninja-Form-IDs ermitteln" enthielt das Roh-Snippet zur Formular-Auflistung; das gesamte NF-Datenmodell gehoert nun in den neuen Skill `wp-nf`. `wp-pys` verweist jetzt nur noch darauf (Titel-Mapping-Prinzip + Cross-Link) und ergaenzt den reziproken Hinweis, dass `css_click` auch an der NF-Feld-Klasse `element_class` haengt. Keine Duplizierung mehr zwischen den beiden Skills. (CR4409)
 
 ### 1.21.0
@@ -745,7 +812,7 @@ Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version 
 
 ### 1.9.0
 
-- **MainWP-Skill:** Neuer Skill fuer MainWP Dashboard (office.example.at) — generischer Abilities-Executor mit 5 Subcommands (setup, ping, list, info, run). Dynamische Erkennung aller verfuegbaren Abilities via WP Abilities API. Destruktive Operationen erfordern --confirm, --dry-run fuer Vorschau
+- **MainWP-Skill:** Neuer Skill fuer MainWP Dashboard — generischer Abilities-Executor mit 5 Subcommands (setup, ping, list, info, run). Dynamische Erkennung aller verfuegbaren Abilities via WP Abilities API. Destruktive Operationen erfordern --confirm, --dry-run fuer Vorschau
 
 ### 1.8.0
 
@@ -754,7 +821,7 @@ Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version 
 
 ### 1.7.0
 
-- **wp-sync-dev-Skill:** Neuer Referenz-Skill fuer bidirektionalen WordPress-Plugin/Theme-Sync zwischen Prod-Jails und DEV (dev.example.at). Pfad-Schema (iocage/ezjail), rsync, Permissions, Artefakt-Bereinigung
+- **wp-sync-dev-Skill:** Neuer Referenz-Skill fuer bidirektionalen WordPress-Plugin/Theme-Sync zwischen Prod-Jails und DEV. Pfad-Schema (iocage/ezjail), rsync, Permissions, Artefakt-Bereinigung
 
 ### 1.6.0
 

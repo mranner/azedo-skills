@@ -1,16 +1,16 @@
 {
-  "default": "ergon",
+  "default": "dc",
   "instances": {
-    "ergon": {
+    "dc": {
       "host": "https://jira.example.com",
-      "token": "<ERGON_PERSONAL_ACCESS_TOKEN>",
+      "token": "<PERSONAL_ACCESS_TOKEN>",
       "projects": ["CORTAB"]
     },
-    "corris": {
+    "cloud": {
       "host": "https://example.atlassian.net",
       "type": "cloud",
       "email": "<ATLASSIAN_ACCOUNT_EMAIL>",
-      "token": "<CORRIS_API_TOKEN>",
+      "token": "<CLOUD_API_TOKEN>",
       "projects": ["SADM", "ITSD", "CSW"]
     }
   }

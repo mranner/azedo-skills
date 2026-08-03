@@ -143,6 +143,18 @@ else:
     print('  Permissions bereits aktuell.')
 "
 
+# Config-Dateien ausserhalb des Repos: nur melden, nie vorbelegen. Eine mit
+# Platzhaltern gefuellte swaks.json wuerde Mail an example.org zustellen statt
+# hoerbar zu scheitern.
+
+if [ ! -f "$HOME/.claude/swaks.json" ]; then
+    echo ""
+    echo "HINWEIS: $HOME/.claude/swaks.json fehlt — der swaks-Skill hat sonst"
+    echo "keine Versand-Defaults (to/from/server) und bricht beim Bauen ab:"
+    echo "  cp \"$REPO_DIR/swaks/swaks.json.example\" \"$HOME/.claude/swaks.json\""
+    echo "  \$EDITOR \"$HOME/.claude/swaks.json\""
+fi
+
 echo ""
 echo "Fertig. Jetzt .env anlegen und setup ausfuehren:"
 echo "  python3 \"\$SKILL_DIR/kanboard\" setup"

@@ -9,7 +9,7 @@ description: >
   Status-Uebergaenge (Transitions) ausfuehren,
   Issues zuweisen, Beschreibungen setzen, Unteraufgaben anlegen sowie Dateien
   anhaengen, auflisten und herunterladen. Multi-Instanz ueber benannte Profile in ~/.claude/jira.json mit
-  Projekt-Routing (z.B. CORTAB-* -> Ergon, SADM-* -> Corris). DC: PAT-Bearer,
+  Projekt-Routing (der Issue-Key waehlt die Instanz). DC: PAT-Bearer,
   REST API v2. Cloud: Basic-Auth email:API-Token, REST API v3, ADF-Bodies.
   Nutze diesen Skill wenn der User Jira-Tickets abfragen, kommentieren oder
   deren Status aendern will (z.B. CORTAB-*, SADM-*). Auch aktiv verwenden bei
@@ -25,8 +25,8 @@ trigger:
 # jira -- Jira REST API (Data Center + Cloud)
 
 Fragt Jira-Instanzen ueber die REST API ab und aendert Issues gezielt — sowohl selbst-gehostetes
-**Data Center / Server** (Ergon, `jira.example.com`) als auch **Jira Cloud** (`*.atlassian.net`,
-Corris, `example.atlassian.net`). Mehrere Instanzen werden ueber benannte Profile in
+**Data Center / Server** (z.B. `jira.example.com`) als auch **Jira Cloud** (`*.atlassian.net`,
+z.B. `example.atlassian.net`). Mehrere Instanzen werden ueber benannte Profile in
 `~/.claude/jira.json` unterschieden; die tatsaechlichen Rechte richten sich pro Instanz nach dem
 eigenen User (API-Rechte = UI-Rechte).
 
@@ -59,10 +59,10 @@ alle Cloud-Sites. Felder: `host` (`https://<site>.atlassian.net`), `email`, `tok
 
 ```json
 {
-  "default": "ergon",
+  "default": "dc",
   "instances": {
-    "ergon":  { "host": "https://jira.example.com", "token": "<PAT>", "projects": ["CORTAB"] },
-    "corris": { "host": "https://example.atlassian.net", "type": "cloud",
+    "dc":  { "host": "https://jira.example.com", "token": "<PAT>", "projects": ["CORTAB"] },
+    "cloud": { "host": "https://example.atlassian.net", "type": "cloud",
                 "email": "<account-email>", "token": "<API-Token>",
                 "projects": ["SADM", "ITSD", "CSW"] }
   }
@@ -72,12 +72,20 @@ alle Cloud-Sites. Felder: `host` (`https://<site>.atlassian.net`), `email`, `tok
 Cloud braucht **email + token** (Basic-Auth) — der Token allein reicht nicht. Alternativer
 Config-Pfad per `JIRA_CONFIG=/pfad/jira.json` (sonst: `~/.claude/jira.json`).
 
+**Die Profilnamen sind frei waehlbar** (`dc`/`cloud` oben ist nur ein Beispiel) und pro Rechner
+verschieden. Vor einem `-i <instanz>` daher nie einen Namen aus dieser Doku raten, sondern die
+tatsaechlich vorhandenen auflisten:
+
+```bash
+python3 "$SKILL_DIR/jira" instances
+```
+
 ## Instanzen & Routing
 
 Die Ziel-Instanz wird in dieser Reihenfolge bestimmt:
 
 1. **`--instance <name>`** (bzw. `-i`) — expliziter Override, gewinnt immer.
-2. **Projekt-Routing** — aus dem Issue-Key (`CORTAB-1760` -> `CORTAB`) bzw. aus `project = X`
+2. **Projekt-Routing** — aus dem Issue-Key (`CORTAB-1000` -> `CORTAB`) bzw. aus `project = X`
    in der JQL wird das Projekt abgeleitet und die Instanz gewaehlt, deren `projects`-Liste es
    enthaelt.
 3. **`default`** aus der Config, wenn nichts passt.
@@ -99,24 +107,24 @@ python3 "$SKILL_DIR/jira" search "project = SADM ORDER BY updated DESC" --token 
 python3 "$SKILL_DIR/jira" search "project = CORTAB" --fields summary,status --json
 
 # Einzelnes Issue (mit Beschreibung)
-python3 "$SKILL_DIR/jira" issue CORTAB-1762
+python3 "$SKILL_DIR/jira" issue CORTAB-1001
 
 # Kommentare (Kopfzeile enthaelt die Kommentar-id -- die braucht comment-edit)
-python3 "$SKILL_DIR/jira" comments CORTAB-1762
+python3 "$SKILL_DIR/jira" comments CORTAB-1001
 
 # Nutzer suchen: Cloud accountId, DC Username (Suchbegriff = E-Mail, Name, Username)
-python3 "$SKILL_DIR/jira" users -i corris --query "vorname.nachname@example.org"
-python3 "$SKILL_DIR/jira" users -i corris --query "bucher" --json
+python3 "$SKILL_DIR/jira" users -i <instanz> --query "vorname.nachname@example.org"
+python3 "$SKILL_DIR/jira" users -i <instanz> --query "mustermann" --json
 
 # Moegliche Status-Uebergaenge (id, Name, Ziel-Status)
-python3 "$SKILL_DIR/jira" transitions CORTAB-1762
+python3 "$SKILL_DIR/jira" transitions CORTAB-1001
 
 # Anhaenge auflisten (id, Name, Groesse, Typ, Datum, Autor)
-python3 "$SKILL_DIR/jira" attachments SADM-69
+python3 "$SKILL_DIR/jira" attachments SADM-100
 
 # Anhaenge herunterladen: alle in ein Verzeichnis, oder einen per --id
-python3 "$SKILL_DIR/jira" download SADM-69 --output ./.tmp
-python3 "$SKILL_DIR/jira" download SADM-69 --id 107792 --output ./bericht.pdf
+python3 "$SKILL_DIR/jira" download SADM-100 --output ./.tmp
+python3 "$SKILL_DIR/jira" download SADM-100 --id 10001 --output ./bericht.pdf
 ```
 
 `download` folgt dem 302 auf den Media-/S3-Host und entfernt dabei den Auth-Header (sonst Ablehnung).
@@ -129,15 +137,15 @@ Schreibende Operationen nur, soweit der eigene User es in der jeweiligen Instanz
 
 ```
 # Kommentar hinzufuegen ('-' liest den Body von stdin)
-python3 "$SKILL_DIR/jira" comment CORTAB-1762 --body "Deploy auf DEV erledigt, bitte pruefen."
+python3 "$SKILL_DIR/jira" comment CORTAB-1001 --body "Deploy auf DEV erledigt, bitte pruefen."
 
 # Bestehenden Kommentar ueberschreiben (id aus 'comments')
-python3 "$SKILL_DIR/jira" comment-edit ITSD-16162 --id 214989 --body "Korrigierter Text."
+python3 "$SKILL_DIR/jira" comment-edit ITSD-2000 --id 20001 --body "Korrigierter Text."
 
 # Status-Uebergang: erst dry-run (zeigt gematchten Uebergang + Ziel-Status), dann --yes
-python3 "$SKILL_DIR/jira" transition CORTAB-1762 --to "In Progress"          # dry-run
-python3 "$SKILL_DIR/jira" transition CORTAB-1762 --to "In Progress" --yes    # ausfuehren
-python3 "$SKILL_DIR/jira" transition CORTAB-1762 --to "Done" --comment "erledigt" --yes
+python3 "$SKILL_DIR/jira" transition CORTAB-1001 --to "In Progress"          # dry-run
+python3 "$SKILL_DIR/jira" transition CORTAB-1001 --to "In Progress" --yes    # ausfuehren
+python3 "$SKILL_DIR/jira" transition CORTAB-1001 --to "Done" --comment "erledigt" --yes
 ```
 
 `--to` matcht case-insensitiv auf den **Uebergangs-Namen** ODER den **Ziel-Status-Namen**. Passt
@@ -150,8 +158,8 @@ nichts, werden die moeglichen Uebergaenge aufgelistet. Ohne `--yes` wird nichts 
 geschriebenen Body: `comment`, `comment-edit`, `describe` und `transition --comment`.
 
 ```
-python3 "$SKILL_DIR/jira" comment ITSD-16162 --body "Hallo @[vorname.nachname@example.org], bitte pruefen."
-python3 "$SKILL_DIR/jira" comment ITSD-16162 --body "cc @[0123456789abcdef01234567]"
+python3 "$SKILL_DIR/jira" comment ITSD-2000 --body "Hallo @[vorname.nachname@example.org], bitte pruefen."
+python3 "$SKILL_DIR/jira" comment ITSD-2000 --body "cc @[0123456789abcdef01234567]"
 ```
 
 Als Schluessel taugt:
@@ -162,7 +170,7 @@ Als Schluessel taugt:
 | accountId (Cloud) / Username (DC) | direkt uebernommen, nur der Anzeigename wird nachgeladen |
 | Anzeigename | `user/search`, exakter Treffer auf `displayName` |
 
-**Bei Mehrdeutigkeit wird abgebrochen, nicht geraten.** Auf der Corris-Cloud gibt es mehrere aktive
+**Bei Mehrdeutigkeit wird abgebrochen, nicht geraten.** Auf einer der genutzten Cloud-Instanzen gibt es mehrere aktive
 Accounts mit identischem Anzeigenamen (`@[Max Mustermann]` -> 3 Treffer, nur einer mit sichtbarer
 E-Mail). Der Skill listet dann die Kandidaten mit accountId und E-Mail auf und schreibt nichts —
 danach mit E-Mail oder accountId wiederholen. Ein Schluessel ohne Treffer bricht ebenfalls ab; es
@@ -174,9 +182,9 @@ trotzdem: bleibt genau ein Kandidat uebrig, wird er genommen, auch wenn `emailAd
 
 ```
 # Assignee setzen / entfernen
-python3 "$SKILL_DIR/jira" assign SADM-69 --to me            # eigener Account (myself)
-python3 "$SKILL_DIR/jira" assign SADM-69 --to <accountId>   # Cloud: accountId, DC: Username
-python3 "$SKILL_DIR/jira" assign SADM-69 --unassign         # Assignee entfernen
+python3 "$SKILL_DIR/jira" assign SADM-100 --to me            # eigener Account (myself)
+python3 "$SKILL_DIR/jira" assign SADM-100 --to <accountId>   # Cloud: accountId, DC: Username
+python3 "$SKILL_DIR/jira" assign SADM-100 --unassign         # Assignee entfernen
 ```
 
 `--to me` loest den eigenen Account auf (Cloud: `accountId`, DC: `name`). Ansonsten ist der Wert bei
@@ -184,13 +192,13 @@ python3 "$SKILL_DIR/jira" assign SADM-69 --unassign         # Assignee entfernen
 
 ```
 # Beschreibung setzen ('-' liest den Body von stdin; Cloud -> ADF, DC -> Plaintext)
-python3 "$SKILL_DIR/jira" describe SADM-69 --body "Neue Beschreibung, mehrere Zeilen moeglich."
+python3 "$SKILL_DIR/jira" describe SADM-100 --body "Neue Beschreibung, mehrere Zeilen moeglich."
 
 # Unteraufgabe anlegen (Subtask-Issuetype wird automatisch ermittelt; --owner optional)
-python3 "$SKILL_DIR/jira" subtask SADM-69 --title "Teilaufgabe X" --owner me
+python3 "$SKILL_DIR/jira" subtask SADM-100 --title "Teilaufgabe X" --owner me
 
 # Datei anhaengen (absoluter Pfad)
-python3 "$SKILL_DIR/jira" attach SADM-69 --file /pfad/zur/datei.pdf
+python3 "$SKILL_DIR/jira" attach SADM-100 --file /pfad/zur/datei.pdf
 ```
 
 Bei `subtask` wird ein evtl. `--owner` **nach** dem Anlegen per separatem Assignee-Call gesetzt —

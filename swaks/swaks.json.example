@@ -1,0 +1,9 @@
+{
+  "//": "Kopie nach ~/.claude/swaks.json (ausserhalb der Git-Repos) oder projektlokal nach .claude/swaks.json.",
+  "//_scope": "Reine Versand-Defaults - keine Credentials. Projektlokal hat Vorrang vor global.",
+
+  "to": "ich@example.org",
+  "from": "claude@example.org",
+  "server": "mail.example.org",
+  "message_id_domain": "example.org"
+}

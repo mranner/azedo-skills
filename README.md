@@ -108,7 +108,7 @@ python3 ~/.claude/skills/kimai/kimai setup
 
 ### jira
 
-Jira über die REST API — sowohl selbst-gehostetes **Data Center/Server** (`/rest/api/2/`, PAT-Bearer, Plaintext/Wiki-Markup) als auch **Cloud** (`*.atlassian.net`, `/rest/api/3/`, Basic-Auth `email:token`, ADF-Bodies). Mehrere Instanzen als benannte Profile in `~/.claude/jira.json`, Ziel-Instanz per Projekt-Routing aus dem Issue-Key (`CORTAB-*` → Ergon, `SADM-*`/`ITSD-*` → Corris) oder `--instance`:
+Jira über die REST API — sowohl selbst-gehostetes **Data Center/Server** (`/rest/api/2/`, PAT-Bearer, Plaintext/Wiki-Markup) als auch **Cloud** (`*.atlassian.net`, `/rest/api/3/`, Basic-Auth `email:token`, ADF-Bodies). Mehrere Instanzen als benannte Profile in `~/.claude/jira.json`, Ziel-Instanz per Projekt-Routing aus dem Issue-Key (die `projects`-Liste der Instanz entscheidet) oder `--instance`:
 
 - Lesen: `search` (JQL, Paginierung DC `--start` / Cloud `--token`), `issue`, `comments` (mit Kommentar-id), `transitions`, `attachments`, `download`, `users` (Nutzersuche → accountId bzw. Username)
 - Schreiben: `comment`, `comment-edit` (bestehenden Kommentar überschreiben), `transition` (dry-run, erst mit `--yes`), `assign`, `describe`, `subtask`, `attach`
@@ -138,15 +138,16 @@ Posteingang-Triage über mehrere IMAP-Konten — das Gegenstück zu `swaks`. Unt
 
 ### swaks
 
-Versendet E-Mails via `swaks` über den lokalen Postfix auf `mom.azedo.at`. Unterstützt:
+Versendet E-Mails via `swaks` über einen Postfix-Relay. Unterstützt:
 
 - Plain-Text und HTML Body
 - Dateianhänge (beliebiger MIME-Type)
 - Mehrere Anhänge pro Mail
 - Kontakt-Shortcuts (`.claude/swaks-contacts.tsv` — Name-zu-Email-Lookup)
 - Optionale Default-Signatur (`.claude/swaks-signature.txt`)
+- Versand-Defaults (`to`, `from`, `server`, `message_id_domain`) aus `.claude/swaks.json` — projektlokal vor global, Vorlage `swaks.json.example`
 
-**Voraussetzungen:** `swaks` installiert, Zugang zu `mom.azedo.at`
+**Voraussetzungen:** `swaks` installiert, `.claude/swaks.json` mit erreichbarem `server`
 
 **Trigger:** `/swaks` oder natürliche Sprache wie "schick mir das per Mail", "send this to X".
 
@@ -292,18 +293,18 @@ Referenz-Skill fuer `wp` CLI — WordPress-Administration auf FreeBSD-Servern mi
 
 ### wp-sync-dev
 
-Synchronisiert WordPress-Plugins und -Themes zwischen Produktions-Installationen (in FreeBSD-Jails) und der DEV-Umgebung (dev.example.at) via rsync. Bidirektional: Prod → DEV und DEV → Prod. Kein eigenes Script, reine SKILL.md mit:
+Synchronisiert WordPress-Plugins und -Themes zwischen Produktions-Installationen (in FreeBSD-Jails) und der DEV-Umgebung via rsync. Bidirektional: Prod → DEV und DEV → Prod. Kein eigenes Script, reine SKILL.md mit:
 
-- Pfad-Schema fuer DEV und Prod (iocage/ezjail)
+- Pfad-Schema fuer DEV und Prod (iocage/ezjail); DEV-Host und Jail-Name kommen aus dem Infra-Wiki, nicht aus dem Skill
 - rsync-Befehle in beide Richtungen
-- Permissions: DEV immer www:azedo 775/664, Prod an bestehender Installation orientieren
+- Permissions: DEV immer `www:<gruppe>` 775/664, Prod an bestehender Installation orientieren
 - Aufraeumen von macOS-Artefakten (._*, .DS*)
 
 **Trigger:** `/wp-sync-dev` oder natuerliche Sprache wie "sync plugin", "plugin von prod holen", "theme auf dev kopieren".
 
 ### mainwp
 
-MainWP Dashboard (office.example.at) — WordPress-Sites netzwerkuebergreifend verwalten.
+MainWP Dashboard — WordPress-Sites netzwerkuebergreifend verwalten.
 Generischer Abilities-Executor: 5 Subcommands fuer beliebige MainWP-Abilities.
 
 - Sites auflisten, Details anzeigen
@@ -316,10 +317,10 @@ Generischer Abilities-Executor: 5 Subcommands fuer beliebige MainWP-Abilities.
 
 **Voraussetzungen:** Python >= 3.11
 
-**Setup:** WordPress Application Password und REST API v2 Key auf office.example.at. In `.env` eintragen:
+**Setup:** WordPress Application Password und REST API v2 Key auf dem Dashboard-Host. In `.env` eintragen:
 
 ```
-MAINWP_HOST=https://office.example.at
+MAINWP_HOST=https://dashboard.example.at
 MAINWP_USER=<wp-username>
 MAINWP_APP_PASSWORD=<xxxx xxxx xxxx xxxx>
 MAINWP_V2_CONSUMER_KEY=<consumer-key>
@@ -393,6 +394,8 @@ GeoSphere Austria Wetterdaten fuer Oesterreich. Python-Script (stdlib only, kein
 
 Standort per Ortsname (Geocoding via OpenStreetMap/Nominatim, auf AT beschraenkt) oder Koordinaten `lat,lon`. Alle Zeiten in Europe/Vienna. `--json` fuer Rohdaten.
 
+Die Kontaktadresse in der User-Agent-Zeile (von Nominatim gewuenscht) kommt aus `WETTER_CONTACT` oder `contact` in `~/.claude/wetter.json` (Vorlage: `wetter/wetter.json.example`); ohne beides laeuft der Skill ohne Kontaktangabe.
+
 **Voraussetzungen:** Python >= 3.11
 
 **Trigger:** `/wetter` oder natuerliche Sprache wie "wie wird das Wetter in X", "regnet es morgen in X", "gibt es Wetterwarnungen fuer X".
@@ -461,11 +464,26 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.34.7
+### 1.35.0
 
-- **Echte Mailadressen aus der Doku entfernt.** Die Beispiele in `mail-as-me/SKILL.md` und im
-  `CHANGELOG.md`-Eintrag 1.32.1 nannten die private Adresse des Repo-Eigentümers im Klartext,
-  `jira/SKILL.md` eine echte Kundenadresse. Beide sind reine Doku-Beispiele: die Versand-Identität
-  liest `mail-as-me` zur Laufzeit aus `config.json.send`, der Jira-Aufruf bekommt sie als Argument.
-  Ersetzt durch `ich@example.org` bzw. `vorname.nachname@example.org`; `claude@azedo.at` bleibt
-  stehen, weil es der tatsächliche swaks-Default ist.
+- **Kunden-, Personen- und Infrastrukturdaten aus dem public Repo entfernt (CR4461).** Vollständiger
+  Durchgang nach dem Teil-Fix in 1.34.7. Betroffen: **zwei echte Pushover-User-Keys** im Klartext
+  (die gehören zusätzlich in der App neu ausgestellt — die Historie behält sie), Klarnamen und
+  Logins von Kollegin, Kunden-Account und Repo-Eigentümer, Jira-Kundeninstanzen und -Profile, ein
+  Kundenprojekt samt Domain/wwwuser/Jail-Pfad, eigene Infrastruktur (DEV-Host, Jail- und
+  Vhost-Pfade, Dashboard- und IMAP-Hosts, Whitelist-IPs) sowie konkrete Vorgangs-IDs. Changelog-
+  Einträge ab 1.30 wurden umformuliert statt ersetzt. Neuer `CLAUDE.md`-Abschnitt „Das Repo ist
+  public" mit den verbotenen Kategorien, der Ersatzstrategie und zwei Prüf-Greps für vor dem Push.
+- **`swaks`: Versand-Defaults aus `.claude/swaks.json`** (`to`, `from`, `server`,
+  `message_id_domain`; projektlokal vor global). `--to`/`--from` sind jetzt optional — Kommandozeile
+  schlägt Config, fehlt beides, bricht `build_mail.py` mit klarer Meldung ab. Neu `--show-config`;
+  die Message-ID-Domain ist nicht mehr hartkodiert. `install.sh` meldet eine fehlende Config, legt
+  sie aber bewusst nicht mit Platzhalterwerten an. Vorlage `swaks/swaks.json.example`.
+- **`wetter`: Kontaktadresse im User-Agent** aus `WETTER_CONTACT` oder `contact` in
+  `~/.claude/wetter.json`, sonst Fallback ohne Kontakt — der Skill bleibt ohne Config voll
+  funktionsfähig. Vorlage `wetter/wetter.json.example`.
+- **`wp-sync-dev`: DEV-Host, Jail-Name und Dateigruppe kommen aus dem Infra-Wiki**
+  (`/wiki query "DEV-Webhost"`) statt hartkodiert aus dem Skill; DEV ist damit genauso
+  parametrisiert wie Prod.
+- **`jira`: Doku nennt keine Profilnamen mehr** — Beispiele nutzen `-i <instanz>`, vorhandene Namen
+  per `instances` auflisten. Bestehende Configs bleiben unverändert gültig.
