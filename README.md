@@ -461,11 +461,11 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.34.6
+### 1.34.7
 
-- **`mail-as-me`: Absender und Bcc kommen aus dem Profil (CR4459).** Gesendet wird über `swaks`,
-  und dessen Defaults sind die von Claude — eine Mail in der eigenen Stimme ging deshalb von
-  `claude@azedo.at` raus, solange `--from` nicht jedes Mal händisch mitgegeben wurde; dasselbe für
-  die Bcc-Kopie an sich selbst. `config.json` trägt jetzt einen Block `send` mit `from` und `bcc`
-  (beide optional), der beim Versand eines Entwurfs ohne Rückfrage angewendet wird. `from` geht an
-  Header und Envelope, `bcc` nur in den Envelope-`--to` von swaks.
+- **Echte Mailadressen aus der Doku entfernt.** Die Beispiele in `mail-as-me/SKILL.md` und im
+  `CHANGELOG.md`-Eintrag 1.32.1 nannten die private Adresse des Repo-Eigentümers im Klartext,
+  `jira/SKILL.md` eine echte Kundenadresse. Beide sind reine Doku-Beispiele: die Versand-Identität
+  liest `mail-as-me` zur Laufzeit aus `config.json.send`, der Jira-Aufruf bekommt sie als Argument.
+  Ersetzt durch `ich@example.org` bzw. `vorname.nachname@example.org`; `claude@azedo.at` bleibt
+  stehen, weil es der tatsächliche swaks-Default ist.

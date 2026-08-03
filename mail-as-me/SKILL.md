@@ -200,8 +200,8 @@ python3 ~/.claude/skills/swaks/build_mail.py \
 
 `--bcc` an `build_mail.py` setzt bewusst **keinen** Header; zugestellt wird die Kopie
 allein ueber den Envelope-`--to` von swaks. Fehlt sie dort, kommt trotz `--bcc` nichts
-an. Die Signatur bleibt bei Absender `ich@example.org` dran (globale Signatur
-= Michaels eigene, siehe swaks-Skill) — der Wechsel des Absenders ist **kein**
+an. Die Signatur bleibt beim eigenen Absender aus `send.from` dran (die globale
+Signatur ist die eigene, siehe swaks-Skill) — der Wechsel des Absenders ist **kein**
 Ausschlussgrund.
 
 ## Anti-Patterns / KI-Tells → humanizer-de

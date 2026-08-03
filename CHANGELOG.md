@@ -3,6 +3,20 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.34.7
+
+- **Echte Mailadressen aus der Doku entfernt.** `mail-as-me/SKILL.md` fuehrte die private Adresse
+  des Repo-Eigentuemers achtmal im Klartext (Beispiel-`config.json` und swaks-Aufruf), der
+  `CHANGELOG.md`-Eintrag 1.32.1 zweimal, `jira/SKILL.md` eine echte Kundenadresse in zwei
+  Beispielbefehlen. Alle drei Stellen sind reine Doku-Beispiele: die Versand-Identitaet liest
+  `mail-as-me` zur Laufzeit aus `config.json.send` des Profils, der Jira-Aufruf bekommt die Adresse
+  als Argument mit. Ersetzt durch `ich@example.org` bzw. `vorname.nachname@example.org`; die
+  Formulierungen drumherum kommen ohne Personenbezug aus.
+- `claude@azedo.at` bleibt in `mail-as-me/SKILL.md` und im Changelog stehen — das ist der
+  tatsaechliche swaks-Default, ein Platzhalter wuerde die Aussage falsch machen. `swaks/SKILL.md`
+  nennt die eigene Adresse weiterhin als dokumentierten Default-Empfaenger: der Skill hat dafuer
+  keine Config-Quelle (`build_mail.py` verlangt `--to`/`--from`), die Angabe steht nur in der Prosa.
+
 ### 1.34.6
 
 - **`mail-as-me`: Absender und Bcc kommen aus dem Profil (CR4459).** Gesendet wird ueber
@@ -240,12 +254,12 @@ Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version 
 
 ### 1.32.1
 
-- **`swaks`: Signatur-Wording geschaerft — Mails von `ich@example.org` nie mehr ohne Signatur.**
+- **`swaks`: Signatur-Wording geschaerft — Mails von der eigenen Adresse nie mehr ohne Signatur.**
   Ausloeser: Der „anderer `--from` → keine Standard-Signatur"-Passus wurde zweimal auf Michael selbst
   angewandt (Default-`--from` ist `claude@azedo.at`), sodass Mails in seinem Namen faelschlich mit
   `--no-sig` ohne Signatur rausgingen. Die globale Signatur **ist** aber Michaels eigene.
-  - `SKILL.md`: Signatur-Abschnitt + Ablauf-Schritt 4 stellen jetzt explizit klar, dass `--from
-    ich@example.org` **immer** die globale Signatur bekommt (kein Ausschlussgrund) und `--no-sig`
+  - `SKILL.md`: Signatur-Abschnitt + Ablauf-Schritt 4 stellen jetzt explizit klar, dass `--from`
+    mit der eigenen Adresse **immer** die globale Signatur bekommt (kein Ausschlussgrund) und `--no-sig`
     hier nur auf ausdrueckliche Ansage. Der „fremder Absender"-Ausschluss ist auf eine **dritte** Person
     (weder Michael noch Claude) praezisiert; der Wechsel `claude@` → `michael@` ist ausdruecklich ausgenommen.
   - Begleitend (ausserhalb dieses Repos, auf den Arbeitsrechnern): ein `PreToolUse`/`Bash`-Guard

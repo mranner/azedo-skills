@@ -105,7 +105,7 @@ python3 "$SKILL_DIR/jira" issue CORTAB-1762
 python3 "$SKILL_DIR/jira" comments CORTAB-1762
 
 # Nutzer suchen: Cloud accountId, DC Username (Suchbegriff = E-Mail, Name, Username)
-python3 "$SKILL_DIR/jira" users -i corris --query "philippe.bucher@corris.com"
+python3 "$SKILL_DIR/jira" users -i corris --query "vorname.nachname@example.org"
 python3 "$SKILL_DIR/jira" users -i corris --query "bucher" --json
 
 # Moegliche Status-Uebergaenge (id, Name, Ziel-Status)
@@ -150,7 +150,7 @@ nichts, werden die moeglichen Uebergaenge aufgelistet. Ohne `--yes` wird nichts 
 geschriebenen Body: `comment`, `comment-edit`, `describe` und `transition --comment`.
 
 ```
-python3 "$SKILL_DIR/jira" comment ITSD-16162 --body "Hallo @[philippe.bucher@corris.com], bitte pruefen."
+python3 "$SKILL_DIR/jira" comment ITSD-16162 --body "Hallo @[vorname.nachname@example.org], bitte pruefen."
 python3 "$SKILL_DIR/jira" comment ITSD-16162 --body "cc @[0123456789abcdef01234567]"
 ```
 
