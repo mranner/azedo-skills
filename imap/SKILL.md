@@ -63,12 +63,16 @@ als Default; `list` ohne `--account` fragt **alle** Konten ab.
 | `folders -a <konto>` | Ordnerliste, Separator, Sonderordner, Server-Capabilities |
 | `list [-a <konto>]` | Kopfdaten ohne Body |
 | `read <uid> -a <konto>` | Textkoerper einer Mail |
+| `read <uid> --headers` | alle Rohheader statt der Kopfzeilen-Auswahl |
+| `read <uid> --raw` | komplette unbearbeitete Nachricht (Header + Body) |
 
 ```
 python3 "$SKILL_DIR/imap" list --json                     # beide Konten
 python3 "$SKILL_DIR/imap" list -a office --unseen -n 30
 python3 "$SKILL_DIR/imap" list -a mail --since 3          # letzte 3 Tage
 python3 "$SKILL_DIR/imap" read 8841 -a office --json
+python3 "$SKILL_DIR/imap" read 8841 -a office --headers
+python3 "$SKILL_DIR/imap" read 8841 -a office --raw | less
 ```
 
 `--json` gibt es bei jedem Befehl, vor **und** hinter dem Subcommand.
@@ -80,6 +84,34 @@ nachladen, und nur fuer die Mails, die wirklich zusammengefasst werden.
 
 **BODY.PEEK:** `read` setzt `\Seen` nicht. Ein Posteingang ist nach einer
 Durchsicht also nicht ploetzlich komplett gelesen.
+
+### Header lesen (`--headers` / `--raw`)
+
+Die Standardausgabe von `read` zeigt bewusst nur `From`, `To`, `Subject`, `Date`
+und Anhaenge -- fuer die Triage ist alles andere Rauschen. Bei Mail-Problemen ist
+aber genau der Rest die Aussage:
+
+- **Zustellweg** -- die `Received`-Kette: welcher Smarthost war beteiligt, wo
+  wurde der Absender umgeschrieben
+- **SPF/DKIM/DMARC** -- `Authentication-Results`, wenn Mails im Spam landen
+- **Bcc-Verhalten** -- ob ein `Bcc`-Header in der zugestellten Mail stehen blieb
+  und die Adresse damit an den To-Empfaenger leakt
+- **Newsletter-Triage** -- `List-Id` / `List-Unsubscribe`
+- **Dubletten** -- `Message-ID` als Gegenprobe zum kontouebergreifenden `batch`
+
+`--headers` liefert **alle** Header in Originalreihenfolge; Mehrfach-Header wie
+`Received` bleiben einzeln stehen, sonst waere die Kette nicht mehr lesbar. Die
+Zeilenfaltung wird aufgeloest, der Wert sonst nicht angefasst -- insbesondere
+**kein** RFC-2047-Decoding, weil bei einer Header-Analyse der Rohwert zaehlt. Im
+`--json` steht das als Feld `headers` (Liste aus `[name, value]`).
+
+`--raw` gibt die Nachricht komplett und ungeparst aus (Header + Body) -- die
+Wahl bei MIME-Problemen. In der Textausgabe ersetzt `--raw` die Aufbereitung; per
+Pipe an `less`/`grep` ist das der uebliche Weg.
+
+Beides kostet **keinen** zusaetzlichen IMAP-Roundtrip: `BODY.PEEK[]` holt ohnehin
+die vollstaendige Rohnachricht, sie wurde bisher nur weggefiltert. `BODY.PEEK`
+gilt unveraendert -- auch mit `--headers`/`--raw` bleibt der Ungelesen-Status.
 
 ## Schreibende Befehle
 

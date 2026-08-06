@@ -3,6 +3,28 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.35.1
+
+- **`imap`: Rohheader und Rohnachricht in `read` (CR4471).** `read` lieferte einen festen Satz
+  aufbereiteter Felder (`from`, `to`, `cc`, `subject`, `date`, `attachments`, `body`); alles andere
+  fiel weg — insbesondere `Bcc`, die `Received`-Kette, `Authentication-Results`, `Return-Path`,
+  `List-*`. Ausloeser war eine Umstellung des Mailversands auf den Pipe-Modus `-t`: zu pruefen war,
+  ob der `Bcc`-Header in der zugestellten Mail stehen bleibt und die Adresse damit an den
+  To-Empfaenger leakt. Mit dem Skill liess sich das nicht beantworten, die Pruefung lief ueber ein
+  Wegwerf-Script mit `imaplib` und `BODY.PEEK[HEADER]`.
+  - Neu `read --headers`: **alle** Header in Originalreihenfolge, Mehrfach-Header wie `Received`
+    einzeln (sonst waere die Zustellkette nicht mehr lesbar). Zeilenfaltung wird aufgeloest,
+    sonst bleibt der Wert unangetastet — bewusst **kein** RFC-2047-Decoding, weil bei einer
+    Header-Analyse der Rohwert die Aussage ist. Im `--json` als Feld `headers`
+    (Liste aus `[name, value]`).
+  - Neu `read --raw`: komplette ungeparste Nachricht, die Wahl bei MIME-Problemen. In der
+    Textausgabe ersetzt `--raw` die Aufbereitung.
+  - **Kein** zusaetzlicher IMAP-Roundtrip: `BODY.PEEK[]` holte die vollstaendige Rohnachricht
+    ohnehin, das Rueckgabe-Dict filterte sie nur weg. `BODY.PEEK` und damit der unangetastete
+    Ungelesen-Status gelten unveraendert, ebenso bleibt der Befehl rein lesend.
+  - `BrokenPipeError` wird abgefangen: `read --raw | head` ist der Normalfall und beendet sich
+    jetzt still statt mit einem Traceback.
+
 ### 1.35.0
 
 - **Kunden-, Personen- und Infrastrukturdaten aus dem public Repo entfernt (CR4461).** 1.34.7 hatte

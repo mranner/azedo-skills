@@ -464,26 +464,14 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.35.0
+### 1.35.1
 
-- **Kunden-, Personen- und Infrastrukturdaten aus dem public Repo entfernt (CR4461).** Vollständiger
-  Durchgang nach dem Teil-Fix in 1.34.7. Betroffen: **zwei echte Pushover-User-Keys** im Klartext
-  (die gehören zusätzlich in der App neu ausgestellt — die Historie behält sie), Klarnamen und
-  Logins von Kollegin, Kunden-Account und Repo-Eigentümer, Jira-Kundeninstanzen und -Profile, ein
-  Kundenprojekt samt Domain/wwwuser/Jail-Pfad, eigene Infrastruktur (DEV-Host, Jail- und
-  Vhost-Pfade, Dashboard- und IMAP-Hosts, Whitelist-IPs) sowie konkrete Vorgangs-IDs. Changelog-
-  Einträge ab 1.30 wurden umformuliert statt ersetzt. Neuer `CLAUDE.md`-Abschnitt „Das Repo ist
-  public" mit den verbotenen Kategorien, der Ersatzstrategie und zwei Prüf-Greps für vor dem Push.
-- **`swaks`: Versand-Defaults aus `.claude/swaks.json`** (`to`, `from`, `server`,
-  `message_id_domain`; projektlokal vor global). `--to`/`--from` sind jetzt optional — Kommandozeile
-  schlägt Config, fehlt beides, bricht `build_mail.py` mit klarer Meldung ab. Neu `--show-config`;
-  die Message-ID-Domain ist nicht mehr hartkodiert. `install.sh` meldet eine fehlende Config, legt
-  sie aber bewusst nicht mit Platzhalterwerten an. Vorlage `swaks/swaks.json.example`.
-- **`wetter`: Kontaktadresse im User-Agent** aus `WETTER_CONTACT` oder `contact` in
-  `~/.claude/wetter.json`, sonst Fallback ohne Kontakt — der Skill bleibt ohne Config voll
-  funktionsfähig. Vorlage `wetter/wetter.json.example`.
-- **`wp-sync-dev`: DEV-Host, Jail-Name und Dateigruppe kommen aus dem Infra-Wiki**
-  (`/wiki query "DEV-Webhost"`) statt hartkodiert aus dem Skill; DEV ist damit genauso
-  parametrisiert wie Prod.
-- **`jira`: Doku nennt keine Profilnamen mehr** — Beispiele nutzen `-i <instanz>`, vorhandene Namen
-  per `instances` auflisten. Bestehende Configs bleiben unverändert gültig.
+- **`imap`: Rohheader und Rohnachricht in `read` (CR4471).** Neu `read --headers` (alle Header in
+  Originalreihenfolge, Mehrfach-Header wie `Received` einzeln, Faltung aufgelöst, kein
+  RFC-2047-Decoding; im `--json` als Feld `headers`) und `read --raw` (komplette ungeparste
+  Nachricht). Damit lassen sich Zustellwege, SPF/DKIM/DMARC-Ergebnisse, Bcc-Verhalten und
+  `List-*`-Header direkt prüfen, statt dafür ein Wegwerf-Script zu schreiben. Kein zusätzlicher
+  IMAP-Roundtrip — `BODY.PEEK[]` holte die Rohnachricht ohnehin, sie wurde nur weggefiltert;
+  `BODY.PEEK` und der unangetastete Ungelesen-Status gelten unverändert. `read --raw | head`
+  endet still statt mit einem Traceback.
+

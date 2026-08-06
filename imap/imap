@@ -3,7 +3,7 @@
 # IMAP-Helper fuer Posteingang-Triage
 # Liest Zugangsdaten aus muttrc, arbeitet gegen mehrere Konten.
 # stdlib only, keine pip-Abhaengigkeiten. Lauffaehig auf macOS + FreeBSD.
-# version 1.34.1
+# version 1.35.1
 
 import argparse
 import email
@@ -376,8 +376,13 @@ class Account:
         out.sort(key=lambda m: m["uid"])
         return out
 
-    def body(self, uid, folder="INBOX", max_chars=DEFAULT_MAX_CHARS):
-        """Textkoerper lesen. BODY.PEEK laesst den Ungelesen-Status unangetastet."""
+    def body(self, uid, folder="INBOX", max_chars=DEFAULT_MAX_CHARS,
+             with_headers=False, with_raw=False):
+        """Textkoerper lesen. BODY.PEEK laesst den Ungelesen-Status unangetastet.
+
+        BODY.PEEK[] holt ohnehin die vollstaendige Rohnachricht - Header und
+        Rohfassung kosten daher keinen zweiten Roundtrip, sie werden sonst nur
+        weggefiltert."""
         self.select(folder, readonly=True)
         typ, data = self.conn.uid("FETCH", str(uid), "(BODY.PEEK[])")
         if typ != "OK":
@@ -392,7 +397,7 @@ class Account:
         msg = email.message_from_bytes(raw)
         text = extract_text(msg)
         truncated = len(text) > max_chars
-        return {
+        out = {
             "account": self.alias,
             "folder": folder,
             "uid": uid,
@@ -405,6 +410,16 @@ class Account:
             "body": text[:max_chars],
             "truncated": truncated,
         }
+
+        # Reihenfolge bleibt, Mehrfach-Header (Received) werden nicht
+        # zusammengefasst - genau darauf beruht das Nachvollziehen des
+        # Zustellwegs. Faltung wird aufgeloest, der Wert sonst nicht angefasst.
+
+        if with_headers:
+            out["headers"] = [[k, unfold_header(v)] for k, v in msg.items()]
+        if with_raw:
+            out["raw"] = raw.decode("utf-8", "replace")
+        return out
 
     def raw_message(self, uid, folder="INBOX"):
         """Rohmail samt Flags und INTERNALDATE - Basis fuer kontouebergreifende Kopien."""
@@ -564,6 +579,14 @@ def hdr(msg, name):
         return str(email.header.make_header(email.header.decode_header(raw))).strip()
     except Exception:
         return raw.strip()
+
+
+def unfold_header(value):
+    """Zeilenfaltung (RFC 5322 2.2.3) aufloesen, Wert sonst unveraendert lassen.
+
+    Bewusst kein RFC-2047-Decoding: bei Header-Analysen (Received-Kette,
+    Authentication-Results, Return-Path) ist der Rohwert die Aussage."""
+    return re.sub(r"\r?\n[ \t]+", " ", value or "").strip()
 
 
 def decode_mailbox(name):
@@ -751,17 +774,29 @@ def cmd_list(args, accounts):
 def cmd_read(args, accounts):
     acc = pick_account(accounts, args.account)
     with Account(acc) as a:
-        msg = a.body(args.uid, args.folder, args.max_chars)
+        msg = a.body(args.uid, args.folder, args.max_chars,
+                     with_headers=args.headers, with_raw=args.raw)
     if args.json:
         out_json(msg)
         return
-    for k in ("from", "to", "subject", "date"):
-        if msg[k]:
-            print(f"{k.capitalize():<9}{msg[k]}")
-    if msg["attachments"]:
-        names = ", ".join(x["name"] for x in msg["attachments"])
-        print(f"{'Anhang':<9}{names}")
-    print("-" * 72)
+
+    # --raw ersetzt die Aufbereitung: wer die Rohfassung will, will sie ungefiltert
+
+    if args.raw:
+        print(msg["raw"])
+        return
+    if args.headers:
+        for name, value in msg["headers"]:
+            print(f"{name}: {value}")
+        print("-" * 72)
+    else:
+        for k in ("from", "to", "subject", "date"):
+            if msg[k]:
+                print(f"{k.capitalize():<9}{msg[k]}")
+        if msg["attachments"]:
+            names = ", ".join(x["name"] for x in msg["attachments"])
+            print(f"{'Anhang':<9}{names}")
+        print("-" * 72)
     print(msg["body"])
     if msg["truncated"]:
         print(f"\n[gekuerzt auf {args.max_chars} Zeichen]")
@@ -989,6 +1024,10 @@ def build_parser():
     sp.add_argument("--account", "-a")
     sp.add_argument("--folder", "-f", default="INBOX")
     sp.add_argument("--max-chars", type=int, default=DEFAULT_MAX_CHARS)
+    sp.add_argument("--headers", action="store_true",
+                    help="alle Rohheader statt der Kopfzeilen-Auswahl")
+    sp.add_argument("--raw", action="store_true",
+                    help="komplette unbearbeitete Nachricht (Header + Body)")
     sp.set_defaults(func=cmd_read)
 
     for name, help_text in (
@@ -1032,3 +1071,11 @@ if __name__ == "__main__":
         main()
     except KeyboardInterrupt:
         sys.exit(130)
+    except BrokenPipeError:
+
+        # `read --raw | head` schliesst die Pipe frueh - das ist der
+        # Normalfall, kein Fehler. stdout wird auf devnull umgebogen, damit
+        # Python beim Interpreter-Exit nicht noch einmal darauf schreibt.
+
+        os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
+        sys.exit(0)
