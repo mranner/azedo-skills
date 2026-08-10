@@ -3,6 +3,21 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.36.2
+
+- **`kanboard`: Subcommand `remove-project`.** Projekte liessen sich anlegen, aber nicht
+  loeschen — ein leer gebliebenes Projekt musste per direktem JSON-RPC-Aufruf entfernt werden,
+  am Skill vorbei.
+  - `remove-project --project <name|id>` ruft `removeProject`. Weil der Aufruf nicht umkehrbar
+    ist und **alle** Tasks des Projekts mitnimmt, zaehlt der Befehl offene und geschlossene
+    Tasks vorher (`getAllTasks` mit `status_id` 1 und 0) und bricht ab, solange welche
+    vorhanden sind: `success: false` samt beider Zahlen, Exit-Code 1. Erst `--force` fuehrt
+    aus. Ein leeres Projekt geht ohne Zusatzflag durch.
+  - Im Erfolgsfall weist die Ausgabe darauf hin, dass `setup` faellig ist — `instance.json`
+    kennt das Projekt sonst weiter und `--project <name>` liefe auf eine tote ID.
+  - Der Versionskommentar im Script stand noch auf 1.33.0 und ist auf den Repo-Stand
+    nachgezogen.
+
 ### 1.36.1
 
 - **`handoff`: Kollision zwischen Task und lokalem Dokument fuehrt jetzt zur Rueckfrage.** 1.36.0

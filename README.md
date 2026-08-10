@@ -464,11 +464,10 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.36.1
+### 1.36.2
 
-- **`handoff`: Kollision zwischen Task und lokalem Dokument fuehrt jetzt zur Rueckfrage.** Die
-  Fallunterscheidung laeuft ueber zwei Merkmale (CR aktiv ja/nein, passendes lokales Dokument
-  ja/nein). Neu ist der Fall **CR aktiv *und* Dokument vorhanden → fragen**: lokal fortschreiben
-  oder in den Task migrieren. Migrieren heisst verschieben — Stand zurueckgelesen, geprueft,
-  Datei entfernt (per `git rm` unter Versionskontrolle) — sonst entstuenden zwei auseinander-
-  driftende Fassungen. Uebrige Faelle unveraendert, nur neu durchnummeriert.
+- **`kanboard`: Subcommand `remove-project`.** `remove-project --project <name|id>` loescht ein
+  Projekt. Weil `removeProject` nicht umkehrbar ist und alle Tasks mitnimmt, zaehlt der Befehl
+  offene und geschlossene Tasks vorher und bricht ab, solange welche vorhanden sind (Exit-Code 1);
+  erst `--force` fuehrt aus. Ein leeres Projekt geht ohne Zusatzflag durch. Im Erfolgsfall folgt
+  der Hinweis, dass `setup` faellig ist, damit `instance.json` das Projekt nicht weiter fuehrt.

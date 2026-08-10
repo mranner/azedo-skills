@@ -2,7 +2,7 @@
 
 # Kanboard JSON-RPC 2.0 API helper
 # stdlib only, no pip dependencies
-# version 1.33.0
+# version 1.36.2
 
 import argparse
 import base64
@@ -682,6 +682,45 @@ def cmd_create_project(args):
         result["owner_id"] = owner_id
 
     result["hint"] = "Neues Projekt — 'setup' ausfuehren, damit instance.json es kennt."
+    output(result)
+
+
+def cmd_remove_project(args):
+    project_id = resolve_project(args.project)
+    proj = rpc_try("getProjectById", {"project_id": project_id})
+    name = proj.get("name", "") if proj else ""
+
+    # removeProject nimmt alle Tasks mit und ist nicht umkehrbar — deshalb beide
+    # Status zaehlen (status_id 1 = offen, 0 = geschlossen) und ohne --force abbrechen
+    open_tasks = rpc_call("getAllTasks", {"project_id": project_id, "status_id": 1}) or []
+    closed_tasks = rpc_call("getAllTasks", {"project_id": project_id, "status_id": 0}) or []
+    total = len(open_tasks) + len(closed_tasks)
+
+    if total and not args.force:
+        output({
+            "success": False,
+            "project_id": project_id,
+            "name": name,
+            "open_tasks": len(open_tasks),
+            "closed_tasks": len(closed_tasks),
+            "error": f"Projekt enthaelt {total} Task(s) — Loeschen nimmt sie mit. "
+                     "Mit --force ausfuehren, wenn das gewollt ist."
+        })
+        sys.exit(1)
+
+    ok = rpc_call("removeProject", {"project_id": project_id})
+    result = {
+        "success": bool(ok),
+        "project_id": project_id,
+        "name": name,
+        "removed_tasks": total,
+    }
+    if not ok:
+        result["error"] = "removeProject lieferte kein Ergebnis — Projekt existiert nicht (mehr)?"
+        output(result)
+        sys.exit(1)
+
+    result["hint"] = "Projekt entfernt — 'setup' ausfuehren, damit instance.json aktuell ist."
     output(result)
 
 
@@ -1431,6 +1470,13 @@ def main():
     p.add_argument("--name", required=True)
     p.add_argument("--owner", help="Username; wird Owner + project-manager-Mitglied")
     p.set_defaults(func=cmd_create_project)
+
+    # remove-project
+    p = sub.add_parser("remove-project")
+    p.add_argument("--project", required=True)
+    p.add_argument("--force", action="store_true",
+                   help="auch loeschen, wenn das Projekt Tasks enthaelt")
+    p.set_defaults(func=cmd_remove_project)
 
     # list-project-users
     p = sub.add_parser("list-project-users")
