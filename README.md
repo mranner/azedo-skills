@@ -464,12 +464,11 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.36.0
+### 1.36.1
 
-- **`handoff`: Ablageort folgt jetzt einer Regel statt dem Zuruf.** Drei Faelle, erster passender
-  gewinnt: aktiver CR-Kontext → Handoff-Feld des Tasks (ohne Rueckfrage, keine lokale Datei);
-  kein CR, aber ein thematisch passendes Dokument liegt im Projekt → dieses fortschreiben;
-  sonst neue lokale Datei wie bisher. Mehrere aktive CRs fuehren zur Rueckfrage statt zum Raten,
-  eine ausdrueckliche Ansage des Benutzers schlaegt die Reihenfolge. Grund: gibt es zur Session
-  einen klar umrissenen Task, sieht der naechste Bearbeiter dort zuerst nach, und eine Datei
-  daneben wird zur zweiten Fassung, die auseinanderdriftet.
+- **`handoff`: Kollision zwischen Task und lokalem Dokument fuehrt jetzt zur Rueckfrage.** Die
+  Fallunterscheidung laeuft ueber zwei Merkmale (CR aktiv ja/nein, passendes lokales Dokument
+  ja/nein). Neu ist der Fall **CR aktiv *und* Dokument vorhanden → fragen**: lokal fortschreiben
+  oder in den Task migrieren. Migrieren heisst verschieben — Stand zurueckgelesen, geprueft,
+  Datei entfernt (per `git rm` unter Versionskontrolle) — sonst entstuenden zwei auseinander-
+  driftende Fassungen. Uebrige Faelle unveraendert, nur neu durchnummeriert.

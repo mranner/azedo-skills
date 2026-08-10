@@ -3,6 +3,24 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.36.1
+
+- **`handoff`: Kollision zwischen Task und lokalem Dokument fuehrt jetzt zur Rueckfrage.** 1.36.0
+  liess bei aktivem CR immer den Task gewinnen und wies nur auf eine daneben liegende Datei hin.
+  Das greift zu kurz: ein gepflegtes lokales Handoff-Dokument kann der bessere Ort bleiben, und
+  ob es dort bleibt oder in den Task wandert, ist eine Entscheidung des Benutzers, keine des
+  Skills.
+  - Die Fallunterscheidung laeuft jetzt ueber zwei Merkmale (CR aktiv ja/nein, passendes lokales
+    Dokument ja/nein) und ist als Matrix dargestellt. Neu ist Fall 2: **CR aktiv *und* Dokument
+    vorhanden → fragen**, bevor geschrieben wird — lokal fortschreiben oder in den Task migrieren.
+  - **Migrieren heisst verschieben, nicht kopieren.** Der geschriebene Stand wird per
+    `get-handoff` zurueckgelesen und gegen die Datei geprueft, danach wird die Datei entfernt
+    (unter Versionskontrolle per `git rm`, damit die Historie bleibt). Ohne diesen Schritt
+    entstuenden genau die zwei auseinanderdriftenden Fassungen, die die Regel vermeiden soll.
+  - Die uebrigen Faelle sind unveraendert, nur neu durchnummeriert (1 Task-Feld, 3 Dokument
+    fortschreiben, 4 neue Datei); die Verweise in „Dateiname und Argument" und im
+    Plugin-Fallback zeigen entsprechend nach.
+
 ### 1.36.0
 
 - **`handoff`: Ablageort folgt jetzt einer Regel statt dem Zuruf.** Bisher war die lokale
