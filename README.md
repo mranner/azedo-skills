@@ -464,14 +464,12 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.35.1
+### 1.36.0
 
-- **`imap`: Rohheader und Rohnachricht in `read` (CR4471).** Neu `read --headers` (alle Header in
-  Originalreihenfolge, Mehrfach-Header wie `Received` einzeln, Faltung aufgelöst, kein
-  RFC-2047-Decoding; im `--json` als Feld `headers`) und `read --raw` (komplette ungeparste
-  Nachricht). Damit lassen sich Zustellwege, SPF/DKIM/DMARC-Ergebnisse, Bcc-Verhalten und
-  `List-*`-Header direkt prüfen, statt dafür ein Wegwerf-Script zu schreiben. Kein zusätzlicher
-  IMAP-Roundtrip — `BODY.PEEK[]` holte die Rohnachricht ohnehin, sie wurde nur weggefiltert;
-  `BODY.PEEK` und der unangetastete Ungelesen-Status gelten unverändert. `read --raw | head`
-  endet still statt mit einem Traceback.
-
+- **`handoff`: Ablageort folgt jetzt einer Regel statt dem Zuruf.** Drei Faelle, erster passender
+  gewinnt: aktiver CR-Kontext → Handoff-Feld des Tasks (ohne Rueckfrage, keine lokale Datei);
+  kein CR, aber ein thematisch passendes Dokument liegt im Projekt → dieses fortschreiben;
+  sonst neue lokale Datei wie bisher. Mehrere aktive CRs fuehren zur Rueckfrage statt zum Raten,
+  eine ausdrueckliche Ansage des Benutzers schlaegt die Reihenfolge. Grund: gibt es zur Session
+  einen klar umrissenen Task, sieht der naechste Bearbeiter dort zuerst nach, und eine Datei
+  daneben wird zur zweiten Fassung, die auseinanderdriftet.

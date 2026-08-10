@@ -3,6 +3,30 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.36.0
+
+- **`handoff`: Ablageort folgt jetzt einer Regel statt dem Zuruf.** Bisher war die lokale
+  `.md`-Datei der Default und die Ablage im Handoff-Feld eines Tasks die Ausnahme, die der
+  Benutzer eigens verlangen musste. In der Praxis war das die falsche Vorgabe: Gibt es zur
+  Session einen klar umrissenen Task, ist der Task der Ort, an dem der naechste Bearbeiter
+  zuerst nachsieht — die Datei daneben wird zur zweiten Fassung, die auseinanderdriftet.
+  Ausloeser war eine Session, in der der Handoff erst lokal entstand und anschliessend von
+  Hand in den Task verschoben werden musste.
+  - Neuer Abschnitt „Ablageort bestimmen" mit drei Faellen, erster passender gewinnt:
+    (1) aktiver CR-Kontext → Handoff-Feld des Tasks, ohne Rueckfrage, keine lokale Datei;
+    (2) kein CR, aber ein thematisch passendes Handoff-Dokument liegt schon im Projekt →
+    dieses fortschreiben statt ein zweites danebenzulegen; (3) weder noch → neue lokale
+    Datei wie bisher.
+  - **Mehrere aktive CRs** sind bewusst kein Automatismus: welcher Task der richtige ist,
+    laesst sich nicht entscheiden → nachfragen, statt zu raten oder in alle zu schreiben.
+  - Liegt bei aktivem CR zusaetzlich eine lokale Datei zum selben Thema, gewinnt weiterhin
+    der Task — der Benutzer wird aber auf die Datei hingewiesen, damit nicht unbemerkt zwei
+    Fassungen bestehen bleiben.
+  - Eine ausdrueckliche Ansage des Benutzers schlaegt die Reihenfolge.
+  - „Dateiname und Argument" gilt jetzt ausdruecklich nur fuer die lokale Ablage; beim
+    Task-Feld dient das Argument allein als Fokusbeschreibung. Der Plugin-Fallback
+    (`Method not found`) zeigt auf Fall 3 statt auf einen „Default", den es nicht mehr gibt.
+
 ### 1.35.1
 
 - **`imap`: Rohheader und Rohnachricht in `read` (CR4471).** `read` lieferte einen festen Satz
