@@ -3,6 +3,46 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.37.0
+
+- **Neuer Skill `einfache-sprache`.** Gegenstueck zu `humanizer-de`: der eine nimmt einem Text
+  die KI-Handschrift, der andere die Verstaendnishuerden. Ausgangspunkt ist der
+  Wikipedia-Artikel „Einfache Sprache"; die inhaltliche Klammer sind DIN 8581-1 (2024-05,
+  Einfache Sprache im Deutschen) und DIN ISO 24495-1 (2024-03, Grundsaetze verstaendlicher
+  Sprache). Der Volltext beider Normen ist kostenpflichtig und wird nicht wiedergegeben - die
+  Zielwerte des Skills sind eigene, aus der oeffentlich dokumentierten Praxis abgeleitete
+  Korridore, und der Skill sagt das auch so.
+  - **Drei Zielstufen** statt einer Vereinfachungs-Einstellung: `PLAIN` (Fachpublikum, senkt den
+    Wortschatz bewusst *nicht* ab), `B1` (Standard), `A2` (Formulare, Merkblaetter). Jede Stufe
+    bringt eigene Zielwerte fuer Satzlaenge, Nebensaetze, Passivanteil, Absatzlaenge und die
+    Lesbarkeitsindizes mit. Fremdwoerter sind in `PLAIN` kein Befund: wer einem Admin
+    `Zertifikat` durch `Sicherheits-Ausweis` ersetzt, macht den Text schlechter.
+  - **Messung statt Gefuehl:** `readability_lint.py` rechnet Wiener Sachtextformel 1-4, LIX und
+    Flesch in der deutschen Fassung nach Amstad, jeweils mit Ampel gegen die Stufe. Die
+    Formeln messen Oberflaechenkomplexitaet, nicht Verstaendlichkeit - deshalb steht in
+    `references/lesbarkeitsmasse.md` die Regel, den Text nie zu aendern, um einen Wert zu
+    aendern.
+  - **Drei Regel-Linter** liefern die Stellen, auf die kein Index zeigt: `sentence_lint.py`
+    (Satzlaenge, Nebensatzdichte, Vorgangs- vs. Zustandspassiv, Konjunktiv, Genitivketten,
+    Weite der Verbklammer, doppelte Verneinung), `lexicon_lint.py` (Nominalstil-Dichte,
+    Funktionsverbgefuege, Amtsdeutsch, Fremdwoerter, lange Komposita, nicht eingefuehrte
+    Abkuerzungen, gemischte Begriffsvarianten) und `structure_lint.py` (Absatzlaenge,
+    Ueberschriften, im Fliesstext versteckte Aufzaehlungen, Anrede- und Datumskonsistenz).
+    Ersatzvorschlaege stehen in `scripts/data/wortlisten.json`, damit Doku und Code nicht
+    auseinanderlaufen.
+  - `einfache_sprache_audit.py` fasst alles zusammen, sortiert die Befunde nach Hebelwirkung und
+    kann mit `--vergleich <alt>` zwei Staende nebeneinanderstellen. Der Vergleich sagt
+    ausdruecklich, was er *nicht* zeigt: ob beim Kuerzen eine Frist verloren ging.
+  - **Inhaltstreue als Leitplanke.** Zahlen, Betraege, Fristen, Bedingungen und Rechtsfolgen
+    bleiben unveraendert; Rechtsbegriffe werden erklaert statt ersetzt (`unverzueglich` heisst
+    juristisch *ohne schuldhaftes Zoegern*, nicht *sofort* - genau solche Ersetzungen sind der
+    Weg, wie eine Vereinfachung einen Text falsch macht). Passiv ohne im Text genannten
+    Handelnden wird als offener Punkt gemeldet, nicht geraten.
+  - **Abgegrenzt gegen Leichte Sprache** (A1, Netzwerk Leichte Sprache, DIN SPEC 33429:2025-03).
+    Der Unterschied ist nicht die Satzlaenge, sondern die Pruefung durch eine Gruppe aus der
+    Zielgruppe - das kann kein Werkzeug leisten. Verlangt jemand Leichte Sprache, sagt der Skill
+    das, statt eine Annaeherung als Konformitaet auszugeben.
+
 ### 1.36.2
 
 - **`kanboard`: Subcommand `remove-project`.** Projekte liessen sich anlegen, aber nicht

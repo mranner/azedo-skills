@@ -416,6 +416,21 @@ Deutscher AI-Text-Humanizer: KI-Schreibmuster (KI-Tells) in deutschen Texten aud
 
 **Trigger:** `/humanizer-de` oder natuerliche Sprache wie "humanisiere den Text", "klingt nach KI", "entferne die KI-Tells".
 
+### einfache-sprache
+
+Deutsche Texte in Einfache Sprache bringen und auf Verstaendlichkeit pruefen - messend statt nach Gefuehl. Orientiert an DIN 8581-1 (Einfache Sprache) und DIN ISO 24495-1 (Grundsaetze verstaendlicher Sprache). SKILL.md + fuenf Referenzen + Python-Linter (stdlib only):
+
+- Drei Zielstufen mit eigenen Zielwerten: `PLAIN` (Fachpublikum), `B1` (Standard), `A2` (Formulare, Merkblaetter)
+- Lesbarkeitsindizes: Wiener Sachtextformel 1-4, LIX, Flesch in der deutschen Fassung nach Amstad, je mit Ampel gegen die Stufe
+- Regel-Linter: Satzlaenge/Nebensaetze/Passiv/Konjunktiv/Genitivketten/Verbklammer (`sentence_lint.py`), Nominalstil/Funktionsverbgefuege/Amtsdeutsch/Fremdwoerter/Begriffsvarianten (`lexicon_lint.py`), Absaetze/Ueberschriften/Listenkandidaten/Anrede/Datumsformate (`structure_lint.py`)
+- Sammelcheck `einfache_sprache_audit.py` mit Ampel, priorisierten Hebeln und `--vergleich` fuer Vorher/Nachher
+- Inhaltstreue als Leitplanke: Zahlen, Fristen, Bedingungen und Rechtsfolgen bleiben unveraendert; Rechtsbegriffe werden erklaert statt ersetzt
+- Abgrenzung zur Leichten Sprache (A1, DIN SPEC 33429) ist Teil des Skills - die verlangt eine Pruefgruppe aus der Zielgruppe und ist kein Werkzeugergebnis
+
+**Voraussetzungen:** Python >= 3.11
+
+**Trigger:** `/einfache-sprache` oder natuerliche Sprache wie "schreib das einfacher", "in Einfacher Sprache", "das versteht kein Mensch", "Amtsdeutsch aufloesen", "Lesbarkeit pruefen".
+
 ### handoff
 
 Fasst die aktuelle Konversation in ein Uebergabedokument zusammen, damit ein neuer Agent nahtlos weiterarbeiten kann. Reiner Referenz-Skill (nur SKILL.md, kein Script). Vendorisierter, angepasster Fork von [mattpocock/skills](https://github.com/mattpocock/skills/tree/main/skills/productivity/handoff) (MIT):
@@ -464,10 +479,12 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.36.2
+### 1.37.0
 
-- **`kanboard`: Subcommand `remove-project`.** `remove-project --project <name|id>` loescht ein
-  Projekt. Weil `removeProject` nicht umkehrbar ist und alle Tasks mitnimmt, zaehlt der Befehl
-  offene und geschlossene Tasks vorher und bricht ab, solange welche vorhanden sind (Exit-Code 1);
-  erst `--force` fuehrt aus. Ein leeres Projekt geht ohne Zusatzflag durch. Im Erfolgsfall folgt
-  der Hinweis, dass `setup` faellig ist, damit `instance.json` das Projekt nicht weiter fuehrt.
+- **Neuer Skill `einfache-sprache`.** Deutsche Texte in Einfache Sprache bringen und auf
+  Verstaendlichkeit pruefen, orientiert an DIN 8581-1 und DIN ISO 24495-1. Drei Zielstufen
+  (`PLAIN`, `B1`, `A2`) mit eigenen Zielwerten, Lesbarkeitsindizes (Wiener Sachtextformel,
+  LIX, Flesch/Amstad) und vier Regel-Linter fuer Satzbau, Wortebene und Struktur. Sammelcheck
+  `einfache_sprache_audit.py` mit Ampel, priorisierten Hebeln und `--vergleich` fuer
+  Vorher/Nachher. Abgegrenzt gegen Leichte Sprache (A1, DIN SPEC 33429), die eine Pruefgruppe
+  aus der Zielgruppe verlangt und kein Werkzeugergebnis ist.
