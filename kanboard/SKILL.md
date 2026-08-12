@@ -2,7 +2,7 @@
 name: kanboard
 description: >
   Verwaltet eine Kanboard-Instanz via JSON-RPC API: Tasks (erstellen, anzeigen,
-  verschieben, zuweisen, schliessen, kommentieren, Subtasks, Tags, Verknuepfungen,
+  verschieben, zuweisen, schliessen, loeschen, kommentieren, Subtasks, Tags, Verknuepfungen,
   Handoff-Feld, Dateien) sowie Projekte inkl. Anlage und Mitglieder-/Rollen-Verwaltung.
   Nutze diesen Skill wenn der User Tasks oder Projekte verwalten will.
   Auch aktiv verwenden wenn der User sagt "leg mir ein Ticket an",
@@ -153,6 +153,23 @@ python3 "$SKILL_DIR/kanboard" close-task <task_id>
 ```
 
 **Wichtig:** "Task erledigen" bedeutet: `move-task --column erledigt`. Tasks werden im Regelfall nur in der Spalte "erledigt" geschlossen. `close-task` nur ausfuehren, wenn der User es explizit verlangt — andernfalls nachfragen.
+
+### Task loeschen
+
+```bash
+python3 "$SKILL_DIR/kanboard" remove-task <task_id> [--force]
+```
+
+**Nicht umkehrbar** — Kommentare, Anhaenge und Teilaufgaben gehen mit. Ohne
+`--force` wird deshalb nichts geloescht, sondern nur gezeigt, was getroffen
+waere (Titel, Projekt, Spalte), mit `success: false` und Exit-Code 1. Erst der
+zweite Aufruf mit `--force` fuehrt aus. Der Titel in dieser Vorschau ist der
+eigentliche Zweck: eine vertippte ID loescht sonst still den falschen Task.
+
+**Abgrenzung:** Loeschen ist die Ausnahme fuer Duplikate und Fehlanlagen. Der
+Normalfall ist `move-task --column erledigt` (und, falls ausdruecklich
+gewuenscht, `close-task` — reversibel per `open-task`). Ein erledigter Task
+wird **nie** geloescht, nur weil er fertig ist.
 
 ### Datei anhaengen
 
@@ -505,7 +522,19 @@ Nach Anlage oder Aenderung dem User die URL anzeigen. Die Basis-URL ergibt sich 
 
 ## Hinweise
 
-- Config (`KANBOARD_URL` und `KANBOARD_TOKEN`) wird aus `.env` im aktuellen Arbeitsverzeichnis gelesen (oder via `KANBOARD_ENV` Environment-Variable).
+- **Config-Quelle** (`KANBOARD_URL`, `KANBOARD_TOKEN`) — in dieser Reihenfolge:
+  1. `KANBOARD_ENV` (Environment-Variable, voller Pfad zur Datei)
+  2. `.env` im **aktuellen Arbeitsverzeichnis**, falls vorhanden
+  3. sonst `~/.env`
+
+  Der Home-Fallback ist gewollt: eine Konfiguration reicht fuer alle Projekte,
+  ein projektlokales `.env` uebersteuert sie bei Bedarf. **Achtung:** entschieden
+  wird allein danach, ob die Datei *existiert* — enthaelt ein projektlokales
+  `.env` die Kanboard-Schluessel nicht (weil es z.B. nur DB-Zugangsdaten fuehrt),
+  bricht der Aufruf mit `KANBOARD_URL not set in <pfad>` ab, statt auf `~/.env`
+  auszuweichen. Dann `KANBOARD_ENV=~/.env` setzen oder die Schluessel ergaenzen.
+  (Der kimai-Skill prueft an dieser Stelle zusaetzlich auf seine Schluessel und
+  faellt zurueck — siehe dortige SKILL.md.)
 - Dateipfade fuer `attach-file` muessen absolut sein.
 - Temporaere Dateien (Downloads, Optimierungen etc.) gehoeren ins Projekt-Verzeichnis `.tmp/`, **nicht** in `$SKILL_DIR/.tmp/`. Das Skill-Verzeichnis darf nicht als Arbeitsverzeichnis verwendet werden.
 - Spaltennamen sind case-insensitiv im Script.

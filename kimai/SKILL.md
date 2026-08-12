@@ -283,7 +283,12 @@ python3 "$SKILL_DIR/kimai" log --duration 0.5 --shortcut initech --description "
 - **Neue Eintraege zeitlich anschliessen:** `log` erledigt das automatisch — Anker ist das spaeteste `end` aller heutigen Eintraege (`max(end)`, sonst 08:00), mit Overlap-Guard (siehe Log-Abschnitt). Bei **manuellen** `create-timesheet`-Buchungen dieselbe Regel anwenden: heutige Eintraege abfragen (`list-timesheets --begin <heute>T00:00:00 --end <heute>T23:59:59`) und `--begin` auf das **spaeteste** `end` setzen — **nicht** auf `recent-timesheets[0]` (nach Bearbeitungs-, nicht Uhrzeit-Reihenfolge sortiert).
 - **CR-Kontext beachten:** Wenn ein CR-Kontext aktiv ist (gesetzt via `/kanboard cr <id>`), die Beschreibung (`--description`) immer mit `CR{id}: ` prefixen. Bei mehreren aktiven CRs nachfragen. Details siehe Kanboard SKILL.md, Abschnitt "CR-Kontext".
 - **Shortcut am Task hinterlegen (Write-back):** Wurde unter aktivem CR mit einem `--shortcut` gebucht, den Shortcut am Kanboard-Task als Tag `kimai:<shortcut>` ablegen — automatische Regel, keine Rueckfrage. Dazu den **kanboard-Skill** aufrufen: `set-kimai <task_id> --shortcut <shortcut>` (`<task_id>` = die CR-ID). Dann steht der Shortcut beim naechsten `/kanboard cr <id>` im Feld `kimai` bereit. Nur bei aktivem CR **und** verwendetem Shortcut; passt der `kimai:`-Tag schon oder wurde ohne CR/Shortcut gebucht, entfaellt es. Details siehe Kanboard SKILL.md, Abschnitt "Kimai-Prefixing".
-- Config (`KIMAI_HOST` und `KIMAI_TOKEN`) wird aus `.env` im aktuellen Arbeitsverzeichnis gelesen (oder via `KIMAI_ENV` Environment-Variable).
+- **Config-Quelle** (`KIMAI_HOST`, `KIMAI_TOKEN`) — in dieser Reihenfolge: `KIMAI_ENV`
+  (Environment-Variable, voller Pfad), sonst `.env` im **aktuellen Arbeitsverzeichnis**
+  — aber nur, wenn dort auch tatsaechlich `KIMAI_*`-Schluessel stehen —, sonst `~/.env`.
+  Der Home-Fallback ist gewollt: eine Konfiguration reicht fuer alle Projekte. Ein
+  projektlokales `.env` ohne Kimai-Schluessel wird uebersprungen statt zum Abbruch zu
+  fuehren; der kanboard-Skill ist an dieser Stelle strenger (siehe dortige SKILL.md).
 - Temporaere Dateien gehoeren ins Projekt-Verzeichnis `.tmp/`, **nicht** in `$SKILL_DIR/.tmp/`.
 - Output ist JSON — relevante Felder extrahieren und lesbar darstellen.
 - Alle IDs (Projekt, Aktivitaet, User, Kunde) sind numerisch.

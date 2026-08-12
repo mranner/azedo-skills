@@ -3,6 +3,31 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.37.2
+
+- **`kanboard`: Subcommand `remove-task`.** Für Kommentare, Anhänge, Teilaufgaben und
+  Task-Links gab es je ein `remove-*`, für den Task selbst nicht — ein doppelt angelegter
+  Task musste per direktem JSON-RPC-Aufruf (`removeTask`) am Skill vorbei entfernt werden.
+  - `remove-task <task_id>` löscht **nicht** sofort: ohne `--force` zeigt der Befehl nur
+    Titel, Projekt und Spalte des getroffenen Tasks und bricht mit `success: false` und
+    Exit-Code 1 ab. Diese Vorschau ist der Zweck der Zweistufigkeit — eine vertippte ID
+    löscht sonst still den falschen Task, und anders als beim Schliessen gibt es kein
+    Gegenstück zum Zurückholen. Gleiches Muster wie `remove-project` (1.36.2).
+  - Abgegrenzt in der SKILL.md: Löschen ist die Ausnahme für Duplikate und Fehlanlagen,
+    der Normalfall bleibt `move-task --column erledigt`.
+- **`kanboard`/`kimai`: Config-Quelle korrekt beschrieben.** Beide SKILL.md nannten nur
+  `.env` im Arbeitsverzeichnis bzw. die `*_ENV`-Variable — dass beide Skripte sonst auf
+  `~/.env` zurückfallen, stand nirgends. Aufgefallen in einem Projekt ohne eigenes `.env`,
+  in dem der Skill trotzdem lief. Der Fallback ist gewollt (eine Konfiguration für alle
+  Projekte) und jetzt samt Reihenfolge dokumentiert.
+  - Dabei ein **Unterschied im Verhalten** belegt, den beide Beschreibungen verdeckten:
+    `kimai` prüft ein projektlokales `.env` zusätzlich auf seine eigenen Schlüssel und
+    fällt sonst auf `~/.env` zurück; `kanboard` entscheidet allein nach Existenz der Datei
+    und bricht bei einem fremden `.env` mit `KANBOARD_URL not set in <pfad>` ab. Beides
+    gegengeprüft (Verzeichnis mit einem `.env`, das nur `DB_PASSWORD` führt: kimai
+    antwortet, kanboard bricht ab). Nur dokumentiert, nicht angeglichen — die Angleichung
+    wäre eine Verhaltensänderung und gehört in einen eigenen CR.
+
 ### 1.37.1
 
 - **`imap`: Anhänge auflisten und herausschreiben** (`attachments`, `save-attachment`). Der

@@ -45,6 +45,7 @@ unabhaengig); ein neuer Skill sollte das ebenso halten.
 Verwaltet Tasks auf einer Kanboard-Instanz via JSON-RPC API. Unterstützt:
 
 - Tasks erstellen, anzeigen, ändern, verschieben (auch projektübergreifend), öffnen/schließen
+- Tasks löschen (`remove-task`, nicht umkehrbar — ohne `--force` nur Vorschau mit Titel und Abbruch)
 - Kommentare lesen, hinzufügen, ändern, löschen
 - Dateien anhängen, auflisten, herunterladen, löschen
 - Teilaufgaben erstellen, ändern, löschen
@@ -60,7 +61,7 @@ Verwaltet Tasks auf einer Kanboard-Instanz via JSON-RPC API. Unterstützt:
 
 **Voraussetzungen:** Python ≥ 3.11
 
-**Setup:** Eine `.env`-Datei mit `KANBOARD_URL` und `KANBOARD_TOKEN` im Arbeitsverzeichnis anlegen (oder Pfad via `KANBOARD_ENV` setzen). Vorlage:
+**Setup:** Eine `.env`-Datei mit `KANBOARD_URL` und `KANBOARD_TOKEN` im Arbeitsverzeichnis anlegen (oder Pfad via `KANBOARD_ENV` setzen; ohne beides gilt `~/.env`, eine Konfiguration für alle Projekte). Vorlage:
 
 ```
 KANBOARD_URL=https://example.com/kanboard/jsonrpc.php
@@ -91,7 +92,7 @@ Zeiterfassung über die Kimai REST API. Unterstützt:
 
 **Voraussetzungen:** Python ≥ 3.11
 
-**Setup:** Eine `.env`-Datei mit `KIMAI_HOST` und `KIMAI_TOKEN` im Arbeitsverzeichnis anlegen (oder Pfad via `KIMAI_ENV` setzen). Vorlage:
+**Setup:** Eine `.env`-Datei mit `KIMAI_HOST` und `KIMAI_TOKEN` im Arbeitsverzeichnis anlegen (oder Pfad via `KIMAI_ENV` setzen; ohne beides — und bei einem projektlokalen `.env` ohne `KIMAI_*`-Schlüssel — gilt `~/.env`). Vorlage:
 
 ```
 KIMAI_HOST=https://kimai2.example.com
@@ -482,16 +483,11 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.37.1
+### 1.37.2
 
-- **`imap`: Anhänge auflisten und herausschreiben** (`attachments`, `save-attachment`). Bisher liessen
-  sich Anhänge nur anzeigen; zum Herausschreiben musste `read --raw` in ein ad-hoc MIME-Parsing gepipet
-  werden. Ablage ohne `--output` in `.tmp/` des Arbeitsverzeichnisses, konsistent zu
-  `kanboard download-file`. Rein lesend — `BODY.PEEK` gilt unverändert, ein zusätzlicher Roundtrip
-  entsteht nicht. Dateinamen werden nach RFC 2231/2047 dekodiert, Pfadanteile und Steuerzeichen fallen
-  weg (ein Anhang `../../../.ssh/authorized_keys` landet als `authorized_keys` im Zielverzeichnis), und
-  eine vorhandene Datei wird nie überschrieben. Inline-Teile (Signatur-Logos) sind per Default
-  ausgeblendet, der Index zählt trotzdem über alle Teile und bleibt damit stabil.
-- **`imap`:** `read --raw | head` hinterlässt kein `BrokenPipeError` mehr auf stderr. Passt die Ausgabe
-  komplett in den Puffer, schrieb Python sie erst beim Interpreter-Exit — also nach dem letzten `except`.
-  Jetzt wird im `finally` geflusht und über `os._exit` beendet.
+- **`kanboard`:** Subcommand `remove-task <task_id> [--force]`. Löschen ist nicht umkehrbar, deshalb
+  zeigt der Aufruf ohne `--force` nur Titel, Projekt und Spalte und bricht ab — dieselbe Zweistufigkeit
+  wie `remove-project`. Der Normalfall bleibt `move-task --column erledigt`.
+- **`kanboard`/`kimai`:** Config-Quelle korrekt beschrieben — beide Skripte fallen auf `~/.env` zurück,
+  wenn `*_ENV` nicht gesetzt ist und im Arbeitsverzeichnis nichts Passendes liegt. `kimai` prüft dabei
+  zusätzlich auf seine eigenen Schlüssel, `kanboard` nicht (dokumentiert, nicht angeglichen).

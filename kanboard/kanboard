@@ -2,7 +2,7 @@
 
 # Kanboard JSON-RPC 2.0 API helper
 # stdlib only, no pip dependencies
-# version 1.36.2
+# version 1.37.2
 
 import argparse
 import base64
@@ -392,6 +392,44 @@ def cmd_open_task(args):
 def cmd_close_task(args):
     result = rpc_call("closeTask", {"task_id": int(args.task_id)})
     output({"success": result})
+
+
+def cmd_remove_task(args):
+    task = rpc_try("getTask", {"task_id": int(args.task_id)})
+    if not task:
+        print(f"Error: task {args.task_id} not found", file=sys.stderr)
+        sys.exit(1)
+
+    # removeTask ist nicht umkehrbar und nimmt Kommentare, Anhaenge und
+    # Teilaufgaben mit. Ohne --force wird deshalb nur gezeigt, was getroffen
+    # waere — ein Vertipper in der ID loescht sonst still den falschen Task.
+    task = enrich_task(task)
+    proj = rpc_try("getProjectById", {"project_id": int(task.get("project_id") or 0)})
+    info = {
+        "task_id": int(args.task_id),
+        "title": task.get("title", ""),
+        "project_name": (proj or {}).get("name", ""),
+        "column_title": task.get("column_title", ""),
+        "is_active": task.get("is_active"),
+    }
+
+    if not args.force:
+        output({
+            **info,
+            "success": False,
+            "error": "Loeschen ist nicht umkehrbar (Kommentare, Anhaenge und "
+                     "Teilaufgaben gehen mit). Titel pruefen und mit --force "
+                     "wiederholen; zum Abschliessen 'move-task --column erledigt'."
+        })
+        sys.exit(1)
+
+    ok = rpc_call("removeTask", {"task_id": int(args.task_id)})
+    result = {**info, "success": bool(ok)}
+    if not ok:
+        result["error"] = "removeTask lieferte kein Ergebnis — Task existiert nicht (mehr)?"
+        output(result)
+        sys.exit(1)
+    output(result)
 
 
 def cmd_attach_file(args):
@@ -1280,6 +1318,13 @@ def main():
     p = sub.add_parser("close-task")
     p.add_argument("task_id")
     p.set_defaults(func=cmd_close_task)
+
+    # remove-task
+    p = sub.add_parser("remove-task")
+    p.add_argument("task_id")
+    p.add_argument("--force", action="store_true",
+                   help="wirklich loeschen (ohne: nur anzeigen, was getroffen waere)")
+    p.set_defaults(func=cmd_remove_task)
 
     # attach-file
     p = sub.add_parser("attach-file")
