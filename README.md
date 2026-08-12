@@ -131,6 +131,9 @@ Posteingang-Triage über mehrere IMAP-Konten — das Gegenstück zu `swaks`. Unt
 - Sonderrollen (`junk`, `trash`, `archive`) statt Ordnernamen, per SPECIAL-USE am Server aufgelöst
 - Kopieren und Verschieben **zwischen** zwei Konten (`APPEND` zuerst, Quelle erst danach)
 - `batch` führt Aktionen mit einem Login je Konto aus, erst nach Freigabe durch den Nutzer
+- Anhänge auflisten (`attachments`) und herausschreiben (`save-attachment`, per `--name`/`--index`/`--all`,
+  ohne `--output` nach `.tmp/`) — Dateinamen RFC-2231/2047-dekodiert, Pfadanteile gestrippt, nichts wird
+  überschrieben; Inline-Teile per Default ausgeblendet
 
 **Voraussetzungen:** `~/.muttrc` mit `account-hook` je Konto (mutt selbst muss nicht installiert sein)
 
@@ -479,12 +482,16 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.37.0
+### 1.37.1
 
-- **Neuer Skill `einfache-sprache`.** Deutsche Texte in Einfache Sprache bringen und auf
-  Verstaendlichkeit pruefen, orientiert an DIN 8581-1 und DIN ISO 24495-1. Drei Zielstufen
-  (`PLAIN`, `B1`, `A2`) mit eigenen Zielwerten, Lesbarkeitsindizes (Wiener Sachtextformel,
-  LIX, Flesch/Amstad) und vier Regel-Linter fuer Satzbau, Wortebene und Struktur. Sammelcheck
-  `einfache_sprache_audit.py` mit Ampel, priorisierten Hebeln und `--vergleich` fuer
-  Vorher/Nachher. Abgegrenzt gegen Leichte Sprache (A1, DIN SPEC 33429), die eine Pruefgruppe
-  aus der Zielgruppe verlangt und kein Werkzeugergebnis ist.
+- **`imap`: Anhänge auflisten und herausschreiben** (`attachments`, `save-attachment`). Bisher liessen
+  sich Anhänge nur anzeigen; zum Herausschreiben musste `read --raw` in ein ad-hoc MIME-Parsing gepipet
+  werden. Ablage ohne `--output` in `.tmp/` des Arbeitsverzeichnisses, konsistent zu
+  `kanboard download-file`. Rein lesend — `BODY.PEEK` gilt unverändert, ein zusätzlicher Roundtrip
+  entsteht nicht. Dateinamen werden nach RFC 2231/2047 dekodiert, Pfadanteile und Steuerzeichen fallen
+  weg (ein Anhang `../../../.ssh/authorized_keys` landet als `authorized_keys` im Zielverzeichnis), und
+  eine vorhandene Datei wird nie überschrieben. Inline-Teile (Signatur-Logos) sind per Default
+  ausgeblendet, der Index zählt trotzdem über alle Teile und bleibt damit stabil.
+- **`imap`:** `read --raw | head` hinterlässt kein `BrokenPipeError` mehr auf stderr. Passt die Ausgabe
+  komplett in den Puffer, schrieb Python sie erst beim Interpreter-Exit — also nach dem letzten `except`.
+  Jetzt wird im `finally` geflusht und über `os._exit` beendet.

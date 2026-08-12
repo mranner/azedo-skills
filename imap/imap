@@ -3,7 +3,7 @@
 # IMAP-Helper fuer Posteingang-Triage
 # Liest Zugangsdaten aus muttrc, arbeitet gegen mehrere Konten.
 # stdlib only, keine pip-Abhaengigkeiten. Lauffaehig auf macOS + FreeBSD.
-# version 1.35.1
+# version 1.37.1
 
 import argparse
 import email
@@ -12,6 +12,7 @@ import email.utils
 import html as html_mod
 import imaplib
 import json
+import mimetypes
 import os
 import re
 import subprocess
@@ -376,6 +377,25 @@ class Account:
         out.sort(key=lambda m: m["uid"])
         return out
 
+    def peek_raw(self, uid, folder="INBOX"):
+        """Rohnachricht holen, ohne \\Seen zu setzen.
+
+        Gemeinsame Grundlage von body() und attachments(): BODY.PEEK[] liefert
+        die vollstaendige Nachricht, jede Aufbereitung darauf ist reine
+        Filterarbeit ohne weiteren Roundtrip."""
+        self.select(folder, readonly=True)
+        typ, data = self.conn.uid("FETCH", str(uid), "(BODY.PEEK[])")
+        if typ != "OK":
+            die(f"[{self.alias}] FETCH BODY uid {uid} fehlgeschlagen: {as_text(data)}")
+        for _, payload in walk_fetch(data):
+            return payload
+        die(f"[{self.alias}] uid {uid} nicht gefunden in {folder}")
+
+    def attachments(self, uid, folder="INBOX"):
+        """Anhaenge einer Mail auflisten - Reihenfolge und Index wie im MIME-Baum."""
+        msg = email.message_from_bytes(self.peek_raw(uid, folder))
+        return list_parts(msg)
+
     def body(self, uid, folder="INBOX", max_chars=DEFAULT_MAX_CHARS,
              with_headers=False, with_raw=False):
         """Textkoerper lesen. BODY.PEEK laesst den Ungelesen-Status unangetastet.
@@ -383,17 +403,7 @@ class Account:
         BODY.PEEK[] holt ohnehin die vollstaendige Rohnachricht - Header und
         Rohfassung kosten daher keinen zweiten Roundtrip, sie werden sonst nur
         weggefiltert."""
-        self.select(folder, readonly=True)
-        typ, data = self.conn.uid("FETCH", str(uid), "(BODY.PEEK[])")
-        if typ != "OK":
-            die(f"[{self.alias}] FETCH BODY uid {uid} fehlgeschlagen: {as_text(data)}")
-        raw = None
-        for _, payload in walk_fetch(data):
-            raw = payload
-            break
-        if raw is None:
-            die(f"[{self.alias}] uid {uid} nicht gefunden in {folder}")
-
+        raw = self.peek_raw(uid, folder)
         msg = email.message_from_bytes(raw)
         text = extract_text(msg)
         truncated = len(text) > max_chars
@@ -406,7 +416,7 @@ class Account:
             "cc": hdr(msg, "Cc"),
             "subject": hdr(msg, "Subject"),
             "date": hdr(msg, "Date"),
-            "attachments": attachment_names(msg),
+            "attachments": public_parts(list_parts(msg)),
             "body": text[:max_chars],
             "truncated": truncated,
         }
@@ -671,20 +681,116 @@ def extract_text(msg):
     return re.sub(r"\n{3,}", "\n\n", text).strip()
 
 
-def attachment_names(msg):
+# --- Anhaenge ---------------------------------------------------------------
+
+CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]")
+
+
+def decode_filename(raw):
+    """RFC-2047-Woerter im Dateinamen aufloesen.
+
+    RFC 2231 (`filename*=utf-8''...`) erledigt bereits get_filename(); die
+    kodierten Woerter `=?utf-8?B?...?=` bleiben dabei stehen."""
+    if not raw:
+        return ""
+    try:
+        return str(email.header.make_header(email.header.decode_header(raw))).strip()
+    except Exception:
+        return raw.strip()
+
+
+def safe_filename(raw, fallback):
+    """Dateiname aus der Mail auf einen blossen Namen reduzieren.
+
+    Der Absender bestimmt diesen String - er darf nicht bestimmen, wohin
+    geschrieben wird. Pfadanteile fallen weg, Steuerzeichen ebenso; bleibt
+    nichts Brauchbares uebrig, gilt der Ersatzname."""
+    name = decode_filename(raw).replace("\\", "/")
+    name = name.split("/")[-1]
+    name = CONTROL_RE.sub("", name).strip()
+    if name in ("", ".", ".."):
+        return fallback
+    return name
+
+
+def part_bytes(part):
+    """Inhalt eines Teils als Bytes - auch fuer angehaengte Mails."""
+    payload = part.get_payload(decode=True)
+    if payload is not None:
+        return payload
+
+    # message/rfc822 traegt keine dekodierbare Nutzlast: der Anhang ist die
+    # eingebettete Nachricht selbst
+
+    if part.get_content_maintype() == "message":
+        inner = part.get_payload()
+        if isinstance(inner, list) and inner:
+            return inner[0].as_bytes()
+    return b""
+
+
+def list_parts(msg):
+    """Anhaenge einer Nachricht mit stabilem Index (1-basiert, MIME-Reihenfolge).
+
+    Inline-Teile werden mitgezaehlt, aber als solche markiert - der Index bleibt
+    dadurch derselbe, egal ob sie angezeigt werden oder nicht."""
     out = []
-    if not msg.is_multipart():
-        return out
+    idx = 0
     for part in msg.walk():
-        disp = (part.get("Content-Disposition") or "").lower()
+        if part.get_content_maintype() == "multipart":
+            continue
+        disp = (part.get_content_disposition() or "").lower()
         fname = part.get_filename()
-        if fname and ("attachment" in disp or "inline" in disp):
-            try:
-                fname = str(email.header.make_header(email.header.decode_header(fname)))
-            except Exception:
-                pass
-            out.append({"name": fname, "type": part.get_content_type()})
+
+        if disp == "attachment":
+            inline = False
+        elif fname:
+
+            # Ohne Content-Disposition, aber mit Namen: ein Anhang, den der
+            # Absender nur nicht ausgezeichnet hat
+
+            inline = disp == "inline"
+        elif disp == "inline":
+            inline = True
+        else:
+
+            # kein Name, keine Disposition - das ist der Nachrichtentext
+
+            continue
+
+        idx += 1
+        data = part_bytes(part)
+        ctype = part.get_content_type()
+        ext = mimetypes.guess_extension(ctype) or ""
+        out.append({
+            "index": idx,
+            "name": safe_filename(fname, f"anhang-{idx}{ext}"),
+            "type": ctype,
+            "size": len(data),
+            "inline": inline,
+            "part": part,
+        })
     return out
+
+
+def public_parts(parts):
+    """Interne Part-Referenz aus der Ausgabe nehmen."""
+    return [{k: v for k, v in p.items() if k != "part"} for p in parts]
+
+
+def unique_path(path):
+    """Bestehende Datei nicht ueberschreiben - Anhaenge heissen oft gleich."""
+    if not os.path.exists(path):
+        return path
+    stem, ext = os.path.splitext(path)
+    n = 1
+    while os.path.exists(f"{stem}-{n}{ext}"):
+        n += 1
+    return f"{stem}-{n}{ext}"
+
+
+def default_dir():
+    return os.path.join(os.getcwd(), ".tmp")
 
 
 def short(text, width):
@@ -800,6 +906,131 @@ def cmd_read(args, accounts):
     print(msg["body"])
     if msg["truncated"]:
         print(f"\n[gekuerzt auf {args.max_chars} Zeichen]")
+
+
+def human_size(n):
+    for unit in ("B", "K", "M"):
+        if n < 1024:
+            return f"{n:.0f}{unit}"
+        n /= 1024
+    return f"{n:.1f}G"
+
+
+def cmd_attachments(args, accounts):
+    acc = pick_account(accounts, args.account)
+    with Account(acc) as a:
+        parts = a.attachments(args.uid, args.folder)
+
+    hidden = 0
+    if not args.include_inline:
+        hidden = sum(1 for p in parts if p["inline"])
+        parts = [p for p in parts if not p["inline"]]
+
+    if args.json:
+        out_json({
+            "account": acc["alias"],
+            "folder": args.folder,
+            "uid": args.uid,
+            "attachments": public_parts(parts),
+            "inline_hidden": hidden,
+        })
+        return
+
+    if not parts:
+        print("keine Anhaenge")
+    for p in parts:
+        mark = "i" if p["inline"] else " "
+        print(f"{p['index']:>3}{mark} {short(p['name'], 44):<44} "
+              f"{p['type']:<28} {human_size(p['size']):>6}")
+    if hidden:
+        print(f"\n{hidden} Inline-Teil(e) ausgeblendet - "
+              f"--include-inline zeigt sie (die Luecken in der Nummerierung)")
+
+
+def select_parts(parts, args):
+    """Auswahl aufloesen. Ein ausdruecklich benannter Teil wird immer geliefert,
+    auch wenn er inline ist - der Inline-Filter gilt nur fuer --all."""
+    if args.all:
+        chosen = parts if args.include_inline else [p for p in parts if not p["inline"]]
+        if not chosen:
+            die("keine Anhaenge zum Speichern")
+        return chosen
+
+    if args.index is not None:
+        hit = [p for p in parts if p["index"] == args.index]
+        if not hit:
+            die(f"kein Anhang mit Index {args.index} "
+                f"(vorhanden: {', '.join(str(p['index']) for p in parts) or 'keiner'})")
+        return hit
+
+    hit = [p for p in parts if p["name"] == args.name]
+    if not hit:
+        hit = [p for p in parts if p["name"].lower() == args.name.lower()]
+    if not hit:
+        die(f"kein Anhang namens '{args.name}' "
+            f"(vorhanden: {', '.join(p['name'] for p in parts) or 'keiner'})")
+    if len(hit) > 1:
+        die(f"'{args.name}' kommt {len(hit)}x vor - mit --index waehlen: "
+            f"{', '.join(str(p['index']) for p in hit)}")
+    return hit
+
+
+def target_path(part, args, multiple):
+    """Zielpfad bestimmen. --output ist ein Verzeichnis, sobald es eines ist,
+    auf '/' endet oder mehrere Dateien geschrieben werden."""
+    if not args.output:
+        directory = default_dir()
+    elif multiple or os.path.isdir(args.output) or args.output.endswith(os.sep):
+        directory = args.output
+    else:
+        path = os.path.abspath(args.output)
+        parent = os.path.dirname(path)
+        if parent:
+            os.makedirs(parent, exist_ok=True)
+        return path
+
+    directory = os.path.abspath(directory)
+    os.makedirs(directory, exist_ok=True)
+    path = os.path.abspath(os.path.join(directory, part["name"]))
+
+    # Gegenprobe: safe_filename hat Pfadanteile bereits entfernt, aber ein
+    # Schreibziel wird nicht auf eine einzelne Funktion hin geglaubt
+
+    if os.path.dirname(path) != directory:
+        die(f"Anhang '{part['name']}' zeigt aus {directory} heraus")
+    return path
+
+
+def cmd_save_attachment(args, accounts):
+    acc = pick_account(accounts, args.account)
+    with Account(acc) as a:
+        parts = a.attachments(args.uid, args.folder)
+
+    chosen = select_parts(parts, args)
+
+    saved = []
+    for p in chosen:
+        path = unique_path(target_path(p, args, len(chosen) > 1))
+        with open(path, "wb") as f:
+            f.write(part_bytes(p["part"]))
+        saved.append({
+            "index": p["index"],
+            "name": p["name"],
+            "type": p["type"],
+            "size": p["size"],
+            "path": path,
+        })
+
+    if args.json:
+        out_json({
+            "account": acc["alias"],
+            "folder": args.folder,
+            "uid": args.uid,
+            "saved": saved,
+        })
+        return
+    for s in saved:
+        print(f"{s['path']}  ({human_size(s['size'])})")
 
 
 def resolve_target(a, target):
@@ -1030,6 +1261,30 @@ def build_parser():
                     help="komplette unbearbeitete Nachricht (Header + Body)")
     sp.set_defaults(func=cmd_read)
 
+    sp = sub.add_parser("attachments", parents=[common],
+                        help="Anhaenge einer Mail auflisten (setzt \\Seen nicht)")
+    sp.add_argument("uid", type=int)
+    sp.add_argument("--account", "-a")
+    sp.add_argument("--folder", "-f", default="INBOX")
+    sp.add_argument("--include-inline", action="store_true",
+                    help="Inline-Teile (Signatur-Logos) mitzeigen")
+    sp.set_defaults(func=cmd_attachments)
+
+    sp = sub.add_parser("save-attachment", parents=[common],
+                        help="Anhang speichern (Default .tmp/ im Arbeitsverzeichnis)")
+    sp.add_argument("uid", type=int)
+    sp.add_argument("--account", "-a")
+    sp.add_argument("--folder", "-f", default="INBOX")
+    pick = sp.add_mutually_exclusive_group(required=True)
+    pick.add_argument("--name", help="Dateiname laut 'attachments'")
+    pick.add_argument("--index", type=int, help="Index laut 'attachments'")
+    pick.add_argument("--all", action="store_true", help="alle Anhaenge")
+    sp.add_argument("--output", "-o", metavar="PFAD",
+                    help="Datei oder Verzeichnis; ohne Angabe .tmp/")
+    sp.add_argument("--include-inline", action="store_true",
+                    help="bei --all auch Inline-Teile schreiben")
+    sp.set_defaults(func=cmd_save_attachment)
+
     for name, help_text in (
         ("move", "verschieben"),
         ("copy", "kopieren"),
@@ -1068,14 +1323,26 @@ def main():
 
 if __name__ == "__main__":
     try:
-        main()
+        try:
+            main()
+        finally:
+
+            # Ausgabe hier leeren, solange der Fehler noch fangbar ist. Passt
+            # die Ausgabe komplett in den Puffer, schreibt Python sie sonst
+            # erst beim Interpreter-Exit - und ein Fehler dort landet
+            # ungefiltert als "Exception ignored" auf stderr.
+
+            sys.stdout.flush()
     except KeyboardInterrupt:
         sys.exit(130)
     except BrokenPipeError:
 
         # `read --raw | head` schliesst die Pipe frueh - das ist der
         # Normalfall, kein Fehler. stdout wird auf devnull umgebogen, damit
-        # Python beim Interpreter-Exit nicht noch einmal darauf schreibt.
+        # ein spaeterer Schreibversuch ins Leere laeuft; beendet wird ueber
+        # os._exit, weil der regulaere Exit den Puffer noch einmal auf die
+        # tote Pipe schreiben wuerde - dann mit einem Fehler, den an dieser
+        # Stelle niemand mehr abfangen kann.
 
         os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
-        sys.exit(0)
+        os._exit(0)

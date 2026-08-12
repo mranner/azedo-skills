@@ -3,6 +3,49 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.37.1
+
+- **`imap`: Anhänge auflisten und herausschreiben** (`attachments`, `save-attachment`). Der
+  Skill konnte Anhänge bisher nur *anzeigen* — zum Herausschreiben musste `read --raw` in ein
+  ad-hoc Python-Snippet mit `email.message_from_file` und `walk()` gepipet werden. Für einen
+  Fall, der bei jeder Mail mit Beleg wiederkehrt, war das ein handgeschriebener MIME-Parser zu
+  viel.
+  - `attachments <uid>` listet Index, Name, MIME-Typ und Grösse; `save-attachment <uid>`
+    schreibt per `--name`, `--index` oder `--all`. Ohne `--output` landen die Dateien in
+    `.tmp/` des **Arbeits**verzeichnisses, konsistent zu `kanboard download-file`.
+  - **Rein lesend.** `BODY.PEEK` gilt unverändert, auch das Speichern setzt `\Seen` nicht.
+    Ein zusätzlicher Roundtrip entsteht nicht: `BODY.PEEK[]` holt die Nachricht ohnehin
+    vollständig, die Anhänge wurden bisher nur weggefiltert — dieselbe Argumentation wie bei
+    `--headers`/`--raw` in 1.35.1. Dafür teilen sich `body()` und `attachments()` jetzt ein
+    gemeinsames `peek_raw()`.
+  - **Der Dateiname kommt vom Absender und darf nicht bestimmen, wohin geschrieben wird.**
+    Dekodiert wird nach RFC 2231 (`filename*=utf-8''...`) und RFC 2047 (`=?utf-8?B?...?=`),
+    danach fallen Pfadanteile und Steuerzeichen weg; ein Anhang `../../../.ssh/authorized_keys`
+    wird als `authorized_keys` im Zielverzeichnis abgelegt. Der zusammengesetzte Pfad wird
+    zusätzlich gegen das Zielverzeichnis gegengeprüft, statt einer einzelnen Funktion zu
+    glauben. Namenlose Teile bekommen `anhang-<index>.<ext>` aus dem MIME-Typ, angehängte
+    Mails (`message/rfc822`, ohne dekodierbare Nutzlast) werden als `.eml` geschrieben.
+  - **Eine vorhandene Datei wird nie überschrieben** (`Rechnung-1.pdf`). Anhänge heissen
+    reihenweise `scan.pdf` oder `image001.png` — stilles Überschreiben wäre hier der Normalfall.
+  - **Inline-Teile sind standardmässig ausgeblendet**, sonst besteht die Liste einer normalen
+    Geschäftsmail aus vier Signatur-Logos und einer Rechnung. Der Index zählt trotzdem über
+    *alle* Teile, damit er stabil bleibt; die entstehenden Lücken erklärt die Ausgabe selbst.
+    `--include-inline` zeigt sie. Ein ausdrücklich per `--name`/`--index` benannter Teil wird
+    immer geliefert — der Filter gilt nur für `--all`.
+  - `read --json` führt im Feld `attachments` jetzt zusätzlich `index`, `size` und `inline`,
+    sodass eine bereits gelesene Mail für `save-attachment --index` nicht erneut aufgelistet
+    werden muss. Die SKILL.md bekommt den Abschnitt „Anhaenge" samt Rezept Mail → Kanboard-Task
+    (`attach-file` verlangt einen absoluten Pfad — den liefert `saved[].path`).
+- **`imap`: `read --raw | head` hinterlässt kein `BrokenPipeError` mehr auf stderr.** Die
+  Absicherung aus 1.35.1 fing nur den Fall, dass die Pipe *während* der Ausgabe bricht. Passt
+  die Nachricht komplett in den Puffer — bei einer Mail von ~37 KB und einem 64-KB-Pipe-Puffer
+  der Normalfall —, schreibt Python sie erst beim Interpreter-Exit, und der Fehler entsteht
+  nach dem letzten `except`: Python meldet ihn dann als „Exception ignored" ungefiltert auf
+  stderr. Behoben durch ein `finally` mit `sys.stdout.flush()`, das den Fehler dorthin holt,
+  wo er fangbar ist; beendet wird über `os._exit`, weil der reguläre Exit den Puffer sonst ein
+  zweites Mal auf die tote Pipe schreibt. Kosmetisch, aber irreführend: die Meldung sah nach
+  einem Fehler des Skripts aus, obwohl ein früh beendetes `head` der Normalfall ist.
+
 ### 1.37.0
 
 - **Neuer Skill `einfache-sprache`.** Gegenstueck zu `humanizer-de`: der eine nimmt einem Text
