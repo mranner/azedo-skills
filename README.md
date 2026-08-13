@@ -127,6 +127,8 @@ Posteingang-Triage über mehrere IMAP-Konten — das Gegenstück zu `swaks`. Unt
 - Zugangsdaten aus der `~/.muttrc` (`account-hook`), keine zweite Credential-Datei; Backticks und
   `source` werden ausgewertet, also auch `imap_pass=` aus einem Keystore
 - Mails auflisten (`list`, ohne Konto über alle Konten, `--unseen`/`--since`) und lesen (`read`)
+- `fetch` holt einen Stapel Mails mit **einem** Login (`--uids`/`--uid-file`, `-o` schreibt je UID
+  eine Datei) — das lesende Gegenstück zu `batch`
 - Gelesen wird mit `BODY.PEEK` — der Ungelesen-Status bleibt unangetastet
 - Einsortieren, als Spam markieren, in den Papierkorb (`delete` expunged nie), Flags setzen
 - Sonderrollen (`junk`, `trash`, `archive`) statt Ordnernamen, per SPECIAL-USE am Server aufgelöst
@@ -483,11 +485,10 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.37.2
+### 1.37.3
 
-- **`kanboard`:** Subcommand `remove-task <task_id> [--force]`. Löschen ist nicht umkehrbar, deshalb
-  zeigt der Aufruf ohne `--force` nur Titel, Projekt und Spalte und bricht ab — dieselbe Zweistufigkeit
-  wie `remove-project`. Der Normalfall bleibt `move-task --column erledigt`.
-- **`kanboard`/`kimai`:** Config-Quelle korrekt beschrieben — beide Skripte fallen auf `~/.env` zurück,
-  wenn `*_ENV` nicht gesetzt ist und im Arbeitsverzeichnis nichts Passendes liegt. `kimai` prüft dabei
-  zusätzlich auf seine eigenen Schlüssel, `kanboard` nicht (dokumentiert, nicht angeglichen).
+- **`imap`:** Subcommand `fetch` — mehrere Mails mit **einem** Login statt eines je `read`.
+  UIDs per `--uids` oder `--uid-file`, Ausgabe wie `read` (`--headers`/`--raw`), `-o` schreibt je
+  UID eine Datei (`<uid>.eml` bei `--raw`, byte-genau). Vorhandene Dateien werden übersprungen,
+  eine unbekannte UID landet in `missing` statt den Lauf abzubrechen. `BODY.PEEK` unverändert.
+

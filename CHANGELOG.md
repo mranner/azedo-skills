@@ -3,6 +3,36 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.37.3
+
+- **`imap`: Subcommand `fetch` -- mehrere Mails mit einem Login.** Für schreibende
+  Aktionen gab es `batch` (ein Login je Konto), für lesende nur `read <uid>` -- und das
+  öffnet **pro Aufruf** eine eigene Verbindung samt Login. Beim Neuaufbau eines
+  Schreibstil-Korpus waren 232 Mails aus einem `Sent`-Ordner zu holen; über `read` wären
+  das 232 Logins in kurzer Folge gewesen, also genau die Login-Serie, vor der die SKILL.md
+  bei `batch` warnt. Behelf war ein Wegwerf-Script, das die `Account`-Klasse aus dem Skill
+  importiert -- der Skill selbst konnte es nicht.
+  - `fetch --uids 1,2,3` oder `--uid-file <datei>` (`-` liest stdin; Kommas, Zeilenumbrüche
+    und `#`-Kommentare erlaubt, Dubletten fallen weg). Ausgabe wie `read`, inklusive
+    `--headers`, `--raw` und `--max-chars`.
+  - Eine Session **und** ein FETCH je 50 UIDs: 120 Mails (15 MB) aus einem `Sent`-Ordner in
+    0,6 s statt 120 Anmeldungen.
+  - `-o <verzeichnis>` schreibt je UID eine Datei (`<uid>.eml` bei `--raw`, sonst
+    `<uid>.txt`). Die Rohfassung kommt dabei **byte-genau** aus dem FETCH, nicht über die
+    Textaufbereitung -- gegengeprüft gegen `RFC822.SIZE` des Servers.
+  - **Vorhandene Dateien werden übersprungen**, nicht überschrieben und nicht
+    durchnummeriert: der Dateiname ist die UID, ein zweiter Lauf meint dieselbe Mail. Ein
+    abgebrochener Stapelabruf ist damit wiederholbar, ohne den Korpus mit Dubletten zu
+    füllen (`--overwrite` erzwingt). Bewusst anders als `save-attachment`, wo der Name vom
+    Absender kommt und `scan.pdf` jedes Mal etwas anderes meint.
+  - Eine unbekannte UID bricht den Lauf nicht ab, sondern erscheint in `missing` -- bei
+    einem Stapel ist eine zwischenzeitlich verschobene Mail der Normalfall.
+  - `BODY.PEEK` gilt unverändert; am Server gegengeprüft (Mail vorher auf ungelesen
+    gesetzt, nach dem `fetch` weiterhin ungelesen).
+  - Intern: die Textausgabe von `read` liegt jetzt in `format_message()` und die
+    Aufbereitung einer Rohnachricht in `Account.render()`, beides von `read` und `fetch`
+    gemeinsam genutzt. `read` verhält sich unverändert.
+
 ### 1.37.2
 
 - **`kanboard`: Subcommand `remove-task`.** Für Kommentare, Anhänge, Teilaufgaben und

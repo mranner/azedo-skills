@@ -65,6 +65,7 @@ als Default; `list` ohne `--account` fragt **alle** Konten ab.
 | `folders -a <konto>` | Ordnerliste, Separator, Sonderordner, Server-Capabilities |
 | `list [-a <konto>]` | Kopfdaten ohne Body |
 | `read <uid> -a <konto>` | Textkoerper einer Mail |
+| `fetch --uids <liste> -a <konto>` | mehrere Mails mit **einem** Login |
 | `read <uid> --headers` | alle Rohheader statt der Kopfzeilen-Auswahl |
 | `read <uid> --raw` | komplette unbearbeitete Nachricht (Header + Body) |
 | `attachments <uid> -a <konto>` | Anhaenge auflisten (Index, Name, Typ, Groesse) |
@@ -116,6 +117,51 @@ Pipe an `less`/`grep` ist das der uebliche Weg.
 Beides kostet **keinen** zusaetzlichen IMAP-Roundtrip: `BODY.PEEK[]` holt ohnehin
 die vollstaendige Rohnachricht, sie wurde bisher nur weggefiltert. `BODY.PEEK`
 gilt unveraendert -- auch mit `--headers`/`--raw` bleibt der Ungelesen-Status.
+
+## `fetch` -- ein Stapel Mails, ein Login
+
+`read` oeffnet **je Aufruf** eine eigene Verbindung samt Login. Fuer einen Stapel
+ist das dasselbe Problem, das `batch` auf der Schreibseite loest: 200 Mails
+waeren 200 Logins in kurzer Folge -- unnoetig langsam und in den Auth-Logs von
+einem Brute-Force-Versuch kaum zu unterscheiden. `fetch` holt beliebig viele
+UIDs in **einer** Session (und je 50 UIDs mit einem FETCH):
+
+```
+python3 "$SKILL_DIR/imap" fetch -a office -f Sent --uids 75433,75436,75430
+python3 "$SKILL_DIR/imap" fetch -a office -f Sent --uids "75433 75436" --headers
+python3 "$SKILL_DIR/imap" fetch -a office -f Sent --uid-file uids.txt --json
+python3 "$SKILL_DIR/imap" fetch -a office -f Sent --uid-file - --raw -o .tmp/eml/
+```
+
+Die UID-Liste kommt per `--uids` (Komma oder Leerzeichen) oder aus einer Datei
+(`--uid-file`, `-` liest stdin). In der Datei sind Zeilenumbrueche, Kommas und
+`#`-Kommentare erlaubt; Dubletten fallen weg, die Reihenfolge bleibt.
+
+Ausgabe wie bei `read`, inklusive `--headers`, `--raw` und `--max-chars`:
+
+- **ohne `-o`** auf stdout, je Mail mit einer Trennzeile `── <konto>/<uid> ──`.
+  Fuer eine byte-genaue Rohfassung ist `-o` der Weg, nicht stdout.
+- **mit `-o <verzeichnis>`** je UID eine Datei: `<uid>.eml` bei `--raw` (Original-
+  bytes, ungetastet), sonst `<uid>.txt` mit der aufbereiteten Fassung.
+- **`--json`** liefert ohne `-o` alle Mails als Liste, mit `-o` die
+  Schreib-Bilanz (`saved`, `skipped`, `missing`).
+
+**Eine vorhandene Datei wird uebersprungen, nicht ueberschrieben und nicht
+durchnummeriert.** Der Dateiname ist die UID, ein zweiter Lauf meint also
+dieselbe Mail -- ein abgebrochener Stapelabruf laesst sich damit einfach
+wiederholen, ohne einen Korpus mit Dubletten zu fuellen. `--overwrite` erzwingt
+das Schreiben. (Bei `save-attachment` ist es umgekehrt: dort kommt der Name vom
+Absender, `scan.pdf` meint jedes Mal etwas anderes.)
+
+**Eine unbekannte UID bricht den Lauf nicht ab** -- sie erscheint in `missing`.
+Bei einem Stapel ist eine zwischenzeitlich verschobene oder geloeschte Mail der
+Normalfall, kein Grund die uebrigen nicht zu holen.
+
+`BODY.PEEK` gilt unveraendert: auch ein Stapelabruf setzt `\Seen` nicht.
+
+Typische Faelle: Korpus-Aufbau fuer [mail-as-me](../mail-as-me/SKILL.md),
+Header-Analysen ueber mehrere Mails (Zustellwege, SPF/DKIM), einen Thread am
+Stueck lesen, Export vor einer Migration.
 
 ## Anhaenge
 
