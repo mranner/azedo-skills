@@ -3,6 +3,41 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.38.0
+
+- **Neuer Skill `lit`: Dokumente nach Markdown mit liteparse.** `lit` ist ein
+  Rust-CLI (Apache-2.0), das den Textlayer eines PDFs samt Struktur — Überschriften,
+  Listen, Tabellen, Links — nach Markdown, Text oder JSON ausgibt. Kein Cloud-Dienst,
+  keine ML-Modelle, Tesseract-OCR einkompiliert. Ein PDF mit intaktem Textlayer
+  braucht Millisekunden.
+  - Der Skill triggert **nicht** bei jeder PDF-Erwähnung, sondern nur auf
+    ausdrückliche Umwandlung ("mach aus dem PDF eine MD-Datei", "wandle die Datei in
+    Markdown um") oder `/lit`. Das gerenderte Lesen einer Seite bleibt damit
+    unangetastet, und der Skill konkurriert nicht mit dem PDF-Skill der
+    document-skills.
+  - **Installation für FreeBSD, Linux und macOS** ist Teil des Skills. Auf FreeBSD
+    gibt es weder Paket noch Port; dort läuft das Linux-Binary über den Linuxulator
+    (`linux_base-rl9` genügt, Tesseract wird nicht gebraucht, weil einkompiliert).
+    Auf Linux und macOS tut es auch `npm i -g @llamaindex/liteparse`.
+  - Dokumentiert ist der Fallstrick, der beim Aufsetzen eine Stunde gekostet hat:
+    `libpdfium` wird per `dlopen` nachgeladen, steht deshalb in keiner
+    ELF-Abhängigkeit und liegt dem Release-Tarball nicht bei. Die verbreiteten Builds
+    von `bblanchon/pdfium-binaries` passen **nicht** — ab Chromium-Zweig 7999 fehlt
+    ihnen `FPDFText_GetCharCode`, der Aufruf scheitert dann beim Symbol-Lookup statt
+    beim Laden. Die passende Bibliothek steckt im PyPI-Wheel derselben Version; ein
+    Snippet im Skill holt sie ohne Hash-Pfad-Abtippen heraus.
+  - Empfehlung `--no-ocr` als Default, belegt an einer bildlastigen Broschüre: ohne
+    OCR saubere Überschriften-Struktur, mit OCR dieselbe Passage als Tabelle mit
+    Aufzählungszeichen-Artefakten. `is-complex` ist als Entscheidungshilfe
+    unbrauchbar — es meldete dort 14/14 Seiten OCR-bedürftig, obwohl `--no-ocr`
+    vollständigen Text lieferte.
+  - Weitere verifizierte Eigenheiten: `| head` löst einen SIGPIPE-Panic mit
+    Fehler-Exit aus (in Scripts `-o <datei>` nehmen); der erste OCR-Lauf einer Sprache
+    lädt die `traineddata` nach; Office-Formate brechen ohne LibreOffice hart ab.
+  - Die Abschnitte zur Kontext-Disziplin (einmal in eine Datei parsen und dann diese
+    durchsuchen statt je Suche neu zu extrahieren, `grep -C` statt grep-dann-sed,
+    Screenshots nur als letztes Mittel) folgen dem Upstream-Skill von LlamaIndex.
+
 ### 1.37.3
 
 - **`imap`: Subcommand `fetch` -- mehrere Mails mit einem Login.** Für schreibende

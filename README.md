@@ -247,6 +247,21 @@ Rendert Markdown zu einem "schönen" PDF (Typora-naher Look). Pipeline: `pandoc`
 
 **Trigger:** `/md2pdf` oder natürliche Sprache wie "mach ein PDF draus", "Markdown zu PDF", "Doku als PDF exportieren".
 
+### lit
+
+Die Gegenrichtung zu `md2pdf`: wandelt Dokumente über das CLI [liteparse](https://github.com/run-llama/liteparse) (Rust, Apache-2.0) nach Markdown, Text oder JSON. PDFs und Bilder direkt, Office-Formate über LibreOffice. Lokal, ohne Cloud, ohne ML-Modelle, Tesseract-OCR einkompiliert — ein PDF mit intaktem Textlayer dauert Millisekunden.
+
+- `--no-ocr` als Default; OCR verschlechtert bei Textlayer-PDFs die Struktur, und `is-complex` ist als Entscheidungshilfe unzuverlässig
+- Kontext-Disziplin: einmal in eine Datei parsen und diese durchsuchen, statt je Suche neu zu extrahieren
+- Installation für FreeBSD (Linux-Binary über den Linuxulator, kein Port vorhanden), Linux und macOS — inklusive der passenden `libpdfium`, die per `dlopen` nachgeladen wird und dem Release-Tarball nicht beiliegt
+- Fallstricke dokumentiert: SIGPIPE-Panic bei `| head`, Nachladen der `traineddata` beim ersten OCR-Lauf, harter Abbruch bei Office ohne LibreOffice
+
+**Voraussetzungen:** `lit` im PATH (Installationsanleitung im Skill); optional LibreOffice für DOCX/XLSX/PPTX
+
+**Aufruf:** `lit parse --no-ocr --format markdown -o <out.md> <datei>`
+
+**Trigger:** `/lit` oder natürliche Sprache wie "mach aus dem PDF eine Markdown-Datei", "wandle die Datei in MD um". Bewusst **kein** Trigger auf bloßes Lesen eines PDFs.
+
 ### ripgrep
 
 Referenz-Skill fuer `rg` (ripgrep) — schnelle Textsuche in Dateien und Verzeichnissen. Kein eigenes Script, reine SKILL.md mit:
@@ -485,10 +500,12 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.37.3
+### 1.38.0
 
-- **`imap`:** Subcommand `fetch` — mehrere Mails mit **einem** Login statt eines je `read`.
-  UIDs per `--uids` oder `--uid-file`, Ausgabe wie `read` (`--headers`/`--raw`), `-o` schreibt je
-  UID eine Datei (`<uid>.eml` bei `--raw`, byte-genau). Vorhandene Dateien werden übersprungen,
-  eine unbekannte UID landet in `missing` statt den Lauf abzubrechen. `BODY.PEEK` unverändert.
+- **Neuer Skill `lit`:** Dokumente nach Markdown mit liteparse — PDFs und Bilder direkt, Office
+  über LibreOffice, lokal und ohne ML-Modelle. Triggert nur auf ausdrückliche Umwandlung, nicht auf
+  jede PDF-Erwähnung. Enthält die Installation für FreeBSD (Linux-Binary über den Linuxulator, kein
+  Port vorhanden), Linux und macOS samt der passenden `libpdfium` aus dem PyPI-Wheel — die
+  verbreiteten `bblanchon`-Builds scheitern am fehlenden `FPDFText_GetCharCode`. `--no-ocr` ist der
+  empfohlene Default; `is-complex` taugt nicht als Entscheidungshilfe.
 
