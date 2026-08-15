@@ -3,6 +3,23 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.38.2
+
+- **`ripgrep`: Capture-Group-Beispiel gegen die Argument-Substitution geschützt.**
+  Das Beispiel `rg "(\w+)@(\w+)" -r "$2::$1"` meint rg-Capture-Groups, der
+  Skill-Loader sieht darin aber Positionsparameter: bei `/ripgrep suche nach mustern`
+  kam es als `-r "mustern::nach"` an — ein Beispiel, das etwas anderes zeigt als es
+  soll. Ohne Argumente aufgerufen blieb es korrekt, deshalb fiel es nie auf.
+  Geschrieben wird es jetzt `-r "${2}::${1}"`; die geschweifte Form ist in rg gültig
+  und ohnehin die von der rg-Doku empfohlene, weil `$1x` sonst als Gruppenname `1x`
+  gelesen wird.
+- **Verhalten der Substitution ausgemessen** (Wegwerf-Skill mit drei Argumenten):
+  `$0` ist das **erste** Argument, nicht der Programmname — die Zählung beginnt bei
+  null. Nicht belegte Parameter bleiben stehen, ein Fehler zeigt sich also erst ab
+  genügend Argumenten. `"$@"` und `$ARGUMENTS` verhalten sich erwartbar, und
+  **geschweifte Klammern schützen**: `${1}` wird nicht ersetzt. Restliche Skills des
+  Repos, die projektlokalen und die Fremd-Skills sind geprüft und sauber.
+
 ### 1.38.1
 
 - **`lit`: Wrapper-Snippet ohne Positionsparameter.** Der Wrapper leitete sein

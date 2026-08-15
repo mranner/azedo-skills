@@ -500,10 +500,12 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.38.1
+### 1.38.2
 
-- **`lit`:** Wrapper-Snippet ohne Positionsparameter. Der Skill-Loader ersetzt `$0`–`$9` in einer
-  SKILL.md durch die Aufrufargumente, `dirname "$0"` kam im geladenen Skill deshalb als
-  `dirname "<erstes Wort des Arguments>"` an — kopierbarer, kaputter Code. Der Wrapper setzt den
-  Pfad jetzt fest auf `$HOME/bin`. `"$@"` ist nicht betroffen. Gilt für jede SKILL.md.
+- **`ripgrep`:** Capture-Group-Beispiel gegen die Argument-Substitution geschützt — `-r "$2::$1"`
+  kam bei einem Aufruf mit Argumenten als `-r "<arg3>::<arg2>"` an. Jetzt `-r "${2}::${1}"`, in rg
+  gültig und ohnehin empfohlen.
+- Verhalten ausgemessen: In einer SKILL.md ist `$0` das **erste** Argument, nicht der
+  Programmname; nicht belegte Parameter bleiben stehen; `${1}` in geschweiften Klammern wird
+  **nicht** ersetzt, `"$@"` ebenso wenig. Übrige Skills geprüft und sauber.
 

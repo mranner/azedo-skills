@@ -204,7 +204,7 @@ Ripgrep can show what replacements would look like (doesn't modify files):
 rg "old" -r "new"
 
 # Using capture groups
-rg "(\w+)@(\w+)" -r "$2::$1"
+rg "(\w+)@(\w+)" -r "${2}::${1}"
 
 # Remove matches (empty replacement)
 rg "pattern" -r ""
