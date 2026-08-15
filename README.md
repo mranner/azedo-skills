@@ -500,12 +500,10 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.38.0
+### 1.38.1
 
-- **Neuer Skill `lit`:** Dokumente nach Markdown mit liteparse — PDFs und Bilder direkt, Office
-  über LibreOffice, lokal und ohne ML-Modelle. Triggert nur auf ausdrückliche Umwandlung, nicht auf
-  jede PDF-Erwähnung. Enthält die Installation für FreeBSD (Linux-Binary über den Linuxulator, kein
-  Port vorhanden), Linux und macOS samt der passenden `libpdfium` aus dem PyPI-Wheel — die
-  verbreiteten `bblanchon`-Builds scheitern am fehlenden `FPDFText_GetCharCode`. `--no-ocr` ist der
-  empfohlene Default; `is-complex` taugt nicht als Entscheidungshilfe.
+- **`lit`:** Wrapper-Snippet ohne Positionsparameter. Der Skill-Loader ersetzt `$0`–`$9` in einer
+  SKILL.md durch die Aufrufargumente, `dirname "$0"` kam im geladenen Skill deshalb als
+  `dirname "<erstes Wort des Arguments>"` an — kopierbarer, kaputter Code. Der Wrapper setzt den
+  Pfad jetzt fest auf `$HOME/bin`. `"$@"` ist nicht betroffen. Gilt für jede SKILL.md.
 

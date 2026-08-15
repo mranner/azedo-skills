@@ -271,9 +271,7 @@ Auf macOS auch hier `xattr -d com.apple.quarantine ~/bin/libpdfium.dylib`.
 
 ### Wrapper
 
-Ohne ihn müsste bei jedem Aufruf `PDFIUM_LIB_PATH` gesetzt werden. Er leitet den
-Pfad aus seinem eigenen Verzeichnis ab, das Verschieben von `~/bin` bleibt also
-möglich:
+Ohne ihn müsste bei jedem Aufruf `PDFIUM_LIB_PATH` gesetzt werden:
 
 ```bash
 cat > ~/bin/lit <<'EOF'
@@ -282,16 +280,20 @@ cat > ~/bin/lit <<'EOF'
 # Wrapper für liteparse: libpdfium wird per dlopen nachgeladen und steht
 # deshalb in keiner Abhängigkeit - ohne PDFIUM_LIB_PATH bricht jeder Aufruf ab.
 
-BINDIR=$(cd "$(dirname "$0")" && pwd)
-
-PDFIUM_LIB_PATH="$BINDIR"
+PDFIUM_LIB_PATH="$HOME/bin"
 export PDFIUM_LIB_PATH
 
-exec "$BINDIR/lit.bin" "$@"
+exec "$HOME/bin/lit.bin" "$@"
 EOF
 chmod 755 ~/bin/lit
 lit --version
 ```
+
+Der Pfad steht hier fest statt aus dem Verzeichnis des Scripts abgeleitet zu
+werden. Das ist Absicht: die naheliegende Fassung mit `dirname` bräuchte den
+Positionsparameter für den eigenen Scriptnamen, und **den ersetzt der Skill-Loader
+beim Laden dieser Datei durch das erste Aufrufargument** — der kopierte Wrapper
+wäre kaputt. Wer `~/bin` verschiebt, passt die zwei Zeilen an.
 
 Liegt `~/bin` nicht im PATH, gehört es dort hinein — auf FreeBSD steht es meist
 schon in der `default`-Klasse von `/etc/login.conf`.

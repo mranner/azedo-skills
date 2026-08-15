@@ -3,6 +3,20 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.38.1
+
+- **`lit`: Wrapper-Snippet ohne Positionsparameter.** Der Wrapper leitete sein
+  Verzeichnis aus `dirname` des eigenen Scriptnamens ab. Beim Laden einer SKILL.md
+  ersetzt der Skill-Loader aber die Positionsparameter `$0` bis `$9` durch die
+  Aufrufargumente — aus `dirname "$0"` wurde im geladenen Skill `dirname "Bericht"`,
+  also das erste Wort dessen, was der Nutzer beim Aufruf mitgegeben hat. Wer den
+  Wrapper von dort kopierte, bekam kaputten Code; im Repo sah er korrekt aus.
+  Aufgefallen beim ersten echten Aufruf des Skills mit Argument.
+  - Der Wrapper setzt den Pfad jetzt fest auf `$HOME/bin`. Ein Absatz daneben nennt
+    den Grund, damit die naheliegende `dirname`-Fassung nicht wieder eingebaut wird.
+  - `"$@"` ist **nicht** betroffen und bleibt erhalten — nur einstellige
+    Positionsparameter werden ersetzt. Gilt für jede SKILL.md, nicht nur für diese.
+
 ### 1.38.0
 
 - **Neuer Skill `lit`: Dokumente nach Markdown mit liteparse.** `lit` ist ein
