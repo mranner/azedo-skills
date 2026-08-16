@@ -502,6 +502,16 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
+### 1.39.3
+
+- **`lit`: Installationsabschnitt für macOS nachgeschärft.** `xattr -d
+  com.apple.quarantine` bricht nach einem `curl`-Download mit Exit-Code 1 ab (macOS
+  setzt dort keine Quarantäne) — jetzt mit `2>/dev/null || true` und Erklärung.
+- **PATH-Hinweis vor den ersten Aufruf gezogen** und um das macOS-Rezept ergänzt
+  (`~/.zshenv`, nicht `.zshrc`); `~/bin` steht dort nicht im Default-PATH.
+- **pdfium-Wheels:** Hinweis, dass PyPI unabhängig von den `python-v*`-Release-Tags
+  gepflegt wird — zu 2.13.0 fehlt das Tag, das Wheel gibt es trotzdem.
+
 ### 1.39.2
 
 - **`google-analytics`: echte Property-ID aus den Beispielen entfernt.** Die SKILL.md zeigte

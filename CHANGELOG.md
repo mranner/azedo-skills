@@ -3,6 +3,32 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.39.3
+
+- **`lit`: `xattr -d com.apple.quarantine` war ungeschützt dokumentiert.** Bei einem
+  Download per `curl` setzt macOS gar keine Quarantäne (nur `com.apple.provenance`),
+  der Befehl bricht dort mit `No such xattr` und Exit-Code 1 ab. In einem Script mit
+  `set -e` scheitert die Installation damit an der Stelle, an der alles in Ordnung
+  ist. Beide Vorkommen (Binary und `libpdfium.dylib`) sind jetzt mit
+  `2>/dev/null || true` abgesichert, dazu ein Satz, dass der Schritt nur nach einem
+  Browser-Download nötig ist.
+- **PATH-Hinweis steht jetzt vor dem ersten `lit`-Aufruf statt danach** — und nennt
+  macOS. Bisher war nur FreeBSD erwähnt (`/etc/login.conf`), wo `~/bin` meist schon
+  drinsteht. Auf macOS kommt der Default-PATH aus `path_helper` über `/etc/paths`
+  und `/etc/paths.d/`, und weder `~/bin` noch `~/.local/bin` steht dort. Folge: nach
+  einer vollständig korrekten Installation scheiterte ausgerechnet der Vorabcheck
+  `command -v lit` aus dem Kopf der SKILL.md. Empfohlen wird `~/.zshenv` statt
+  `.zshrc`, weil letzteres nur interaktive Shells liest — `zsh -c …`, cron, launchd
+  und `ssh host '…'` sähen den Eintrag sonst nicht.
+- **pdfium-Wheel: PyPI ist unabhängig von den `python-v*`-Release-Tags.** Zu 2.13.0
+  führt das Repo nur `node-`, `wasm-` und `crates-`-Tags, das jüngste `python-v*` ist
+  2.12.0 — wer die Tags als Bestandsliste liest, hält das Wheel für nicht vorhanden,
+  obwohl es auf PyPI liegt. Das Snippet fragte schon immer die PyPI-API, jetzt steht
+  auch der Grund dabei.
+- Aufgefallen beim Handaufbau nach dieser Anleitung auf macOS 15 / Apple Silicon
+  (`VER=2.13.0`, `PLAT=darwin-arm64`, `WHEELPLAT=macosx_11_0_arm64`); die
+  Installation selbst lief durch.
+
 ### 1.39.2
 
 - **`google-analytics`: echte Property-ID aus den Beispielen entfernt.** Die SKILL.md

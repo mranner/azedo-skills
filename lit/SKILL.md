@@ -229,21 +229,34 @@ install -m 755 /tmp/lit-$PLAT ~/bin/lit.bin
 
 ### macOS
 
-Zusätzlich muss die Gatekeeper-Quarantäne weg, sonst weigert sich das Binary:
+Zusätzlich muss eine etwaige Gatekeeper-Quarantäne weg, sonst weigert sich das
+Binary:
 
 ```bash
 curl -sL -o /tmp/lit.tgz \
   https://github.com/run-llama/liteparse/releases/download/node-v$VER/lit-$PLAT.tar.gz
 tar xzf /tmp/lit.tgz -C /tmp
 install -m 755 /tmp/lit-$PLAT ~/bin/lit.bin
-xattr -d com.apple.quarantine ~/bin/lit.bin
+xattr -d com.apple.quarantine ~/bin/lit.bin 2>/dev/null || true
 ```
+
+Das `|| true` ist kein Schönheitsfehler: **beim Download per `curl` setzt macOS
+gar keine Quarantäne** (nur `com.apple.provenance`), der Befehl bricht dann mit
+`No such xattr: com.apple.quarantine` und Exit-Code 1 ab. Ungeschützt in einem
+Script mit `set -e` scheitert die Installation genau dort, obwohl alles in
+Ordnung ist. Nötig ist der Schritt nur nach einem **Browser**-Download.
 
 ### pdfium aus dem Wheel holen (alle Plattformen)
 
 Die Datei heißt `libpdfium.so` (FreeBSD/Linux) bzw. `libpdfium.dylib` (macOS) und
 kommt aus dem PyPI-Wheel derselben Version. Die Wheel-URL ermittelt dieses Snippet,
 damit man keinen Hash-Pfad abtippt:
+
+**Nicht über die Release-Tags suchen.** Die Wheels werden auf PyPI unabhängig von
+den `python-v*`-Tags des Repos gepflegt: zu 2.13.0 gibt es nur `node-`, `wasm-` und
+`crates-`, das jüngste `python-v*`-Tag ist 2.12.0 — das Wheel zu 2.13.0 liegt auf
+PyPI trotzdem. Wer die Tags als Bestandsliste liest, hält es fälschlich für nicht
+vorhanden. Das Snippet fragt deshalb die PyPI-API und nicht GitHub.
 
 ```bash
 # WHEELPLAT: manylinux_2_28_x86_64 | macosx_11_0_arm64 | macosx_10_12_x86_64
@@ -267,7 +280,8 @@ print(n)
 install -m 755 /tmp/libpdfium.* ~/bin/
 ```
 
-Auf macOS auch hier `xattr -d com.apple.quarantine ~/bin/libpdfium.dylib`.
+Auf macOS auch hier `xattr -d com.apple.quarantine ~/bin/libpdfium.dylib
+2>/dev/null || true` — dieselbe Absicherung wie beim Binary.
 
 ### Wrapper
 
@@ -286,7 +300,6 @@ export PDFIUM_LIB_PATH
 exec "$HOME/bin/lit.bin" "$@"
 EOF
 chmod 755 ~/bin/lit
-lit --version
 ```
 
 Der Pfad steht hier fest statt aus dem Verzeichnis des Scripts abgeleitet zu
@@ -295,8 +308,29 @@ Positionsparameter für den eigenen Scriptnamen, und **den ersetzt der Skill-Loa
 beim Laden dieser Datei durch das erste Aufrufargument** — der kopierte Wrapper
 wäre kaputt. Wer `~/bin` verschiebt, passt die zwei Zeilen an.
 
+### PATH — vor dem ersten Aufruf
+
 Liegt `~/bin` nicht im PATH, gehört es dort hinein — auf FreeBSD steht es meist
 schon in der `default`-Klasse von `/etc/login.conf`.
+
+**Auf macOS steht es nicht drin.** Der Default-PATH kommt dort aus `path_helper`
+über `/etc/paths` und `/etc/paths.d/`, und weder `~/bin` noch `~/.local/bin` ist
+dabei. Nach einer vollständig korrekten Installation scheitert deshalb
+ausgerechnet der Vorabcheck aus dem Kopf dieser Datei (`command -v lit`). Eintrag
+in `~/.zshenv` (anlegen, falls nicht vorhanden):
+
+```zsh
+export PATH="$HOME/bin:$PATH"
+```
+
+`.zshenv` statt `.zshrc`, weil letzteres **nur interaktive Shells** liest — ein
+`zsh -c …`, cron, launchd oder `ssh host '…'` sähe `lit` sonst nicht.
+
+Danach greift der Aufruf ohne Pfadangabe:
+
+```bash
+lit --version
+```
 
 ### Update
 
