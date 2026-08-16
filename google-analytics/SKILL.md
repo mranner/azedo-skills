@@ -25,7 +25,9 @@ GA4-Daten (Reports, Realtime, Conversions, Metadaten) werden ueber das gebundelt
 - Python-Package `cryptography` (fuer JWT-Signierung)
 - Service Account JSON unter `~/.config/ga4-service-account.json`
   (oder Pfad via `GA4_SERVICE_ACCOUNT` Umgebungsvariable)
-- Service Account muss als **Betrachter** in den GA4-Properties hinterlegt sein
+- Service Account muss in den GA4-Properties hinterlegt sein: **Betrachter** genuegt fuer
+  alle lesenden Subcommands, die schreibenden brauchen **Bearbeiter**
+  (siehe [Schreibende Operationen: Rechte](#schreibende-operationen-rechte))
 
 ### Erster Einsatz
 
@@ -134,13 +136,27 @@ python3 "$SKILL_DIR/google-analytics" list-custom-dimensions -p 525022788
 
 # Dimension anlegen (Scope-Default: EVENT)
 python3 "$SKILL_DIR/google-analytics" create-custom-dimension -p 525022788 \
-  --parameter target_url --display-name "Klick-Ziel" \
+  --parameter target_url --display-name "Klick Ziel" \
   [--description "…"] [--scope EVENT|USER|ITEM]
 ```
 
-`create-custom-dimension` prueft vorab auf einen gleichnamigen Parameter im selben Scope
-und meldet „Bereits vorhanden", statt einen API-Fehler zu produzieren — mehrfaches
-Ausfuehren ist damit unschaedlich.
+**`--display-name` erlaubt keine Bindestriche.** GA4 nimmt nur Buchstaben, Ziffern,
+Unterstrich und Leerzeichen; alles andere quittiert die API mit
+
+```
+400 INVALID_ARGUMENT
+Value for field display_name must only contain alphanumeric, underscore, or space characters.
+```
+
+Im Deutschen ist der Bindestrich die naheliegende Schreibweise, der Fehler trifft also
+zuverlaessig beim ersten Versuch: „Klick-Ziel" wird abgelehnt, **„Klick Ziel" geht**. Das
+Script prueft den Wert vorab und bricht mit einem Hinweis ab, bevor ein API-Aufruf
+erfolgt. Betroffen ist nur der Anzeigename — `--parameter` ist davon unberuehrt (dort ist
+der Unterstrich ohnehin ueblich).
+
+`create-custom-dimension` prueft ausserdem vorab auf einen gleichnamigen Parameter im
+selben Scope und meldet „Bereits vorhanden", statt einen API-Fehler zu produzieren —
+mehrfaches Ausfuehren ist damit unschaedlich.
 
 **Limit:** 50 event-scoped und 25 user-scoped Dimensionen pro Property (Standard-GA4).
 Nichts registrieren, wofuer GA4 bereits eine Built-in-Dimension hat (`landingPage`,
@@ -185,5 +201,6 @@ Property-Zugriffsverwaltung.
 - Sortierung: `-feld` absteigend, `+feld` aufsteigend
 - Filter: einfaches `dimension==wert` Format
 - Realtime-Daten umfassen die letzten 30 Minuten
-- Neue Properties: Service Account als Betrachter in GA4 hinzufuegen
+- Neue Properties: Service Account in GA4 hinzufuegen — als Betrachter, fuer schreibende
+  Subcommands als Bearbeiter
   (analytics.google.com → Verwaltung → Property-Zugriffsverwaltung)

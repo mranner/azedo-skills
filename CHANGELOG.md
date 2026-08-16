@@ -3,6 +3,26 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.39.1
+
+- **`google-analytics`: `--display-name` verträgt keine Bindestriche.** GA4 lässt im
+  Anzeigenamen einer Custom Dimension nur Buchstaben, Ziffern, Unterstrich und Leerzeichen
+  zu und quittiert alles andere mit `400 INVALID_ARGUMENT`. Im Deutschen ist der
+  Bindestrich die naheliegende Schreibweise, der Fehler trifft also verlässlich beim ersten
+  Versuch — beim Anlegen der Dimensionen für spendenservice war „Klick-Ziel" prompt der
+  erste Aufruf. Das Beispiel in der SKILL.md zeigte genau diese ungültige Schreibweise vor.
+- `create-custom-dimension` prüft den Wert jetzt vorab und bricht mit Hinweis auf die
+  erlaubten Zeichen ab, statt in den API-Fehler zu laufen — dieselbe Linie wie beim
+  Duplikatschutz. Die Prüfung läuft **vor** der Duplikat-Abfrage, ein ungültiger Name
+  kostet damit keinen API-Aufruf. Geprüft wird auf bekannt-ungültige Zeichen statt gegen
+  eine ASCII-Whitelist: Umlaute gehen durch, damit die Prüfung nichts ablehnt, was die API
+  womöglich annimmt.
+- **Widersprüchliche Rechte-Angabe bereinigt.** Die Setup-Passage verlangte pauschal
+  *Betrachter*, während der mit 1.39.0 ergänzte Abschnitt für die schreibenden Subcommands
+  *Bearbeiter* nennt. Beide Stellen sagen das jetzt gleich.
+- Der Versionsstempel im Script stand noch auf `1.12.0` — mit 1.39.0 war die Datei
+  geändert, der Header aber nicht mitgezogen worden. Jetzt wieder auf der Repo-Version.
+
 ### 1.39.0
 
 - **`google-analytics`: Custom Dimensions anlegen und Datenaufbewahrung setzen.** Neue

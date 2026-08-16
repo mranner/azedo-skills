@@ -192,7 +192,7 @@ Google Analytics 4 Datenabfrage via Service Account. Python-Script (stdlib only,
 
 **Voraussetzungen:** Python >= 3.11, Package `cryptography` (fuer JWT-Signierung)
 
-**Setup:** Service Account JSON unter `~/.config/ga4-service-account.json`. Service Account als Betrachter in GA4-Properties hinterlegen — fuer die schreibenden Subcommands als **Bearbeiter**. Dann:
+**Setup:** Service Account JSON unter `~/.config/ga4-service-account.json`. Service Account in den GA4-Properties hinterlegen: als Betrachter fuer die lesenden Subcommands, als **Bearbeiter** fuer die schreibenden. Dann:
 
 ```bash
 python3 "$SKILL_DIR/google-analytics" setup
@@ -501,6 +501,19 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 ## Changelog
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
+
+### 1.39.1
+
+- **`google-analytics`: `--display-name` verträgt keine Bindestriche.** GA4 lässt im
+  Anzeigenamen einer Custom Dimension nur Buchstaben, Ziffern, Unterstrich und Leerzeichen
+  zu, „Klick-Ziel" scheitert also mit `400 INVALID_ARGUMENT`, „Klick Ziel" geht. Im
+  Deutschen ist der Bindestrich die naheliegende Schreibweise — das Beispiel in der
+  SKILL.md zeigte sogar genau die ungültige Variante vor.
+- `create-custom-dimension` prüft den Anzeigenamen jetzt vorab und bricht mit Hinweis ab,
+  statt in den API-Fehler zu laufen — analog zum Duplikatschutz, und noch vor dessen
+  Abfrage, sodass ein ungültiger Name keinen API-Aufruf kostet.
+- Rechte-Angabe vereinheitlicht: die Setup-Passage verlangte pauschal *Betrachter* und
+  widersprach damit den schreibenden Subcommands, die *Bearbeiter* brauchen.
 
 ### 1.39.0
 

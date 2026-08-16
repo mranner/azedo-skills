@@ -2,7 +2,7 @@
 
 # Google Analytics 4 REST API helper
 # stdlib only, no pip dependencies
-# version 1.12.0
+# version 1.39.1
 
 import argparse
 import json
@@ -350,8 +350,28 @@ def cmd_list_custom_dimensions(args):
         print(f"{d.get('parameterName', '')}\t{d.get('scope', '')}\t{d.get('displayName', '')}")
 
 
+# GA4 erlaubt im displayName nur Buchstaben, Ziffern, Unterstrich und Leerzeichen.
+# Geprueft wird auf bekannt-ungueltige Zeichen, nicht gegen eine ASCII-Whitelist:
+# Umlaute zaehlen fuer isalnum() als Buchstaben und werden durchgelassen, damit die
+# Pruefung nichts ablehnt, was die API womoeglich akzeptiert. Der praktisch relevante
+# Fall ist ohnehin der Bindestrich — im Deutschen die naheliegende Schreibweise.
+def _invalid_display_name_chars(name):
+    return sorted({c for c in name if not (c.isalnum() or c in "_ ")})
+
+
 def cmd_create_custom_dimension(args):
     """Create a custom dimension (needs Editor role on the property)"""
+    # Zeichenpruefung vor dem Duplikat-GET: ein ungueltiger Anzeigename scheitert so
+    # ohne API-Aufruf, mit einem Hinweis statt einem 400 INVALID_ARGUMENT.
+    display_name = args.display_name or args.parameter
+    bad = _invalid_display_name_chars(display_name)
+    if bad:
+        print(f"Ungueltiger --display-name: {display_name!r}", file=sys.stderr)
+        print(f"Nicht erlaubte Zeichen: {' '.join(bad)}", file=sys.stderr)
+        print("GA4 erlaubt nur Buchstaben, Ziffern, Unterstrich und Leerzeichen "
+              "(z.B. \"Klick Ziel\" statt \"Klick-Ziel\").", file=sys.stderr)
+        sys.exit(1)
+
     # Duplikatschutz: GA4 quittiert doppelte Parameternamen mit einem Fehler, und
     # ein Abbruch mitten in einer Schleife ueber mehrere Dimensionen ist teurer als
     # die eine zusaetzliche GET-Abfrage.
@@ -362,7 +382,7 @@ def cmd_create_custom_dimension(args):
 
     body = {
         "parameterName": args.parameter,
-        "displayName": args.display_name or args.parameter,
+        "displayName": display_name,
         "scope": args.scope,
     }
     if args.description:
@@ -402,7 +422,7 @@ def cmd_data_retention(args):
 
 
 def cmd_version(args):
-    print("google-analytics 1.12.0")
+    print("google-analytics 1.39.1")
 
 
 def main():
@@ -458,7 +478,8 @@ def main():
     p_ccd = sub.add_parser("create-custom-dimension", help="Create a custom dimension (needs Editor role)")
     p_ccd.add_argument("--property", "-p", required=True, help="Property ID")
     p_ccd.add_argument("--parameter", required=True, help="Event parameter name, e.g. target_url")
-    p_ccd.add_argument("--display-name", help="UI name (default: parameter name)")
+    p_ccd.add_argument("--display-name",
+                       help="UI name, letters/digits/underscore/space only (default: parameter name)")
     p_ccd.add_argument("--description", help="Optional description")
     p_ccd.add_argument("--scope", default="EVENT", choices=["EVENT", "USER", "ITEM"],
                        help="Dimension scope (default: EVENT)")
