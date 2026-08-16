@@ -3,6 +3,33 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.39.0
+
+- **`google-analytics`: Custom Dimensions anlegen und Datenaufbewahrung setzen.** Neue
+  Subcommands `list-custom-dimensions`, `create-custom-dimension` und `data-retention`.
+  Auslöser war ein Reporting, in dem die Event-Parameter eines Tracking-Plugins nicht
+  auftauchten: Das Plugin füllt die GA4-Built-in-Dimensionen nicht, sondern hängt eigene
+  Parameter an — und ohne registrierte Custom Dimension liefert die Data API dafür nur
+  Event-Name und Anzahl. Die Parameter werden erhoben, sind aber nicht abfragbar.
+- **Die Registrierung wirkt nicht rückwirkend.** Für alles vor der Anlage bleibt es bei
+  `(not set)`; ein Backfill gibt es nicht. Das ist der Grund, den Schritt vorzuziehen, statt
+  ihn an das Ende eines Auswertungsprojekts zu stellen — jeder Tag ohne Registrierung ist ein
+  Tag ohne Detail. Im Skill steht es deshalb direkt beim Subcommand, nicht im Kleingedruckten.
+- **Scope pro Subcommand.** `_get_access_token()` forderte fest `analytics.readonly` an;
+  jetzt nimmt es den Scope als Parameter, und nur die beiden schreibenden Operationen
+  verlangen `analytics.edit`. Der Token-Cache ist entsprechend pro Scope geführt statt global
+  — sonst hätte ein readonly-Token einen edit-Aufruf mit `403` scheitern lassen, je nachdem
+  welcher Aufruf zuerst kam. Dasselbe Muster nutzt `google-search-console` bereits.
+- `create-custom-dimension` fragt vorab die vorhandenen Dimensionen ab und meldet „Bereits
+  vorhanden", statt in den API-Fehler zu laufen. Beim Ausrollen desselben Sets über mehrere
+  Properties ist ein Abbruch mitten in der Schleife teurer als die eine GET-Abfrage.
+- Dokumentiert sind die Grenzen, die man sonst erst im fertigen Report bemerkt: 50
+  event-scoped Dimensionen pro Property; nichts registrieren, wofür GA4 bereits eine
+  Built-in-Dimension hat (Landing Page, Stunde, Wochentag, Monat, Kampagnen-/UTM-Felder),
+  weil es nur das Limit belastet; Parameter mit hoher Kardinalität landen in `(other)`. Dazu
+  die Aufbewahrung: GA4 steht standardmäßig auf **2 Monate**, womit Auswertungen unabhängig
+  von allen Dimensionen zwei Monate zurückreichen — auch diese Umstellung wirkt nur vorwärts.
+
 ### 1.38.2
 
 - **`ripgrep`: Capture-Group-Beispiel gegen die Argument-Substitution geschützt.**

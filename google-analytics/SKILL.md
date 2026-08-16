@@ -121,6 +121,55 @@ python3 "$SKILL_DIR/google-analytics" metadata -p 525022788 -t metrics
 python3 "$SKILL_DIR/google-analytics" metadata -p 525022788 -s "page"
 ```
 
+### Custom Dimensions
+
+Event-Parameter sind ueber die Data API **nur** abfragbar, wenn sie als Custom Dimension
+registriert sind — sonst liefert die Property nur Event-Name und Anzahl. Die
+Registrierung wirkt **nicht rueckwirkend**: Daten vor der Anlage bleiben `(not set)`.
+Abfragen erfolgen anschliessend als `customEvent:<parameter>` bzw. `customUser:<parameter>`.
+
+```bash
+# Registrierte Dimensionen anzeigen
+python3 "$SKILL_DIR/google-analytics" list-custom-dimensions -p 525022788
+
+# Dimension anlegen (Scope-Default: EVENT)
+python3 "$SKILL_DIR/google-analytics" create-custom-dimension -p 525022788 \
+  --parameter target_url --display-name "Klick-Ziel" \
+  [--description "…"] [--scope EVENT|USER|ITEM]
+```
+
+`create-custom-dimension` prueft vorab auf einen gleichnamigen Parameter im selben Scope
+und meldet „Bereits vorhanden", statt einen API-Fehler zu produzieren — mehrfaches
+Ausfuehren ist damit unschaedlich.
+
+**Limit:** 50 event-scoped und 25 user-scoped Dimensionen pro Property (Standard-GA4).
+Nichts registrieren, wofuer GA4 bereits eine Built-in-Dimension hat (`landingPage`,
+`hour`, `dayOfWeek`, `month`, Campaign-/UTM-Dimensionen) — das belastet nur das Limit.
+Parameter mit hoher Kardinalitaet (IDs, URLs mit Query-String) meiden, sonst greift die
+Kardinalitaetsbegrenzung und die Werte landen in `(other)`.
+
+### Datenaufbewahrung
+
+```bash
+# Aktuellen Stand anzeigen
+python3 "$SKILL_DIR/google-analytics" data-retention -p 525022788
+
+# Auf 14 Monate setzen
+python3 "$SKILL_DIR/google-analytics" data-retention -p 525022788 --set 14
+```
+
+GA4 steht standardmaessig auf **2 Monate** — Explorations reichen dann nur zwei Monate
+zurueck, unabhaengig von den Custom Dimensions. Erlaubte Werte: 2, 14 sowie 26/38/50
+(letztere nur mit Analytics 360). Die Umstellung wirkt ebenfalls nur vorwaerts.
+
+### Schreibende Operationen: Rechte
+
+`create-custom-dimension` und `data-retention --set` fordern den Scope
+`analytics.edit` an; alle uebrigen Subcommands bleiben auf `analytics.readonly`. Der
+Service Account muss dafuer in der Property als **Bearbeiter** hinterlegt sein — als
+*Betrachter* quittiert die API mit `403`. Rolle setzen unter GA4 → Verwaltung →
+Property-Zugriffsverwaltung.
+
 ## Workflow
 
 1. `instance.json` pruefen — falls nicht vorhanden, `setup` ausfuehren

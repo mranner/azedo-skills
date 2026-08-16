@@ -2,7 +2,7 @@
 
 # Google Analytics 4 REST API helper
 # stdlib only, no pip dependencies
-# version 1.11.1
+# version 1.12.0
 
 import argparse
 import json
@@ -13,8 +13,15 @@ import urllib.parse
 import urllib.request
 import urllib.error
 
-_token_cache = None
+_token_cache = {}
 _sa_config = None
+
+# OAuth-Scopes. Lesende Aufrufe bleiben auf readonly; nur die schreibenden
+# Admin-Operationen (Custom Dimensions, Datenaufbewahrung) fordern edit an.
+SCOPE_READONLY = "https://www.googleapis.com/auth/analytics.readonly"
+SCOPE_EDIT = "https://www.googleapis.com/auth/analytics.edit"
+
+ADMIN_BASE = "https://analyticsadmin.googleapis.com/v1beta"
 
 def _find_sa_file():
     """Find service account JSON file"""
@@ -49,13 +56,14 @@ def _b64url(data):
     return base64.urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
 
 
-def _get_access_token():
-    """Get OAuth2 access token via service account JWT"""
+def _get_access_token(scope=SCOPE_READONLY):
+    """Get OAuth2 access token via service account JWT (cached per scope)"""
     global _token_cache
     now = int(time.time())
 
-    if _token_cache and _token_cache["exp"] > now + 60:
-        return _token_cache["token"]
+    cached = _token_cache.get(scope)
+    if cached and cached["exp"] > now + 60:
+        return cached["token"]
 
     sa = _load_sa()
 
@@ -63,7 +71,7 @@ def _get_access_token():
     header = _b64url(json.dumps({"alg": "RS256", "typ": "JWT"}).encode())
     payload = _b64url(json.dumps({
         "iss": sa["client_email"],
-        "scope": "https://www.googleapis.com/auth/analytics.readonly",
+        "scope": scope,
         "aud": sa["token_uri"],
         "iat": now,
         "exp": now + 3600,
@@ -101,13 +109,13 @@ def _get_access_token():
         print(f"Error getting access token: {e.code} {body}", file=sys.stderr)
         sys.exit(1)
 
-    _token_cache = {"token": result["access_token"], "exp": now + result.get("expires_in", 3600)}
-    return _token_cache["token"]
+    _token_cache[scope] = {"token": result["access_token"], "exp": now + result.get("expires_in", 3600)}
+    return _token_cache[scope]["token"]
 
 
-def api_call(method, url, data=None):
+def api_call(method, url, data=None, scope=SCOPE_READONLY):
     """Make authenticated HTTP request to Google API"""
-    token = _get_access_token()
+    token = _get_access_token(scope)
     body = json.dumps(data).encode() if data else None
     req = urllib.request.Request(url, data=body, method=method)
     req.add_header("Authorization", f"Bearer {token}")
@@ -309,8 +317,92 @@ def cmd_metadata(args):
             print(f"{name}\t{desc}")
 
 
+def _fetch_custom_dimensions(property_id):
+    """Alle Custom Dimensions einer Property holen (paginiert)"""
+    dims = []
+    page_token = None
+    while True:
+        url = f"{ADMIN_BASE}/properties/{property_id}/customDimensions?pageSize=200"
+        if page_token:
+            url += f"&pageToken={urllib.parse.quote(page_token)}"
+        result = api_call("GET", url)
+        dims.extend(result.get("customDimensions", []))
+        page_token = result.get("nextPageToken")
+        if not page_token:
+            break
+    return dims
+
+
+def cmd_list_custom_dimensions(args):
+    """List custom dimensions of a property"""
+    dims = _fetch_custom_dimensions(args.property)
+
+    if args.json:
+        print(json.dumps(dims, indent=2, ensure_ascii=False))
+        return
+
+    if not dims:
+        print("(keine Custom Dimensions registriert)")
+        return
+
+    print("parameterName\tscope\tdisplayName")
+    for d in dims:
+        print(f"{d.get('parameterName', '')}\t{d.get('scope', '')}\t{d.get('displayName', '')}")
+
+
+def cmd_create_custom_dimension(args):
+    """Create a custom dimension (needs Editor role on the property)"""
+    # Duplikatschutz: GA4 quittiert doppelte Parameternamen mit einem Fehler, und
+    # ein Abbruch mitten in einer Schleife ueber mehrere Dimensionen ist teurer als
+    # die eine zusaetzliche GET-Abfrage.
+    for d in _fetch_custom_dimensions(args.property):
+        if d.get("parameterName") == args.parameter and d.get("scope") == args.scope:
+            print(f"Bereits vorhanden: {args.parameter} ({d.get('displayName', '')}) — nichts geaendert")
+            return
+
+    body = {
+        "parameterName": args.parameter,
+        "displayName": args.display_name or args.parameter,
+        "scope": args.scope,
+    }
+    if args.description:
+        body["description"] = args.description
+
+    url = f"{ADMIN_BASE}/properties/{args.property}/customDimensions"
+    result = api_call("POST", url, body, scope=SCOPE_EDIT)
+    print(f"Angelegt: {result.get('parameterName')}\t{result.get('scope')}\t{result.get('displayName')}")
+
+
+# GA4-Aufbewahrungsstufen; 26/38/50 Monate nur mit Analytics 360.
+RETENTION_MONTHS = {
+    "2": "TWO_MONTHS",
+    "14": "FOURTEEN_MONTHS",
+    "26": "TWENTY_SIX_MONTHS",
+    "38": "THIRTY_EIGHT_MONTHS",
+    "50": "FIFTY_MONTHS",
+}
+
+
+def cmd_data_retention(args):
+    """Show or set event data retention of a property"""
+    url = f"{ADMIN_BASE}/properties/{args.property}/dataRetentionSettings"
+
+    if args.set:
+        body = {"eventDataRetention": RETENTION_MONTHS[args.set]}
+        result = api_call("PATCH", f"{url}?updateMask=eventDataRetention", body, scope=SCOPE_EDIT)
+    else:
+        result = api_call("GET", url)
+
+    if args.json:
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return
+
+    print(f"eventDataRetention\t{result.get('eventDataRetention', '')}")
+    print(f"resetUserDataOnNewActivity\t{result.get('resetUserDataOnNewActivity', '')}")
+
+
 def cmd_version(args):
-    print("google-analytics 0.1.0")
+    print("google-analytics 1.12.0")
 
 
 def main():
@@ -358,6 +450,26 @@ def main():
     p_meta.add_argument("--search", "-s", help="Search filter")
     p_meta.add_argument("--json", action="store_true", help="Raw JSON output")
 
+    # custom dimensions
+    p_lcd = sub.add_parser("list-custom-dimensions", help="List custom dimensions of a property")
+    p_lcd.add_argument("--property", "-p", required=True, help="Property ID")
+    p_lcd.add_argument("--json", action="store_true", help="Raw JSON output")
+
+    p_ccd = sub.add_parser("create-custom-dimension", help="Create a custom dimension (needs Editor role)")
+    p_ccd.add_argument("--property", "-p", required=True, help="Property ID")
+    p_ccd.add_argument("--parameter", required=True, help="Event parameter name, e.g. target_url")
+    p_ccd.add_argument("--display-name", help="UI name (default: parameter name)")
+    p_ccd.add_argument("--description", help="Optional description")
+    p_ccd.add_argument("--scope", default="EVENT", choices=["EVENT", "USER", "ITEM"],
+                       help="Dimension scope (default: EVENT)")
+
+    # data retention
+    p_dr = sub.add_parser("data-retention", help="Show or set event data retention")
+    p_dr.add_argument("--property", "-p", required=True, help="Property ID")
+    p_dr.add_argument("--set", choices=sorted(RETENTION_MONTHS, key=int),
+                      help="Set retention in months (26/38/50 require Analytics 360)")
+    p_dr.add_argument("--json", action="store_true", help="Raw JSON output")
+
     args = parser.parse_args()
     if not args.command:
         parser.print_help()
@@ -371,6 +483,9 @@ def main():
         "report": cmd_report,
         "realtime": cmd_realtime,
         "metadata": cmd_metadata,
+        "list-custom-dimensions": cmd_list_custom_dimensions,
+        "create-custom-dimension": cmd_create_custom_dimension,
+        "data-retention": cmd_data_retention,
     }
     cmds[args.command](args)
 

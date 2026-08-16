@@ -180,17 +180,19 @@ ENVATO_TOKEN=dein-personal-token
 
 ### google-analytics
 
-Google Analytics 4 Datenabfrage via Service Account. Python-Script (stdlib only, keine pip-Dependencies):
+Google Analytics 4 Datenabfrage via Service Account. Python-Script (stdlib only, keine pip-Dependencies). Scope pro Subcommand: lesend `analytics.readonly`, schreibend (Custom Dimensions, Datenaufbewahrung) `analytics.edit`:
 
 - Accounts und Properties auflisten
 - Reports: Custom Dimensions, Metrics, Filter, Sortierung, Datumsbereiche
 - Realtime: aktive User, aktuelle Seitenaufrufe
 - Metadata: verfuegbare Dimensionen und Metriken einer Property
+- Custom Dimensions auflisten und anlegen — ohne Registrierung sind Event-Parameter ueber die Data API gar nicht abfragbar, und die Registrierung wirkt **nicht rueckwirkend**
+- Datenaufbewahrung anzeigen und setzen (GA4-Default sind 2 Monate)
 - Tab-separierte oder JSON-Ausgabe
 
 **Voraussetzungen:** Python >= 3.11, Package `cryptography` (fuer JWT-Signierung)
 
-**Setup:** Service Account JSON unter `~/.config/ga4-service-account.json`. Service Account als Betrachter in GA4-Properties hinterlegen. Dann:
+**Setup:** Service Account JSON unter `~/.config/ga4-service-account.json`. Service Account als Betrachter in GA4-Properties hinterlegen — fuer die schreibenden Subcommands als **Bearbeiter**. Dann:
 
 ```bash
 python3 "$SKILL_DIR/google-analytics" setup
@@ -500,12 +502,21 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.38.2
+### 1.39.0
 
-- **`ripgrep`:** Capture-Group-Beispiel gegen die Argument-Substitution geschützt — `-r "$2::$1"`
-  kam bei einem Aufruf mit Argumenten als `-r "<arg3>::<arg2>"` an. Jetzt `-r "${2}::${1}"`, in rg
-  gültig und ohnehin empfohlen.
-- Verhalten ausgemessen: In einer SKILL.md ist `$0` das **erste** Argument, nicht der
-  Programmname; nicht belegte Parameter bleiben stehen; `${1}` in geschweiften Klammern wird
-  **nicht** ersetzt, `"$@"` ebenso wenig. Übrige Skills geprüft und sauber.
+- **`google-analytics`: Custom Dimensions und Datenaufbewahrung.** Neu
+  `list-custom-dimensions`, `create-custom-dimension` und `data-retention`. Anlass war ein
+  Reporting, in dem die Event-Parameter eines Tracking-Plugins schlicht nicht auftauchten:
+  Ohne registrierte Custom Dimension liefert GA4 nur Event-Name und Anzahl — der Parameter
+  wird zwar erhoben, ist über die Data API aber nicht abfragbar, und die Registrierung wirkt
+  **nicht rückwirkend**.
+- **Scope pro Subcommand** statt fest `analytics.readonly`, analog zu `google-search-console`.
+  Der Token-Cache ist jetzt pro Scope geführt; lesende Aufrufe bleiben unverändert readonly.
+- `create-custom-dimension` prüft vorab auf denselben Parameter im selben Scope und meldet
+  „Bereits vorhanden", statt einen API-Fehler zu produzieren — mehrfaches Ausführen über
+  mehrere Properties bleibt damit unschädlich.
+- Dokumentiert sind auch die Grenzen, die man sonst erst im Reporting merkt: 50 event-scoped
+  Dimensionen pro Property, nichts registrieren wofür GA4 eine Built-in-Dimension hat, hohe
+  Kardinalität landet in `(other)` — und dass die Aufbewahrung standardmäßig auf 2 Monaten
+  steht, was Auswertungen unabhängig von den Dimensionen begrenzt.
 
