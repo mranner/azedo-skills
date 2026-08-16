@@ -3,6 +3,22 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.39.2
+
+- **`google-analytics`: echte Property-ID aus den Beispielen entfernt.** Die SKILL.md
+  zeigte durchgehend `525022788` — eine reale Kunden-Property — und das Repo ist
+  öffentlich. Zugriff gibt eine Property-ID niemandem, der Service Account entscheidet;
+  preisgegeben war die Kundenbeziehung. Ersetzt durch `123123123`, in der SKILL.md wie im
+  `--property`-Hilfetext des Scripts. Die Historie ist davon unberührt (die ID kam mit
+  v1.10.0 herein) — bereinigt ist der aktuelle Stand.
+- **`_find_sa_file()` prüft den Override.** Der Default-Pfad wurde per `os.path.exists()`
+  geprüft, ein per `GA4_SERVICE_ACCOUNT` gesetzter Pfad dagegen ungeprüft
+  zurückgegeben — bei Tippfehler in der Variablen endete derselbe Sachverhalt (Datei
+  fehlt) statt in der Fehlermeldung in einem `FileNotFoundError`-Traceback aus
+  `_load_sa()`. Jetzt bricht der Aufruf mit dem gemeinten Pfad in der Meldung ab, statt
+  still auf den Default auszuweichen; ein stiller Fallback würde den Tippfehler
+  maskieren und Abfragen gegen die falsche Property-Sammlung laufen lassen.
+
 ### 1.39.1
 
 - **`google-analytics`: `--display-name` verträgt keine Bindestriche.** GA4 lässt im

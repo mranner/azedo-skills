@@ -67,30 +67,30 @@ python3 "$SKILL_DIR/google-analytics" properties
 
 ```bash
 # Standard-Report (letzte 7 Tage)
-python3 "$SKILL_DIR/google-analytics" report -p 525022788
+python3 "$SKILL_DIR/google-analytics" report -p 123123123
 
 # Custom Dimensions und Metrics
-python3 "$SKILL_DIR/google-analytics" report -p 525022788 \
+python3 "$SKILL_DIR/google-analytics" report -p 123123123 \
   -d "pagePath,pageTitle" \
   -m "screenPageViews,averageSessionDuration" \
   -s "30daysAgo" -e "today"
 
 # Top 10 Seiten nach Views, absteigend
-python3 "$SKILL_DIR/google-analytics" report -p 525022788 \
+python3 "$SKILL_DIR/google-analytics" report -p 123123123 \
   -d "pagePath" -m "screenPageViews" \
   -o "-screenPageViews" -l 10
 
 # Traffic-Quellen
-python3 "$SKILL_DIR/google-analytics" report -p 525022788 \
+python3 "$SKILL_DIR/google-analytics" report -p 123123123 \
   -d "sessionSource,sessionMedium" -m "sessions,totalUsers"
 
 # Filter: nur organischer Traffic
-python3 "$SKILL_DIR/google-analytics" report -p 525022788 \
+python3 "$SKILL_DIR/google-analytics" report -p 123123123 \
   -d "pagePath" -m "sessions" \
   -f "sessionMedium==organic"
 
 # JSON-Ausgabe
-python3 "$SKILL_DIR/google-analytics" report -p 525022788 --json
+python3 "$SKILL_DIR/google-analytics" report -p 123123123 --json
 ```
 
 **Datumsformate:** `today`, `yesterday`, `NdaysAgo` (z.B. `30daysAgo`), oder `YYYY-MM-DD`.
@@ -103,10 +103,10 @@ python3 "$SKILL_DIR/google-analytics" report -p 525022788 --json
 
 ```bash
 # Aktive User nach Land
-python3 "$SKILL_DIR/google-analytics" realtime -p 525022788
+python3 "$SKILL_DIR/google-analytics" realtime -p 123123123
 
 # Custom Realtime
-python3 "$SKILL_DIR/google-analytics" realtime -p 525022788 \
+python3 "$SKILL_DIR/google-analytics" realtime -p 123123123 \
   -d "pagePath" -m "activeUsers"
 ```
 
@@ -114,13 +114,13 @@ python3 "$SKILL_DIR/google-analytics" realtime -p 525022788 \
 
 ```bash
 # Alle verfuegbaren Dimensionen und Metriken einer Property
-python3 "$SKILL_DIR/google-analytics" metadata -p 525022788
+python3 "$SKILL_DIR/google-analytics" metadata -p 123123123
 
 # Nur Metriken
-python3 "$SKILL_DIR/google-analytics" metadata -p 525022788 -t metrics
+python3 "$SKILL_DIR/google-analytics" metadata -p 123123123 -t metrics
 
 # Suche
-python3 "$SKILL_DIR/google-analytics" metadata -p 525022788 -s "page"
+python3 "$SKILL_DIR/google-analytics" metadata -p 123123123 -s "page"
 ```
 
 ### Custom Dimensions
@@ -132,10 +132,10 @@ Abfragen erfolgen anschliessend als `customEvent:<parameter>` bzw. `customUser:<
 
 ```bash
 # Registrierte Dimensionen anzeigen
-python3 "$SKILL_DIR/google-analytics" list-custom-dimensions -p 525022788
+python3 "$SKILL_DIR/google-analytics" list-custom-dimensions -p 123123123
 
 # Dimension anlegen (Scope-Default: EVENT)
-python3 "$SKILL_DIR/google-analytics" create-custom-dimension -p 525022788 \
+python3 "$SKILL_DIR/google-analytics" create-custom-dimension -p 123123123 \
   --parameter target_url --display-name "Klick Ziel" \
   [--description "…"] [--scope EVENT|USER|ITEM]
 ```
@@ -168,10 +168,10 @@ Kardinalitaetsbegrenzung und die Werte landen in `(other)`.
 
 ```bash
 # Aktuellen Stand anzeigen
-python3 "$SKILL_DIR/google-analytics" data-retention -p 525022788
+python3 "$SKILL_DIR/google-analytics" data-retention -p 123123123
 
 # Auf 14 Monate setzen
-python3 "$SKILL_DIR/google-analytics" data-retention -p 525022788 --set 14
+python3 "$SKILL_DIR/google-analytics" data-retention -p 123123123 --set 14
 ```
 
 GA4 steht standardmaessig auf **2 Monate** — Explorations reichen dann nur zwei Monate

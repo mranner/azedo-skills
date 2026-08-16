@@ -502,6 +502,14 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
+### 1.39.2
+
+- **`google-analytics`: echte Property-ID aus den Beispielen entfernt.** Die SKILL.md zeigte
+  durchgehend eine reale Kunden-Property, das Repo ist öffentlich. Jetzt `123123123`.
+- **`_find_sa_file()` prüft den Override.** Ein per `GA4_SERVICE_ACCOUNT` gesetzter, aber
+  ins Leere zeigender Pfad endete in einem `FileNotFoundError`-Traceback statt in der
+  vorhandenen Fehlermeldung. Bricht jetzt mit dem gemeinten Pfad in der Meldung ab.
+
 ### 1.39.1
 
 - **`google-analytics`: `--display-name` verträgt keine Bindestriche.** GA4 lässt im
