@@ -3,6 +3,23 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.39.4
+
+- **`swaks`: `--data` ohne `@` verschickt den Dateipfad als Body.** Die Schreibweise
+  `--data <datei>` liest die Datei nicht, sondern nimmt den Pfad als Body-Text. Es
+  gibt keine Fehlermeldung: swaks quittiert mit `250 Ok`, und zugestellt wird eine
+  Mail ohne Betreff, ohne die gebauten Header, mit dem Dateinamen als einzigem
+  Inhalt. Beim Empfänger sieht das nach Spam oder kompromittiertem Konto aus, und
+  zurückholen lässt es sich nicht. Die SKILL.md nannte `--data @<datei>` bisher nur
+  in den Beispielen, ohne den Fehlerfall zu benennen — er steht jetzt als eigener
+  Hinweis bei den Multipart-Fallstricken, gleich neben dem verwandten Fall „leerer
+  Body durch direktes Pipen".
+- Dazu die Gegenprobe, die den Fehler nachträglich sichtbar macht: die `size=`-Angabe
+  der Queue-ID im Maillog des Relays gegen die Größe der `.eml` halten. Ein paar
+  hundert Bytes statt einiger KB heißt, das `@` hat gefehlt. Aufgefallen ist der
+  Fehler genau so — vorher war am Verbose-Output nur die Zeile mit dem Dateinamen
+  auffällig, und die geht zwischen den Base64-Blöcken einer korrekten Mail unter.
+
 ### 1.39.3
 
 - **`lit`: `xattr -d com.apple.quarantine` war ungeschützt dokumentiert.** Bei einem

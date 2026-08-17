@@ -502,6 +502,13 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
+### 1.39.4
+
+- **`swaks`: `--data` ohne `@` verschickt den Dateipfad als Body.** Kein Fehler, kein
+  Abbruch — swaks quittiert mit `250 Ok`, beim Empfänger landet eine Mail ohne
+  Betreff mit dem Dateinamen als Inhalt. Steht jetzt als eigener Hinweis in der
+  SKILL.md, samt Gegenprobe über die `size=`-Angabe im Maillog des Relays.
+
 ### 1.39.3
 
 - **`lit`: Installationsabschnitt für macOS nachgeschärft.** `xattr -d
