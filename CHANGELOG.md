@@ -3,6 +3,21 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.42.1
+
+- **`swaks`: abgelehnte einzelne Empfänger werden erkannt.** Die Prüfung aus 1.42.0
+  (`rc=0` und `queued as`) meldet Erfolg, obwohl ein Teil der Empfänger nie erreicht
+  wurde: stehen mehrere Adressen im Envelope und lehnt der Relay nur **eine** ab,
+  läuft swaks trotzdem in die DATA-Phase, bekommt für die übrigen ein
+  `250 … queued as` und endet mit **Exit-Code 0**. Nachgestellt mit einem
+  simulierten Gegenüber (ein Empfänger angenommen, einer mit `454` abgelehnt).
+  Dritte Bedingung ist deshalb, dass keine mit `*` markierte Antwortzeile im
+  Protokoll steht — unverschlüsselt `<**`, in einer TLS-Sitzung `<~*`, beide
+  treffbar mit `^<.\*`; im Erfolgsfall ist die Zeilenzahl null.
+- Das ist genau der Fall hinter CR4519: der eigene Kopie-Empfänger wurde
+  angenommen, der externe abgewiesen. Die Kopie landete im Postfach und sah aus wie
+  ein erfolgreicher Versand — der Empfänger merkte den Ausfall, der Absender nicht.
+
 ### 1.42.0
 
 - **`swaks`: Versand über den Submission-Port mit SMTP-Auth statt Port 25 ohne

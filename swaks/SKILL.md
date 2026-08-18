@@ -197,9 +197,9 @@ ENV=$(python3 ~/.claude/skills/swaks/build_mail.py --swaks-env) \
       --data @.tmp/mail.eml ) > .tmp/swaks.log 2>&1
 RC=$?
 
-test $RC -eq 0 && grep -q "queued as" .tmp/swaks.log \
+test $RC -eq 0 && grep -q "queued as" .tmp/swaks.log && ! grep -qE '^<.\*' .tmp/swaks.log \
   && grep "queued as" .tmp/swaks.log \
-  || echo "FEHLGESCHLAGEN (rc=$RC) — nicht versendet, siehe .tmp/swaks.log"
+  || { echo "FEHLGESCHLAGEN (rc=$RC) — siehe .tmp/swaks.log"; grep -E '^<.\*' .tmp/swaks.log; }
 ```
 
 Die Prüfung am Ende ist **kein Beiwerk** – ohne sie geht ein Reject als Erfolg durch (siehe „Ergebnis prüfen").
@@ -240,17 +240,35 @@ Ausgabe mitschreiben und danach beides pruefen — Exit-Code **und** Queue-ID:
     --data @.tmp/mail.eml ) > .tmp/swaks.log 2>&1
 RC=$?
 
-grep -E "queued as|^ *<[~-]+ +2[0-9][0-9] " .tmp/swaks.log | tail -3
-
-test $RC -eq 0 && grep -q "queued as" .tmp/swaks.log \
+test $RC -eq 0 && grep -q "queued as" .tmp/swaks.log && ! grep -qE '^<.\*' .tmp/swaks.log \
   && echo "OK — versendet" \
-  || echo "FEHLGESCHLAGEN (rc=$RC) — nicht versendet, siehe .tmp/swaks.log"
+  || { echo "FEHLGESCHLAGEN (rc=$RC) — siehe .tmp/swaks.log"; grep -E '^<.\*' .tmp/swaks.log; }
 ```
 
-**Beides pruefen, nicht nur eines.** Der Exit-Code allein uebersieht den Fall
-„`@` bei `--data` vergessen" (swaks quittiert mit `250 Ok`, verschickt aber den
-Pfad als Body). Die Queue-ID allein uebersieht nichts, ist aber nur zusammen mit
-`rc=0` aussagekraeftig.
+**Alle drei Bedingungen pruefen, nicht eine davon.** Jede deckt einen Fall ab,
+den die anderen durchlassen:
+
+| Pruefung | faengt |
+|---|---|
+| `rc -eq 0` | Verbindungs-, TLS-, Auth- und Totalablehnungen |
+| `queued as` | „`@` bei `--data` vergessen" — swaks quittiert mit `250 Ok`, verschickt aber den Pfad als Body |
+| kein `^<.\*` | **abgelehnte einzelne Empfaenger** bei mehreren Adressen |
+
+Der dritte Punkt ist der Fall aus CR4519 und der unauffaelligste: stehen im
+Envelope mehrere Empfaenger und der Relay lehnt nur **einen** ab, laeuft swaks
+trotzdem in die DATA-Phase, bekommt fuer die uebrigen ein `250 … queued as` und
+endet mit **Exit-Code 0**. Nachgestellt mit einem simulierten Gegenueber
+(ein Empfaenger angenommen, einer mit `454` abgelehnt): `EXIT=0`, Queue-ID
+vorhanden — die ersten beiden Pruefungen melden Erfolg, obwohl die Mail einen
+Teil ihrer Empfaenger nie erreicht.
+
+Genau so verschwanden die beiden Mails, die dem CR zugrunde liegen: der eigene
+Kopie-Empfaenger wurde angenommen, der externe abgewiesen. Die Kopie landete
+im Postfach und sah aus wie ein erfolgreicher Versand.
+
+`swaks` markiert jede abgelehnte Antwort mit einem `*` an dritter Stelle des
+Zeilenpraefixes — unverschluesselt `<**`, innerhalb einer TLS-Sitzung `<~*`.
+Beide trifft `^<.\*`. Im Erfolgsfall ist die Zeilenzahl null (verifiziert).
 
 **Fehlschlag heisst: die Mail ist nicht raus.** Das dem Nutzer so sagen, mit dem
 Statuscode aus dem Log. Nie „versendet" melden, ohne die Queue-ID gesehen zu
@@ -293,8 +311,9 @@ python3 ~/.claude/skills/swaks/build_mail.py \
   && test -s $Q/mail.eml \
   && ( eval "$ENV"; swaks --to "empfaenger@example.com" --data @$Q/mail.eml ) \
      > $Q/swaks.log 2>&1
-grep -q "queued as" $Q/swaks.log && grep "queued as" $Q/swaks.log \
-  || echo "FEHLGESCHLAGEN — nicht versendet, siehe $Q/swaks.log"
+grep -q "queued as" $Q/swaks.log && ! grep -qE '^<.\*' $Q/swaks.log \
+  && grep "queued as" $Q/swaks.log \
+  || echo "FEHLGESCHLAGEN — siehe $Q/swaks.log"
 ```
 
 - **Position:** Antwort oben, Zitat unten (Top-Posting). Die Reihenfolge im fertigen Part ist Body → Signatur → Zitat. Der Body-Text enthält also **kein** Zitat, das hängt der Helper an.
@@ -417,6 +436,6 @@ swaks \
 
 - `--subject` existiert in dieser swaks-Version nicht → immer `--header "Subject: ..."` verwenden.
 - MX-Routing ist nicht verfügbar (Net::DNS fehlt) – kein Problem, da ein fester Relay verwendet wird.
-- Erfolg erkennbar an: `250 2.0.0 Ok: queued as <ID>` **bei Exit-Code 0**. Beides prüfen, nicht nur eines.
+- Erfolg erkennbar an: `250 2.0.0 Ok: queued as <ID>` **bei Exit-Code 0 und ohne `<**`/`<~*`-Zeile**. Alle drei prüfen — bei mehreren Empfängern ist ein einzelner Reject sonst unsichtbar.
 - Zum Ausprobieren einer Route ohne Zustellung: `--quit-after RCPT` — die Verbindung endet vor `DATA`, es geht nichts raus.
 
