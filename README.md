@@ -508,18 +508,18 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.42.1
+### 1.42.2
 
-- **`swaks`: abgelehnte einzelne Empfänger werden erkannt.** Die Prüfung aus 1.42.0
-  (`rc=0` und `queued as`) meldet Erfolg, obwohl ein Teil der Empfänger nie erreicht
-  wurde: stehen mehrere Adressen im Envelope und lehnt der Relay nur **eine** ab,
-  läuft swaks trotzdem in die DATA-Phase, bekommt für die übrigen ein
-  `250 … queued as` und endet mit **Exit-Code 0**. Nachgestellt mit einem
-  simulierten Gegenüber (ein Empfänger angenommen, einer mit `454` abgelehnt).
-  Dritte Bedingung ist deshalb, dass keine mit `*` markierte Antwortzeile im
-  Protokoll steht — unverschlüsselt `<**`, in einer TLS-Sitzung `<~*`, beide
-  treffbar mit `^<.\*`; im Erfolgsfall ist die Zeilenzahl null.
-- Das ist genau der Fall hinter CR4519: der eigene Kopie-Empfänger wurde
-  angenommen, der externe abgewiesen. Die Kopie landete im Postfach und sah aus wie
-  ein erfolgreicher Versand — der Empfänger merkte den Ausfall, der Absender nicht.
+- **`swaks`: ohne geladenen Versandweg nimmt swaks stillschweigend `localhost:25`.**
+  Die einfachen Beispielblöcke (Grundbefehl, Freitext-Body, HTML, Anhänge) führten
+  nach 1.42.0 kein `--server` mehr, wiesen aber auch nicht auf das nötige
+  `eval "$ENV"` hin. Fehlt beides, meldet swaks nur
+  `*** MX Routing not available: requires Net::DNS.  Using localhost as mail server`
+  und sendet weiter — auf einem Host mit eigenem Postfix also unauthentifiziert über
+  Port 25, mit genau der Relay-Beschränkung, die externe Empfänger abweist. Ein
+  eigener Abschnitt „Einfache Sonderfälle" stellt das voran; der Hinweis zum
+  fehlenden MX-Routing sagt jetzt, was daraus folgt, statt zu beruhigen.
+- Ablaufschritt 7 nennt alle drei Prüfbedingungen (bisher nur zwei), Überschrift und
+  Verweise auf „Ergebnis prüfen" vereinheitlicht, Frontmatter nachgezogen: der
+  Versandweg kommt aus der muttrc, nicht mehr aus `swaks.json`.
 

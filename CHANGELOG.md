@@ -3,6 +3,21 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.42.2
+
+- **`swaks`: ohne geladenen Versandweg nimmt swaks stillschweigend `localhost:25`.**
+  Die einfachen Beispielblöcke (Grundbefehl, Freitext-Body, HTML, Anhänge) führten
+  nach 1.42.0 kein `--server` mehr, wiesen aber auch nicht auf das nötige
+  `eval "$ENV"` hin. Fehlt beides, meldet swaks nur
+  `*** MX Routing not available: requires Net::DNS.  Using localhost as mail server`
+  und sendet weiter — auf einem Host mit eigenem Postfix also unauthentifiziert über
+  Port 25, mit genau der Relay-Beschränkung, die externe Empfänger abweist. Ein
+  eigener Abschnitt „Einfache Sonderfälle" stellt das voran; der Hinweis zum
+  fehlenden MX-Routing sagt jetzt, was daraus folgt, statt zu beruhigen.
+- Ablaufschritt 7 nennt alle drei Prüfbedingungen (bisher nur zwei), Überschrift und
+  Verweise auf „Ergebnis prüfen" vereinheitlicht, Frontmatter nachgezogen: der
+  Versandweg kommt aus der muttrc, nicht mehr aus `swaks.json`.
+
 ### 1.42.1
 
 - **`swaks`: abgelehnte einzelne Empfänger werden erkannt.** Die Prüfung aus 1.42.0

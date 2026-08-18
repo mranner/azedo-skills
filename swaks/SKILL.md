@@ -7,7 +7,8 @@ description: >
   "sende das per Mail", "mail me the result", or "send this to X".
   Standardversand ist eine multipart/alternative-Mail (Text + HTML) via
   build_mail.py; zusaetzlich moeglich: reiner Text-Body und Dateianhaenge (any type).
-  Empfaenger, Absender und Mailserver kommen als Defaults aus .claude/swaks.json.
+  Empfaenger und Absender kommen als Defaults aus .claude/swaks.json; der
+  Versandweg (Submission-Port mit SMTP-Auth) aus der muttrc.
   Trigger with /swaks.
 ---
 
@@ -74,7 +75,7 @@ mail-as-me-Skill, Abschnitt „Versand".
 
 ## Versandweg und Authentifizierung
 
-**Nicht `--server` von Hand setzen.** Den Versandweg loest `build_mail.py` auf und
+**Nicht `--server` von Hand setzen.** Den Versandweg löst `build_mail.py` auf und
 gibt ihn als `SWAKS_OPT_*`-Variablen aus; `swaks` liest diese Umgebungsvariablen
 selbst. Das Passwort steht damit in der Prozessumgebung und nicht in der
 Kommandozeile, wo jedes `ps` es mitliest.
@@ -107,7 +108,7 @@ set smtp_pass = "..."
 Reihenfolge gesucht: in der URL selbst, dann `set smtp_pass`, dann das
 `imap_pass` desselben Hosts aus dem `account-hook` — in der Praxis ist das
 dasselbe Konto. Backticks funktionieren wie bei mutt, ein Keystore statt
-Klartext ist also moeglich:
+Klartext ist also möglich:
 
 ```
 set smtp_pass = `pass show mail/example`
@@ -121,11 +122,11 @@ Nennt `smtp_url` einen Benutzer, findet sich aber **kein** Passwort, bricht
 Fehlt die muttrc oder steht dort kein `smtp_url`, bleibt es beim bisherigen
 Verhalten: `server` aus `swaks.json`, Port 25, ohne Auth und ohne TLS.
 
-Das traegt nur, solange die **Quell-IP im Relay privilegiert** ist
-(`mynetworks`). Laeuft der Skill von einer dynamischen Leitung aus, nimmt der
-Relay zwar Mail an azedo-interne Adressen an, weist externe Empfaenger aber mit
-`454 4.7.1 Relay access denied` ab. Der Fehler faellt im Alltag nicht auf, weil
-die interne Post weiter durchgeht — er trifft genau die Mails nach draussen.
+Das trägt nur, solange die **Quell-IP im Relay privilegiert** ist
+(`mynetworks`). Läuft der Skill von einer dynamischen Leitung aus, nimmt der
+Relay zwar Mail an azedo-interne Adressen an, weist externe Empfänger aber mit
+`454 4.7.1 Relay access denied` ab. Der Fehler fällt im Alltag nicht auf, weil
+die interne Post weiter durchgeht — er trifft genau die Mails nach draußen.
 Deshalb ist die muttrc-Variante der Normalfall und der Fallback die Ausnahme.
 
 ## Kontakte
@@ -225,18 +226,18 @@ python3 ~/.claude/skills/swaks/build_mail.py ... \
 
 Die folgenden Abschnitte (reiner Text-Body, HTML-Body, `--attach` direkt an swaks) sind **einfachere Sonderfälle** – nur nutzen, wenn explizit nur Text gewünscht ist oder es rein um einen Dateiversand ohne formatierten Body geht.
 
-## Ergebnis pruefen — Pflicht nach jedem Versand
+## Ergebnis prüfen — Pflicht nach jedem Versand
 
-`swaks` meldet Fehler ueber den **Exit-Code** (gemessen: 23 bei Ablehnung auf
+`swaks` meldet Fehler über den **Exit-Code** (gemessen: 23 bei Ablehnung auf
 `MAIL FROM`, 24 auf `RCPT TO`, 0 bei Annahme). Verlorengehen kann das nicht,
-uebersehen schon: in der langen Protokollausgabe steht der Reject als eine Zeile
-unter dreissig. Deshalb wird das Ergebnis **nicht gelesen, sondern geprueft**.
+übersehen schon: in der langen Protokollausgabe steht der Reject als eine Zeile
+unter dreißig. Deshalb wird das Ergebnis **nicht gelesen, sondern geprüft**.
 
-Die `&&`-Kette beim Bau sichert nur die `.eml` ab, nicht den Versand. Dafuer die
-Ausgabe mitschreiben und danach beides pruefen — Exit-Code **und** Queue-ID:
+Die `&&`-Kette beim Bau sichert nur die `.eml` ab, nicht den Versand. Dafür die
+Ausgabe mitschreiben und danach beides prüfen — Exit-Code **und** Queue-ID:
 
 ```bash
-( eval "$ENV"; swaks --to "empfaenger@example.com" --from <absender> \
+( eval "$ENV"; swaks --to "empfänger@example.com" --from <absender> \
     --data @.tmp/mail.eml ) > .tmp/swaks.log 2>&1
 RC=$?
 
@@ -245,38 +246,38 @@ test $RC -eq 0 && grep -q "queued as" .tmp/swaks.log && ! grep -qE '^<.\*' .tmp/
   || { echo "FEHLGESCHLAGEN (rc=$RC) — siehe .tmp/swaks.log"; grep -E '^<.\*' .tmp/swaks.log; }
 ```
 
-**Alle drei Bedingungen pruefen, nicht eine davon.** Jede deckt einen Fall ab,
+**Alle drei Bedingungen prüfen, nicht eine davon.** Jede deckt einen Fall ab,
 den die anderen durchlassen:
 
-| Pruefung | faengt |
+| Prüfung | fängt |
 |---|---|
 | `rc -eq 0` | Verbindungs-, TLS-, Auth- und Totalablehnungen |
 | `queued as` | „`@` bei `--data` vergessen" — swaks quittiert mit `250 Ok`, verschickt aber den Pfad als Body |
-| kein `^<.\*` | **abgelehnte einzelne Empfaenger** bei mehreren Adressen |
+| kein `^<.\*` | **abgelehnte einzelne Empfänger** bei mehreren Adressen |
 
-Der dritte Punkt ist der Fall aus CR4519 und der unauffaelligste: stehen im
-Envelope mehrere Empfaenger und der Relay lehnt nur **einen** ab, laeuft swaks
-trotzdem in die DATA-Phase, bekommt fuer die uebrigen ein `250 … queued as` und
-endet mit **Exit-Code 0**. Nachgestellt mit einem simulierten Gegenueber
-(ein Empfaenger angenommen, einer mit `454` abgelehnt): `EXIT=0`, Queue-ID
-vorhanden — die ersten beiden Pruefungen melden Erfolg, obwohl die Mail einen
-Teil ihrer Empfaenger nie erreicht.
+Der dritte Punkt ist der Fall aus CR4519 und der unauffälligste: stehen im
+Envelope mehrere Empfänger und der Relay lehnt nur **einen** ab, läuft swaks
+trotzdem in die DATA-Phase, bekommt für die übrigen ein `250 … queued as` und
+endet mit **Exit-Code 0**. Nachgestellt mit einem simulierten Gegenüber
+(ein Empfänger angenommen, einer mit `454` abgelehnt): `EXIT=0`, Queue-ID
+vorhanden — die ersten beiden Prüfungen melden Erfolg, obwohl die Mail einen
+Teil ihrer Empfänger nie erreicht.
 
 Genau so verschwanden die beiden Mails, die dem CR zugrunde liegen: der eigene
-Kopie-Empfaenger wurde angenommen, der externe abgewiesen. Die Kopie landete
+Kopie-Empfänger wurde angenommen, der externe abgewiesen. Die Kopie landete
 im Postfach und sah aus wie ein erfolgreicher Versand.
 
 `swaks` markiert jede abgelehnte Antwort mit einem `*` an dritter Stelle des
-Zeilenpraefixes — unverschluesselt `<**`, innerhalb einer TLS-Sitzung `<~*`.
+Zeilenpräfixes — unverschlüsselt `<**`, innerhalb einer TLS-Sitzung `<~*`.
 Beide trifft `^<.\*`. Im Erfolgsfall ist die Zeilenzahl null (verifiziert).
 
-**Fehlschlag heisst: die Mail ist nicht raus.** Das dem Nutzer so sagen, mit dem
+**Fehlschlag heißt: die Mail ist nicht raus.** Das dem Nutzer so sagen, mit dem
 Statuscode aus dem Log. Nie „versendet" melden, ohne die Queue-ID gesehen zu
-haben — der Empfaenger merkt den Ausfall sonst, der Absender nicht.
+haben — der Empfänger merkt den Ausfall sonst, der Absender nicht.
 
-Bei Erfolg zusaetzlich die Gegenprobe auf das fehlende `@`: die `size=`-Angabe
-zur Queue-ID im Maillog gegen die Groesse der `.eml` halten. Ein paar hundert
-Bytes statt einiger KB heisst, es ging der Dateiname statt der Mail raus.
+Bei Erfolg zusätzlich die Gegenprobe auf das fehlende `@`: die `size=`-Angabe
+zur Queue-ID im Maillog gegen die Größe der `.eml` halten. Ein paar hundert
+Bytes statt einiger KB heißt, es ging der Dateiname statt der Mail raus.
 
 ## Antwort auf eine Mail (Zitat + Threading)
 
@@ -325,6 +326,29 @@ grep -q "queued as" $Q/swaks.log && ! grep -qE '^<.\*' $Q/swaks.log \
 
 Kommt der Entwurf aus `mail-as-me`, ist der `imap quote`-Aufruf dort ohnehin
 Pflichtschritt — siehe dessen SKILL.md.
+
+## Einfache Sonderfälle
+
+Die folgenden Blöcke setzen **voraus, dass der Versandweg geladen ist** (siehe
+Versandweg und Authentifizierung):
+
+```bash
+ENV=$(python3 ~/.claude/skills/swaks/build_mail.py --swaks-env) \
+  && test -n "$ENV" && eval "$ENV"
+```
+
+**Ohne das fällt `swaks` still auf `localhost:25` zurück**, weil MX-Routing
+mangels `Net::DNS` nicht verfügbar ist:
+
+```
+*** MX Routing not available: requires Net::DNS.  Using localhost as mail server
+```
+
+Auf einem Host, der selbst einen Postfix betreibt, ist das kein Fehler, sondern
+ein *anderer* Versandweg: unauthentifiziert über Port 25, mit genau der
+Relay-Beschränkung, die externe Empfänger abweist. Es gibt keine Warnung —
+die Zeile oben ist der einzige Hinweis, und sie steht im Protokoll, nicht im
+Ergebnis. Die Ergebnisprüfung gilt hier deshalb genauso.
 
 ## Grundbefehl
 
@@ -429,13 +453,13 @@ swaks \
 4. **Signatur:** wird automatisch aufgelöst (global `~/.claude/swaks-signature.*`, projektlokal `.claude/` mit Vorrang) – nichts zu übergeben. Unter der eigenen Adresse des Nutzers **immer** dranlassen (globale Signatur = dessen persönliche). `--no-sig` nur bei explizitem "ohne Signatur" oder einem **dritten** Absender (weder der Nutzer noch Claude); für eine abweichende Signatur explizit `--sig-text-file`/`--sig-html-file`.
 5. Fehlende Angaben aus dem Kontext ableiten (Betreff, Body, Anhänge).
 6. Befehl zusammenbauen und dem Nutzer kurz zeigen; auf Bestätigung warten – außer der Nutzer hat bereits „ja" gesagt oder den Versand klar angeordnet.
-7. **Versandweg laden** (`eval` des `--swaks-env`, siehe Versandweg), Befehl ausführen, Ausgabe mitschreiben und **prüfen** — Exit-Code *und* `queued as` (siehe „Ergebnis prüfen"). Nur bei beidem „versendet" melden, sonst den Fehlschlag mit Statuscode nennen.
+7. **Versandweg laden** (`eval` des `--swaks-env`, siehe Versandweg), Befehl ausführen, Ausgabe mitschreiben und **prüfen** — Exit-Code, `queued as` *und* keine `^<.\*`-Zeile (siehe „Ergebnis prüfen"). Nur bei allen dreien „versendet" melden, sonst den Fehlschlag mit Statuscode nennen.
 8. **Kontakt ergänzen:** Wenn eine neue E-Mail-Adresse verwendet wurde, die noch nicht in `.claude/swaks-contacts.tsv` steht, per `printf` anhängen.
 
 ## Hinweise
 
 - `--subject` existiert in dieser swaks-Version nicht → immer `--header "Subject: ..."` verwenden.
-- MX-Routing ist nicht verfügbar (Net::DNS fehlt) – kein Problem, da ein fester Relay verwendet wird.
+- MX-Routing ist nicht verfügbar (Net::DNS fehlt). Ohne geladenen Versandweg nimmt swaks deshalb **stillschweigend `localhost:25`** — kein Fehler, aber der falsche Weg. Immer erst `eval "$ENV"`.
 - Erfolg erkennbar an: `250 2.0.0 Ok: queued as <ID>` **bei Exit-Code 0 und ohne `<**`/`<~*`-Zeile**. Alle drei prüfen — bei mehreren Empfängern ist ein einzelner Reject sonst unsichtbar.
 - Zum Ausprobieren einer Route ohne Zustellung: `--quit-after RCPT` — die Verbindung endet vor `DATA`, es geht nichts raus.
 
