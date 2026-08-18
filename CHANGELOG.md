@@ -3,6 +3,38 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.42.0
+
+- **`swaks`: Versand über den Submission-Port mit SMTP-Auth statt Port 25 ohne
+  Anmeldung.** Der bisherige Weg trug nur, solange die Quell-IP im Relay
+  privilegiert war (`mynetworks`). Von einer dynamischen Leitung aus nimmt der Relay
+  Mail an eigene Domains weiter an, weist externe Empfänger aber mit
+  `454 4.7.1 Relay access denied` ab — der Absender merkt davon nichts, der
+  Empfänger schon. `build_mail.py --swaks-env` löst den Weg jetzt auf und gibt ihn
+  als `SWAKS_OPT_*`-Variablen aus; `swaks` braucht danach weder `--server` noch
+  Auth-Optionen, und das Passwort steht in der Prozessumgebung statt in der
+  Kommandozeile, wo jedes `ps` es mitliest.
+- **Zugangsdaten kommen aus der muttrc**, derselben Datei wie beim `imap`-Skill —
+  weiterhin keine zweite Credential-Datei. Gelesen wird `set smtp_url`
+  (`smtp://` = STARTTLS/587, `smtps://` = implizites TLS/465) und das Passwort in
+  der Reihenfolge URL → `set smtp_pass` → `imap_pass` desselben Hosts. Backticks
+  werden ausgewertet, ein Keystore statt Klartext ist also möglich. Nennt die URL
+  einen Benutzer, findet sich aber kein Passwort, bricht der Aufruf ab, statt
+  unauthentifiziert zu senden.
+- **Ohne muttrc-`smtp_url` bleibt alles wie bisher**: `server` aus `swaks.json`,
+  Port 25, ohne Auth. Der Fallback ist damit die Ausnahme und nicht mehr der
+  Normalfall.
+- **Das Sende-Ergebnis wird geprüft, nicht gelesen.** Die `&&`-Kette sicherte bisher
+  nur den Bau der `.eml` ab; der Reject stand danach als eine Zeile unter dreißig im
+  Protokoll. Der Ablauf schreibt die Ausgabe jetzt mit und prüft **Exit-Code und**
+  `queued as` — beides, weil der Exit-Code allein den Fall „`@` bei `--data`
+  vergessen" übersieht (swaks quittiert mit `250 Ok` und verschickt den Pfad als
+  Body) und die Queue-ID allein nur zusammen mit `rc=0` etwas aussagt. Gemessene
+  Codes: 23 bei Ablehnung auf `MAIL FROM`, 24 auf `RCPT TO`.
+- **`--show-config` zeigt zusätzlich den ermittelten Versandweg** (Server, Port, TLS,
+  Anmeldung, Herkunft) mit maskiertem Passwort. Zum Ausprobieren einer Route ohne
+  Zustellung: `--quit-after RCPT`.
+
 ### 1.41.0
 
 - **`imap`: neuer Subcommand `find` — Message-ID zu Konto, Ordner und UID auflösen.**

@@ -6,12 +6,14 @@
 # um das alternative-Part gelegt. Bei einer Antwort kommt der Zitatblock aus
 # `imap quote` unter Body und Signatur (Top-Posting), die Threading-Header
 # In-Reply-To und References haengen die Antwort an den bestehenden Thread.
-# version 1.40.0
+# version 1.42.0
 
 import argparse
 import json
 import mimetypes
 import os
+import re
+import subprocess
 import sys
 
 from html import escape as html_escape
@@ -60,18 +62,247 @@ def load_config():
     return cfg
 
 
+# --- Versandweg (Submission mit Auth) ----------------------------------------
+
+# Der Versand selbst laeuft ueber swaks, nicht hier. Diese Funktionen loesen
+# nur auf, WOHIN und MIT WELCHER Anmeldung gesendet wird, und geben das als
+# SWAKS_OPT_*-Umgebungsvariablen aus (--swaks-env). Das Passwort steht damit
+# in der Umgebung des swaks-Prozesses und nicht in dessen Kommandozeile, wo
+# jedes `ps` es mitlesen wuerde.
+#
+# Quelle der Zugangsdaten ist die muttrc — dieselbe Datei, aus der schon der
+# imap-Skill liest. Es gibt bewusst keine zweite Credential-Datei.
+#
+#   set smtp_url  = "smtp://mranner@mail.azedo.at:587/"
+#   set smtp_pass = "..."
+#
+# Fehlt die muttrc oder steht dort kein smtp_url, bleibt es beim bisherigen
+# Verhalten: 'server' aus swaks.json, Port 25, ohne Auth und ohne TLS. Das
+# traegt, solange die Quell-IP im Relay privilegiert ist (mynetworks) — von
+# einer dynamischen Leitung aus dagegen weist der Relay externe Empfaenger mit
+# "454 4.7.1 Relay access denied" ab.
+
+DEFAULT_MUTTRC = os.path.expanduser("~/.muttrc")
+
+MUTT_KEYS = {"smtp_url", "smtp_pass", "imap_pass", "folder"}
+
+MUTT_SET_RE = re.compile(
+    r'\b([a-z_]+)\s*=\s*("([^"]*)"|\'([^\']*)\'|`([^`]*)`|(\S+))')
+
+MUTT_HOOK_RE = re.compile(
+    r'^\s*account-hook\s+(?P<url>\S+)\s+(?P<quote>[\'"])(?P<body>.*)(?P=quote)\s*$')
+
+MUTT_SOURCE_RE = re.compile(
+    r'^\s*source\s+(?P<quote>[\'"]?)(?P<path>.*?)(?P=quote)\s*$')
+
+SMTP_URL_RE = re.compile(
+    r'^(?P<scheme>smtps?)://'
+    r'(?:(?P<user>[^:@/]+)(?::(?P<password>[^@/]*))?@)?'
+    r'(?P<host>[^:/]+)(?::(?P<port>\d+))?')
+
+IMAP_HOST_RE = re.compile(r'imaps?://(?:[^@/]+@)?(?P<host>[^:/]+)')
+
+
+def mutt_backtick(cmd):
+    """Backtick-Substitution wie mutt sie macht — erlaubt einen Keystore
+    (`smtp_pass=\\`pass show mail/azedo\\``) statt Klartext in der muttrc."""
+    try:
+        out = subprocess.run(cmd, shell=True, capture_output=True,
+                             text=True, timeout=30)
+    except subprocess.TimeoutExpired:
+        sys.exit(f"build_mail.py: Fehler — Backtick-Befehl lief in einen Timeout: {cmd}")
+
+    if out.returncode != 0:
+        sys.exit(f"build_mail.py: Fehler — Backtick-Befehl fehlgeschlagen "
+                 f"({out.returncode}): {cmd}")
+
+    return out.stdout.strip()
+
+
+def mutt_set_values(text):
+    """Alle key=value aus einem set- oder account-hook-Stueck ziehen. Die
+    Whitelist verhindert Treffer aus Makros und Formatstrings."""
+    values = {}
+
+    for m in MUTT_SET_RE.finditer(text):
+        key = m.group(1)
+
+        if key not in MUTT_KEYS:
+            continue
+
+        if m.group(3) is not None:
+            values[key] = m.group(3)
+        elif m.group(4) is not None:
+            values[key] = m.group(4)
+        elif m.group(5) is not None:
+            values[key] = mutt_backtick(m.group(5))
+        else:
+            values[key] = m.group(6)
+
+    return values
+
+
+def parse_muttrc(path, _seen=None):
+    """muttrc lesen und (globale Werte, imap_pass je Host) liefern. Ausgewertet
+    wird nur eine Teilmenge der muttrc-Syntax: set, account-hook, source und
+    Backticks. Fehlt die Datei, ist das kein Fehler — dann gilt der Fallback."""
+    _seen = set() if _seen is None else _seen
+    real = os.path.realpath(path)
+
+    if real in _seen or not os.path.isfile(path):
+        return {}, {}
+
+    _seen.add(real)
+
+    globals_ = {}
+    per_host = {}
+
+    with open(path, encoding="utf-8", errors="replace") as f:
+        for raw in f:
+            line = raw.rstrip("\n")
+            stripped = line.strip()
+
+            if not stripped or stripped.startswith("#"):
+                continue
+
+            m = MUTT_SOURCE_RE.match(line)
+
+            if m and "account-hook" not in line:
+                sub = m.group("path")
+
+                # source "cmd |" fuehrt einen Befehl aus statt eine Datei zu lesen
+
+                if sub.endswith("|"):
+                    globals_.update(mutt_set_values(mutt_backtick(sub[:-1].strip())))
+                    continue
+
+                sub_path = os.path.expanduser(sub)
+
+                if not os.path.isabs(sub_path):
+                    sub_path = os.path.join(os.path.dirname(path), sub_path)
+
+                sub_glob, sub_host = parse_muttrc(sub_path, _seen)
+                globals_.update(sub_glob)
+                per_host.update(sub_host)
+                continue
+
+            m = MUTT_HOOK_RE.match(line)
+
+            if m:
+                host = IMAP_HOST_RE.search(m.group("url"))
+                vals = mutt_set_values(m.group("body"))
+
+                if host and vals.get("imap_pass"):
+                    per_host[host.group("host")] = vals["imap_pass"]
+
+                continue
+
+            if re.match(r"^\s*set\s", line):
+                globals_.update(mutt_set_values(line))
+
+    return globals_, per_host
+
+
+def resolve_route(cfg, muttrc_path=DEFAULT_MUTTRC):
+    """Versandweg bestimmen: Submission mit Auth aus der muttrc, sonst der
+    bisherige Weg ueber 'server' aus swaks.json ohne Auth."""
+    globals_, per_host = parse_muttrc(muttrc_path)
+    url = globals_.get("smtp_url")
+
+    if not url:
+        server = cfg.get("server")
+
+        if not server:
+            sys.exit("build_mail.py: Fehler — kein Versandweg. Entweder "
+                     "'server' in .claude/swaks.json setzen oder 'set smtp_url' "
+                     f"in {muttrc_path} hinterlegen.")
+
+        return {"server": server, "port": 25, "tls": None,
+                "auth_user": None, "auth_password": None, "source": "swaks.json"}
+
+    m = SMTP_URL_RE.match(url)
+
+    if not m:
+        sys.exit(f"build_mail.py: Fehler — smtp_url in {muttrc_path} nicht "
+                 f"lesbar: {url}")
+
+    host = m.group("host")
+    port = int(m.group("port")) if m.group("port") else (
+        465 if m.group("scheme") == "smtps" else 587)
+
+    # smtps = implizites TLS ab dem ersten Byte (--tls-on-connect),
+    # smtp = STARTTLS. Beides ist Pflicht, sobald ein Passwort mitgeht.
+
+    tls = "wrapper" if m.group("scheme") == "smtps" else "starttls"
+
+    user = m.group("user")
+
+    # Passwort: erst smtp_pass, sonst das imap_pass desselben Hosts. Beide sind
+    # in der Praxis dasselbe Konto — der Fallback erspart eine zweite Kopie.
+
+    password = m.group("password") or globals_.get("smtp_pass") or per_host.get(host)
+
+    if user and not password:
+        sys.exit(f"build_mail.py: Fehler — smtp_url in {muttrc_path} nennt den "
+                 f"Benutzer '{user}', aber es findet sich kein Passwort "
+                 f"(weder 'set smtp_pass' noch imap_pass fuer {host}). Abbruch "
+                 "statt unauthentifiziert zu senden — externe Empfaenger wuerden "
+                 "sonst mit 'Relay access denied' abgewiesen.")
+
+    return {"server": host, "port": port, "tls": tls,
+            "auth_user": user, "auth_password": password, "source": muttrc_path}
+
+
+def route_env(route):
+    """Versandweg als SWAKS_OPT_*-Exportzeilen. Ein leerer Wert entspricht bei
+    swaks der Option ohne Argument (z.B. -tls)."""
+    env = {"server": route["server"], "port": str(route["port"])}
+
+    if route["tls"] == "starttls":
+        env["tls"] = ""
+    elif route["tls"] == "wrapper":
+        env["tls_on_connect"] = ""
+
+    if route["auth_user"]:
+        env["auth"] = ""
+        env["auth_user"] = route["auth_user"]
+        env["auth_password"] = route["auth_password"]
+
+    return "\n".join(
+        "export SWAKS_OPT_%s='%s'" % (k, v.replace("'", "'\\''"))
+        for k, v in env.items())
+
 config = load_config()
 
 # --show-config wird vor argparse abgefangen, damit die Abfrage ohne die sonst
 # noetigen Pflichtargumente (--subject, --text-file, ...) funktioniert.
 
+if "--swaks-env" in sys.argv[1:]:
+    print(route_env(resolve_route(config)))
+    sys.exit(0)
+
 if "--show-config" in sys.argv[1:]:
-    print(json.dumps(config, indent=2, ensure_ascii=False))
+    route = resolve_route(config)
+
+    # Passwort nie ausgeben — die Anzeige dient der Kontrolle des Weges,
+    # nicht der Weitergabe der Zugangsdaten.
+
+    shown = dict(route)
+    shown["auth_password"] = "<gesetzt>" if route["auth_password"] else None
+
+    print(json.dumps({"config": config, "route": shown},
+                     indent=2, ensure_ascii=False))
     sys.exit(0)
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--show-config", action="store_true",
-                    help="Aufgeloeste Versand-Defaults aus swaks.json ausgeben und beenden.")
+                    help="Aufgeloeste Versand-Defaults aus swaks.json und den "
+                         "ermittelten Versandweg ausgeben und beenden "
+                         "(Passwort maskiert).")
+parser.add_argument("--swaks-env", action="store_true",
+                    help="Versandweg als SWAKS_OPT_*-Exportzeilen ausgeben und "
+                         "beenden. Per eval in die Shell holen, dann braucht "
+                         "swaks weder --server noch Auth-Optionen.")
 parser.add_argument("--subject", required=True)
 parser.add_argument("--to", help="Empfaenger. Ohne Angabe gilt 'to' aus swaks.json.")
 parser.add_argument("--cc", help="Sichtbarer Cc:-Header (kommasepariert). Die Adressen zusaetzlich in den swaks-Envelope --to aufnehmen.")

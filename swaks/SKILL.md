@@ -34,12 +34,13 @@ im Arbeitsverzeichnis (Vorrang) → global `~/.claude/swaks.json`.
 |---------------------|----------------------------------------------------------------|
 | `to`                | Default für `--to` (Header und Envelope)                        |
 | `from`              | Default für `--from` (Header und Envelope)                      |
-| `server`            | Mailserver für `swaks --server`                                 |
+| `server`            | Mailserver — **nur Fallback**, wenn die muttrc keinen `smtp_url` hat (siehe Versandweg) |
 | `message_id_domain` | Domain der `Message-ID`; ohne Angabe die Domain des Absenders    |
 
 `build_mail.py` liest `to` und `from` selbst — ohne `--to`/`--from` greifen die
-Config-Werte, mit Angabe gewinnt die Kommandozeile. `server` braucht **swaks**,
-nicht der Helper; den Wert vor dem Versand auslesen:
+Config-Werte, mit Angabe gewinnt die Kommandozeile. Den fertigen Versandweg
+(Server, Port, TLS, Anmeldung) loest der Helper ebenfalls auf; vor dem Versand
+kontrollieren mit:
 
 ```bash
 python3 "$SKILL_DIR/build_mail.py" --show-config
@@ -57,9 +58,10 @@ cp "$SKILL_DIR/swaks.json.example" ~/.claude/swaks.json
 # danach to/from/server eintragen
 ```
 
-Fuer `server` ist auf azedo-Installationen `mom.azedo.at` der uebliche Relay —
-als Vorschlag brauchbar, aber vor dem ersten Versand vom Nutzer bestaetigen
-lassen. `to`/`from` immer erfragen, nie annehmen.
+`server` ist nur noch der Fallback ohne muttrc-`smtp_url` und taugt dann
+ausschliesslich fuer interne Empfaenger (siehe Versandweg). Der regulaere Weg
+nach draussen ist der Submission-Port aus der muttrc. `to`/`from` immer
+erfragen, nie annehmen.
 
 Abweichende Werte übernimmst du aus der Nutzeranfrage.
 
@@ -69,6 +71,62 @@ als Absender (Header **und** Envelope), `send.bcc` als stille Kopie (**nur** im
 Envelope-`--to`). Das ist ohne Rückfrage anzuwenden — eine Mail in der Stimme des
 Nutzers, die vom Default-Absender kommt, ist beim Empfänger falsch. Details im
 mail-as-me-Skill, Abschnitt „Versand".
+
+## Versandweg und Authentifizierung
+
+**Nicht `--server` von Hand setzen.** Den Versandweg loest `build_mail.py` auf und
+gibt ihn als `SWAKS_OPT_*`-Variablen aus; `swaks` liest diese Umgebungsvariablen
+selbst. Das Passwort steht damit in der Prozessumgebung und nicht in der
+Kommandozeile, wo jedes `ps` es mitliest.
+
+```bash
+ENV=$(python3 ~/.claude/skills/swaks/build_mail.py --swaks-env) \
+  && test -n "$ENV" \
+  && eval "$ENV"
+```
+
+Danach braucht `swaks` weder `--server` noch `--port` noch Auth-Optionen. Welcher
+Weg dabei herauskommt, zeigt `--show-config` (Passwort maskiert):
+
+```bash
+python3 ~/.claude/skills/swaks/build_mail.py --show-config
+```
+
+### Woher die Zugangsdaten kommen
+
+Aus der **muttrc** — derselben Datei, aus der auch der `imap`-Skill liest. Es gibt
+bewusst **keine** zweite Credential-Datei:
+
+```
+set smtp_url  = "smtp://<user>@mail.example.at:587/"
+set smtp_pass = "..."
+```
+
+`smtp://` bedeutet STARTTLS (Default-Port 587), `smtps://` implizites TLS
+(Default-Port 465). Ein Port in der URL gewinnt. Das Passwort wird in dieser
+Reihenfolge gesucht: in der URL selbst, dann `set smtp_pass`, dann das
+`imap_pass` desselben Hosts aus dem `account-hook` — in der Praxis ist das
+dasselbe Konto. Backticks funktionieren wie bei mutt, ein Keystore statt
+Klartext ist also moeglich:
+
+```
+set smtp_pass = `pass show mail/example`
+```
+
+Nennt `smtp_url` einen Benutzer, findet sich aber **kein** Passwort, bricht
+`build_mail.py` ab, statt unauthentifiziert zu senden.
+
+### Fallback ohne muttrc
+
+Fehlt die muttrc oder steht dort kein `smtp_url`, bleibt es beim bisherigen
+Verhalten: `server` aus `swaks.json`, Port 25, ohne Auth und ohne TLS.
+
+Das traegt nur, solange die **Quell-IP im Relay privilegiert** ist
+(`mynetworks`). Laeuft der Skill von einer dynamischen Leitung aus, nimmt der
+Relay zwar Mail an azedo-interne Adressen an, weist externe Empfaenger aber mit
+`454 4.7.1 Relay access denied` ab. Der Fehler faellt im Alltag nicht auf, weil
+die interne Post weiter durchgeht — er trifft genau die Mails nach draussen.
+Deshalb ist die muttrc-Variante der Normalfall und der Fallback die Ausnahme.
 
 ## Kontakte
 
@@ -120,22 +178,31 @@ Für HTML-Mails stattdessen `text/html; charset=utf-8` (siehe Abschnitt HTML-Bod
 Ablauf: `build_mail.py` baut die MIME-DATA (korrekte Boundaries/Encoding, hängt Signaturen an) in eine Datei, danach geht diese per `swaks --data @<datei>` raus.
 
 1. Text-Body als `.txt` und HTML-Body als `.html` in `.tmp/` schreiben (jeweils **ohne** Signatur – die hängt der Helper an).
-2. MIME-DATA bauen und senden. **Erst in eine Datei bauen, dann senden** – nicht direkt in `swaks` pipen: schlägt der Bau fehl (Exit ≠ 0 oder Interpreter nicht gefunden), würde `swaks` sonst auf leerem STDIN laufen und seine eingebaute **Default-Test-Mail** verschicken. Die `&&`-Kette stoppt vor `swaks`, sobald der Bau fehlschlägt oder die Datei leer ist:
+2. Versandweg laden, MIME-DATA bauen, senden, Ergebnis prüfen. **Erst in eine Datei bauen, dann senden** – nicht direkt in `swaks` pipen: schlägt der Bau fehl (Exit ≠ 0 oder Interpreter nicht gefunden), würde `swaks` sonst auf leerem STDIN laufen und seine eingebaute **Default-Test-Mail** verschicken. Die `&&`-Kette stoppt vor `swaks`, sobald der Bau fehlschlägt oder die Datei leer ist:
 
 ```bash
-python3 ~/.claude/skills/swaks/build_mail.py \
-  --subject "Betreff" \
-  --to "empfaenger@example.com" \
-  --from <absender> \
-  --text-file .tmp/body.txt \
-  --html-file .tmp/body.html \
-  > .tmp/mail.eml \
-  && test -s .tmp/mail.eml \
-  && swaks --server <server> \
+ENV=$(python3 ~/.claude/skills/swaks/build_mail.py --swaks-env) \
+  && test -n "$ENV" \
+  && python3 ~/.claude/skills/swaks/build_mail.py \
+      --subject "Betreff" \
       --to "empfaenger@example.com" \
       --from <absender> \
-      --data @.tmp/mail.eml
+      --text-file .tmp/body.txt \
+      --html-file .tmp/body.html \
+      > .tmp/mail.eml \
+  && test -s .tmp/mail.eml \
+  && ( eval "$ENV"; swaks \
+      --to "empfaenger@example.com" \
+      --from <absender> \
+      --data @.tmp/mail.eml ) > .tmp/swaks.log 2>&1
+RC=$?
+
+test $RC -eq 0 && grep -q "queued as" .tmp/swaks.log \
+  && grep "queued as" .tmp/swaks.log \
+  || echo "FEHLGESCHLAGEN (rc=$RC) — nicht versendet, siehe .tmp/swaks.log"
 ```
+
+Die Prüfung am Ende ist **kein Beiwerk** – ohne sie geht ein Reject als Erfolg durch (siehe „Ergebnis prüfen").
 
 Hinweise:
 - `--to`/`--from` bei **beiden** (Helper *und* swaks) angeben: der Helper setzt die Header, swaks den SMTP-Envelope.
@@ -153,10 +220,45 @@ python3 ~/.claude/skills/swaks/build_mail.py ... \
   --attach /pfad/zu/datei2.png \
   > .tmp/mail.eml \
   && test -s .tmp/mail.eml \
-  && swaks --server <server> --to "..." --from <absender> --data @.tmp/mail.eml
+  && swaks --to "..." --from <absender> --data @.tmp/mail.eml
 ```
 
 Die folgenden Abschnitte (reiner Text-Body, HTML-Body, `--attach` direkt an swaks) sind **einfachere Sonderfälle** – nur nutzen, wenn explizit nur Text gewünscht ist oder es rein um einen Dateiversand ohne formatierten Body geht.
+
+## Ergebnis pruefen — Pflicht nach jedem Versand
+
+`swaks` meldet Fehler ueber den **Exit-Code** (gemessen: 23 bei Ablehnung auf
+`MAIL FROM`, 24 auf `RCPT TO`, 0 bei Annahme). Verlorengehen kann das nicht,
+uebersehen schon: in der langen Protokollausgabe steht der Reject als eine Zeile
+unter dreissig. Deshalb wird das Ergebnis **nicht gelesen, sondern geprueft**.
+
+Die `&&`-Kette beim Bau sichert nur die `.eml` ab, nicht den Versand. Dafuer die
+Ausgabe mitschreiben und danach beides pruefen — Exit-Code **und** Queue-ID:
+
+```bash
+( eval "$ENV"; swaks --to "empfaenger@example.com" --from <absender> \
+    --data @.tmp/mail.eml ) > .tmp/swaks.log 2>&1
+RC=$?
+
+grep -E "queued as|^ *<[~-]+ +2[0-9][0-9] " .tmp/swaks.log | tail -3
+
+test $RC -eq 0 && grep -q "queued as" .tmp/swaks.log \
+  && echo "OK — versendet" \
+  || echo "FEHLGESCHLAGEN (rc=$RC) — nicht versendet, siehe .tmp/swaks.log"
+```
+
+**Beides pruefen, nicht nur eines.** Der Exit-Code allein uebersieht den Fall
+„`@` bei `--data` vergessen" (swaks quittiert mit `250 Ok`, verschickt aber den
+Pfad als Body). Die Queue-ID allein uebersieht nichts, ist aber nur zusammen mit
+`rc=0` aussagekraeftig.
+
+**Fehlschlag heisst: die Mail ist nicht raus.** Das dem Nutzer so sagen, mit dem
+Statuscode aus dem Log. Nie „versendet" melden, ohne die Queue-ID gesehen zu
+haben — der Empfaenger merkt den Ausfall sonst, der Absender nicht.
+
+Bei Erfolg zusaetzlich die Gegenprobe auf das fehlende `@`: die `size=`-Angabe
+zur Queue-ID im Maillog gegen die Groesse der `.eml` halten. Ein paar hundert
+Bytes statt einiger KB heisst, es ging der Dateiname statt der Mail raus.
 
 ## Antwort auf eine Mail (Zitat + Threading)
 
@@ -168,6 +270,8 @@ ignorieren `format=flowed`.
 ```bash
 Q=.tmp/reply
 mkdir -p $Q
+
+ENV=$(python3 ~/.claude/skills/swaks/build_mail.py --swaks-env)
 
 python3 ~/.claude/skills/imap/imap quote <uid> -a <konto> > $Q/quote.txt
 python3 ~/.claude/skills/imap/imap quote <uid> -a <konto> --format html > $Q/quote.html
@@ -187,7 +291,10 @@ python3 ~/.claude/skills/swaks/build_mail.py \
   --references "$REF" \
   > $Q/mail.eml \
   && test -s $Q/mail.eml \
-  && swaks --server <server> --to "empfaenger@example.com" --data @$Q/mail.eml
+  && ( eval "$ENV"; swaks --to "empfaenger@example.com" --data @$Q/mail.eml ) \
+     > $Q/swaks.log 2>&1
+grep -q "queued as" $Q/swaks.log && grep "queued as" $Q/swaks.log \
+  || echo "FEHLGESCHLAGEN — nicht versendet, siehe $Q/swaks.log"
 ```
 
 - **Position:** Antwort oben, Zitat unten (Top-Posting). Die Reihenfolge im fertigen Part ist Body → Signatur → Zitat. Der Body-Text enthält also **kein** Zitat, das hängt der Helper an.
@@ -204,7 +311,6 @@ Pflichtschritt — siehe dessen SKILL.md.
 
 ```bash
 swaks \
-  --server <server> \
   --to <empfänger> \
   --from <absender> \
   --header "Subject: <betreff>" \
@@ -216,7 +322,6 @@ swaks \
 
 ```bash
 swaks \
-  --server <server> \
   --to <empfaenger> \
   --from <absender> \
   --header "Subject: Betreff" \
@@ -231,7 +336,6 @@ Mehrere Adressen kommasepariert an `--to` übergeben:
 
 ```bash
 swaks \
-  --server <server> \
   --to "alice@example.com,bob@example.com" \
   --from <absender> \
   --header "Subject: Betreff" \
@@ -246,7 +350,6 @@ Für HTML-Mails `Content-Type: text/html` setzen:
 
 ```bash
 swaks \
-  --server <server> \
   --to <empfaenger> \
   --from <absender> \
   --header "Subject: Betreff" \
@@ -261,7 +364,6 @@ Wichtig: Dateipfad **immer** mit `@`-Präfix übergeben, sonst wird der Pfad als
 
 ```bash
 swaks \
-  --server <server> \
   --to <empfaenger> \
   --from <absender> \
   --header "Subject: Betreff" \
@@ -290,7 +392,6 @@ Für jeden Anhang ein eigenes `--attach-type` / `--attach`-Paar:
 
 ```bash
 swaks \
-  --server <server> \
   --to <empfaenger> \
   --from <absender> \
   --header "Subject: Mehrere Anhänge" \
@@ -309,12 +410,13 @@ swaks \
 4. **Signatur:** wird automatisch aufgelöst (global `~/.claude/swaks-signature.*`, projektlokal `.claude/` mit Vorrang) – nichts zu übergeben. Unter der eigenen Adresse des Nutzers **immer** dranlassen (globale Signatur = dessen persönliche). `--no-sig` nur bei explizitem "ohne Signatur" oder einem **dritten** Absender (weder der Nutzer noch Claude); für eine abweichende Signatur explizit `--sig-text-file`/`--sig-html-file`.
 5. Fehlende Angaben aus dem Kontext ableiten (Betreff, Body, Anhänge).
 6. Befehl zusammenbauen und dem Nutzer kurz zeigen; auf Bestätigung warten – außer der Nutzer hat bereits „ja" gesagt oder den Versand klar angeordnet.
-7. Befehl ausführen und Ergebnis (Queue-ID oder Fehler) melden. Erfolg: `250 2.0.0 Ok: queued as <ID>`.
+7. **Versandweg laden** (`eval` des `--swaks-env`, siehe Versandweg), Befehl ausführen, Ausgabe mitschreiben und **prüfen** — Exit-Code *und* `queued as` (siehe „Ergebnis prüfen"). Nur bei beidem „versendet" melden, sonst den Fehlschlag mit Statuscode nennen.
 8. **Kontakt ergänzen:** Wenn eine neue E-Mail-Adresse verwendet wurde, die noch nicht in `.claude/swaks-contacts.tsv` steht, per `printf` anhängen.
 
 ## Hinweise
 
 - `--subject` existiert in dieser swaks-Version nicht → immer `--header "Subject: ..."` verwenden.
-- MX-Routing ist nicht verfügbar (Net::DNS fehlt) – kein Problem, da ein fester Relay aus `server` verwendet wird.
-- Erfolg erkennbar an: `250 2.0.0 Ok: queued as <ID>`.
+- MX-Routing ist nicht verfügbar (Net::DNS fehlt) – kein Problem, da ein fester Relay verwendet wird.
+- Erfolg erkennbar an: `250 2.0.0 Ok: queued as <ID>` **bei Exit-Code 0**. Beides prüfen, nicht nur eines.
+- Zum Ausprobieren einer Route ohne Zustellung: `--quit-after RCPT` — die Verbindung endet vor `DATA`, es geht nichts raus.
 
