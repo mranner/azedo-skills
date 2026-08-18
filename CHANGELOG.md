@@ -3,6 +3,31 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.39.5
+
+- **`image-optimize`: `resize --output` nimmt jetzt ein Zielverzeichnis.** Bisher war
+  `--output` ausschließlich ein Dateipfad. Wer mehrere Bilder übergab und als Ziel ein
+  Verzeichnis nannte, lief pro Datei in `gm convert: Unable to open file (<pfad>)` -
+  das Script meldete davor aber brav "Resizing: ..." für jede Datei und endete mit
+  Exit-Code 0. Es sah nach einem erfolgreichen Lauf aus, geschrieben wurde nichts.
+  Aufgefallen beim Verkleinern von Produktbildern für eine Mail; der Workaround war
+  eine Schleife mit je einem Aufruf und explizitem Zieldateinamen.
+- Ein Pfad gilt als Verzeichnis, wenn er als solches existiert oder auf `/` endet; die
+  Ergebnisse landen darin unter ihrem Originalnamen, ein fehlendes Verzeichnis wird
+  angelegt. Ein Datei-`--output` mit mehr als einer Eingabedatei bricht jetzt mit
+  Exit-Code 2 und klarer Meldung ab, statt die Bilder nacheinander auf denselben
+  Namen zu schreiben - vorher hätte am Ende das letzte Bild dort gestanden.
+- **Fehler von `gm` bestimmen jetzt den Exit-Code.** Fehlgeschlagene Dateien werden
+  gezählt, am Ende steht die Zahl auf stderr und der Lauf endet mit 1. Damit heißt
+  Exit 0 wieder, dass tatsächlich alles geschrieben wurde - die Voraussetzung dafür,
+  den Aufruf in einem Script zu verketten. Vor jeder stderr-Meldung wird stdout
+  geleert, damit die Zeilen in einem Logfile in der richtigen Reihenfolge stehen.
+- Nicht geändert: ohne `--output` überschreibt `resize` weiterhin die Originale. Bei
+  fremdem Bildmaterial ist das die heikle Variante, die SKILL.md rät jetzt an zwei
+  Stellen zum Zielverzeichnis. Bilder, die ohnehin klein genug sind, werden wie bisher
+  übersprungen und dabei nicht ins Zielverzeichnis kopiert; das steht jetzt in der
+  Skip-Meldung. Der Subcommand `web` kennt kein `--output` und bleibt unverändert.
+
 ### 1.39.4
 
 - **`swaks`: `--data` ohne `@` verschickt den Dateipfad als Body.** Die Schreibweise

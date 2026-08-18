@@ -502,9 +502,10 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.39.4
+### 1.39.5
 
-- **`swaks`: `--data` ohne `@` verschickt den Dateipfad als Body.** Kein Fehler, kein
-  Abbruch — swaks quittiert mit `250 Ok`, beim Empfänger landet eine Mail ohne
-  Betreff mit dem Dateinamen als Inhalt. Steht jetzt als eigener Hinweis in der
-  SKILL.md, samt Gegenprobe über die `size=`-Angabe im Maillog des Relays.
+- **`image-optimize`: `resize --output` nimmt jetzt ein Zielverzeichnis.** Mehrere
+  Bilder plus Verzeichnis als Ziel scheiterten bisher pro Datei an `gm convert:
+  Unable to open file`, bei Exit-Code 0 und Erfolgsmeldungen im Log. Ein Datei-Ziel
+  mit mehreren Eingaben bricht jetzt sauber ab (Exit 2), `gm`-Fehler setzen den
+  Exit-Code auf 1.

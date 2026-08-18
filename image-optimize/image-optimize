@@ -2,7 +2,7 @@
 
 # Image optimization for web usage
 # Tools: optipng, jpegoptim, GraphicsMagick (gm)
-# version 1.11.1
+# version 1.39.5
 
 import argparse
 import os
@@ -251,6 +251,42 @@ def cmd_optimize(args):
             print(f"  Already optimal ({filesize_human(size_after)})")
 
 
+def resolve_output_target(output, file_count, dry_run=False):
+    """Resolve --output into a (mode, path) pair.
+
+    Directory mode is assumed when the path exists as a directory or ends with
+    a slash; results keep their original filename and land inside it. Anything
+    else is a plain file path, which only makes sense for a single input file.
+    """
+    if not output:
+        return ("inplace", None)
+
+    p = Path(output)
+    is_dir = output.endswith("/") or p.is_dir()
+
+    if is_dir:
+        if not p.is_dir():
+            if dry_run:
+                print(f"DRY RUN: would create output directory {p}")
+            else:
+                p.mkdir(parents=True, exist_ok=True)
+        return ("dir", p)
+
+    if file_count > 1:
+        print(
+            f"Error: --output {output} is a single file, but {file_count} images were given.",
+            file=sys.stderr
+        )
+        print(
+            "Pass a directory instead (existing, or with a trailing slash) to keep "
+            "the original filenames.",
+            file=sys.stderr
+        )
+        sys.exit(2)
+
+    return ("file", p)
+
+
 def cmd_resize(args):
     """Resize images using GraphicsMagick."""
     if not check_tool("gm"):
@@ -266,6 +302,10 @@ def cmd_resize(args):
     max_w = args.width if args.width else WEB_MAX_WIDTH
     max_h = args.height if args.height else WEB_MAX_HEIGHT
 
+    mode, outbase = resolve_output_target(args.output, len(files), args.dry_run)
+
+    failures = 0
+
     for f in files:
         fpath = Path(f)
         info = get_image_info(str(fpath))
@@ -273,17 +313,21 @@ def cmd_resize(args):
 
         if w == 0 or h == 0:
             print(f"SKIP {fpath.name}: cannot determine dimensions")
+            failures += 1
             continue
 
         if w <= max_w and h <= max_h:
-            print(f"SKIP {fpath.name}: already within {max_w}x{max_h} ({w}x{h})")
+            note = " (not written to output directory)" if mode == "dir" else ""
+            print(f"SKIP {fpath.name}: already within {max_w}x{max_h} ({w}x{h}){note}")
             continue
 
         size_before = fpath.stat().st_size
         geometry = f"{max_w}x{max_h}"
 
-        if args.output:
-            outpath = args.output
+        if mode == "dir":
+            outpath = str(outbase / fpath.name)
+        elif mode == "file":
+            outpath = str(outbase)
         else:
             outpath = str(fpath)
 
@@ -297,13 +341,26 @@ def cmd_resize(args):
 
         r = subprocess.run(cmd, capture_output=True, text=True)
         if r.returncode != 0:
+            sys.stdout.flush()
             print(f"  ERROR: {r.stderr.strip()}", file=sys.stderr)
+            failures += 1
             continue
 
         out = Path(outpath)
+        if not out.exists():
+            sys.stdout.flush()
+            print(f"  ERROR: {outpath} was not written", file=sys.stderr)
+            failures += 1
+            continue
+
         size_after = out.stat().st_size
         new_info = get_image_info(outpath)
-        print(f"  -> {new_info['width']}x{new_info['height']}, {filesize_human(size_after)}")
+        print(f"  -> {outpath} ({new_info['width']}x{new_info['height']}, {filesize_human(size_after)})")
+
+    if failures:
+        sys.stdout.flush()
+        print(f"\n{failures} file(s) failed.", file=sys.stderr)
+        sys.exit(1)
 
 
 def cmd_rename(args):
@@ -498,7 +555,7 @@ def main():
     p_resize.add_argument("--width", type=int, help=f"Max width (default: {WEB_MAX_WIDTH})")
     p_resize.add_argument("--height", type=int, help=f"Max height (default: {WEB_MAX_HEIGHT})")
     p_resize.add_argument("--quality", type=int, default=JPEG_QUALITY, help=f"Output quality (default: {JPEG_QUALITY})")
-    p_resize.add_argument("--output", help="Output path (default: overwrite original)")
+    p_resize.add_argument("--output", help="Output directory (existing or with trailing slash) or single output file (default: overwrite original)")
     p_resize.add_argument("--dry-run", action="store_true", help="Show what would be done")
 
     # rename

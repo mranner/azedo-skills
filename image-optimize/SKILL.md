@@ -74,6 +74,10 @@ python3 "$SKILL_DIR/image-optimize" resize <files-or-dirs...> \
   --width 1200 --height 800 \
   --quality 90 \
   --dry-run
+
+# In ein Zielverzeichnis schreiben, Originale bleiben unangetastet
+python3 "$SKILL_DIR/image-optimize" resize <files-or-dirs...> \
+  --width 1200 --output .tmp/mail/
 ```
 
 | Option       | Beschreibung                          | Default |
@@ -81,8 +85,31 @@ python3 "$SKILL_DIR/image-optimize" resize <files-or-dirs...> \
 | `--width`    | Maximale Breite in Pixel             | 1920    |
 | `--height`   | Maximale Hoehe in Pixel              | 1920    |
 | `--quality`  | Ausgabe-Qualitaet (1-100)            | 85      |
-| `--output`   | Ausgabepfad (sonst: Original ueberschreiben) | -  |
+| `--output`   | Zielverzeichnis oder Zieldatei (sonst: Original ueberschreiben) | - |
 | `--dry-run`  | Nur anzeigen, nichts aendern         | -       |
+
+#### `--output`: Verzeichnis vs. Datei
+
+`--output` nimmt beides, und die Unterscheidung faellt am Pfad:
+
+- **Verzeichnis**: der Pfad existiert als Verzeichnis oder endet auf `/`. Die
+  Ergebnisse landen dort unter ihrem **Originalnamen**; ein noch nicht
+  existierendes Verzeichnis wird angelegt. Das ist der Normalfall bei mehreren
+  Bildern.
+- **Datei**: jeder andere Pfad. Nur mit **genau einer** Eingabedatei sinnvoll;
+  bei mehreren bricht das Script mit Exit-Code 2 ab, statt still ein Bild nach
+  dem anderen auf denselben Namen zu schreiben.
+
+**Ohne `--output` werden die Originale ueberschrieben.** Bei fremdem Material
+(Hersteller- und Kundenbilder) deshalb immer ein Zielverzeichnis angeben.
+
+Bilder, die ohnehin klein genug sind, werden uebersprungen und dabei **nicht**
+ins Zielverzeichnis kopiert. Das Verzeichnis enthaelt danach also nur die
+tatsaechlich skalierten Dateien.
+
+Schlaegt `gm` bei einer Datei fehl, laeuft der Rest weiter, am Ende steht die
+Zahl der Fehlschlaege und der **Exit-Code ist 1**. Ein Durchlauf ohne Meldung und
+mit Exit 0 heisst also wirklich, dass alles geschrieben wurde.
 
 ### rename -- SEO-freundliche Dateinamen
 
@@ -151,5 +178,5 @@ python3 "$SKILL_DIR/image-optimize" web <files-or-dirs...> \
 - Alle Subcommands akzeptieren sowohl einzelne Dateien als auch Verzeichnisse.
 - JPEG-Optimierung entfernt EXIF-Daten (`--strip-all`).
 - PNG-Optimierung ist verlustfrei.
-- Resize ueberschreibt standardmaessig das Original (Backup vorher machen oder `--output` nutzen).
+- Resize ueberschreibt standardmaessig das Original (`--output <verzeichnis>/` nutzen, um die Originale zu behalten).
 - Unterstuetzte Formate: PNG, JPEG, GIF, WebP, BMP, TIFF.
