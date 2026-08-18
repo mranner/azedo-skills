@@ -256,6 +256,10 @@ Die Regeln im Einzelnen:
   Fortsetzung beginnt wieder mit dem Praefix. `--width 0` schaltet den Umbruch
   ab. Bleiben durch tiefe Verschachtelung weniger als 20 nutzbare Zeichen, wird
   die Zeile nicht mehr umgebrochen -- sonst zerfaellt sie in Wortfragmente.
+- **Leerzeilen** werden auf hoechstens eine zusammengezogen -- bei jeder Mail,
+  nicht nur bei `format=flowed`. Outlook macht aus jeder leeren Tabellenzelle
+  eine eigene Leerzeile im `text/plain`-Teil; ohne das Zusammenziehen reisst
+  der Zitatblock genau dort auseinander, wo im Original nichts stand.
 - **Anhaenge werden nicht zitiert**, `BODY.PEEK` gilt unveraendert.
 
 ### `--message-id` statt UID

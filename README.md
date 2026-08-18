@@ -508,18 +508,19 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.42.2
+### 1.42.3
 
-- **`swaks`: ohne geladenen Versandweg nimmt swaks stillschweigend `localhost:25`.**
-  Die einfachen Beispielblöcke (Grundbefehl, Freitext-Body, HTML, Anhänge) führten
-  nach 1.42.0 kein `--server` mehr, wiesen aber auch nicht auf das nötige
-  `eval "$ENV"` hin. Fehlt beides, meldet swaks nur
-  `*** MX Routing not available: requires Net::DNS.  Using localhost as mail server`
-  und sendet weiter — auf einem Host mit eigenem Postfix also unauthentifiziert über
-  Port 25, mit genau der Relay-Beschränkung, die externe Empfänger abweist. Ein
-  eigener Abschnitt „Einfache Sonderfälle" stellt das voran; der Hinweis zum
-  fehlenden MX-Routing sagt jetzt, was daraus folgt, statt zu beruhigen.
-- Ablaufschritt 7 nennt alle drei Prüfbedingungen (bisher nur zwei), Überschrift und
-  Verweise auf „Ergebnis prüfen" vereinheitlicht, Frontmatter nachgezogen: der
-  Versandweg kommt aus der muttrc, nicht mehr aus `swaks.json`.
-
+- **`imap`: das Zusammenziehen von Leerzeilen lief still ins Leere.** An drei Stellen
+  stand `re.sub(r"\n{3,}", "\n\n", …)`, also „hoechstens eine Leerzeile" -- der
+  Ausdruck trifft aber nichts, solange der Body noch CRLF fuehrt: in
+  `\r\n\r\n\r\n` steht zwischen den Umbruechen jeweils ein `\r`. Vereinheitlicht
+  wurden die Zeilenenden erst spaeter in `quote_text`, da war das Kollabieren
+  laengst vorbei. Beides liegt jetzt in einer gemeinsamen Funktion
+  `collapse_blank_lines()`, Normalisierung zuerst.
+- Unauffaellig war das, weil `unflow()` die Zeilenenden selbst vereinheitlicht: bei
+  `format=flowed`-Mails -- Thunderbird und damit alles selbst Geschriebene -- stimmte
+  das Ergebnis. Nur bei nicht-flowed-Sendern (Outlook) blieben die doppelten
+  Leerzeilen stehen, am deutlichsten beim Zitieren einer Tabelle: deren leere Zellen
+  ergeben im `text/plain`-Teil je eine Leerzeile, der Zitatblock riss dort auseinander.
+  Betrifft `quote` ebenso wie `read` und `fetch`, die ueber dieselbe Textaufbereitung
+  laufen.

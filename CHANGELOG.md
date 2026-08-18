@@ -3,6 +3,23 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.42.3
+
+- **`imap`: das Zusammenziehen von Leerzeilen lief still ins Leere.** An drei Stellen
+  stand `re.sub(r"\n{3,}", "\n\n", …)`, also „hoechstens eine Leerzeile" -- der
+  Ausdruck trifft aber nichts, solange der Body noch CRLF fuehrt: in
+  `\r\n\r\n\r\n` steht zwischen den Umbruechen jeweils ein `\r`. Vereinheitlicht
+  wurden die Zeilenenden erst spaeter in `quote_text`, da war das Kollabieren
+  laengst vorbei. Beides liegt jetzt in einer gemeinsamen Funktion
+  `collapse_blank_lines()`, Normalisierung zuerst.
+- Unauffaellig war das, weil `unflow()` die Zeilenenden selbst vereinheitlicht: bei
+  `format=flowed`-Mails -- Thunderbird und damit alles selbst Geschriebene -- stimmte
+  das Ergebnis. Nur bei nicht-flowed-Sendern (Outlook) blieben die doppelten
+  Leerzeilen stehen, am deutlichsten beim Zitieren einer Tabelle: deren leere Zellen
+  ergeben im `text/plain`-Teil je eine Leerzeile, der Zitatblock riss dort auseinander.
+  Betrifft `quote` ebenso wie `read` und `fetch`, die ueber dieselbe Textaufbereitung
+  laufen.
+
 ### 1.42.2
 
 - **`swaks`: ohne geladenen Versandweg nimmt swaks stillschweigend `localhost:25`.**

@@ -3,7 +3,7 @@
 # IMAP-Helper fuer Posteingang-Triage
 # Liest Zugangsdaten aus muttrc, arbeitet gegen mehrere Konten.
 # stdlib only, keine pip-Abhaengigkeiten. Lauffaehig auf macOS + FreeBSD.
-# version 1.41.0
+# version 1.42.3
 
 import argparse
 import email
@@ -728,6 +728,23 @@ def quote_mailbox(name):
     return name
 
 
+def collapse_blank_lines(text):
+    r"""Zeilenenden vereinheitlichen, dann hoechstens eine Leerzeile lassen.
+
+    Die Normalisierung gehoert zwingend **vor** das Kollabieren: ein Body kommt
+    vom Server mit CRLF, und `\n{3,}` trifft in `\r\n\r\n\r\n` nichts, weil
+    zwischen den Umbruechen jeweils ein `\r` steht. Ohne diesen Schritt lief die
+    Kollabierung still ins Leere.
+
+    Unauffaellig war das, weil `unflow()` die Zeilenenden selbst vereinheitlicht:
+    bei `format=flowed`-Mails (Thunderbird und damit alles selbst Geschriebene)
+    stimmte das Ergebnis. Nur bei nicht-flowed-Sendern - Outlook - blieben die
+    doppelten Leerzeilen stehen, am deutlichsten bei Tabellen, deren leere
+    Zellen im text/plain-Teil je eine Leerzeile ergeben."""
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    return re.sub(r"\n{3,}", "\n\n", text).strip()
+
+
 def html_to_text(raw):
     raw = re.sub(r"(?is)<(script|style).*?</\1>", " ", raw)
     raw = re.sub(r"(?i)<br\s*/?>", "\n", raw)
@@ -735,7 +752,7 @@ def html_to_text(raw):
     raw = re.sub(r"(?s)<[^>]+>", " ", raw)
     raw = html_mod.unescape(raw)
     raw = re.sub(r"[ \t]+", " ", raw)
-    return re.sub(r"\n{3,}", "\n\n", raw).strip()
+    return collapse_blank_lines(raw)
 
 
 def part_text(part):
@@ -771,7 +788,7 @@ def extract_text(msg):
             plain.append(part_text(msg))
 
     text = "\n".join(t for t in plain if t.strip()) or "\n".join(rich)
-    return re.sub(r"\n{3,}", "\n\n", text).strip()
+    return collapse_blank_lines(text)
 
 
 def extract_html(msg):
@@ -901,7 +918,7 @@ def quote_body(msg):
         return extract_text(msg)
     delsp = (part.get_param("delsp") or "").lower() == "yes"
     text = unflow(part_text(part), delsp)
-    return re.sub(r"\n{3,}", "\n\n", text).strip()
+    return collapse_blank_lines(text)
 
 
 def quote_line_prefix(line):
