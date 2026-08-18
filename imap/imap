@@ -3,7 +3,7 @@
 # IMAP-Helper fuer Posteingang-Triage
 # Liest Zugangsdaten aus muttrc, arbeitet gegen mehrere Konten.
 # stdlib only, keine pip-Abhaengigkeiten. Lauffaehig auf macOS + FreeBSD.
-# version 1.37.1
+# version 1.40.0
 
 import argparse
 import email
@@ -17,12 +17,20 @@ import os
 import re
 import subprocess
 import sys
+import textwrap
 import time
 
 DEFAULT_MUTTRC = os.path.expanduser("~/.muttrc")
 
 DEFAULT_LIMIT = 50
 DEFAULT_MAX_CHARS = 4000
+
+# Zeilenlaenge des Zitatblocks inkl. '> '-Praefix; unterhalb von
+# MIN_QUOTE_TEXT nutzbaren Zeichen wird nicht mehr umgebrochen, sonst
+# zerfaellt ein tief verschachteltes Zitat in Wortfragmente
+
+DEFAULT_QUOTE_WIDTH = 72
+MIN_QUOTE_TEXT = 20
 
 # UIDs je FETCH beim Stapelabruf - haelt die Antwort und damit den Speicher
 # beherrschbar, ohne die Roundtrips wieder auf einen je Mail zu treiben
@@ -635,6 +643,15 @@ def unfold_header(value):
     return re.sub(r"\r?\n[ \t]+", " ", value or "").strip()
 
 
+def flat(value):
+    """Zeilenumbrueche aus einem dekodierten Headerwert entfernen.
+
+    hdr() loest die RFC-2047-Kodierung auf, laesst die Zeilenfaltung eines
+    langen Betreffs aber stehen. In der Textausgabe faellt das nicht auf, in
+    JSON steht dann ein Umbruch mitten im Betreff."""
+    return re.sub(r"\s+", " ", value or "").strip()
+
+
 def decode_mailbox(name):
     """Modified UTF-7 der IMAP-Ordnernamen aufloesen (RFC 3501)."""
     if "&" not in name:
@@ -715,6 +732,212 @@ def extract_text(msg):
 
     text = "\n".join(t for t in plain if t.strip()) or "\n".join(rich)
     return re.sub(r"\n{3,}", "\n\n", text).strip()
+
+
+def extract_html(msg):
+    """Ersten HTML-Part liefern - Anhaenge bleiben aussen vor."""
+    if msg.is_multipart():
+        for part in msg.walk():
+            if part.get_content_maintype() == "multipart":
+                continue
+            disp = (part.get("Content-Disposition") or "").lower()
+            if "attachment" in disp:
+                continue
+            if part.get_content_type() == "text/html":
+                return part_text(part)
+        return ""
+    if msg.get_content_type() == "text/html":
+        return part_text(msg)
+    return ""
+
+
+# --- Zitat ------------------------------------------------------------------
+
+# Vorhandene Zitatebenen: '> ', '>> ', auch ohne Leerzeichen geschrieben
+
+QUOTE_PREFIX_RE = re.compile(r"^((?:> ?)+)(.*)$")
+
+
+def quote_attribution(msg):
+    """`Am <dd.mm.yy> um <HH:MM> schrieb <Name>:` - Zeitangabe lokal.
+
+    Ohne verwertbares Date-Feld faellt die Zeitangabe weg (`<Name> schrieb:`),
+    statt ein Datum zu raten - dieselbe Notloesung verwendet Thunderbird."""
+    sender = hdr(msg, "From")
+    name, addr = email.utils.parseaddr(sender)
+    who = name.strip() or addr.strip() or sender.strip() or "Unbekannt"
+
+    stamp = None
+    raw_date = msg.get("Date")
+    if raw_date:
+        try:
+            dt = email.utils.parsedate_to_datetime(raw_date)
+        except (TypeError, ValueError):
+            dt = None
+        if dt is not None:
+
+            # Naive Zeitstempel (Date ohne Zone) gelten als lokal und werden
+            # nicht umgerechnet - astimezone() wuerde sie sonst als UTC deuten
+
+            if dt.tzinfo is not None:
+                dt = dt.astimezone()
+            stamp = dt.strftime("%d.%m.%y um %H:%M")
+
+    if stamp:
+        return f"Am {stamp} schrieb {who}:"
+    return f"{who} schrieb:"
+
+
+def flowed_part(msg):
+    """Ersten text/plain-Part mit format=flowed liefern, sonst None."""
+    parts = []
+    if msg.is_multipart():
+        for part in msg.walk():
+            if part.get_content_maintype() == "multipart":
+                continue
+            disp = (part.get("Content-Disposition") or "").lower()
+            if "attachment" in disp:
+                continue
+            if part.get_content_type() == "text/plain":
+                parts.append(part)
+    elif msg.get_content_type() == "text/plain":
+        parts.append(msg)
+
+    for part in parts:
+        if (part.get_param("format") or "").lower() == "flowed":
+            return part
+    return None
+
+
+def unflow(text, delsp=False):
+    """Weiche Umbrueche nach RFC 3676 zu Absaetzen zusammenfuehren.
+
+    Eine Zeile, die auf ein Leerzeichen endet, ist weich umgebrochen und
+    gehoert mit der naechsten zusammen - sofern beide auf derselben
+    Zitatebene stehen. Ohne dieses Zusammenfuehren trifft der eigene Umbruch
+    auf den fremden und zerlegt jeden Absatz saegezahnfoermig: aus einer
+    71 Zeichen langen Quellzeile wird bei Breite 70 eine Zeile plus ein
+    einzelnes Restwort.
+
+    Der Signatur-Trenner '-- ' endet ebenfalls auf ein Leerzeichen, ist aber
+    laut RFC ausdruecklich kein weicher Umbruch."""
+    out = []
+    for line in text.replace("\r\n", "\n").replace("\r", "\n").split("\n"):
+        m = re.match(r"^(>*)(.*)$", line)
+        depth, rest = len(m.group(1)), m.group(2)
+
+        # Space-Stuffing zuruecknehmen: der Sender schiebt ein Leerzeichen
+        # vor Zeilen, die sonst wie ein Zitat oder wie 'From ' aussaehen
+
+        if rest.startswith(" "):
+            rest = rest[1:]
+
+        soft = rest.endswith(" ") and rest.strip() != "--"
+        if soft and delsp:
+            rest = rest[:-1]
+
+        # Der Signatur-Trenner beginnt immer einen neuen Absatz, auch wenn die
+        # Zeile davor weich endet. Manche Clients (Apple Mail) markieren den
+        # Satz vor der Signatur als weich umgebrochen; ohne diese Ausnahme
+        # klebte die zitierte Signatur am letzten Satz des Textes.
+
+        starts_sig = rest.strip() == "--"
+
+        if out and out[-1][0] == depth and out[-1][2] and not starts_sig:
+            out[-1][1] += rest
+            out[-1][2] = soft
+        else:
+            out.append([depth, rest, soft])
+
+    return "\n".join(
+        (">" * d + " " + t) if d else t for d, t, _ in out
+    )
+
+
+def quote_body(msg):
+    """Textkoerper fuer das Zitat - flowed-Absaetze vorher rekonstruieren."""
+    part = flowed_part(msg)
+    if part is None:
+        return extract_text(msg)
+    delsp = (part.get_param("delsp") or "").lower() == "yes"
+    text = unflow(part_text(part), delsp)
+    return re.sub(r"\n{3,}", "\n\n", text).strip()
+
+
+def quote_line_prefix(line):
+    """Zitatebene der Quellzeile um eins erhoehen.
+
+    Eine bereits zitierte Zeile bekommt ein weiteres '>' ohne Leerzeichen
+    ('> x' -> '>> x'), eine unzitierte das uebliche '> '."""
+    m = QUOTE_PREFIX_RE.match(line)
+    if m:
+        return ">" + m.group(1), m.group(2)
+    return "> ", line
+
+
+def quote_text(body, width=DEFAULT_QUOTE_WIDTH):
+    """Text zeilenweise zitieren, Umbruch bei width Zeichen inkl. Praefix."""
+    body = body.replace("\r\n", "\n").replace("\r", "\n")
+    out = []
+    for line in body.split("\n"):
+        prefix, rest = quote_line_prefix(line.rstrip())
+
+        # Leerzeile: nur das Zitatzeichen, kein Leerzeichen dahinter
+
+        if not rest.strip():
+            out.append(prefix.rstrip())
+            continue
+
+        avail = (width - len(prefix)) if width else 0
+        if avail >= MIN_QUOTE_TEXT:
+
+            # Einrueckung (Listen, Code) auf die Folgezeilen mitnehmen -
+            # textwrap wuerde sie sonst am Zeilenanfang wegwerfen. Ein
+            # einzelnes Leerzeichen gilt nicht als Einrueckung: es stammt in
+            # der Regel aus der HTML-Konvertierung (Tags werden dort durch ein
+            # Leerzeichen ersetzt) und stuende sonst sichtbar hinter jedem '>'
+
+            indent = re.match(r"[ \t]*", rest).group(0)
+            if len(indent) < 2:
+                indent = ""
+            chunks = textwrap.wrap(
+                rest.strip(), width=avail,
+                initial_indent=indent, subsequent_indent=indent,
+                break_long_words=False, break_on_hyphens=False,
+            )
+        else:
+            chunks = []
+        out.extend(prefix + c for c in (chunks or [rest]))
+    return "\n".join(out)
+
+
+def html_body_inner(raw):
+    """Rumpf eines HTML-Dokuments herausloesen.
+
+    Ein vollstaendiger Baum mit <head> und <meta> laesst sich nicht in ein
+    <blockquote> schachteln; genommen wird daher nur der Inhalt von <body>.
+    Skripte und Stylesheets fallen dabei weg - sie gehoeren zur Darstellung
+    der Originalmail, nicht zum zitierten Inhalt."""
+    raw = re.sub(r"(?is)<(script|style)\b.*?</\1\s*>", "", raw)
+    m = re.search(r"(?is)<body[^>]*>(.*)</body\s*>", raw)
+    if m:
+        return m.group(1).strip()
+    raw = re.sub(r"(?is)<\s*/?(?:!doctype|html|head|meta|title|link|base)\b[^>]*>", "", raw)
+    return raw.strip()
+
+
+def quote_html(msg, attribution):
+    """Zitat als <blockquote type="cite">.
+
+    Der HTML-Part der Originalmail wird uebernommen, damit Formatierung,
+    Links und Listen erhalten bleiben. Nur wenn es keinen gibt, wird der
+    Textkoerper escaped und mit <br> nachgebaut."""
+    inner = html_body_inner(extract_html(msg))
+    if not inner:
+        text = extract_text(msg)
+        inner = "<br>\n".join(html_mod.escape(l) for l in text.split("\n"))
+    return (f"<p>{html_mod.escape(attribution)}</p>\n"
+            f'<blockquote type="cite">\n{inner}\n</blockquote>')
 
 
 # --- Anhaenge ---------------------------------------------------------------
@@ -922,6 +1145,64 @@ def cmd_read(args, accounts):
         out_json(msg)
         return
     print(format_message(msg, args.max_chars, args.headers, args.raw))
+
+
+def cmd_quote(args, accounts):
+    """Zitatblock einer Mail erzeugen - Grundlage einer Antwort.
+
+    Das Zitat wird generiert, nicht formuliert: haendisch getippte '> '-Praefixe
+    weichen bei jeder Mail leicht ab. Anhaenge werden nicht zitiert, BODY.PEEK
+    laesst den Ungelesen-Status unangetastet."""
+    acc = pick_account(accounts, args.account)
+    with Account(acc) as a:
+        raw = a.peek_raw(args.uid, args.folder)
+    msg = email.message_from_bytes(raw)
+
+    attribution = quote_attribution(msg)
+    if args.format == "html":
+        quote = quote_html(msg, attribution)
+    else:
+        quote = attribution + "\n" + quote_text(quote_body(msg), args.width)
+
+    if not args.json:
+        print(quote)
+        return
+
+    # Message-IDs sind Adressen, keine anzeigbaren Texte: unfold_header laesst
+    # den Rohwert stehen, hdr() wuerde ihn durch die RFC-2047-Dekodierung
+    # schicken und im Zweifel veraendern
+
+    message_id = unfold_header(msg.get("Message-ID"))
+    references = [r for r in unfold_header(msg.get("References")).split() if r]
+
+    # References der Antwort: Kette der Originalmail plus deren Message-ID
+    # (RFC 5322 3.6.4) - damit haengt die Antwort im richtigen Thread
+
+    chain = list(references)
+    if message_id and message_id not in chain:
+        chain.append(message_id)
+
+    out_json({
+        "account": acc["alias"],
+        "folder": args.folder,
+        "uid": args.uid,
+        "from": flat(hdr(msg, "From")),
+        "to": flat(hdr(msg, "To")),
+        "cc": flat(hdr(msg, "Cc")),
+        "subject": flat(hdr(msg, "Subject")),
+        "date": flat(hdr(msg, "Date")),
+        "message_id": message_id,
+        "in_reply_to": unfold_header(msg.get("In-Reply-To")),
+        "references": references,
+        "format": args.format,
+        "width": args.width,
+        "attribution": attribution,
+        "quote": quote,
+        "reply": {
+            "in_reply_to": message_id,
+            "references": " ".join(chain),
+        },
+    })
 
 
 def format_message(msg, max_chars, with_headers=False, with_raw=False):
@@ -1416,6 +1697,18 @@ def build_parser():
     sp.add_argument("--raw", action="store_true",
                     help="komplette unbearbeitete Nachricht (Header + Body)")
     sp.set_defaults(func=cmd_read)
+
+    sp = sub.add_parser("quote", parents=[common],
+                        help="Zitatblock einer Mail fuer eine Antwort (setzt \\Seen nicht)")
+    sp.add_argument("uid", type=int)
+    sp.add_argument("--account", "-a")
+    sp.add_argument("--folder", "-f", default="INBOX")
+    sp.add_argument("--format", choices=("text", "html"), default="text",
+                    help="text: '> '-Praefixe; html: <blockquote type=\"cite\">")
+    sp.add_argument("--width", type=int, default=DEFAULT_QUOTE_WIDTH,
+                    metavar="ZEICHEN",
+                    help="Zeilenlaenge inkl. Zitatzeichen, 0 = kein Umbruch")
+    sp.set_defaults(func=cmd_quote)
 
     sp = sub.add_parser("fetch", parents=[common],
                         help="mehrere Mails mit einem Login holen (setzt \\Seen nicht)")

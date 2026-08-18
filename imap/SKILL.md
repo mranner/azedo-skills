@@ -5,7 +5,8 @@ description: >
   zusammenfassen, in Ordner einsortieren, als Spam markieren, in den Papierkorb
   verschieben sowie zwischen zwei Konten kopieren und verschieben. Anhaenge
   lassen sich auflisten und herausschreiben, etwa um sie an einen Task oder ein
-  Ticket zu haengen. Zugangsdaten
+  Ticket zu haengen. Fuer eine Antwort erzeugt `quote` den Zitatblock im
+  Thunderbird-Format samt Threading-Headern. Zugangsdaten
   kommen aus der muttrc (`account-hook`), es gibt keine zweite Credential-Datei.
   Gelesen wird mit BODY.PEEK, der Ungelesen-Status bleibt dabei unangetastet.
   Schreibende Aktionen laufen ausschliesslich gebuendelt ueber `batch` und erst
@@ -15,7 +16,8 @@ description: >
   Spam aussortieren oder Mails zwischen Konten bewegen will. Auch aktiv
   verwenden bei "geh meine Inbox durch", "was ist heute reingekommen", "raeum
   den Posteingang auf", "gibt es was Wichtiges in der Mail", "verschieb das ins
-  Archiv", "hol den Anhang aus der Mail". Trigger: /imap.
+  Archiv", "hol den Anhang aus der Mail", "zitier die Mail fuer meine Antwort".
+  Trigger: /imap.
 ---
 
 # imap -- Posteingang-Triage ueber mehrere Konten
@@ -66,6 +68,7 @@ als Default; `list` ohne `--account` fragt **alle** Konten ab.
 | `list [-a <konto>]` | Kopfdaten ohne Body |
 | `read <uid> -a <konto>` | Textkoerper einer Mail |
 | `fetch --uids <liste> -a <konto>` | mehrere Mails mit **einem** Login |
+| `quote <uid> -a <konto>` | Zitatblock fuer eine Antwort (Text oder HTML) |
 | `read <uid> --headers` | alle Rohheader statt der Kopfzeilen-Auswahl |
 | `read <uid> --raw` | komplette unbearbeitete Nachricht (Header + Body) |
 | `attachments <uid> -a <konto>` | Anhaenge auflisten (Index, Name, Typ, Groesse) |
@@ -162,6 +165,103 @@ Normalfall, kein Grund die uebrigen nicht zu holen.
 Typische Faelle: Korpus-Aufbau fuer [mail-as-me](../mail-as-me/SKILL.md),
 Header-Analysen ueber mehrere Mails (Zustellwege, SPF/DKIM), einen Thread am
 Stueck lesen, Export vor einer Migration.
+
+## `quote` -- Zitatblock fuer eine Antwort
+
+Beim Antworten wird der Originaltext zitiert, so wie es Thunderbird macht. Das
+Zitat wird **generiert, nicht formuliert**: sobald die `> `-Praefixe von Hand
+getippt werden, weicht das Format bei jeder Mail leicht ab -- mal ein Leerzeichen
+zu viel, mal ein anderer Umbruch, mal eine erfundene Attributionszeile.
+
+```
+python3 "$SKILL_DIR/imap" quote 8841 -a office
+python3 "$SKILL_DIR/imap" quote 8841 -a office --format html
+python3 "$SKILL_DIR/imap" quote 8841 -a office --width 0      # kein Umbruch
+python3 "$SKILL_DIR/imap" quote 8841 -a office --json
+```
+
+Ergebnis auf stdout, fertig zum Anhaengen an die Antwort:
+
+```
+Am 18.08.26 um 12:58 schrieb Max Mustermann:
+> Hallo,
+>
+> wie besprochen, hier einmal mein vorlaeufiges Mapping fuer die Spalten
+> der Tabelle.
+>
+>> Das hier war schon zitiert
+```
+
+Die Regeln im Einzelnen:
+
+- **Attributionszeile** `Am <dd.mm.yy> um <HH:MM> schrieb <Name>:`, Zeitangabe
+  **lokal** (nicht die Zone des Absenders), Name aus `From`, Fallback auf die
+  Adresse. Ohne verwertbares `Date` bleibt die Zeitangabe weg (`<Name> schrieb:`)
+  statt ein Datum zu raten.
+- **Praefix** `> ` je Zeile, Leerzeilen als `>` allein (kein Leerzeichen am
+  Zeilenende). Bereits zitierte Zeilen bekommen ein weiteres `>` ohne
+  Leerzeichen: `> x` wird zu `>> x`.
+- **Umbruch** bei `--width` Zeichen **inklusive** Zitatzeichen (Default 72), die
+  Fortsetzung beginnt wieder mit dem Praefix. `--width 0` schaltet den Umbruch
+  ab. Bleiben durch tiefe Verschachtelung weniger als 20 nutzbare Zeichen, wird
+  die Zeile nicht mehr umgebrochen -- sonst zerfaellt sie in Wortfragmente.
+- **Anhaenge werden nicht zitiert**, `BODY.PEEK` gilt unveraendert.
+
+### `format=flowed` wird vorher aufgeloest
+
+Mailclients wie Thunderbird verschicken Text als `format=flowed` (RFC 3676): die
+Absaetze sind **weich** umgebrochen, jede Fortsetzungszeile endet auf ein
+Leerzeichen. Wer diese Umbrueche fuer echt haelt und darauf den eigenen setzt,
+erzeugt einen Saegezahn -- aus einer 71 Zeichen langen Quellzeile wird bei
+Breite 70 eine volle Zeile plus ein einzelnes Restwort:
+
+```
+> Stimmt, ich muss auch auf dieser Seite vorsichtiger vorgehen und die
+> AI
+> nicht einfach machen lassen.
+```
+
+`quote` fuehrt die weichen Umbrueche deshalb zuerst zu Absaetzen zusammen
+(inkl. `delsp`, Space-Stuffing und Zitatebene) und bricht danach neu um. Der
+Signatur-Trenner `-- ` endet ebenfalls auf ein Leerzeichen, ist laut RFC aber
+ausdruecklich kein weicher Umbruch und bleibt stehen.
+
+### `--format html`
+
+Der HTML-Part der Originalmail wird uebernommen und in
+`<blockquote type="cite">` gewickelt -- Formatierung, Links und Listen bleiben
+damit erhalten, verschachtelte Zitate der Vorgeschichte ebenso. Genommen wird
+nur der Inhalt von `<body>`; `<head>`, Skripte und Stylesheets fallen weg, sie
+gehoeren zur Darstellung der Originalmail und nicht zum zitierten Inhalt. Hat
+die Mail **keinen** HTML-Part, wird der Textkoerper escaped und mit `<br>`
+nachgebaut.
+
+### `--json` -- Threading faellt mit ab
+
+Neben `attribution` und `quote` (dem kompletten Block inkl. Attributionszeile)
+stehen die Kopfdaten der Originalmail und ein fertiges `reply`-Objekt:
+
+```json
+{
+  "message_id": "<abc@example.org>",
+  "in_reply_to": "<vorher@example.org>",
+  "references": ["<wurzel@example.org>", "<vorher@example.org>"],
+  "reply": {
+    "in_reply_to": "<abc@example.org>",
+    "references": "<wurzel@example.org> <vorher@example.org> <abc@example.org>"
+  }
+}
+```
+
+`message_id`, `in_reply_to` und `references` sind die Header der **Originalmail**;
+`reply` enthaelt die Werte fuer die **Antwort** -- `In-Reply-To` ist deren
+`Message-ID`, `References` die bestehende Kette plus diese `Message-ID`
+(RFC 5322 3.6.4). Ohne diese beiden Header haengt die Antwort im Mailclient des
+Empfaengers nicht am Thread, sondern startet einen neuen.
+
+Message-IDs werden bewusst **nicht** RFC-2047-dekodiert -- sie sind Adressen,
+keine anzeigbaren Texte. Die uebrigen Kopffelder sind dekodiert und entfaltet,
+ein langer Betreff steht also ohne Zeilenumbruch in einem Feld.
 
 ## Anhaenge
 
@@ -378,6 +478,9 @@ ok / einzeln anpassen?
   erneut; ohne das liefe Dovecot unnoetig in den COPY-Fallback.
 - **`UID EXPUNGE` statt `EXPUNGE`** im Fallback ohne `MOVE`. Nacktes `EXPUNGE`
   wuerde alle als geloescht markierten Mails des Ordners mitnehmen.
+- **Zitate nie selbst tippen.** Fuer eine Antwort immer `quote` aufrufen. Ein
+  von Hand gesetztes `> ` sieht auf den ersten Blick gleich aus, weicht aber bei
+  jeder Mail leicht ab und ignoriert `format=flowed` und die Threading-Header.
 - **Leerer Posteingang ist kein Fehler.** Wenn serverseitige Sieve-Regeln oder
   ein anderer Client bereits einsortieren, ist die INBOX schlicht leer.
 

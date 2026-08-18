@@ -3,6 +3,59 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.40.0
+
+- **`imap`: neuer Subcommand `quote` — Zitatblock für eine Antwort.** Bisher entstand
+  das Zitat einer Mail nur dann, wenn es im Einzelfall von Hand getippt wurde — mit
+  dem Ergebnis, dass Attributionszeile, Präfixe und Umbruch bei jeder Antwort etwas
+  anders aussahen. `quote <uid>` erzeugt den Block deterministisch: Attributionszeile
+  `Am <dd.mm.yy> um <HH:MM> schrieb <Name>:` mit lokaler Zeitangabe, `> ` je Zeile,
+  Leerzeilen als `>` allein, bereits zitierte Zeilen eine Ebene tiefer (`>> `), Umbruch
+  bei `--width` Zeichen inklusive Zitatzeichen (Default 72, `0` schaltet ihn ab).
+  Anhänge werden nicht zitiert, `BODY.PEEK` gilt unverändert.
+- **`format=flowed` (RFC 3676) wird vor dem Umbruch aufgelöst.** Thunderbird und andere
+  Clients brechen Absätze weich um; jede Fortsetzungszeile endet auf ein Leerzeichen.
+  Wer diese Umbrüche für echt hält und den eigenen darauf setzt, erzeugt einen Sägezahn:
+  aus einer 71 Zeichen langen Quellzeile wird bei Breite 70 eine volle Zeile plus ein
+  einzelnes Restwort. `quote` führt die weichen Umbrüche daher zuerst zu Absätzen
+  zusammen (inkl. `delsp`, Space-Stuffing und Zitatebene) und bricht danach neu um.
+  Der Signatur-Trenner `-- ` endet ebenfalls auf ein Leerzeichen, ist laut RFC aber
+  kein weicher Umbruch und bleibt stehen.
+- **`--format html` übernimmt den HTML-Part der Originalmail** in einem
+  `<blockquote type="cite">`, damit Formatierung, Links, Listen und die verschachtelten
+  Zitate der Vorgeschichte erhalten bleiben. Genommen wird nur der Inhalt von `<body>`;
+  `<head>`, Skripte und Stylesheets fallen weg. Ohne HTML-Part wird der Textkörper
+  escaped und mit `<br>` nachgebaut.
+- **`--json` liefert das Threading gleich mit.** Neben `attribution` und `quote` stehen
+  die Kopfdaten der Originalmail und ein `reply`-Objekt mit fertigem `In-Reply-To` und
+  `References` (bestehende Kette plus die `Message-ID` der Originalmail, RFC 5322 3.6.4).
+  Ohne diese Header startet eine Antwort beim Empfänger einen neuen Thread statt am
+  bestehenden zu hängen — das musste zuletzt nachträglich in die fertige `.eml` gepatcht
+  werden. Message-IDs werden dabei bewusst nicht RFC-2047-dekodiert, sie sind Adressen
+  und keine anzeigbaren Texte; die übrigen Kopffelder sind dekodiert und entfaltet,
+  ein langer Betreff steht damit ohne Zeilenumbruch in einem Feld.
+- **`swaks`/`build_mail.py`: Antworten korrekt zusammensetzen.** Neu sind
+  `--quote-text-file` und `--quote-html-file` (Zitatblock **unter** Body und Signatur,
+  Top-Posting) sowie `--in-reply-to` und `--references`. Bisher gab es für die
+  Threading-Header keine Option; bei einer Antwort musste `In-Reply-To` zuletzt
+  nachträglich per Script in die fertige `.eml` gepatcht werden. Ohne diese Header
+  startet eine Antwort im Client des Empfängers einen neuen Thread — was beim Versand
+  nicht auffällt, sondern erst beim Gegenüber, und dort nur als "die Antwort ist
+  untergegangen".
+- Der Quote geht in **beide** Parts. Fehlt die HTML-Fassung, wird sie aus dem Text
+  escaped nachgebaut; `--quote-html-file` **ohne** `--quote-text-file` bricht ab, sonst
+  hätte ein Part das Zitat und der andere nicht — je nachdem, welchen der Client
+  anzeigt, fehlte dem Empfänger der Bezug. Eine angegebene, aber **leere** Quote-Datei
+  bricht ebenfalls ab: sie entsteht, wenn `imap quote` fehlschlägt und die Ausgabe
+  trotzdem umgeleitet wurde, und die Antwort ginge sonst still ohne Zitat raus.
+- **`mail-as-me`: der `imap quote`-Aufruf ist bei jedem Reply Pflicht**, analog zum
+  humanizer-de-Audit. Selbst getippte `> `-Präfixe zählen ausdrücklich nicht als
+  erledigter Schritt. Die Ausführungszeile hat dafür ein fünftes Feld
+  (`Quote: <konto>/<uid>` bzw. `kein Reply`), damit ein vergessener Aufruf sichtbar
+  wird statt still durchzugehen; `kein Reply` und `nicht gelaufen` sind dabei zwei
+  verschiedene Aussagen. Neuer Abschnitt zu Zitat-Position (Top-Posting), Threading
+  und `Re:`-Präfix.
+
 ### 1.39.5
 
 - **`image-optimize`: `resize --output` nimmt jetzt ein Zielverzeichnis.** Bisher war

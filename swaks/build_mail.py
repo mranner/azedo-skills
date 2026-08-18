@@ -3,14 +3,18 @@
 # Baut eine multipart/alternative-Mail (Text + HTML) und gibt die komplette
 # DATA-Sektion (Header + Body) auf STDOUT aus. Die Ausgabe wird per
 # `swaks --data @-` versendet. Bei Anhaengen wird zusaetzlich multipart/mixed
-# um das alternative-Part gelegt.
-# version 1.35.0
+# um das alternative-Part gelegt. Bei einer Antwort kommt der Zitatblock aus
+# `imap quote` unter Body und Signatur (Top-Posting), die Threading-Header
+# In-Reply-To und References haengen die Antwort an den bestehenden Thread.
+# version 1.40.0
 
 import argparse
 import json
 import mimetypes
 import os
 import sys
+
+from html import escape as html_escape
 
 from email import encoders
 from email.mime.base import MIMEBase
@@ -83,6 +87,18 @@ parser.add_argument("--sig-html-file",
                     help="HTML-Signatur. Ohne Angabe: Standard-Signatur (s. --sig-text-file).")
 parser.add_argument("--no-sig", action="store_true",
                     help="Keine Signatur anhaengen (auch nicht die Standard-Signatur).")
+parser.add_argument("--quote-text-file",
+                    help="Zitatblock (Text) aus `imap quote`. Wird UNTER Body und "
+                         "Signatur angehaengt (Top-Posting).")
+parser.add_argument("--quote-html-file",
+                    help="Zitatblock (HTML) aus `imap quote --format html`. Ohne "
+                         "Angabe wird der Text-Quote escaped nachgebaut.")
+parser.add_argument("--in-reply-to",
+                    help="Message-ID der Mail, auf die geantwortet wird "
+                         "(Feld reply.in_reply_to aus `imap quote --json`).")
+parser.add_argument("--references",
+                    help="References-Kette der Antwort "
+                         "(Feld reply.references aus `imap quote --json`).")
 parser.add_argument("--attach", action="append", default=[])
 args = parser.parse_args()
 
@@ -119,6 +135,47 @@ if sig_text_file:
 
 if sig_html_file:
     html = html.rstrip() + "\n" + read(sig_html_file)
+
+# Zitatblock anhaengen — UNTER Body und Signatur (Top-Posting, so entschieden).
+# Er kommt fertig formatiert aus `imap quote` und wird hier nicht mehr angefasst:
+# Praefixe, Umbruch und Attributionszeile sind dort deterministisch erzeugt.
+
+quote_text = read(args.quote_text_file) if args.quote_text_file else ""
+quote_html = read(args.quote_html_file) if args.quote_html_file else ""
+
+# Eine angegebene, aber leere Quote-Datei ist ein Fehler, kein "kein Zitat":
+# sie entsteht, wenn `imap quote` fehlschlaegt (falsche UID, Mail inzwischen
+# verschoben) und die Ausgabe trotzdem umgeleitet wurde. Ohne diese Pruefung
+# ginge die Antwort still ohne Zitat raus — genau der Fall, den der Aufruf
+# von `imap quote` verhindern soll.
+
+for flag, path, content in (
+    ("--quote-text-file", args.quote_text_file, quote_text),
+    ("--quote-html-file", args.quote_html_file, quote_html),
+):
+    if path and not content.strip():
+        sys.exit(f"build_mail.py: Fehler — {flag} ist leer. `imap quote` duerfte "
+                 f"fehlgeschlagen sein (falsche UID oder falscher Ordner); die "
+                 f"Antwort ginge sonst ohne Zitat raus.")
+
+if quote_text or quote_html:
+
+    # Fehlt eine der beiden Fassungen, wird sie aus der anderen gebaut. Sonst
+    # haette ein Part das Zitat und der andere nicht — je nachdem, welchen der
+    # Client anzeigt, fehlte dem Empfaenger der Bezug.
+
+    if not quote_text and quote_html:
+        sys.exit("build_mail.py: Fehler — --quote-html-file ohne --quote-text-file. "
+                 "Den Text-Quote mit `imap quote <uid>` erzeugen; ohne ihn bliebe "
+                 "der Text-Part der Mail ohne Zitat.")
+
+    if not quote_html:
+        quote_html = ("<blockquote type=\"cite\">\n"
+                      + "<br>\n".join(html_escape(l) for l in quote_text.split("\n"))
+                      + "\n</blockquote>")
+
+    text = text.rstrip("\n") + "\n\n" + quote_text.rstrip("\n") + "\n"
+    html = html.rstrip() + "\n" + quote_html.rstrip() + "\n"
 
 # Hart abbrechen bei leerem Body: sonst wuerde swaks eine inhaltslose Mail
 # senden bzw. bei komplett leerer Ausgabe auf seine Default-Test-Mail zurueckfallen.
@@ -168,6 +225,16 @@ if args.bcc:
         "sie muessen im swaks-Envelope (--to) stehen, damit sie zugestellt werden.",
         file=sys.stderr,
     )
+
+# Threading: ohne diese beiden Header startet die Antwort im Client des
+# Empfaengers einen neuen Thread, statt am bestehenden zu haengen
+# (RFC 5322 3.6.4). Die Werte liefert `imap quote --json` im Feld `reply`.
+
+if args.in_reply_to:
+    msg["In-Reply-To"] = args.in_reply_to
+
+if args.references:
+    msg["References"] = args.references
 
 msg["Date"] = formatdate(localtime=True)
 

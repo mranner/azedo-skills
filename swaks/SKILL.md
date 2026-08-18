@@ -144,6 +144,7 @@ Hinweise:
 - **Leerer Body / Bau-Fehler:** `build_mail.py` bricht mit Exit ≠ 0 ab, wenn Text *und* HTML leer sind. Deshalb **nie direkt in `swaks` pipen** — bei einem Bau-Fehler (Exit ≠ 0 oder Interpreter nicht gefunden) läuft `swaks` sonst auf leerem STDIN und sendet seine eingebaute Default-Test-Mail. Immer erst in eine Datei bauen und mit `&& test -s <datei> && swaks … --data @<datei>` absichern. `set -o pipefail` allein genügt **nicht**, da `swaks` in der Pipe trotzdem startet.
 - **`--data` braucht zwingend das `@`:** `swaks --data <datei>` liest die Datei **nicht**, sondern verschickt den **Pfad als Body-Text**. Es gibt keine Fehlermeldung — swaks quittiert mit `250 Ok`, zugestellt wird eine Mail ohne Betreff und ohne die gebauten Header, mit dem Dateinamen als einzigem Inhalt. Beim Empfänger sieht das nach Spam oder kompromittiertem Konto aus, und zurückholen lässt es sich nicht. Immer `--data @<datei>` schreiben. Gegenprobe direkt nach dem Versand: die `size=`-Angabe der Queue-ID im Maillog des Relays gegen die Größe der `.eml` halten — ein paar hundert Bytes statt einiger KB heißt, das `@` hat gefehlt.
 - **Signatur:** wird automatisch aus `~/.claude/swaks-signature.*` (bzw. projektlokal `.claude/`) aufgelöst – die `--sig-*-file`-Zeilen sind **optional** und nur als expliziter Override nötig. Ganz weglassen: `--no-sig`.
+- **Antwort auf eine Mail:** `--quote-text-file` / `--quote-html-file` hängen den Zitatblock **unter** Body und Signatur an (Top-Posting), `--in-reply-to` / `--references` setzen die Threading-Header. Der Quote wird **nicht getippt**, sondern mit `imap quote` erzeugt — siehe eigener Abschnitt unten.
 - **Anhänge:** pro Datei ein `--attach <pfad>` an `build_mail.py` – dann wird `multipart/mixed` um das Text+HTML-Part gelegt (MIME-Type wird automatisch erraten):
 
 ```bash
@@ -156,6 +157,48 @@ python3 ~/.claude/skills/swaks/build_mail.py ... \
 ```
 
 Die folgenden Abschnitte (reiner Text-Body, HTML-Body, `--attach` direkt an swaks) sind **einfachere Sonderfälle** – nur nutzen, wenn explizit nur Text gewünscht ist oder es rein um einen Dateiversand ohne formatierten Body geht.
+
+## Antwort auf eine Mail (Zitat + Threading)
+
+Zwei Dinge unterscheiden eine Antwort von einer neuen Mail: der **Zitatblock** und die
+**Threading-Header**. Beide kommen fertig aus `imap quote` und werden hier nur noch
+eingesetzt — von Hand getippte `> `-Präfixe weichen bei jeder Mail leicht ab und
+ignorieren `format=flowed`.
+
+```bash
+Q=.tmp/reply
+mkdir -p $Q
+
+python3 ~/.claude/skills/imap/imap quote <uid> -a <konto> > $Q/quote.txt
+python3 ~/.claude/skills/imap/imap quote <uid> -a <konto> --format html > $Q/quote.html
+python3 ~/.claude/skills/imap/imap quote <uid> -a <konto> --json > $Q/quote.json
+
+IRT=$(python3 -c "import json;print(json.load(open('$Q/quote.json'))['reply']['in_reply_to'])")
+REF=$(python3 -c "import json;print(json.load(open('$Q/quote.json'))['reply']['references'])")
+
+python3 ~/.claude/skills/swaks/build_mail.py \
+  --subject "Re: <betreff>" \
+  --to "empfaenger@example.com" \
+  --text-file $Q/body.txt \
+  --html-file $Q/body.html \
+  --quote-text-file $Q/quote.txt \
+  --quote-html-file $Q/quote.html \
+  --in-reply-to "$IRT" \
+  --references "$REF" \
+  > $Q/mail.eml \
+  && test -s $Q/mail.eml \
+  && swaks --server <server> --to "empfaenger@example.com" --data @$Q/mail.eml
+```
+
+- **Position:** Antwort oben, Zitat unten (Top-Posting). Die Reihenfolge im fertigen Part ist Body → Signatur → Zitat. Der Body-Text enthält also **kein** Zitat, das hängt der Helper an.
+- **Beide Parts:** Der Quote geht in den Text- **und** den HTML-Part. Fehlt `--quote-html-file`, wird die HTML-Fassung aus dem Text escaped nachgebaut (`<blockquote type="cite">` mit `<br>`). Umgekehrt geht nicht: `--quote-html-file` **ohne** `--quote-text-file` bricht ab, sonst hätte ein Part das Zitat und der andere nicht.
+- **Leere Quote-Datei bricht ab.** Sie entsteht, wenn `imap quote` fehlschlägt (falsche UID, Mail inzwischen verschoben) und die Ausgabe trotzdem umgeleitet wurde. Ohne diese Prüfung ginge die Antwort still ohne Zitat raus.
+- **`reply`, nicht die Originalheader:** `--in-reply-to` und `--references` kommen aus dem Feld `reply` des `--json` — das sind die Werte für die **Antwort**. Die gleichnamigen Felder auf oberster Ebene sind die Header der Originalmail und gehören **nicht** hierher.
+- **Ohne Threading-Header startet die Antwort beim Empfänger einen neuen Thread.** Das fällt beim Versand nicht auf, sondern erst beim Gegenüber — und dort nur als "die Antwort ist untergegangen".
+- **Betreff:** `Re: ` genau einmal. Trägt der Originalbetreff schon `Re:` oder `AW:`, bleibt das vorhandene Präfix stehen.
+
+Kommt der Entwurf aus `mail-as-me`, ist der `imap quote`-Aufruf dort ohnehin
+Pflichtschritt — siehe dessen SKILL.md.
 
 ## Grundbefehl
 

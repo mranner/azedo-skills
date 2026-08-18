@@ -106,15 +106,25 @@ Eingabe: Empfaenger (+ Thema **oder** eine Reply-`.eml`). Ablauf:
    Einstieg, Abstraktum statt konkretem Sachverhalt, Nebenbefunde ohne
    Handlungsrelevanz, doppeltes Hedging, "Rueckfall" fuer Software).
    Beides ist noetig, keines ersetzt das andere.
-5. Entwurf zeigen, **immer mit der Ausfuehrungszeile** (siehe unten). Optional
+5. **Pflicht-Aufruf `imap quote` bei jedem Reply.** Liegt ein Reply-Kontext vor
+   (eine Mail, auf die geantwortet wird -- UID im Postfach oder eine `.eml`), wird
+   der Zitatblock **nicht getippt, sondern erzeugt**: `imap quote <uid> -a <konto>`
+   fuer den Text-Part, `--format html` fuer den HTML-Part, `--json` fuer die
+   Threading-Header. Selbst gesetzte `> `-Praefixe zaehlen **nicht** als erledigter
+   Schritt 5 -- sie sehen auf den ersten Blick gleich aus, weichen aber bei jeder
+   Mail leicht ab und ignorieren `format=flowed` und die Threading-Header. Kein
+   Reply-Kontext: der Schritt entfaellt und wird als `kein Reply` ausgewiesen.
+6. Entwurf zeigen, **immer mit der Ausfuehrungszeile** (siehe unten). Optional
    Versand ueber **swaks** (Text + HTML), Signatur dort; Absender und Bcc kommen
    aus `config.json.send` (siehe Abschnitt Versand).
 
 ### rewrite — bestehenden Entwurf in-voice bringen
 
 Nimmt einen Entwurf (eigener oder fremder), gleicht ihn an das Profil an und laeuft
-denselben **verbindlichen** humanizer-de-Audit aus Schritt 4 von `draft`, inklusive
-Ausfuehrungszeile beim Zeigen. Fuer „mach diese Mail wie ich". Gilt auch hier: **das
+denselben **verbindlichen** humanizer-de-Audit aus Schritt 4 von `draft` sowie -- bei
+Reply-Kontext -- den **Pflicht-Aufruf** von `imap quote` aus Schritt 5, inklusive
+Ausfuehrungszeile beim Zeigen. Bringt der Entwurf bereits ein von Hand getipptes Zitat
+mit, wird es **ersetzt**, nicht uebernommen. Fuer „mach diese Mail wie ich". Gilt auch hier: **das
 Gegenueber nie spiegeln** (Sprache/Stil/Region), ein fremder Ausgangston wird auf die
 eigene Stimme gezogen, nicht beibehalten.
 
@@ -137,10 +147,10 @@ tatsaechlich gelaufen sind. Sie steht vor dem Entwurf, nicht danach, und wird au
 kurzen Mails gesetzt:
 
 ```
-Schritte: Profil michael · Register sachlich (example.ch) · Beispiele 76421, 76512 · humanizer-de Sachlich/Nur-Audit: Preflight low, keine HIGH-Cluster
+Schritte: Profil michael · Register sachlich (example.ch) · Beispiele 76421, 76512 · humanizer-de Sachlich/Nur-Audit: Preflight low, keine HIGH-Cluster · Quote office/200
 ```
 
-Vier Felder, immer in dieser Reihenfolge:
+Fuenf Felder, immer in dieser Reihenfolge:
 
 | Feld | Inhalt |
 |---|---|
@@ -148,9 +158,12 @@ Vier Felder, immer in dieser Reihenfolge:
 | Register | bestimmtes Register + Herkunft (Domain aus `register_map`, sonst „nachgefragt") |
 | Beispiele | IDs/Dateinamen der geladenen Beispiele aus `corpus/clean/` |
 | humanizer-de | Modus/Zweig + Ergebnis in Kurzform (Preflight-Stufe, Cluster-Befund) |
+| Quote | `<konto>/<uid>` der zitierten Mail, sonst `kein Reply` |
 
 Ist ein Schritt nicht gelaufen, wird das **ausgeschrieben** (`humanizer-de: nicht
-gelaufen`), statt das Feld wegzulassen. Ein fehlendes Feld ist genau der Fall, der
+gelaufen`, `Quote: nicht gelaufen`), statt das Feld wegzulassen. `kein Reply` und
+`nicht gelaufen` sind dabei zwei verschiedene Aussagen: das eine heisst, es gab nichts
+zu zitieren, das andere, dass es etwas zu zitieren gab und der Aufruf unterblieb. Ein fehlendes Feld ist genau der Fall, der
 unbemerkt durchrutscht; eine Zeile, die einen Schritt als gelaufen ausweist, der nicht
 gelaufen ist, ist eine Falschaussage und schlimmer als gar keine Zeile.
 
@@ -204,6 +217,63 @@ an. Die Signatur bleibt beim eigenen Absender aus `send.from` dran (die globale
 Signatur ist die eigene, siehe swaks-Skill) — der Wechsel des Absenders ist **kein**
 Ausschlussgrund.
 
+## Antworten: Zitat und Threading
+
+Bei einer Antwort kommen drei Dinge nicht aus dem Entwurf, sondern aus `imap quote`:
+der **Text-Quote**, der **HTML-Quote** und die beiden **Threading-Header**. Der Grund
+ist derselbe wie beim humanizer-de-Audit: was das Modell selbst tippt, weicht bei jeder
+Mail leicht ab. Ein Zitat ist Formatarbeit, keine Formulierungsarbeit.
+
+**Position: Antwort oben, Zitat unten** (Top-Posting). Die Reihenfolge im fertigen
+Text-Part ist Antwort -> Signatur -> Zitat; `build_mail.py` setzt sie so zusammen,
+solange der Quote ueber `--quote-text-file`/`--quote-html-file` hereinkommt. Der Entwurf
+selbst enthaelt also **kein** Zitat.
+
+```bash
+Q=.tmp/reply
+mkdir -p $Q
+
+# 1. Zitat und Threading erzeugen -- nicht tippen
+python3 ~/.claude/skills/imap/imap quote <uid> -a <konto> > $Q/quote.txt
+python3 ~/.claude/skills/imap/imap quote <uid> -a <konto> --format html > $Q/quote.html
+python3 ~/.claude/skills/imap/imap quote <uid> -a <konto> --json > $Q/quote.json
+
+# 2. Threading-Header abgreifen (Feld `reply`, nicht die Header der Originalmail)
+IRT=$(python3 -c "import json;print(json.load(open('$Q/quote.json'))['reply']['in_reply_to'])")
+REF=$(python3 -c "import json;print(json.load(open('$Q/quote.json'))['reply']['references'])")
+
+# 3. Mail bauen -- Body ohne Zitat, der Helper haengt es unter die Signatur
+python3 ~/.claude/skills/swaks/build_mail.py \
+  --subject "Re: <betreff>" \
+  --to "empfaenger@example.com" \
+  --from ich@example.org \
+  --text-file $Q/body.txt \
+  --html-file $Q/body.html \
+  --quote-text-file $Q/quote.txt \
+  --quote-html-file $Q/quote.html \
+  --in-reply-to "$IRT" \
+  --references "$REF" \
+  > $Q/mail.eml \
+  && test -s $Q/mail.eml \
+  && swaks --server <server> --to "empfaenger@example.com" \
+      --from ich@example.org --data @$Q/mail.eml
+```
+
+Zum Betreff: `Re: ` wird **einmal** vorangestellt. Traegt der Originalbetreff bereits
+ein `Re:` (oder das deutsche `AW:`), bleibt es bei dem vorhandenen Praefix -- `Re: AW:
+Re: ...` ist ein sicheres Zeichen dafuer, dass der Betreff zusammengetippt statt
+uebernommen wurde.
+
+**Warum die Threading-Header nicht optional sind:** ohne `In-Reply-To` und `References`
+startet die Antwort im Mailclient des Empfaengers einen **neuen** Thread. Das faellt
+beim Versand nicht auf, sondern erst beim Gegenueber -- und dort auch nur als
+diffuses "die Antwort ist irgendwo untergegangen". Es ist genau der Fehler, der zuletzt
+nachtraeglich in die fertige `.eml` gepatcht werden musste.
+
+**Liegt die Mail als `.eml` statt im Postfach**, gibt es keine UID -- dann bleibt nur
+der handgebaute Weg. Das ist der einzige Fall, in dem das Zitat nicht aus `imap quote`
+kommt; in der Ausfuehrungszeile steht dann `Quote: aus .eml` statt einer UID.
+
 ## Anti-Patterns / KI-Tells → humanizer-de
 
 Die sprachlichen Anti-Patterns (Gedankenstrich, Nominalkomposita, elliptische
@@ -217,6 +287,9 @@ Bezug; diese Checkliste ist die **Ergaenzung** zum Skill-Lauf, nicht sein Ersatz
 
 - **humanizer-de** - verbindlicher KI-Tell-Audit in Schritt 4 von `draft`/`rewrite`,
   kein optionaler Self-Check; Ergebnis gehoert in die Ausfuehrungszeile.
+- **imap** - `quote` erzeugt bei jeder Antwort den Zitatblock und die
+  Threading-Header (Schritt 5). Ebenfalls ein Aufruf, kein Nachbauen; Ergebnis
+  gehoert als fuenftes Feld in die Ausfuehrungszeile.
 - **swaks** — Versand (`mail-as-me` schreibt, `swaks` sendet; Signatur kommt aus
   swaks, Absender und Bcc aus `config.json.send` des Profils).
 - **kanboard/handoff** — optional CR-Kontext fuer den `learn`-Loop.

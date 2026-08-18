@@ -129,6 +129,9 @@ Posteingang-Triage über mehrere IMAP-Konten — das Gegenstück zu `swaks`. Unt
 - Mails auflisten (`list`, ohne Konto über alle Konten, `--unseen`/`--since`) und lesen (`read`)
 - `fetch` holt einen Stapel Mails mit **einem** Login (`--uids`/`--uid-file`, `-o` schreibt je UID
   eine Datei) — das lesende Gegenstück zu `batch`
+- `quote` erzeugt den Zitatblock für eine Antwort im Thunderbird-Format (`--format text|html`,
+  `--width`), löst vorher `format=flowed` auf und liefert per `--json` die Threading-Header
+  (`In-Reply-To`, `References`) gleich mit
 - Gelesen wird mit `BODY.PEEK` — der Ungelesen-Status bleibt unangetastet
 - Einsortieren, als Spam markieren, in den Papierkorb (`delete` expunged nie), Flags setzen
 - Sonderrollen (`junk`, `trash`, `archive`) statt Ordnernamen, per SPECIAL-USE am Server aufgelöst
@@ -502,10 +505,20 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.39.5
+### 1.40.0
 
-- **`image-optimize`: `resize --output` nimmt jetzt ein Zielverzeichnis.** Mehrere
-  Bilder plus Verzeichnis als Ziel scheiterten bisher pro Datei an `gm convert:
-  Unable to open file`, bei Exit-Code 0 und Erfolgsmeldungen im Log. Ein Datei-Ziel
-  mit mehreren Eingaben bricht jetzt sauber ab (Exit 2), `gm`-Fehler setzen den
-  Exit-Code auf 1.
+- **`imap`: neuer Subcommand `quote`** — Zitatblock für eine Antwort im
+  Thunderbird-Format, deterministisch statt von Hand getippt: Attributionszeile mit
+  lokaler Zeit, `> `-Präfixe, bereits zitierte Zeilen eine Ebene tiefer, Umbruch bei
+  `--width` Zeichen inklusive Zitatzeichen.
+- `format=flowed` (RFC 3676) wird vorher aufgelöst, sonst trifft der eigene Umbruch
+  auf den fremden und zerlegt jeden Absatz sägezahnförmig. `--format html` übernimmt
+  den HTML-Part in ein `<blockquote type="cite">`, `--json` liefert `In-Reply-To` und
+  `References` für die Antwort gleich mit.
+- **`swaks`/`build_mail.py`:** `--quote-text-file`/`--quote-html-file` hängen den
+  Zitatblock unter Body und Signatur (Top-Posting), `--in-reply-to`/`--references`
+  setzen die Threading-Header — bisher musste `In-Reply-To` nachträglich in die
+  fertige `.eml` gepatcht werden.
+- **`mail-as-me`:** `imap quote` ist bei jedem Reply Pflichtschritt, die
+  Ausführungszeile weist ihn als fünftes Feld aus (`Quote: <konto>/<uid>` bzw.
+  `kein Reply`).
