@@ -3,6 +3,44 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.41.0
+
+- **`imap`: neuer Subcommand `find` — Message-ID zu Konto, Ordner und UID auflösen.**
+  Eine als Text oder Markdown einkopierte Mail nennt Ordner, Betreff und Message-ID,
+  aber nie die UID — die vergibt der Server je Ordner. Bisher blieb dafür der Umweg
+  über `folders` + `list` samt Handabgleich von Betreff und Datum, inklusive Raten,
+  welches Konto mit dem Anzeigenamen aus dem Mailclient gemeint ist. `find -m <id>`
+  sucht ordnerweise (INBOX zuerst, dann alphabetisch) und ohne `--account` über alle
+  Konten; Ausgabe ist `<konto>/<ordner>/<uid>` plus Absender und Betreff zur
+  Gegenprobe, im `--json` dieselben Felder wie bei `list`. Spitze Klammern sind
+  optional, ein vorangestelltes `Message-ID:` wird abgeschnitten. `--all` sucht über
+  den ersten Treffer hinaus weiter und findet damit auch Kopien in Archiv oder
+  Zweitkonto.
+- **Kein Treffer ist bei `find` ein Fehler (Exit-Code 1)**, anders als eine leere
+  Inbox: gesucht wird nach einer bestimmten Mail, die es geben soll. Mit Exit-Code 0
+  liefe eine Pipeline still mit fehlendem Zitat weiter.
+- **`quote --message-id` als Alternative zur UID.** Konto, Ordner und UID kommen dann
+  aus dem Treffer; `-a`/`-f` grenzen die Suche nur noch ein. Damit ist der häufigste
+  Fehlgriff konstruktiv ausgeschlossen: UIDs sind **ordner-lokal**, `quote 207 -a
+  <konto>` ohne `-f` zitiert INBOX/207 — die es meist gibt, nur ist es eine andere
+  Mail, und der Aufruf läuft ohne Fehlermeldung durch. Die Beispiele in `SKILL.md`
+  führen `-f` deshalb durchgängig mit, samt eigenem Eintrag unter Fallstricke.
+- **`mail-as-me`: Betreff und Empfänger kommen aus `quote --json`**, nicht aus dem
+  Auftrag und nicht abgeschrieben. `subject` bekommt ein `Re: ` vorangestellt (außer
+  es trägt bereits `Re:`/`AW:`), Reply-All ist `from + to + cc` minus der eigenen
+  Adressen aus `config.json.send`. Ein abgetippter Betreff verliert genau die Zeichen,
+  an denen der Client den Thread erkennt; Empfänger aus dem Auftrag verlieren still
+  den Mitleser im `Cc`. Das Snippet im Skill rechnet beides aus.
+- **`mail-as-me`: Faktencheck ist ein eigener Ablaufschritt** (neu Schritt 3, vor dem
+  Entwurf) statt einer Zeile in der Anti-Pattern-Liste fürs Formulieren. Geprüft wird,
+  welche Tatsachenbehauptung und welche Machbarkeitszusage in die Mail soll und ob sie
+  belegt ist — belegt heißt nachgesehen, nicht plausibel. Auslöser war ein Entwurf,
+  der eine Datenübernahme zusagte, ohne dass geprüft war, ob im Quellsystem überhaupt
+  Werte stehen (sie standen nicht). Ein Audit findet diese Klasse nicht: die Zusage
+  liest sich sauber. Die Ausführungszeile hat dafür ein sechstes Feld, mit derselben
+  Unterscheidung wie beim Quote (`keine Zusage` heißt, es gab nichts zu prüfen;
+  `nicht gelaufen` heißt, es gab etwas und geprüft wurde nicht).
+
 ### 1.40.0
 
 - **`imap`: neuer Subcommand `quote` — Zitatblock für eine Antwort.** Bisher entstand

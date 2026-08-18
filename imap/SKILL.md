@@ -6,7 +6,8 @@ description: >
   verschieben sowie zwischen zwei Konten kopieren und verschieben. Anhaenge
   lassen sich auflisten und herausschreiben, etwa um sie an einen Task oder ein
   Ticket zu haengen. Fuer eine Antwort erzeugt `quote` den Zitatblock im
-  Thunderbird-Format samt Threading-Headern. Zugangsdaten
+  Thunderbird-Format samt Threading-Headern; `find` loest eine Message-ID zu
+  Konto, Ordner und UID auf. Zugangsdaten
   kommen aus der muttrc (`account-hook`), es gibt keine zweite Credential-Datei.
   Gelesen wird mit BODY.PEEK, der Ungelesen-Status bleibt dabei unangetastet.
   Schreibende Aktionen laufen ausschliesslich gebuendelt ueber `batch` und erst
@@ -16,7 +17,8 @@ description: >
   Spam aussortieren oder Mails zwischen Konten bewegen will. Auch aktiv
   verwenden bei "geh meine Inbox durch", "was ist heute reingekommen", "raeum
   den Posteingang auf", "gibt es was Wichtiges in der Mail", "verschieb das ins
-  Archiv", "hol den Anhang aus der Mail", "zitier die Mail fuer meine Antwort".
+  Archiv", "hol den Anhang aus der Mail", "zitier die Mail fuer meine Antwort",
+  "finde die Mail mit dieser Message-ID".
   Trigger: /imap.
 ---
 
@@ -59,6 +61,15 @@ Konto, wird es **uebersprungen** statt geraten.
 `office.example.at` -> `office`. Ohne `--account` gilt das Konto aus `set folder`
 als Default; `list` ohne `--account` fragt **alle** Konten ab.
 
+**Der Kontoname hier ist nicht der aus Thunderbird.** Dort steht ein frei
+vergebener Anzeigename ("Arbeit", "privat", der eigene Nachname), hier das erste
+Label des Hostnamens -- eine Mail, die aus Thunderbird als Text herauskopiert
+wurde, nennt also ein Konto, das dieser Skill nicht kennt. Statt zu raten oder
+ein Mapping zu pflegen: `find` fragt ohne `--account` ohnehin alle Konten ab und
+liefert den richtigen Namen mit. Wer das Mapping trotzdem festhalten will,
+schreibt es in `~/.claude/imap-triage.md` (persoenliche Datei, siehe unten) --
+nicht in diesen Skill.
+
 ## Lesende Befehle
 
 | Befehl | Zweck |
@@ -66,6 +77,7 @@ als Default; `list` ohne `--account` fragt **alle** Konten ab.
 | `accounts` | konfigurierte Konten (ohne Passwoerter) |
 | `folders -a <konto>` | Ordnerliste, Separator, Sonderordner, Server-Capabilities |
 | `list [-a <konto>]` | Kopfdaten ohne Body |
+| `find -m <message-id>` | Message-ID zu Konto, Ordner und UID aufloesen |
 | `read <uid> -a <konto>` | Textkoerper einer Mail |
 | `fetch --uids <liste> -a <konto>` | mehrere Mails mit **einem** Login |
 | `quote <uid> -a <konto>` | Zitatblock fuer eine Antwort (Text oder HTML) |
@@ -121,6 +133,39 @@ Beides kostet **keinen** zusaetzlichen IMAP-Roundtrip: `BODY.PEEK[]` holt ohnehi
 die vollstaendige Rohnachricht, sie wurde bisher nur weggefiltert. `BODY.PEEK`
 gilt unveraendert -- auch mit `--headers`/`--raw` bleibt der Ungelesen-Status.
 
+## `find` -- von der Message-ID zur UID
+
+Der Gegenweg zu `list`: dort ist die UID der Ausgangspunkt, hier die
+**Message-ID**. Eine als Text oder Markdown einkopierte Mail nennt Ordner,
+Betreff und Message-ID -- aber **nie** die UID, denn die vergibt der Server je
+Ordner. Ohne `find` bleibt der Umweg ueber `folders` + `list` und ein
+Handabgleich von Betreff und Datum:
+
+```
+python3 "$SKILL_DIR/imap" find -m "<abc@example.org>"
+python3 "$SKILL_DIR/imap" find -m abc@example.org -a office     # Konto bekannt
+python3 "$SKILL_DIR/imap" find -m abc@example.org -a office -f ToDo
+python3 "$SKILL_DIR/imap" find -m abc@example.org --all --json  # auch Kopien
+```
+
+Ausgabe `<konto>/<ordner>/<uid>` plus Absender und Betreff zur Gegenprobe; im
+`--json` dieselben Felder wie bei `list`. Die spitzen Klammern sind optional,
+ein vorangestelltes `Message-ID:` wird abgeschnitten -- der Wert darf also aus
+einem Header-Auszug kopiert sein.
+
+**Gesucht wird ordnerweise**, INBOX zuerst, danach alphabetisch; ohne
+`--account` ueber alle konfigurierten Konten. Beim ersten Treffer ist Schluss --
+`--all` sucht weiter und findet damit auch Kopien in Archiv oder Zweitkonto. Ein
+Sweep ueber ein gewachsenes Postfach dauert dabei durchaus eine Minute (je
+Ordner ein SELECT und ein SEARCH); `-a` und `-f` kuerzen das entsprechend ab.
+
+**Kein Treffer ist hier ein Fehler** (Exit-Code 1), anders als bei einer leeren
+Inbox: gesucht wird nach einer bestimmten Mail, die es geben soll. Ohne diesen
+Exit-Code liefe eine Pipeline still mit fehlendem Zitat weiter.
+
+Nicht durchsucht werden `\Noselect`-Eintraege -- das sind reine Zwischenknoten
+der Ordnerhierarchie, keine Mailboxen.
+
 ## `fetch` -- ein Stapel Mails, ein Login
 
 `read` oeffnet **je Aufruf** eine eigene Verbindung samt Login. Fuer einen Stapel
@@ -174,11 +219,17 @@ getippt werden, weicht das Format bei jeder Mail leicht ab -- mal ein Leerzeiche
 zu viel, mal ein anderer Umbruch, mal eine erfundene Attributionszeile.
 
 ```
-python3 "$SKILL_DIR/imap" quote 8841 -a office
-python3 "$SKILL_DIR/imap" quote 8841 -a office --format html
-python3 "$SKILL_DIR/imap" quote 8841 -a office --width 0      # kein Umbruch
-python3 "$SKILL_DIR/imap" quote 8841 -a office --json
+python3 "$SKILL_DIR/imap" quote 8841 -a office -f ToDo
+python3 "$SKILL_DIR/imap" quote 8841 -a office -f ToDo --format html
+python3 "$SKILL_DIR/imap" quote 8841 -a office -f ToDo --width 0   # kein Umbruch
+python3 "$SKILL_DIR/imap" quote 8841 -a office -f ToDo --json
 ```
+
+**`--folder` gehoert dazu, sobald die Mail nicht in der INBOX liegt.** UIDs sind
+**ordner-lokal**: `quote 8841 -a office` zitiert INBOX/8841, und die gibt es dort
+sehr wahrscheinlich auch -- nur ist es eine andere Mail. Der Aufruf laeuft dann
+ohne Fehlermeldung durch und liefert ein sauber formatiertes Zitat aus einer
+fremden Mail. Der Default `INBOX` ist bequem, aber er raet.
 
 Ergebnis auf stdout, fertig zum Anhaengen an die Antwort:
 
@@ -206,6 +257,22 @@ Die Regeln im Einzelnen:
   ab. Bleiben durch tiefe Verschachtelung weniger als 20 nutzbare Zeichen, wird
   die Zeile nicht mehr umgebrochen -- sonst zerfaellt sie in Wortfragmente.
 - **Anhaenge werden nicht zitiert**, `BODY.PEEK` gilt unveraendert.
+
+### `--message-id` statt UID
+
+Ist nur die Message-ID bekannt (einkopierte Mail, Header-Auszug, Log), loest
+`quote` sie selbst auf -- Konto, Ordner **und** UID kommen dann aus dem Treffer,
+womit der `--folder`-Fehlgriff oben gar nicht erst moeglich ist:
+
+```
+python3 "$SKILL_DIR/imap" quote -m "<abc@example.org>" --json
+python3 "$SKILL_DIR/imap" quote -m abc@example.org -a office -f ToDo
+```
+
+`-a`/`-f` grenzen die Suche nur ein (und beschleunigen sie), noetig sind sie
+nicht. Genau eines von UID und `--message-id` muss angegeben sein; findet sich
+die Message-ID nirgends, bricht der Aufruf ab, statt eine INBOX-UID zu zitieren.
+Der Suchweg ist derselbe wie bei `find` (siehe dort).
 
 ### `format=flowed` wird vorher aufgeloest
 
@@ -478,6 +545,11 @@ ok / einzeln anpassen?
   erneut; ohne das liefe Dovecot unnoetig in den COPY-Fallback.
 - **`UID EXPUNGE` statt `EXPUNGE`** im Fallback ohne `MOVE`. Nacktes `EXPUNGE`
   wuerde alle als geloescht markierten Mails des Ordners mitnehmen.
+- **UIDs sind ordner-lokal.** Dieselbe Nummer existiert in jedem Ordner und
+  meint dort eine andere Mail. Zu jeder UID gehoert deshalb `-f <ordner>`,
+  sobald sie nicht aus der INBOX stammt -- ein fehlendes `-f` liefert keinen
+  Fehler, sondern die falsche Mail. Wo nur die Message-ID bekannt ist, `find`
+  bzw. `quote --message-id` verwenden, statt die UID zu suchen.
 - **Zitate nie selbst tippen.** Fuer eine Antwort immer `quote` aufrufen. Ein
   von Hand gesetztes `> ` sieht auf den ersten Blick gleich aus, weicht aber bei
   jeder Mail leicht ab und ignoriert `format=flowed` und die Threading-Header.

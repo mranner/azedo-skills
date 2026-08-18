@@ -132,6 +132,9 @@ Posteingang-Triage über mehrere IMAP-Konten — das Gegenstück zu `swaks`. Unt
 - `quote` erzeugt den Zitatblock für eine Antwort im Thunderbird-Format (`--format text|html`,
   `--width`), löst vorher `format=flowed` auf und liefert per `--json` die Threading-Header
   (`In-Reply-To`, `References`) gleich mit
+- `find -m <message-id>` löst eine Message-ID zu Konto, Ordner und UID auf (ohne Konto über alle
+  Konten, INBOX zuerst); `quote -m` nimmt dieselbe Angabe direkt statt einer UID — UIDs sind
+  ordner-lokal, ein fehlendes `--folder` zitiert sonst still die gleichnamige Mail der INBOX
 - Gelesen wird mit `BODY.PEEK` — der Ungelesen-Status bleibt unangetastet
 - Einsortieren, als Spam markieren, in den Papierkorb (`delete` expunged nie), Flags setzen
 - Sonderrollen (`junk`, `trash`, `archive`) statt Ordnernamen, per SPECIAL-USE am Server aufgelöst
@@ -505,20 +508,19 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.40.0
+### 1.41.0
 
-- **`imap`: neuer Subcommand `quote`** — Zitatblock für eine Antwort im
-  Thunderbird-Format, deterministisch statt von Hand getippt: Attributionszeile mit
-  lokaler Zeit, `> `-Präfixe, bereits zitierte Zeilen eine Ebene tiefer, Umbruch bei
-  `--width` Zeichen inklusive Zitatzeichen.
-- `format=flowed` (RFC 3676) wird vorher aufgelöst, sonst trifft der eigene Umbruch
-  auf den fremden und zerlegt jeden Absatz sägezahnförmig. `--format html` übernimmt
-  den HTML-Part in ein `<blockquote type="cite">`, `--json` liefert `In-Reply-To` und
-  `References` für die Antwort gleich mit.
-- **`swaks`/`build_mail.py`:** `--quote-text-file`/`--quote-html-file` hängen den
-  Zitatblock unter Body und Signatur (Top-Posting), `--in-reply-to`/`--references`
-  setzen die Threading-Header — bisher musste `In-Reply-To` nachträglich in die
-  fertige `.eml` gepatcht werden.
-- **`mail-as-me`:** `imap quote` ist bei jedem Reply Pflichtschritt, die
-  Ausführungszeile weist ihn als fünftes Feld aus (`Quote: <konto>/<uid>` bzw.
-  `kein Reply`).
+- **`imap`: neuer Subcommand `find`** — löst eine Message-ID zu Konto, Ordner und UID
+  auf (ordnerweise, INBOX zuerst, ohne `--account` über alle Konten; `--all` findet
+  auch Kopien). Kein Treffer ist ein Fehler mit Exit-Code 1, damit eine Pipeline nicht
+  still ohne Zitat weiterläuft.
+- **`quote --message-id`** als Alternative zur UID: Konto, Ordner und UID kommen aus
+  dem Treffer. UIDs sind **ordner-lokal** — `quote <uid>` ohne `--folder` zitiert die
+  gleichnamige Mail der INBOX, ohne Fehlermeldung. Die Beispiele führen `-f` jetzt
+  durchgängig mit.
+- **`mail-as-me`:** Betreff und Empfänger kommen aus `quote --json` (`subject` plus
+  `Re: `, Reply-All als `from + to + cc` minus eigener Adressen) statt aus dem Auftrag.
+- **`mail-as-me`:** Faktencheck ist ein eigener Schritt **vor** dem Entwurf, nicht ein
+  Punkt in der Anti-Pattern-Liste fürs Formulieren — eine unbelegte Zusage liest sich
+  sauber und wird von keinem Audit gefunden. Die Ausführungszeile hat dafür ein
+  sechstes Feld.

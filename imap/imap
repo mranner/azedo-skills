@@ -3,7 +3,7 @@
 # IMAP-Helper fuer Posteingang-Triage
 # Liest Zugangsdaten aus muttrc, arbeitet gegen mehrere Konten.
 # stdlib only, keine pip-Abhaengigkeiten. Lauffaehig auf macOS + FreeBSD.
-# version 1.40.0
+# version 1.41.0
 
 import argparse
 import email
@@ -355,7 +355,17 @@ class Account:
         if not uids:
             return []
         uids = uids[-limit:] if limit else uids
-        uid_set = b",".join(uids).decode()
+        return self.fetch_envelopes([int(u) for u in uids], folder)
+
+    def fetch_envelopes(self, uids, folder="INBOX"):
+        """Kopfdaten zu bekannten UIDs - der Ordner ist bereits gewaehlt.
+
+        Aus envelopes() herausgezogen, damit auch eine Suche ueber die
+        Message-ID (find) dieselben Felder liefert und nicht eine zweite,
+        leicht abweichende Ausgabestruktur entsteht."""
+        if not uids:
+            return []
+        uid_set = ",".join(str(u) for u in uids)
 
         typ, data = self.conn.uid(
             "FETCH", uid_set,
@@ -389,6 +399,36 @@ class Account:
             })
         out.sort(key=lambda m: m["uid"])
         return out
+
+    def scan_message_id(self, message_id, folder):
+        """Einen Ordner nach einer Message-ID durchsuchen.
+
+        Anders als sonst ist ein Fehler hier **kein** Abbruchgrund: beim Sweep
+        ueber alle Ordner eines Kontos ist ein nicht waehlbarer Ordner (fremde
+        Freigabe, gerade geloescht, kein Zugriff) der Normalfall - er darf die
+        Suche in den uebrigen nicht beenden."""
+        try:
+            typ, _ = self.conn.select(quote_mailbox(folder), readonly=True)
+            if typ != "OK":
+                return []
+            self._selected = (folder, True)
+            typ, data = self.conn.uid(
+                "SEARCH", None, "HEADER", "Message-ID", f'"{message_id}"'
+            )
+            if typ != "OK" or not data or not data[0]:
+                return []
+            uids = [int(u) for u in data[0].split()]
+
+            # Server, die HEADER nur als Teilstring auswerten, liefern hier
+            # auch eine Mail, deren Message-ID die gesuchte enthaelt. Der
+            # Gegencheck unten faengt das ab.
+
+            rows = self.fetch_envelopes(uids, folder)
+        except imaplib.IMAP4.error:
+            return []
+        except ValueError:
+            return []
+        return [r for r in rows if r["message_id"].strip() == message_id]
 
     def peek_raw(self, uid, folder="INBOX"):
         """Rohnachricht holen, ohne \\Seen zu setzen.
@@ -1062,6 +1102,55 @@ def sender_short(addr):
     return name or mail or addr or ""
 
 
+def normalize_message_id(raw):
+    """Message-ID aus einer Kopie-Paste-Fassung herausschaelen.
+
+    Eine Message-ID wird typischerweise aus einem Mailclient oder einem
+    Markdown-Auszug kopiert - mal mit Header-Namen davor, mal ohne spitze
+    Klammern. Beides ist gemeint, also wird beides akzeptiert, statt an der
+    Schreibweise zu scheitern."""
+    mid = (raw or "").strip()
+    mid = re.sub(r"^message-id\s*:\s*", "", mid, flags=re.I).strip()
+    mid = mid.strip("<>").strip()
+    if not mid:
+        die("leere Message-ID")
+    return f"<{mid}>"
+
+
+def selectable_folders(a):
+    """Ordner eines Kontos in Suchreihenfolge - INBOX zuerst.
+
+    \\Noselect-Eintraege sind reine Zwischenknoten der Hierarchie und lassen
+    sich nicht durchsuchen."""
+    names = [
+        f["raw"] for f in a.folders()
+        if not any(fl.lower() == "\\noselect" for fl in f["flags"])
+    ]
+    names.sort(key=lambda n: (n.upper() != "INBOX", n.upper()))
+    return names
+
+
+def locate_message_id(accounts, message_id, account=None, folder=None,
+                      stop_at_first=True):
+    """Eine Message-ID ueber Konten und Ordner hinweg suchen.
+
+    Der Weg von der Message-ID zur UID: eine einkopierte Mail nennt Ordner und
+    Message-ID, aber nie die UID - und die UID ist ordner-lokal, laesst sich
+    also auch nicht raten. Gesucht wird je Konto in einer Session; ohne
+    --account ueber alle konfigurierten Konten."""
+    targets = ([pick_account(accounts, account)] if account
+               else sorted(accounts.values(), key=lambda a: a["alias"]))
+    hits = []
+    for cfg in targets:
+        with Account(cfg) as a:
+            for name in ([folder] if folder else selectable_folders(a)):
+                found = a.scan_message_id(message_id, name)
+                hits.extend(found)
+                if found and stop_at_first:
+                    return hits
+    return hits
+
+
 def out_json(obj):
     print(json.dumps(obj, indent=2, ensure_ascii=False))
 
@@ -1136,6 +1225,35 @@ def cmd_list(args, accounts):
     print(f"\n{len(result)} Mails")
 
 
+def cmd_find(args, accounts):
+    """Message-ID zu Konto, Ordner und UID aufloesen.
+
+    Der Gegenweg zu 'list': dort ist die UID der Ausgangspunkt, hier die
+    Message-ID. Eine als Text oder Markdown einkopierte Mail nennt genau diese
+    - der Umweg ueber 'folders' + 'list' samt Abgleich von Betreff und Datum
+    entfaellt damit."""
+    mid = normalize_message_id(args.message_id)
+    hits = locate_message_id(accounts, mid, args.account, args.folder,
+                             stop_at_first=not args.all)
+
+    if args.json:
+        out_json(hits)
+    else:
+        for m in hits:
+            print(f"{m['account']}/{m['folder']}/{m['uid']}  "
+                  f"{short(sender_short(m['from']), 26):<26} "
+                  f"{short(m['subject'], 58)}")
+        if not hits:
+            print(f"keine Mail mit Message-ID {mid} gefunden", file=sys.stderr)
+
+    # Nicht gefunden ist hier ein Fehler, kein leeres Ergebnis: gesucht wird
+    # nach einer konkreten Mail, die es geben soll. Ein Exit-Code 0 wuerde in
+    # einer Pipeline still zu einem fehlenden Zitat fuehren.
+
+    if not hits:
+        sys.exit(1)
+
+
 def cmd_read(args, accounts):
     acc = pick_account(accounts, args.account)
     with Account(acc) as a:
@@ -1153,9 +1271,29 @@ def cmd_quote(args, accounts):
     Das Zitat wird generiert, nicht formuliert: haendisch getippte '> '-Praefixe
     weichen bei jeder Mail leicht ab. Anhaenge werden nicht zitiert, BODY.PEEK
     laesst den Ungelesen-Status unangetastet."""
-    acc = pick_account(accounts, args.account)
+    if (args.uid is None) == (args.message_id is None):
+        die("genau eines von <uid> oder --message-id angeben")
+
+    folder = args.folder or "INBOX"
+    if args.message_id:
+
+        # UIDs sind ordner-lokal: der Ordner kommt aus dem Treffer, nicht aus
+        # dem Default INBOX - sonst zitiert quote eine fremde Mail derselben
+        # Nummer, ohne dass etwas fehlschlaegt
+
+        hits = locate_message_id(accounts, normalize_message_id(args.message_id),
+                                 args.account, args.folder)
+        if not hits:
+            die(f"keine Mail mit Message-ID {normalize_message_id(args.message_id)} gefunden")
+        hit = hits[0]
+        acc = pick_account(accounts, hit["account"])
+        uid, folder = hit["uid"], hit["folder"]
+    else:
+        acc = pick_account(accounts, args.account)
+        uid = args.uid
+
     with Account(acc) as a:
-        raw = a.peek_raw(args.uid, args.folder)
+        raw = a.peek_raw(uid, folder)
     msg = email.message_from_bytes(raw)
 
     attribution = quote_attribution(msg)
@@ -1184,8 +1322,8 @@ def cmd_quote(args, accounts):
 
     out_json({
         "account": acc["alias"],
-        "folder": args.folder,
-        "uid": args.uid,
+        "folder": folder,
+        "uid": uid,
         "from": flat(hdr(msg, "From")),
         "to": flat(hdr(msg, "To")),
         "cc": flat(hdr(msg, "Cc")),
@@ -1686,6 +1824,18 @@ def build_parser():
     sp.add_argument("--since", type=int, metavar="TAGE")
     sp.set_defaults(func=cmd_list)
 
+    sp = sub.add_parser("find", parents=[common],
+                        help="Message-ID zu Konto, Ordner und UID aufloesen")
+    sp.add_argument("--message-id", "-m", required=True,
+                    help="mit oder ohne spitze Klammern")
+    sp.add_argument("--account", "-a", help="ohne Angabe: alle Konten")
+    sp.add_argument("--folder", "-f",
+                    help="ohne Angabe: alle Ordner des Kontos, INBOX zuerst")
+    sp.add_argument("--all", action="store_true",
+                    help="weitersuchen statt beim ersten Treffer aufhoeren "
+                         "(findet Kopien in weiteren Ordnern/Konten)")
+    sp.set_defaults(func=cmd_find)
+
     sp = sub.add_parser("read", parents=[common],
                         help="Textkoerper einer Mail (setzt \\Seen nicht)")
     sp.add_argument("uid", type=int)
@@ -1700,9 +1850,13 @@ def build_parser():
 
     sp = sub.add_parser("quote", parents=[common],
                         help="Zitatblock einer Mail fuer eine Antwort (setzt \\Seen nicht)")
-    sp.add_argument("uid", type=int)
+    sp.add_argument("uid", type=int, nargs="?",
+                    help="UID im gewaehlten Ordner; alternativ --message-id")
+    sp.add_argument("--message-id", "-m",
+                    help="statt der UID; loest Konto, Ordner und UID selbst auf")
     sp.add_argument("--account", "-a")
-    sp.add_argument("--folder", "-f", default="INBOX")
+    sp.add_argument("--folder", "-f",
+                    help="Default INBOX; mit --message-id ohne Angabe alle Ordner")
     sp.add_argument("--format", choices=("text", "html"), default="text",
                     help="text: '> '-Praefixe; html: <blockquote type=\"cite\">")
     sp.add_argument("--width", type=int, default=DEFAULT_QUOTE_WIDTH,
