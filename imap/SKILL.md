@@ -303,7 +303,14 @@ Der HTML-Part der Originalmail wird uebernommen und in
 `<blockquote type="cite">` gewickelt -- Formatierung, Links und Listen bleiben
 damit erhalten, verschachtelte Zitate der Vorgeschichte ebenso. Genommen wird
 nur der Inhalt von `<body>`; `<head>`, Skripte und Stylesheets fallen weg, sie
-gehoeren zur Darstellung der Originalmail und nicht zum zitierten Inhalt. Hat
+gehoeren zur Darstellung der Originalmail und nicht zum zitierten Inhalt.
+
+Eine Ausnahme braucht dabei Outlook: es setzt jede Zeile -- und jede
+Tabellenzelle -- als eigenes `<p class="MsoNormal">` und laesst den Abstand
+von einer Regel im `<head>` auf null setzen. Faellt das Stylesheet weg, greift
+die Browser-Vorgabe `margin: 1em 0` und der Zitatblock geht weit auseinander.
+Elemente mit einer `Mso*`-Klasse bekommen deshalb `margin:0` inline nachgetragen;
+ein vorhandenes `style` bleibt erhalten und gewinnt. Hat
 die Mail **keinen** HTML-Part, wird der Textkoerper escaped und mit `<br>`
 nachgebaut.
 

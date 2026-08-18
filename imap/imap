@@ -3,7 +3,7 @@
 # IMAP-Helper fuer Posteingang-Triage
 # Liest Zugangsdaten aus muttrc, arbeitet gegen mehrere Konten.
 # stdlib only, keine pip-Abhaengigkeiten. Lauffaehig auf macOS + FreeBSD.
-# version 1.42.3
+# version 1.42.4
 
 import argparse
 import email
@@ -983,13 +983,53 @@ def html_body_inner(raw):
     return raw.strip()
 
 
+# Outlook setzt jede Zeile - und jede Tabellenzelle - als eigenen Absatz mit
+# einer Mso*-Klasse und holt sich den fehlenden Abstand aus einer Regel im
+# <head> (`p.MsoNormal { margin:0cm }`). Die faellt mit dem Stylesheet weg,
+# und ohne sie greift die Browser-Vorgabe `margin: 1em 0`: vor und nach jeder
+# Zeile eine Leerzeile. Am staerksten sichtbar bei Tabellen, wo jede Zelle ein
+# eigener Absatz ist.
+
+MSO_BLOCK_RE = re.compile(r"(?is)<(p|div|li)(\s[^>]*)?>")
+ATTR_CLASS_RE = re.compile(r"(?is)\bclass\s*=\s*(\"[^\"]*\"|'[^']*'|[^\s>]+)")
+ATTR_STYLE_RE = re.compile(r"(?is)\bstyle\s*=\s*(\"[^\"]*\"|'[^']*'|[^\s>]+)")
+
+
+def inline_mso_margins(html):
+    """Den weggefallenen Nullabstand der Outlook-Absaetze inline nachtragen.
+
+    Betroffen sind nur Elemente mit einer Klasse, die mit `Mso` beginnt --
+    fremde Stylesheets werden also nicht zurueckgeholt, es wird nur die eine
+    Regel ersetzt, auf die Outlook sich verlaesst. Ein bereits vorhandenes
+    `style` bleibt erhalten und gewinnt, weil `margin:0` davorgesetzt wird:
+    ein Absatz, der seinen Abstand selbst mitbringt, behaelt ihn."""
+    def fix(match):
+        tag, attrs = match.group(1), match.group(2) or ""
+        found = ATTR_CLASS_RE.search(attrs)
+        if not found:
+            return match.group(0)
+        classes = found.group(1).strip("\"'")
+        if not any(c.lower().startswith("mso") for c in classes.split()):
+            return match.group(0)
+        style = ATTR_STYLE_RE.search(attrs)
+        if style:
+            value = style.group(1).strip("\"'")
+            attrs = (attrs[:style.start()] + f'style="margin:0;{value}"'
+                     + attrs[style.end():])
+        else:
+            attrs = attrs.rstrip() + ' style="margin:0"'
+        return f"<{tag}{attrs}>"
+
+    return MSO_BLOCK_RE.sub(fix, html)
+
+
 def quote_html(msg, attribution):
     """Zitat als <blockquote type="cite">.
 
     Der HTML-Part der Originalmail wird uebernommen, damit Formatierung,
     Links und Listen erhalten bleiben. Nur wenn es keinen gibt, wird der
     Textkoerper escaped und mit <br> nachgebaut."""
-    inner = html_body_inner(extract_html(msg))
+    inner = inline_mso_margins(html_body_inner(extract_html(msg)))
     if not inner:
         text = extract_text(msg)
         inner = "<br>\n".join(html_mod.escape(l) for l in text.split("\n"))

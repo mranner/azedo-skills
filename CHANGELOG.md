@@ -3,6 +3,21 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.42.4
+
+- **`imap`: `quote --format html` verlor den Nullabstand der Outlook-Absaetze.**
+  Outlook setzt jede Zeile -- und jede Tabellenzelle -- als eigenes
+  `<p class="MsoNormal">` und holt den fehlenden Abstand aus einer Regel im
+  `<head>` (`p.MsoNormal { margin:0cm }`). Die faellt mit dem Stylesheet weg, das
+  beim Entschlacken bewusst entfernt wird; ohne sie greift die Browser-Vorgabe
+  `margin: 1em 0`, also vor und nach jeder Zeile eine Leerzeile. Bei einer
+  zitierten Tabelle stand damit zwischen je zwei Zellen ein voller Absatzabstand.
+- `inline_mso_margins()` traegt den Wert jetzt inline nach, und zwar nur an
+  Elementen mit einer `Mso*`-Klasse -- fremde Stylesheets kommen nicht zurueck,
+  ersetzt wird allein die eine Regel, auf die Outlook sich verlaesst. Ein
+  vorhandenes `style` bleibt erhalten und gewinnt, weil `margin:0` davorgesetzt
+  wird. Mails, die ihre Abstaende ohnehin inline mitbringen, bleiben unberuehrt.
+
 ### 1.42.3
 
 - **`imap`: das Zusammenziehen von Leerzeilen lief still ins Leere.** An drei Stellen
