@@ -3,6 +3,40 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.43.0
+
+- **`image-optimize`: `analyze` meldete ohne GraphicsMagick die JFIF-Density statt
+  der Auflösung.** Der Fallback las die Maße aus `file(1)`, und dessen Ausgabe nennt
+  bei JFIF-JPEGs `density 96x96` vor der echten Größe -- eine Regex über das erste
+  Zahlenpaar greift also daneben. Betroffen war genau der Wert, an dem die
+  Entscheidung „muss skaliert werden?" hängt: mit 96x96 sieht jedes Bild klein genug
+  aus, ein `resize` täte stillschweigend nichts, und es gab keinen Hinweis auf das
+  fehlende Werkzeug.
+- Maße kommen jetzt aus `gm identify`/`magick identify` und sonst aus einem eigenen
+  Header-Parser (stdlib `struct`) für PNG, JPEG, GIF, WebP, BMP und TIFF; bei JPEG
+  über den SOF-Marker statt über Fließtext. `file(1)` entfällt als Quelle. Gegen
+  `gm` geprüft: 107 Dateien über alle Formate, keine Abweichung.
+- `analyze` schreibt die verwendete Messquelle in die erste Zeile und meldet
+  unbestimmbare Maße als Problem, statt sie als 0 durchzureichen. `web` bricht mit
+  Exit-Code 1 ab, wenn ein Bild skaliert werden müsste, aber kein Bildwandler da ist
+  -- vorher lief die Pipeline scheinbar erfolgreich durch und ließ das zu große Bild
+  liegen.
+- **Neu: `convert`-Subcommand** für Formatwechsel (`--to jpg|png|webp|gif|tiff`).
+  Bei JPEG als Ziel wird Transparenz auf einen Hintergrund gelegt (`--background`,
+  Default weiß), sonst kommt der transparente Bereich schwarz heraus. Schutz gegen
+  Datenverlust: Quelle == Ziel und vorhandene Zieldateien werden übersprungen
+  (`--force` überschreibt), das Original bleibt liegen (`--remove-source` entfernt es).
+  Zielen zwei Quellen auf denselben Namen (`foto.png` und `foto.tif` auf `foto.jpg`),
+  ist das ein Fehler statt eines Überschreibens -- auch mit `--force`, das
+  vorhandenen Dateien gilt und nicht der eigenen Ausgabe des Laufs.
+- JPEGs werden von `optimize` und `web` progressiv geschrieben, `--baseline` schaltet
+  zurück. Bei Fotos in Webgröße spart das nochmals Bytes; `jpegoptim` ersetzt eine
+  Datei ohnehin nur, wenn das Ergebnis kleiner ist.
+- Resize und Convert akzeptieren ImageMagick 7 als Ersatz für GraphicsMagick --
+  angesprochen wird dabei `magick`, nie das abgekündigte `convert`.
+- `check_tool()` prüft über `shutil.which()` statt einen `--version`-Aufruf zu starten;
+  die Werkzeugsuche läuft einmal statt einmal pro Bild.
+
 ### 1.42.4
 
 - **`imap`: `quote --format html` verlor den Nullabstand der Outlook-Absaetze.**

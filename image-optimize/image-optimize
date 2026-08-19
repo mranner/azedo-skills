@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
 
 # Image optimization for web usage
-# Tools: optipng, jpegoptim, GraphicsMagick (gm)
-# version 1.39.5
+# Tools: optipng, jpegoptim, GraphicsMagick (gm) or ImageMagick 7 (magick)
+# version 1.43.0
 
 import argparse
 import os
 import re
+import shutil
+import struct
 import subprocess
 import sys
+from functools import lru_cache
 from pathlib import Path
 
 # Max dimensions for web usage (width x height)
@@ -21,23 +24,209 @@ SUGGEST_RESIZE_HEIGHT = 2500
 JPEG_QUALITY = 85
 PNG_OPTLEVEL = 2
 
+# Target formats for `convert`, mapped to the extension they get written with
+CONVERT_FORMATS = {
+    "jpg": ".jpg",
+    "jpeg": ".jpg",
+    "png": ".png",
+    "webp": ".webp",
+    "gif": ".gif",
+    "tiff": ".tif",
+}
+
+# Formats without an alpha channel: transparency has to be flattened onto a
+# background first, otherwise the transparent areas turn black
+FLATTEN_TARGETS = {"jpg", "jpeg"}
+
 
 def check_tool(name):
     """Check if a tool is available in PATH."""
+    return shutil.which(name) is not None
+
+
+@lru_cache(maxsize=None)
+def find_magick():
+    """Locate an image manipulation tool: GraphicsMagick or ImageMagick 7.
+
+    ImageMagick's `convert` binary is deliberately not considered -- it is
+    deprecated in version 7 and prints a warning on every single call.
+    """
+    for name in ("gm", "magick"):
+        if check_tool(name):
+            return name
+    return None
+
+
+def magick_identify_cmd(tool):
+    """Command prefix for reading image metadata."""
+    return [tool, "identify"]
+
+
+def magick_convert_cmd(tool):
+    """Command prefix for writing images: `gm convert ...` vs plain `magick ...`."""
+    return [tool, "convert"] if tool == "gm" else [tool]
+
+
+def _format_from_header(filepath):
+    """Identify the image format from its magic bytes."""
     try:
-        subprocess.run([name, "--version"], capture_output=True, timeout=5)
-        return True
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        return False
+        with open(filepath, "rb") as fh:
+            head = fh.read(12)
+    except OSError:
+        return "UNKNOWN"
+
+    if head.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "PNG"
+    if head[:2] == b"\xff\xd8":
+        return "JPEG"
+    if head[:6] in (b"GIF87a", b"GIF89a"):
+        return "GIF"
+    if head[:4] == b"RIFF" and head[8:12] == b"WEBP":
+        return "WEBP"
+    if head[:2] == b"BM":
+        return "BMP"
+    if head[:4] in (b"II\x2a\x00", b"MM\x00\x2a"):
+        return "TIFF"
+    return "UNKNOWN"
+
+
+def _jpeg_dims(fh):
+    """Walk the JPEG segments to the SOF marker, which carries the real size.
+
+    This is what `file(1)` gets wrong: for JFIF-tagged files it reports the
+    density (typically 96x96) before the resolution, so a naive regex over its
+    output picks up the wrong pair of numbers.
+    """
+    sof_markers = set(range(0xC0, 0xD0)) - {0xC4, 0xC8, 0xCC}
+    fh.seek(2)
+
+    while True:
+        byte = fh.read(1)
+        if not byte:
+            return (0, 0)
+        if byte != b"\xff":
+            continue
+
+        # A marker may be padded with any number of additional 0xFF fill bytes
+        marker = fh.read(1)
+        while marker == b"\xff":
+            marker = fh.read(1)
+        if not marker:
+            return (0, 0)
+
+        code = marker[0]
+        if code in sof_markers:
+            fh.read(3)  # segment length (2) + sample precision (1)
+            h, w = struct.unpack(">HH", fh.read(4))
+            return (w, h)
+
+        # Standalone markers carry no length field
+        if code in (0x00, 0x01, 0xD8, 0xD9) or 0xD0 <= code <= 0xD7:
+            continue
+
+        length = struct.unpack(">H", fh.read(2))[0]
+        fh.seek(length - 2, 1)
+
+
+def _webp_dims(head):
+    """WebP stores its size differently per variant: VP8, VP8L and VP8X."""
+    chunk = head[12:16]
+
+    if chunk == b"VP8 ":
+        # frame tag (3) + start code (3), then 14-bit width and height
+        w, h = struct.unpack("<HH", head[26:30])
+        return (w & 0x3FFF, h & 0x3FFF)
+
+    if chunk == b"VP8L":
+        bits = struct.unpack("<I", head[21:25])[0]
+        return ((bits & 0x3FFF) + 1, ((bits >> 14) & 0x3FFF) + 1)
+
+    if chunk == b"VP8X":
+        w = head[24] | head[25] << 8 | head[26] << 16
+        h = head[27] | head[28] << 8 | head[29] << 16
+        return (w + 1, h + 1)
+
+    return (0, 0)
+
+
+def _tiff_dims(fh, head):
+    """Walk the first IFD for ImageWidth (0x0100) and ImageLength (0x0101)."""
+    endian = "<" if head[:2] == b"II" else ">"
+    ifd_offset = struct.unpack(endian + "I", head[4:8])[0]
+
+    fh.seek(ifd_offset)
+    entry_count = struct.unpack(endian + "H", fh.read(2))[0]
+
+    dims = {}
+    for _ in range(entry_count):
+        entry = fh.read(12)
+        if len(entry) < 12:
+            break
+        tag, typ = struct.unpack(endian + "HH", entry[:4])
+        if tag not in (0x0100, 0x0101):
+            continue
+
+        # SHORT sits in the first two bytes of the value field, LONG uses all four
+        if typ == 3:
+            dims[tag] = struct.unpack(endian + "H", entry[8:10])[0]
+        elif typ == 4:
+            dims[tag] = struct.unpack(endian + "I", entry[8:12])[0]
+
+    return (dims.get(0x0100, 0), dims.get(0x0101, 0))
+
+
+def _dims_from_header(filepath):
+    """Read image dimensions straight from the file header (stdlib only).
+
+    Fallback for when neither GraphicsMagick nor ImageMagick is installed.
+    Returns (0, 0) if the format is unknown or the header is truncated.
+    """
+    try:
+        with open(filepath, "rb") as fh:
+            head = fh.read(32)
+
+            if head.startswith(b"\x89PNG\r\n\x1a\n"):
+                # IHDR is always the first chunk
+                return struct.unpack(">II", head[16:24])
+
+            if head[:6] in (b"GIF87a", b"GIF89a"):
+                return struct.unpack("<HH", head[6:10])
+
+            if head[:2] == b"BM":
+                hdr_size = struct.unpack("<I", head[14:18])[0]
+                if hdr_size == 12:
+                    w, h = struct.unpack("<HH", head[18:22])
+                else:
+                    w, h = struct.unpack("<ii", head[18:26])
+                return (abs(w), abs(h))
+
+            if head[:4] == b"RIFF" and head[8:12] == b"WEBP":
+                return _webp_dims(head)
+
+            if head[:4] in (b"II\x2a\x00", b"MM\x00\x2a"):
+                return _tiff_dims(fh, head)
+
+            if head[:2] == b"\xff\xd8":
+                return _jpeg_dims(fh)
+    except (OSError, struct.error, ValueError, IndexError):
+        pass
+
+    return (0, 0)
 
 
 def get_image_info(filepath):
-    """Get image dimensions and format using 'identify' (gm or file)."""
-    # Try GraphicsMagick first
-    if check_tool("gm"):
+    """Get image dimensions and format.
+
+    Dimensions come from GraphicsMagick/ImageMagick where available and from
+    the file header otherwise; the reported `source` says which of the two was
+    used. The format is always taken from the magic bytes.
+    """
+    tool = find_magick()
+
+    if tool:
         try:
             r = subprocess.run(
-                ["gm", "identify", "-format", "%w %h %m", filepath],
+                magick_identify_cmd(tool) + ["-format", "%w %h %m", filepath],
                 capture_output=True, text=True, timeout=10
             )
             if r.returncode == 0:
@@ -47,34 +236,18 @@ def get_image_info(filepath):
                         "width": int(parts[0]),
                         "height": int(parts[1]),
                         "format": parts[2].upper(),
+                        "source": tool,
                     }
         except (subprocess.TimeoutExpired, ValueError):
             pass
 
-    # Fallback: file command + basic parsing
-    try:
-        r = subprocess.run(
-            ["file", "--brief", filepath],
-            capture_output=True, text=True, timeout=5
-        )
-        info = r.stdout.strip()
-        fmt = "UNKNOWN"
-        if "PNG" in info:
-            fmt = "PNG"
-        elif "JPEG" in info:
-            fmt = "JPEG"
-        elif "GIF" in info:
-            fmt = "GIF"
-        elif "WebP" in info:
-            fmt = "WEBP"
-
-        # Try to extract dimensions from file output
-        m = re.search(r'(\d+)\s*x\s*(\d+)', info)
-        w, h = (int(m.group(1)), int(m.group(2))) if m else (0, 0)
-
-        return {"width": w, "height": h, "format": fmt}
-    except (subprocess.TimeoutExpired, ValueError):
-        return {"width": 0, "height": 0, "format": "UNKNOWN"}
+    w, h = _dims_from_header(filepath)
+    return {
+        "width": w,
+        "height": h,
+        "format": _format_from_header(filepath),
+        "source": "header",
+    }
 
 
 def filesize_human(size_bytes):
@@ -136,7 +309,14 @@ def cmd_analyze(args):
         print("No image files found.", file=sys.stderr)
         sys.exit(1)
 
-    has_gm = check_tool("gm")
+    tool = find_magick()
+    if tool:
+        print(f"Measuring with: {tool}")
+    else:
+        print("Measuring with: built-in header parser "
+              "(GraphicsMagick/ImageMagick not installed -- resize and convert "
+              "are unavailable)")
+
     issues_found = False
 
     for f in files:
@@ -153,11 +333,18 @@ def cmd_analyze(args):
         print(f"Size:       {filesize_human(size)}")
         if w > 0 and h > 0:
             print(f"Dimensions: {w} x {h} px")
+        else:
+            print("Dimensions: unknown")
 
         issues = []
 
         # Check dimensions
-        if w > SUGGEST_RESIZE_WIDTH or h > SUGGEST_RESIZE_HEIGHT:
+        if w == 0 or h == 0:
+            issues.append(
+                "Dimensions could not be determined - the resize decision "
+                "cannot be made for this file."
+            )
+        elif w > SUGGEST_RESIZE_WIDTH or h > SUGGEST_RESIZE_HEIGHT:
             issues.append(
                 f"Resolution very high ({w}x{h}). "
                 f"Consider resizing to max {WEB_MAX_WIDTH}x{WEB_MAX_HEIGHT} for web usage."
@@ -232,7 +419,7 @@ def cmd_optimize(args):
                 print(f"SKIP {fpath.name}: jpegoptim not installed", file=sys.stderr)
                 continue
             print(f"Optimizing JPEG: {fpath.name} ({filesize_human(size_before)})")
-            cmd = ["jpegoptim", f"--max={quality}", "--strip-all", str(fpath)]
+            cmd = jpegoptim_cmd(quality, args.baseline) + [str(fpath)]
             if args.dry_run:
                 print(f"  DRY RUN: {' '.join(cmd)}")
                 continue
@@ -249,6 +436,18 @@ def cmd_optimize(args):
             print(f"  {filesize_human(size_before)} -> {filesize_human(size_after)} (saved {filesize_human(saved)}, {pct:.1f}%)")
         else:
             print(f"  Already optimal ({filesize_human(size_after)})")
+
+
+def jpegoptim_cmd(quality, baseline):
+    """Build the jpegoptim call.
+
+    Progressive is the default: for photos at web dimensions it usually comes
+    out a little smaller and renders more gracefully while loading.
+    """
+    cmd = ["jpegoptim", f"--max={quality}", "--strip-all"]
+    if not baseline:
+        cmd.append("--all-progressive")
+    return cmd
 
 
 def resolve_output_target(output, file_count, dry_run=False):
@@ -289,8 +488,10 @@ def resolve_output_target(output, file_count, dry_run=False):
 
 def cmd_resize(args):
     """Resize images using GraphicsMagick."""
-    if not check_tool("gm"):
-        print("Error: GraphicsMagick (gm) is not installed.", file=sys.stderr)
+    tool = find_magick()
+    if not tool:
+        print("Error: no image scaler found (GraphicsMagick or ImageMagick).",
+              file=sys.stderr)
         print("Install: pkg install GraphicsMagick", file=sys.stderr)
         sys.exit(1)
 
@@ -333,10 +534,13 @@ def cmd_resize(args):
 
         print(f"Resizing: {fpath.name} ({w}x{h}, {filesize_human(size_before)}) -> max {geometry}")
 
-        cmd = ["gm", "convert", str(fpath), "-resize", geometry, "-quality", str(args.quality), outpath]
+        cmd = magick_convert_cmd(tool) + [
+            str(fpath), "-resize", geometry, "-quality", str(args.quality), outpath
+        ]
 
         if args.dry_run:
             print(f"  DRY RUN: {' '.join(cmd)}")
+            written[outpath] = fpath.name
             continue
 
         r = subprocess.run(cmd, capture_output=True, text=True)
@@ -360,6 +564,110 @@ def cmd_resize(args):
     if failures:
         sys.stdout.flush()
         print(f"\n{failures} file(s) failed.", file=sys.stderr)
+        sys.exit(1)
+
+
+def cmd_convert(args):
+    """Convert images to another format."""
+    tool = find_magick()
+    if not tool:
+        print("Error: no converter found (GraphicsMagick or ImageMagick).",
+              file=sys.stderr)
+        print("Install: pkg install GraphicsMagick", file=sys.stderr)
+        sys.exit(1)
+
+    files = collect_images(args.files)
+    if not files:
+        print("No image files found.", file=sys.stderr)
+        sys.exit(1)
+
+    target = args.to.lower()
+    ext = CONVERT_FORMATS[target]
+
+    mode, outbase = resolve_output_target(args.output, len(files), args.dry_run)
+
+    failures = 0
+    converted = 0
+    written = {}
+
+    for f in files:
+        fpath = Path(f)
+        info = get_image_info(str(fpath))
+        fmt = info["format"]
+        size_before = fpath.stat().st_size
+
+        if mode == "dir":
+            outpath = str(outbase / (fpath.stem + ext))
+        elif mode == "file":
+            outpath = str(outbase)
+        else:
+            outpath = str(fpath.with_suffix(ext))
+
+        # Writing onto the source would destroy it mid-conversion
+        if Path(outpath) == fpath:
+            print(f"SKIP {fpath.name}: already {fmt}, source and target are the same file")
+            continue
+
+        # Two sources with the same stem (foto.png, foto.tif) collapse onto one
+        # target name. --force is meant for pre-existing files, not for letting
+        # this run overwrite its own output.
+        if outpath in written:
+            sys.stdout.flush()
+            print(f"  ERROR: {fpath.name} and {written[outpath]} both map to {outpath}",
+                  file=sys.stderr)
+            failures += 1
+            continue
+
+        if Path(outpath).exists() and not args.force:
+            print(f"SKIP {fpath.name}: {outpath} exists (use --force to overwrite)")
+            continue
+
+        cmd = magick_convert_cmd(tool) + [str(fpath)]
+
+        # A target without alpha needs the transparency flattened onto a
+        # background first, otherwise those areas come out black
+        if target in FLATTEN_TARGETS:
+            cmd += ["-background", args.background, "-flatten"]
+
+        cmd += ["-strip", "-quality", str(args.quality), outpath]
+
+        print(f"Converting: {fpath.name} ({fmt}, {filesize_human(size_before)}) -> {target}")
+
+        if args.dry_run:
+            print(f"  DRY RUN: {' '.join(cmd)}")
+            continue
+
+        r = subprocess.run(cmd, capture_output=True, text=True)
+        if r.returncode != 0:
+            sys.stdout.flush()
+            print(f"  ERROR: {r.stderr.strip()}", file=sys.stderr)
+            failures += 1
+            continue
+
+        out = Path(outpath)
+        if not out.exists():
+            sys.stdout.flush()
+            print(f"  ERROR: {outpath} was not written", file=sys.stderr)
+            failures += 1
+            continue
+
+        converted += 1
+        written[outpath] = fpath.name
+        size_after = out.stat().st_size
+        new_info = get_image_info(outpath)
+        print(f"  -> {outpath} ({new_info['width']}x{new_info['height']}, "
+              f"{filesize_human(size_after)})")
+
+        if args.remove_source:
+            fpath.unlink()
+            print(f"  removed source {fpath.name}")
+
+    if not args.dry_run:
+        print(f"\n{converted} file(s) converted.")
+
+    if failures:
+        sys.stdout.flush()
+        print(f"{failures} file(s) failed.", file=sys.stderr)
         sys.exit(1)
 
 
@@ -429,13 +737,14 @@ def cmd_web(args):
         print("No image files found.", file=sys.stderr)
         sys.exit(1)
 
-    has_gm = check_tool("gm")
+    tool = find_magick()
     has_optipng = check_tool("optipng")
     has_jpegoptim = check_tool("jpegoptim")
 
     max_w = args.width if args.width else WEB_MAX_WIDTH
     max_h = args.height if args.height else WEB_MAX_HEIGHT
     quality = args.quality if args.quality else JPEG_QUALITY
+    failures = 0
 
     for f in files:
         fpath = Path(f)
@@ -451,20 +760,32 @@ def cmd_web(args):
         print(f"\n--- {fpath.name} ({fmt}, {w}x{h}, {filesize_human(size_before)}) ---")
 
         # Step 1: Resize if too large
-        if has_gm and (w > max_w or h > max_h):
-            if args.dry_run:
+        if w == 0 or h == 0:
+            sys.stdout.flush()
+            print(f"  ERROR: dimensions unknown - cannot decide whether to resize",
+                  file=sys.stderr)
+            failures += 1
+        elif w > max_w or h > max_h:
+            if not tool:
+                sys.stdout.flush()
+                print(f"  ERROR: image too large ({w}x{h}) but no scaler installed "
+                      f"(pkg install GraphicsMagick)", file=sys.stderr)
+                failures += 1
+            elif args.dry_run:
                 print(f"  WOULD RESIZE to max {max_w}x{max_h}")
             else:
                 geometry = f"{max_w}x{max_h}"
-                cmd = ["gm", "convert", str(fpath), "-resize", geometry, "-quality", str(quality), str(fpath)]
+                cmd = magick_convert_cmd(tool) + [
+                    str(fpath), "-resize", geometry, "-quality", str(quality), str(fpath)
+                ]
                 r = subprocess.run(cmd, capture_output=True, text=True)
                 if r.returncode == 0:
                     new_info = get_image_info(str(fpath))
                     print(f"  RESIZED {w}x{h} -> {new_info['width']}x{new_info['height']}")
                 else:
-                    print(f"  RESIZE FAILED: {r.stderr.strip()}")
-        elif not has_gm and (w > max_w or h > max_h):
-            print(f"  WARNING: Image too large ({w}x{h}) but gm not installed for resize")
+                    sys.stdout.flush()
+                    print(f"  RESIZE FAILED: {r.stderr.strip()}", file=sys.stderr)
+                    failures += 1
 
         # Step 2: Optimize
         if fmt == "PNG" and has_optipng:
@@ -474,10 +795,11 @@ def cmd_web(args):
                 subprocess.run(["optipng", f"-o{PNG_OPTLEVEL}", str(fpath)], capture_output=True)
                 print(f"  OPTIMIZED with optipng")
         elif fmt == "JPEG" and has_jpegoptim:
+            jcmd = jpegoptim_cmd(quality, args.baseline)
             if args.dry_run:
-                print(f"  WOULD RUN jpegoptim --max={quality}")
+                print(f"  WOULD RUN {' '.join(jcmd)}")
             else:
-                subprocess.run(["jpegoptim", f"--max={quality}", "--strip-all", str(fpath)], capture_output=True)
+                subprocess.run(jcmd + [str(fpath)], capture_output=True)
                 print(f"  OPTIMIZED with jpegoptim")
 
         # Step 3: Rename check
@@ -507,6 +829,11 @@ def cmd_web(args):
                 print(f"  RESULT: {filesize_human(size_before)} -> {filesize_human(size_after)} (size increased, resize added data)")
             else:
                 print(f"  RESULT: {filesize_human(size_after)} (no change)")
+
+    if failures:
+        sys.stdout.flush()
+        print(f"\n{failures} file(s) failed.", file=sys.stderr)
+        sys.exit(1)
 
 
 def collect_images(file_args):
@@ -547,6 +874,7 @@ def main():
     p_opt.add_argument("files", nargs="+", help="Image files or directories")
     p_opt.add_argument("--quality", type=int, help=f"JPEG quality (default: {JPEG_QUALITY})")
     p_opt.add_argument("--png-level", type=int, choices=range(0, 8), help=f"optipng level 0-7 (default: {PNG_OPTLEVEL})")
+    p_opt.add_argument("--baseline", action="store_true", help="Write baseline JPEGs (default: progressive)")
     p_opt.add_argument("--dry-run", action="store_true", help="Show what would be done")
 
     # resize
@@ -557,6 +885,20 @@ def main():
     p_resize.add_argument("--quality", type=int, default=JPEG_QUALITY, help=f"Output quality (default: {JPEG_QUALITY})")
     p_resize.add_argument("--output", help="Output directory (existing or with trailing slash) or single output file (default: overwrite original)")
     p_resize.add_argument("--dry-run", action="store_true", help="Show what would be done")
+
+    # convert
+    p_conv = sub.add_parser("convert", help="Convert images to another format")
+    p_conv.add_argument("files", nargs="+", help="Image files or directories")
+    p_conv.add_argument("--to", required=True, choices=sorted(CONVERT_FORMATS),
+                        help="Target format")
+    p_conv.add_argument("--quality", type=int, default=JPEG_QUALITY,
+                        help=f"Output quality (default: {JPEG_QUALITY})")
+    p_conv.add_argument("--background", default="white",
+                        help="Background for flattening transparency (default: white)")
+    p_conv.add_argument("--output", help="Output directory (existing or with trailing slash) or single output file (default: alongside the original)")
+    p_conv.add_argument("--force", action="store_true", help="Overwrite existing target files")
+    p_conv.add_argument("--remove-source", action="store_true", help="Delete the source file after a successful conversion")
+    p_conv.add_argument("--dry-run", action="store_true", help="Show what would be done")
 
     # rename
     p_rename = sub.add_parser("rename", help="Rename files to SEO-friendly names")
@@ -571,6 +913,7 @@ def main():
     p_web.add_argument("--width", type=int, help=f"Max width (default: {WEB_MAX_WIDTH})")
     p_web.add_argument("--height", type=int, help=f"Max height (default: {WEB_MAX_HEIGHT})")
     p_web.add_argument("--quality", type=int, help=f"JPEG quality (default: {JPEG_QUALITY})")
+    p_web.add_argument("--baseline", action="store_true", help="Write baseline JPEGs (default: progressive)")
     p_web.add_argument("--rename", action="store_true", help="Also rename files to SEO-friendly names")
     p_web.add_argument("--dry-run", action="store_true", help="Show what would be done")
 
@@ -580,6 +923,7 @@ def main():
         "analyze": cmd_analyze,
         "optimize": cmd_optimize,
         "resize": cmd_resize,
+        "convert": cmd_convert,
         "rename": cmd_rename,
         "web": cmd_web,
     }

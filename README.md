@@ -231,12 +231,18 @@ python3 "$SKILL_DIR/google-search-console" setup
 Optimiert Bilder für Web-Verwendung. Unterstützt:
 
 - Analyse: Auflösung, Dateigröße und Dateinamen prüfen
-- Optimierung: PNG verlustfrei (optipng), JPEG quality-basiert (jpegoptim)
+- Optimierung: PNG verlustfrei (optipng), JPEG quality-basiert (jpegoptim), progressiv als Default
 - Resize: Auflösung skalieren via GraphicsMagick (Seitenverhältnis bleibt erhalten)
+- Convert: Format umwandeln inkl. Alpha-Flattening, damit Transparenz im JPEG nicht schwarz wird
 - Rename: Dateinamen SEO-freundlich umbenennen (Umlaute, Leerzeichen, Sonderzeichen)
 - Web-Pipeline: alle Schritte in einem Durchgang
 
-**Voraussetzungen:** Python ≥ 3.11, `optipng`, `jpegoptim`, optional `GraphicsMagick` (für Resize)
+Bildmaße kommen von `gm`/`magick`; fehlt beides, liest ein eingebauter Header-Parser
+(PNG, JPEG, GIF, WebP, BMP, TIFF) sie direkt aus der Datei. `analyze` nennt die
+verwendete Quelle.
+
+**Voraussetzungen:** Python ≥ 3.11, `optipng`, `jpegoptim`, für Resize und Convert
+`GraphicsMagick` (oder ImageMagick 7)
 
 **Trigger:** `/image-optimize` oder natürliche Sprache wie "Bilder für Web optimieren", "Bilder komprimieren".
 
@@ -508,17 +514,36 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.42.4
+### 1.43.0
 
-- **`imap`: `quote --format html` verlor den Nullabstand der Outlook-Absaetze.**
-  Outlook setzt jede Zeile -- und jede Tabellenzelle -- als eigenes
-  `<p class="MsoNormal">` und holt den fehlenden Abstand aus einer Regel im
-  `<head>` (`p.MsoNormal { margin:0cm }`). Die faellt mit dem Stylesheet weg, das
-  beim Entschlacken bewusst entfernt wird; ohne sie greift die Browser-Vorgabe
-  `margin: 1em 0`, also vor und nach jeder Zeile eine Leerzeile. Bei einer
-  zitierten Tabelle stand damit zwischen je zwei Zellen ein voller Absatzabstand.
-- `inline_mso_margins()` traegt den Wert jetzt inline nach, und zwar nur an
-  Elementen mit einer `Mso*`-Klasse -- fremde Stylesheets kommen nicht zurueck,
-  ersetzt wird allein die eine Regel, auf die Outlook sich verlaesst. Ein
-  vorhandenes `style` bleibt erhalten und gewinnt, weil `margin:0` davorgesetzt
-  wird. Mails, die ihre Abstaende ohnehin inline mitbringen, bleiben unberuehrt.
+- **`image-optimize`: `analyze` meldete ohne GraphicsMagick die JFIF-Density statt
+  der Auflösung.** Der Fallback las die Maße aus `file(1)`, und dessen Ausgabe nennt
+  bei JFIF-JPEGs `density 96x96` vor der echten Größe -- eine Regex über das erste
+  Zahlenpaar greift also daneben. Betroffen war genau der Wert, an dem die
+  Entscheidung „muss skaliert werden?" hängt: mit 96x96 sieht jedes Bild klein genug
+  aus, ein `resize` täte stillschweigend nichts, und es gab keinen Hinweis auf das
+  fehlende Werkzeug.
+- Maße kommen jetzt aus `gm identify`/`magick identify` und sonst aus einem eigenen
+  Header-Parser (stdlib `struct`) für PNG, JPEG, GIF, WebP, BMP und TIFF; bei JPEG
+  über den SOF-Marker statt über Fließtext. `file(1)` entfällt als Quelle. Gegen
+  `gm` geprüft: 107 Dateien über alle Formate, keine Abweichung.
+- `analyze` schreibt die verwendete Messquelle in die erste Zeile und meldet
+  unbestimmbare Maße als Problem, statt sie als 0 durchzureichen. `web` bricht mit
+  Exit-Code 1 ab, wenn ein Bild skaliert werden müsste, aber kein Bildwandler da ist
+  -- vorher lief die Pipeline scheinbar erfolgreich durch und ließ das zu große Bild
+  liegen.
+- **Neu: `convert`-Subcommand** für Formatwechsel (`--to jpg|png|webp|gif|tiff`).
+  Bei JPEG als Ziel wird Transparenz auf einen Hintergrund gelegt (`--background`,
+  Default weiß), sonst kommt der transparente Bereich schwarz heraus. Schutz gegen
+  Datenverlust: Quelle == Ziel und vorhandene Zieldateien werden übersprungen
+  (`--force` überschreibt), das Original bleibt liegen (`--remove-source` entfernt es).
+  Zielen zwei Quellen auf denselben Namen (`foto.png` und `foto.tif` auf `foto.jpg`),
+  ist das ein Fehler statt eines Überschreibens -- auch mit `--force`, das
+  vorhandenen Dateien gilt und nicht der eigenen Ausgabe des Laufs.
+- JPEGs werden von `optimize` und `web` progressiv geschrieben, `--baseline` schaltet
+  zurück. Bei Fotos in Webgröße spart das nochmals Bytes; `jpegoptim` ersetzt eine
+  Datei ohnehin nur, wenn das Ergebnis kleiner ist.
+- Resize und Convert akzeptieren ImageMagick 7 als Ersatz für GraphicsMagick --
+  angesprochen wird dabei `magick`, nie das abgekündigte `convert`.
+- `check_tool()` prüft über `shutil.which()` statt einen `--version`-Aufruf zu starten;
+  die Werkzeugsuche läuft einmal statt einmal pro Bild.
