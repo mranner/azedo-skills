@@ -213,6 +213,9 @@ Workflow:
 5. Backlink-Audit: bestehende Artikel durchsuchen, die den neuen Entity erwaehnen sollten
 6. Eintrag in `log.md`: `COMPILE: <quelle> → <entity1>, <entity2>, ...`
 
+**Vor Schritt 2 gelten die [Schreibregeln](#schreibregeln)** - Aufnahmefilter
+(gehört es überhaupt hinein), Dichtegebot und „aktualisieren heisst ersetzen".
+
 Detaillierte Compile-Regeln (Cross-Referencing, Compile-Checkliste): @references/compilation-guide.md
 
 Entity-Templates (Infra-Modell; fuer Projekt-Wikis gilt deren `<WIKI_ROOT>/CLAUDE.md`): @references/frontmatter-schemas.md
@@ -434,6 +437,79 @@ Zielhost.
 
 > Nicht verwechseln mit dem generischen `/handoff`-Skill (Konversations-Uebergabe) —
 > dies hier ist ein **Wiki-Subcommand** und erzeugt eine Wiki-Outbox-Note.
+
+## Schreibregeln
+
+Gelten für **jedes** Schreiben ins Wiki (`compile`, `refactor`) und für `log.md`,
+in jedem Wiki. „Gegenstand" ist das, was der Artikel beschreibt - ein Server, ein
+Modul, eine Schnittstelle, ein Ablauf.
+
+### Aufnahmefilter: gehört das überhaupt hinein?
+
+Vier Fragen, **alle** müssen mit Ja beantwortet sein:
+
+1. **Gilt es in drei Monaten noch?** Ein Zwischenstand, ein „aktuell läuft noch"
+   oder ein Vorhaben gehört ins Ticket, nicht in einen Artikel.
+2. **Kostet es jemanden Zeit, der es nicht weiss?** Wenn niemand darüber
+   stolpern kann, ist es keine Erkenntnis, sondern eine Notiz.
+3. **Lässt es sich *nicht* in einer halben Minute am Gegenstand selbst
+   ablesen?** Was `--help`, ein Blick in die Datei, `systemctl status` oder ein
+   Testlauf sofort zeigen, braucht keinen Artikel. Aufnahmewürdig ist, was man
+   dort **nicht** sieht: die Reihenfolge, die entscheidet; das Feld, das anders
+   heisst als es wirkt; der stille Fehlschlag.
+4. **Steht es nicht schon in einem anderen Artikel?** Sonst dort ergänzen und
+   von hier verlinken - nicht zweitschreiben.
+
+Grundsätzlich **nicht** aufgenommen: transiente Fehler (Build, Netz,
+Paketquelle), persönliche Vorlieben und Arbeitsweisen, Kundendaten, und der
+Vorgang selbst statt seines Ergebnisses - der steht im Ticket.
+
+Im Zweifel **fragen statt aufnehmen**. Ein zu voller Artikel kostet jeden
+späteren Leser Zeit; eine fehlende Erkenntnis kostet einmal eine Rückfrage.
+
+### Dichtegebot: Behauptung, Folge, Beleg
+
+Ein Befund besteht aus drei Teilen: **was gilt**, **was daraus folgt**, und
+**womit man es prüft**. Der Weg zur Erkenntnis gehört nicht dazu.
+
+```
+Zu weit:  "Aufgefallen ist das beim Durchsehen der Logs am 15.08. - zunächst
+           sah es nach X aus, erst der Vergleich mit Y zeigte, dass in
+           Wirklichkeit Z zutrifft, weil ..."
+
+Dicht:    "Z gilt, nicht X. Folge: <Konsequenz>.
+           Prüfen mit `<befehl>`."
+```
+
+- **Registermarker streichen.** „Aufgefallen ist…", „Sichtbar wurde…", „Der
+  Ablauf lässt sich… ablesen", „Ausschlaggebend war…", „Zunächst… erst dann…"
+  leiten alle eine Erzählung ein. Wo einer steht, gehört der Absatz gekürzt.
+- **Messwerte und Herleitung nach `## Quellen`.** Im Artikel steht das Ergebnis,
+  ein Satz. Die 7-Tage-Messung, die Fallzahlen und der Irrweg stehen unten.
+- **Aufzählung wird Liste oder Tabelle**, nicht Absatz.
+- **Kein Datum in einer Überschrift.** Wer „Umbau 2026-08-15" oder „Stand
+  <Datum>" als Überschrift braucht, schreibt gerade ein Logbuch statt eines
+  Artikels. Ein Datum im Fliesstext („seit 2026-08-15") ist in Ordnung.
+
+### Aktualisieren heisst ersetzen
+
+Die häufigste Ursache aufgeblähter Artikel ist die naheliegende Handlung:
+anhängen. Beim Aktualisieren wird die **alte Aussage überschrieben**, nicht
+danebengestellt - die Vorfassung hält die Versionsverwaltung. Nur wenn der alte
+Zustand für das Verständnis des neuen nötig ist, bleibt er, und dann als
+Nebensatz.
+
+### Ein Befund gehört an genau eine Stelle
+
+Prüffrage beim Schreiben: **Würde das jemand suchen, der diesen Gegenstand gar
+nicht kennt?**
+
+- Ja → wiederkehrendes Verfahren, gehört in einen eigenen Artikel dafür (im
+  Infra-Wiki: `procedure`), und der Gegenstand verlinkt darauf.
+- Nein → gehört zum Gegenstand selbst.
+
+Diese Entscheidung fällt **beim Schreiben**. Wird sie vertagt, landet beides im
+Gegenstands-Artikel und muss später per `refactor` getrennt werden.
 
 ## Sicherheitsregeln
 

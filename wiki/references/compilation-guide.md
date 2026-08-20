@@ -91,3 +91,20 @@ Nach jedem Compile-Lauf:
 - [ ] Backlink-Audit durchgefuehrt
 - [ ] index.md aktualisiert
 - [ ] log.md Eintrag geschrieben
+
+## Einträge in `log.md`
+
+Für `log.md` gelten die [Schreibregeln der SKILL.md](../SKILL.md#schreibregeln)
+genauso wie für Artikel - insbesondere das Dichtegebot. Ein Eintrag beantwortet
+drei Fragen und hört dann auf:
+
+1. **Was hat sich geändert** (welche Artikel, welcher Gegenstand)
+2. **Warum** (der Auslöser, in einem Satz)
+3. **Was daraus folgt**, falls es nicht offensichtlich ist
+
+Kein Absatz je Fundstück, keine Nacherzählung der Sitzung, keine Wiederholung
+dessen, was ohnehin im Artikel steht - der Eintrag ist ein Zeiger, nicht die
+Zusammenfassung. Richtwert: ein kurzer Absatz, nicht mehrere.
+
+Was in einem Artikel keinen Platz findet, weil es den Aufnahmefilter nicht
+besteht, gehört auch nicht ersatzweise nach `log.md`.

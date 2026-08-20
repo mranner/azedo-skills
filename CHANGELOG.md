@@ -3,6 +3,35 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.44.1
+
+- **`wiki`: Schreibregeln für jedes Schreiben ins Wiki -- Aufnahmefilter und
+  Dichtegebot.** Der `compilation-guide` regelte bisher Struktur (Entity-Typen,
+  Links, Index) und Herkunft (source-first), aber weder was aufnahmewürdig ist
+  noch wie dicht geschrieben wird. Damit lautete die Vorgabe faktisch „nimm auf,
+  was in der Quelle steht" -- und bei einer Session-Erkenntnis ist das alles.
+- **Aufnahmefilter, vier Fragen, alle müssen Ja sein:** gilt es in drei Monaten
+  noch, kostet es jemanden Zeit der es nicht weiss, lässt es sich *nicht* in
+  einer halben Minute am Gegenstand selbst ablesen, steht es nicht schon in einem
+  anderen Artikel. Bewusst gegenstandsneutral formuliert, weil der Skill auch
+  Code- und Doku-Wikis bedient: „Gegenstand" statt „System", Beispiele aus beiden
+  Welten.
+- **Dichtegebot: ein Befund ist Behauptung, Folge und Beleg.** Der Weg zur
+  Erkenntnis gehört nicht dazu. Registermarker wie „Aufgefallen ist…",
+  „Sichtbar wurde…", „Ausschlaggebend war…" leiten eine Erzählung ein und sind
+  als Prüfliste aufgenommen; Messwerte und Herleitung gehören unter `## Quellen`,
+  Aufzählungen werden Liste oder Tabelle. Gilt ausdrücklich auch für `log.md` --
+  ein Eintrag ist ein Zeiger, nicht die Zusammenfassung der Sitzung.
+- **Kein Datum in einer Überschrift.** Wer „Umbau <Datum>" oder „Stand <Datum>"
+  als Überschrift braucht, schreibt ein Logbuch statt eines Artikels. Im
+  azedo-Wiki traf das Muster auf über zwanzig Stellen zu; im Artikel, der den
+  Anlass gab, auf fünf Überschriften.
+- Dazu zwei Regeln gegen die häufigste Ursache aufgeblähter Artikel:
+  **aktualisieren heisst ersetzen** (die Vorfassung hält die Versionsverwaltung,
+  sie gehört nicht danebengestellt) und **ein Befund an genau eine Stelle** --
+  die Entscheidung Gegenstand oder eigenes Verfahren fällt beim Schreiben, sonst
+  muss sie später per `refactor` nachgeholt werden.
+
 ### 1.44.0
 
 - **`wiki`: neues Script `audit-wiki.py` und die Subcommands `audit` und
