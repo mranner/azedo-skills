@@ -517,24 +517,12 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.44.2
+### 1.44.3
 
-- **`wiki`: neuer Subcommand `harvest` -- der Aufnahmefilter wird sichtbar.**
-  „Gibt es relevante Erkenntnisse fuers Wiki" und „aktualisiere das Wiki" sind
-  die haeufigsten Einstiege und hatten bis jetzt keinen eigenen Subcommand; sie
-  landeten in `compile`, das fuer Quellen aus `raw/` gedacht ist und nichts
-  filtert. `harvest` sammelt Kandidaten, schickt jeden durch den Aufnahmefilter
-  und legt eine Tabelle vor -- geschrieben wird erst nach Freigabe.
-- **Die verworfenen Kandidaten stehen mit Grund in der Vorlage.** Das ist der
-  eigentliche Zweck: ohne sie ist nicht erkennbar, ob etwas geprueft und
-  aussortiert oder schlicht uebersehen wurde. Ein Filter, dessen Ausschuss
-  niemand sieht, ist kein Filter.
-- **`lint` warnt bei Datumsangaben in Ueberschriften.** Eine Ueberschrift
-  benennt einen Gegenstand, kein Ereignis; „Umbau <Datum>" oder „Stand <Datum>"
-  markiert eine mitgeschriebene Sitzung, und solche Abschnitte wachsen monoton,
-  weil die naechste Sitzung den naechsten anlegt statt den alten zu ersetzen.
-  Im azedo-Wiki schlaegt die Regel derzeit 49-mal an. Datumsangaben im
-  Fliesstext bleiben unbehelligt, Code-Bloecke sind ausgenommen.
-- Die Meldung zitiert die **Rohzeile**, nicht die code-bereinigte: `strip_code()`
-  haette `datei.php` aus der Ueberschrift geschnitten und die Warnung unlesbar
-  gemacht.
+- **`wiki`: `audit` wertet „Session" nur noch mit Datum als Historie-Marke.**
+  Das Muster suchte Logbuch-Zeilen der Form „Session 2026-08-09:", traf aber
+  jedes blosse Vorkommen des Wortes. In einem Infra-Wiki ist „Session" jedoch
+  Fachvokabular -- SSH-Session, ephemere Console-Session, haengende Session.
+  `daemon-neustart-in-jails` kam so auf 20 Marker, von denen 17 der Gegenstand
+  des Artikels selbst waren; ein Artikel ueber Sessions war damit dauerhaft
+  falsch geflaggt und der Befund nicht abstellbar.

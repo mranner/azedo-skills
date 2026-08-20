@@ -3,6 +3,16 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.44.3
+
+- **`wiki`: `audit` wertet „Session" nur noch mit Datum als Historie-Marke.**
+  Das Muster suchte Logbuch-Zeilen der Form „Session 2026-08-09:", traf aber
+  jedes blosse Vorkommen des Wortes. In einem Infra-Wiki ist „Session" jedoch
+  Fachvokabular -- SSH-Session, ephemere Console-Session, haengende Session.
+  `daemon-neustart-in-jails` kam so auf 20 Marker, von denen 17 der Gegenstand
+  des Artikels selbst waren; ein Artikel ueber Sessions war damit dauerhaft
+  falsch geflaggt und der Befund nicht abstellbar.
+
 ### 1.44.2
 
 - **`wiki`: neuer Subcommand `harvest` -- der Aufnahmefilter wird sichtbar.**

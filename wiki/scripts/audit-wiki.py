@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # stdlib only, no pip dependencies
-# version 1.44.0
+# version 1.44.3
 
 """
 audit-wiki.py — misst Aufblähung und überholte Historie in LLM-Wikis.
@@ -61,7 +61,10 @@ HEADING_PATTERN = re.compile(r"^(#{1,6})\s+(.*)$", re.M)
 FENCE_PATTERN = re.compile(r"^(```+|~~~+)", re.M)
 DATE_PATTERN = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
 HISTORY_PATTERN = re.compile(
-    r"\b\d{4}-\d{2}-\d{2}\b|\bSession\b|\bCR\d{3,5}\b|\bseit\s+\d{4}\b|\binzwischen\b|\bfrüher\b|\bmittlerweile\b|\bdamals\b",
+    # "Session" zaehlt nur als Logbuch-Marke, also mit anhaengendem Datum.
+    # Blank getroffen wuerde sonst jeder Artikel ueber SSH, Shells oder Jails,
+    # wo "Session" schlicht Fachvokabular ist.
+    r"\b\d{4}-\d{2}-\d{2}\b|\bSession\s+\d{4}-\d{2}-\d{2}|\bCR\d{3,5}\b|\bseit\s+\d{4}\b|\binzwischen\b|\bfrüher\b|\bmittlerweile\b|\bdamals\b",
     re.I,
 )
 RECIPE_PATTERN = re.compile(r"^#\s*(FALSCH|RICHTIG|WIRKUNGSLOS|GEFÄHRLICH|GEFAEHRLICH)\b", re.M)
