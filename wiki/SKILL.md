@@ -9,7 +9,10 @@ description: >
   kompilieren, validieren oder aufgeblaehte Artikel entflechten will
   (audit findet lange/historienlastige Artikel, refactor baut eine Entity um).
   Auch aktiv verwenden wenn der User sagt "trag das ins Wiki ein",
-  "wiki aktualisieren", "was steht im Wiki zu X", o.ae.
+  "wiki aktualisieren", "was steht im Wiki zu X", o.ae. -- bei
+  "gibt es relevante Erkenntnisse fuers Wiki" bzw. "aktualisiere das Wiki"
+  ist `harvest` gemeint: Kandidaten filtern und vorlegen, erst nach
+  Freigabe schreiben.
   Kann Wikis eines anderen Hosts read-only per SSH abfragen (Config
   .claude/wiki-remotes.json) — nutze das, wenn der User ein Wiki abfragt,
   das auf einem anderen Server liegt (z.B. "frag das azedo-Wiki von hier aus ab").
@@ -219,6 +222,59 @@ Workflow:
 Detaillierte Compile-Regeln (Cross-Referencing, Compile-Checkliste): @references/compilation-guide.md
 
 Entity-Templates (Infra-Modell; fuer Projekt-Wikis gilt deren `<WIKI_ROOT>/CLAUDE.md`): @references/frontmatter-schemas.md
+
+### harvest
+
+Aus der laufenden Arbeit die Erkenntnisse herausziehen, die ins Wiki gehören -
+**als Vorlage, ohne zu schreiben**.
+
+```
+/wiki harvest                 # alles aus dieser Sitzung
+/wiki harvest <thema>         # nur zu einem Thema
+```
+
+Das ist der Subcommand für „gibt es relevante Erkenntnisse fürs Wiki",
+„aktualisiere das Wiki", „trag das ins Wiki ein". Diese Sätze landeten früher
+ungeführt in `compile` - das ist aber für Quellen aus `raw/` gedacht und hat
+keinen Aufnahmefilter. Die Folge war stilles, ungefiltertes Anreichern.
+
+Workflow:
+
+1. `<WIKI_ROOT>/CLAUDE.md` und `index.md` lesen (Entity-Modell und Bestand).
+2. Kandidaten sammeln: jede Erkenntnis der Sitzung, die nicht offensichtlich
+   schon dokumentiert ist.
+3. **Jeden Kandidaten durch den [Aufnahmefilter](#aufnahmefilter-gehört-das-überhaupt-hinein)
+   schicken.** Wer durchfällt, wird verworfen - aber **mit Grund und sichtbar**,
+   nicht stillschweigend.
+4. Für die verbleibenden das Ziel bestimmen: greppen, ob es schon irgendwo steht
+   (dann dort ergänzen), sonst bestehender Artikel oder neuer.
+5. **Vorlage ausgeben, nichts schreiben:**
+
+   | Erkenntnis (ein Satz) | Ziel | neu/ergänzt | ~Zeilen |
+   |---|---|---|---|
+   | … | `[[slug]]` | ergänzt | 6 |
+
+   Darunter die **verworfenen** Kandidaten mit Grund:
+
+   ```
+   Verworfen:
+   - <Erkenntnis> — am Gegenstand selbst ablesbar (`<befehl>`)
+   - <Erkenntnis> — Zwischenstand, gehört ins Ticket
+   - <Erkenntnis> — steht bereits in [[slug]]
+   ```
+
+6. Erst **nach Freigabe** schreiben, dann vollständig: Artikel, Wikilinks,
+   `index.md`, Frontmatter-Datum, `log.md`, danach `lint`.
+
+Die verworfene Liste ist kein Beiwerk, sondern der Zweck: sie macht den Filter
+überprüfbar. Ohne sie ist nicht erkennbar, ob etwas geprüft und aussortiert oder
+schlicht übersehen wurde.
+
+Für die Einträge selbst gelten die [Schreibregeln](#schreibregeln) - vor allem
+das Dichtegebot. Eine Erkenntnis, die in der Vorlage einen Satz braucht, wird im
+Artikel nicht zu einem Absatz.
+
+Bei einem **Remote-Wiki** nicht erlaubt (schreibend) - dort `<remote>:handoff`.
 
 ### query
 

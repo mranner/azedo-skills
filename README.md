@@ -406,8 +406,9 @@ LLM Wiki-Verwaltung fuer strukturierte Dokumentation. Unterstuetzt **mehrere Wik
 - init: neues Wiki-Unterverzeichnis anlegen (inkl. Default-`wiki-schema.json`)
 - ingest: Quellen ins Wiki aufnehmen (nach raw/, immutable)
 - compile: Quellen zu Wiki-Entities verarbeiten (erlaubte Typen laut Wiki-`CLAUDE.md`)
+- harvest: Erkenntnisse der Sitzung durch den Aufnahmefilter schicken und als Vorlage zeigen (inkl. der verworfenen mit Grund); schreibt erst nach Freigabe
 - query: Fragen gegen das Wiki beantworten
-- lint: strukturelle Pruefung (Frontmatter, tote Links, Konnektivitaet, Namenskonventionen); `--check-remotes` verifiziert Remote-Pointer per SSH
+- lint: strukturelle Pruefung (Frontmatter, tote Links, Konnektivitaet, Namenskonventionen, Datum in Ueberschriften); `--check-remotes` verifiziert Remote-Pointer per SSH
 - audit: aufgeblaehte und historienlastige Artikel finden (Zeilen relativ zum p90 des eigenen Entity-Typs, Historie-Dichte, prozeduraler Inhalt in erzaehlenden Entities); bewertet statt zu pruefen, Exit immer 0
 - refactor: eine Entity abschnittsweise einordnen (bleibt / gehoert in eine Procedure / ueberholte Historie / Duplikat) und einen Umbauvorschlag vorlegen; schreibt nichts ohne Freigabe
 - status: Ueberblick ueber Wiki-Zustand
@@ -516,31 +517,24 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.44.1
+### 1.44.2
 
-- **`wiki`: Schreibregeln für jedes Schreiben ins Wiki -- Aufnahmefilter und
-  Dichtegebot.** Der `compilation-guide` regelte bisher Struktur (Entity-Typen,
-  Links, Index) und Herkunft (source-first), aber weder was aufnahmewürdig ist
-  noch wie dicht geschrieben wird. Damit lautete die Vorgabe faktisch „nimm auf,
-  was in der Quelle steht" -- und bei einer Session-Erkenntnis ist das alles.
-- **Aufnahmefilter, vier Fragen, alle müssen Ja sein:** gilt es in drei Monaten
-  noch, kostet es jemanden Zeit der es nicht weiss, lässt es sich *nicht* in
-  einer halben Minute am Gegenstand selbst ablesen, steht es nicht schon in einem
-  anderen Artikel. Bewusst gegenstandsneutral formuliert, weil der Skill auch
-  Code- und Doku-Wikis bedient: „Gegenstand" statt „System", Beispiele aus beiden
-  Welten.
-- **Dichtegebot: ein Befund ist Behauptung, Folge und Beleg.** Der Weg zur
-  Erkenntnis gehört nicht dazu. Registermarker wie „Aufgefallen ist…",
-  „Sichtbar wurde…", „Ausschlaggebend war…" leiten eine Erzählung ein und sind
-  als Prüfliste aufgenommen; Messwerte und Herleitung gehören unter `## Quellen`,
-  Aufzählungen werden Liste oder Tabelle. Gilt ausdrücklich auch für `log.md` --
-  ein Eintrag ist ein Zeiger, nicht die Zusammenfassung der Sitzung.
-- **Kein Datum in einer Überschrift.** Wer „Umbau <Datum>" oder „Stand <Datum>"
-  als Überschrift braucht, schreibt ein Logbuch statt eines Artikels. Im
-  azedo-Wiki traf das Muster auf über zwanzig Stellen zu; im Artikel, der den
-  Anlass gab, auf fünf Überschriften.
-- Dazu zwei Regeln gegen die häufigste Ursache aufgeblähter Artikel:
-  **aktualisieren heisst ersetzen** (die Vorfassung hält die Versionsverwaltung,
-  sie gehört nicht danebengestellt) und **ein Befund an genau eine Stelle** --
-  die Entscheidung Gegenstand oder eigenes Verfahren fällt beim Schreiben, sonst
-  muss sie später per `refactor` nachgeholt werden.
+- **`wiki`: neuer Subcommand `harvest` -- der Aufnahmefilter wird sichtbar.**
+  „Gibt es relevante Erkenntnisse fuers Wiki" und „aktualisiere das Wiki" sind
+  die haeufigsten Einstiege und hatten bis jetzt keinen eigenen Subcommand; sie
+  landeten in `compile`, das fuer Quellen aus `raw/` gedacht ist und nichts
+  filtert. `harvest` sammelt Kandidaten, schickt jeden durch den Aufnahmefilter
+  und legt eine Tabelle vor -- geschrieben wird erst nach Freigabe.
+- **Die verworfenen Kandidaten stehen mit Grund in der Vorlage.** Das ist der
+  eigentliche Zweck: ohne sie ist nicht erkennbar, ob etwas geprueft und
+  aussortiert oder schlicht uebersehen wurde. Ein Filter, dessen Ausschuss
+  niemand sieht, ist kein Filter.
+- **`lint` warnt bei Datumsangaben in Ueberschriften.** Eine Ueberschrift
+  benennt einen Gegenstand, kein Ereignis; „Umbau <Datum>" oder „Stand <Datum>"
+  markiert eine mitgeschriebene Sitzung, und solche Abschnitte wachsen monoton,
+  weil die naechste Sitzung den naechsten anlegt statt den alten zu ersetzen.
+  Im azedo-Wiki schlaegt die Regel derzeit 49-mal an. Datumsangaben im
+  Fliesstext bleiben unbehelligt, Code-Bloecke sind ausgenommen.
+- Die Meldung zitiert die **Rohzeile**, nicht die code-bereinigte: `strip_code()`
+  haette `datei.php` aus der Ueberschrift geschnitten und die Warnung unlesbar
+  gemacht.

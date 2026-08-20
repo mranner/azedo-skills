@@ -3,6 +3,28 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.44.2
+
+- **`wiki`: neuer Subcommand `harvest` -- der Aufnahmefilter wird sichtbar.**
+  „Gibt es relevante Erkenntnisse fuers Wiki" und „aktualisiere das Wiki" sind
+  die haeufigsten Einstiege und hatten bis jetzt keinen eigenen Subcommand; sie
+  landeten in `compile`, das fuer Quellen aus `raw/` gedacht ist und nichts
+  filtert. `harvest` sammelt Kandidaten, schickt jeden durch den Aufnahmefilter
+  und legt eine Tabelle vor -- geschrieben wird erst nach Freigabe.
+- **Die verworfenen Kandidaten stehen mit Grund in der Vorlage.** Das ist der
+  eigentliche Zweck: ohne sie ist nicht erkennbar, ob etwas geprueft und
+  aussortiert oder schlicht uebersehen wurde. Ein Filter, dessen Ausschuss
+  niemand sieht, ist kein Filter.
+- **`lint` warnt bei Datumsangaben in Ueberschriften.** Eine Ueberschrift
+  benennt einen Gegenstand, kein Ereignis; „Umbau <Datum>" oder „Stand <Datum>"
+  markiert eine mitgeschriebene Sitzung, und solche Abschnitte wachsen monoton,
+  weil die naechste Sitzung den naechsten anlegt statt den alten zu ersetzen.
+  Im azedo-Wiki schlaegt die Regel derzeit 49-mal an. Datumsangaben im
+  Fliesstext bleiben unbehelligt, Code-Bloecke sind ausgenommen.
+- Die Meldung zitiert die **Rohzeile**, nicht die code-bereinigte: `strip_code()`
+  haette `datei.php` aus der Ueberschrift geschnitten und die Warnung unlesbar
+  gemacht.
+
 ### 1.44.1
 
 - **`wiki`: Schreibregeln für jedes Schreiben ins Wiki -- Aufnahmefilter und

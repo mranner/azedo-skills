@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # stdlib only, no pip dependencies
-# version 1.34.4
+# version 1.44.2
 
 """
 lint-wiki.py — Strukturpruefung fuer LLM Wikis (Infra + Projekt-Doku).
@@ -12,6 +12,7 @@ Prueft:
 - Index-Eintraege (fehlende Artikel im Index)
 - Namenskonventionen (nur Kleinbuchstaben, Ziffern, Bindestriche)
 - Verwaiste Seiten (keine eingehenden Links)
+- Datumsangaben in Ueberschriften (Logbuch-Muster, siehe Schreibregeln)
 
 Remote-Pointer: Wikilinks der Form [[<remote>:<slug>]] verweisen auf ein Wiki
 auf einem anderen Host. Ist <remote> ein Key in <projekt-root>/.claude/
@@ -104,6 +105,40 @@ INLINE_CODE_PATTERN = re.compile(r"(?<!`)(`+)(?!`).+?(?<!`)\1(?!`)", re.S)
 # Remote-Pointer [[<remote>:<slug>]] — beide Teile in Slug-Schreibweise
 REMOTE_TARGET_PATTERN = re.compile(r"^([a-z0-9-]+):([a-z0-9-]+)$")
 MIN_WIKILINKS = 3
+
+# Datum in einer Ueberschrift = Logbuch-Muster. Eine Ueberschrift benennt einen
+# Gegenstand, kein Ereignis; "Umbau 2026-08-15" oder "Stand 2026-08-15" markiert
+# eine Sitzung, die jemand mitgeschrieben hat. Diese Abschnitte wachsen monoton,
+# weil die naechste Sitzung den naechsten anlegt, statt den alten zu ersetzen.
+# Ein Datum im Fliesstext ("seit 2026-08-15") ist unbedenklich und wird nicht
+# geprueft. Siehe SKILL.md, Abschnitt Schreibregeln.
+DATED_HEADING_PATTERN = re.compile(
+    r"^#{1,6}\s+.*?(\d{4}-\d{2}-\d{2}|\bStand\s+\d{4}\b|\b(?:Q[1-4]|Jaenner|Januar|Februar|Maerz|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember)\s+\d{4}\b)",
+    re.M,
+)
+
+
+def find_dated_headings(text):
+    """Ueberschriften mit Datumsangabe (Code-Bloecke ausgenommen).
+
+    Gibt eine Liste (ueberschrift, treffer) zurueck.
+    """
+    hits = []
+    in_fence = False
+    for line in text.splitlines():
+        if line.lstrip().startswith(("```", "~~~")):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+
+        # Bewusst auf der Rohzeile arbeiten, nicht auf strip_code(): dessen
+        # Inline-Code-Entfernung wuerde `datei.php` aus der Ueberschrift
+        # schneiden und die Meldung unlesbar machen.
+        m = DATED_HEADING_PATTERN.match(line)
+        if m:
+            hits.append((line.strip(), m.group(1)))
+    return hits
 
 
 def parse_remote_target(target):
@@ -313,6 +348,14 @@ def lint_wiki(wiki_root, check_remotes=False):
 
         if len(links) < MIN_WIKILINKS:
             warnings.append(f"{prefix}: Nur {len(links)} Wikilinks (Minimum: {MIN_WIKILINKS})")
+
+        # Datum in Ueberschriften — Logbuch statt Artikel
+        for heading, hit in find_dated_headings(body):
+            short = heading if len(heading) <= 60 else heading[:57] + "…"
+            warnings.append(
+                f"{prefix}: Datum in Ueberschrift ({hit}) — \"{short}\"; "
+                f"Zustand beschreiben statt Verlauf, Datum in den Fliesstext"
+            )
 
     # Tote Links (Remote-Pointer [[<remote>:<slug>]] ausgenommen, wenn <remote> bekannt)
     remote_pointers = []  # (source_slug, remote_name, target_slug)
