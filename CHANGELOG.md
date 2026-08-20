@@ -3,6 +3,24 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.44.4
+
+- **`wiki`: `refactor` hat einen zweiten Durchgang auf Satzebene.** Der
+  Subcommand verschob bisher nur Abschnitte. Ein Artikel kann danach
+  strukturell fertig sein und trotzdem ein Fuenftel zu lang bleiben -- die
+  Fuelle steckt dann in den Saetzen, nicht im Aufbau. Wer nur den ersten
+  Durchgang macht, verteilt sie bloss auf mehr Dateien.
+- **Fuenf mechanisch erkennbare Muster, mit Vorher/Nachher im Vorschlag.**
+  Dieselbe Aussage dreimal (Behauptung, Umkehrung, Handlungsanweisung),
+  Fremdcode als Beweis fuer einen Satz, Erzaehlrahmen vor dem Inhalt, ein
+  Hinweis der doppelt im selben Artikel steht, und Quellen, die einen Vorfall
+  nacherzaehlen statt ihn zu belegen. Der Vorschlag zeigt die Ersetzung am
+  konkreten Satz, damit sie freigegeben oder abgelehnt werden kann.
+- **Mit angesagter Grenze.** Gekuerzt wird der Weg zur Aussage, nie die Aussage;
+  Behauptung, Folge und Beleg bleiben. Und der Durchgang raeumt keinen
+  `LANG`-Befund ab -- realistisch sind 10-20 % der Zeilen. Das steht jetzt im
+  Skill, damit nicht weiter gekuerzt wird, bis die Zahl stimmt.
+
 ### 1.44.3
 
 - **`wiki`: `audit` wertet „Session" nur noch mit Datum als Historie-Marke.**

@@ -391,11 +391,43 @@ Ablauf:
    | `DUPLIKAT` | steht schon in Artikel Y | streichen, Wikilink setzen |
    | `→ TASK` | offene Aufgabe, keine Doku | ins Ticketsystem, aus dem Wiki raus |
 
-5. Vorschlag als Tabelle im Chat ausgeben, mit Zeilenumfang je Abschnitt und der
+5. **Zweiter Durchgang auf Satzebene** über die `BLEIBT`-Abschnitte (siehe
+   [Verdichten statt verschieben](#verdichten-statt-verschieben) unten).
+6. Vorschlag als Tabelle im Chat ausgeben, mit Zeilenumfang je Abschnitt und der
    erwarteten Restlänge. Nichts schreiben.
-6. Erst **nach Freigabe** umsetzen, und dann vollständig: Zielartikel anlegen
+7. Erst **nach Freigabe** umsetzen, und dann vollständig: Zielartikel anlegen
    bzw. ergänzen, Wikilink im Restartikel setzen, `index.md` ergänzen,
    Frontmatter-Datum aktualisieren, Zeile in `log.md`, danach `/wiki lint`.
+
+#### Verdichten statt verschieben
+
+Ein Artikel kann strukturell fertig sein - jeder Abschnitt gehört dorthin, wo er
+steht - und trotzdem ein Fünftel zu lang. Schritt 4 verschiebt Abschnitte,
+Schritt 5 kürzt Sätze innerhalb der bleibenden. Beide Durchgänge sind nötig; wer
+nur den ersten macht, verteilt die Fülle bloss auf mehr Dateien.
+
+Der zweite Durchgang sucht fünf Muster. Sie sind mechanisch erkennbar, deshalb
+gehören sie in den Vorschlag mit **Vorher/Nachher am konkreten Satz** - nicht als
+Rat, sondern als Ersetzung, die man freigeben oder ablehnen kann:
+
+| Muster | Erkennungszeichen | Behandlung |
+|---|---|---|
+| **Dieselbe Aussage mehrfach** | Behauptung, ihre Umkehrung, dann die Handlungsanweisung daraus - drei Sätze, ein Inhalt | einen behalten, meist den mit der Konsequenz |
+| **Fremdcode als Beweis** | zitierter Codeblock aus einem fremden Projekt, der nur belegt, was ein Satz sagt | Satz statt Block. Eigener Code, der den Fehler *zeigt*, bleibt |
+| **Erzählrahmen vor dem Inhalt** | „X ist darauf vorbereitet:", „Wer … testet, braucht …:", „Praktischer Nebeneffekt:" | Rahmen streichen, Inhalt direkt |
+| **Duplikat im selben Artikel** | derselbe Hinweis an zwei Stellen, einmal als Randnotiz, einmal am Ort der Handlung | am Ort der Handlung behalten, Randnotiz streichen |
+| **Quellen als Nacherzählung** | ein Vorfall über mehrere `## Quellen`-Einträge mit Verlauf, Uhrzeiten und Zwischenständen | ein Eintrag: was war, was es brach, woran datiert |
+
+Die Grenze nach unten: gekürzt wird der **Weg zur Aussage**, nie die Aussage.
+Bleiben müssen Behauptung, Folge und Beleg (das
+[Dichtegebot](#dichtegebot-behauptung-folge-beleg)) - ein Artikel, aus dem man
+den Prüfbefehl herausgekürzt hat, ist nicht dichter, sondern unbrauchbar.
+
+**Was dieser Durchgang nicht leistet:** er räumt keinen `LANG`-Befund ab.
+Realistisch sind 10-20 % der Zeilen. Ein Artikel, der drei Fehlerbilder und zwei
+Instanzen beschreibt, bleibt danach über der Typ-Schwelle - das ist Substanz,
+keine Fülle, und im Vorschlag auch so zu benennen, statt weiter zu kürzen, bis
+die Zahl stimmt.
 
 **Die Historie-Regel.** Nicht „alt" ist das Kriterium, sondern „gilt nicht mehr".
 Ein datierter Beleg („verifiziert 2026-07-28 auf [[fry-azedo-at]]") ist eine
