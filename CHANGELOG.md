@@ -3,6 +3,32 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.43.2
+
+- **`mainwp`: Die SKILL.md nannte eine Ability, die es nicht gibt.**
+  `update-plugins-v1` und `update-all-plugins-v1` zogen sich als Beispiel durch
+  mehrere Abschnitte -- beide antworten mit `404 rest_ability_not_found`. Updates laufen
+  über `run-updates-v1`, und dessen Parameter heißen anders als dokumentiert:
+  `site_ids_or_domains` (Array aus IDs oder Domains), `types` und
+  `specific_items`. Der Abschnitt heißt jetzt „Updates einspielen" und beschreibt
+  auch die Antwort (`updated`/`errors`/`summary`, ab 200 Sites stattdessen
+  `queued`/`job_id`/`status_url`).
+- **Ein leeres Array bedeutet bei `run-updates-v1` „alle" -- und ein weggelassener
+  Parameter ist ein leeres Array.** Der Aufruf ohne `--param` spielt damit alle
+  verfügbaren Updates auf allen Sites ein. Dass der Wrapper das abfängt, stimmte
+  ebenfalls nicht: er verlangt `--confirm` nur bei `destructive: true` oder wenn
+  der Ability-Name eines von fünf Verben enthält (`delete`, `remove`,
+  `disconnect`, `deactivate`, `suspend`). Updates erfüllen weder das eine noch das
+  andere und laufen ungebremst durch. Beides steht jetzt dort, wo die
+  Update-Befehle stehen, und der Sicherheitsabschnitt nennt die Bedingung, statt
+  einen Schutz zu behaupten, den es nicht gibt.
+- Das Beispiel `--param status=active` nannte einen Enum-Wert, den
+  `list-sites-v1` nicht kennt (zulässig sind `any`, `connected`, `disconnected`,
+  `suspended`, `available_update`). Korrigiert auf `connected`, mit dem Hinweis,
+  dass die API ungültige Enum-Werte immerhin selbst mit `400
+  ability_invalid_input` abweist -- ein falscher Ability-Name dagegen erst beim
+  Aufruf auffällt.
+
 ### 1.43.1
 
 - **`wp-cli`: Bei Multisites liest WordPress etliche Optionen aus `wp_sitemeta`, nicht

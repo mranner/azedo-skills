@@ -514,25 +514,28 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.43.1
+### 1.43.2
 
-- **`wp-cli`: Bei Multisites liest WordPress etliche Optionen aus `wp_sitemeta`, nicht
-  aus `wp_options`.** Betroffen sind unter anderem `auto_update_plugins`,
-  `auto_update_core_major` und `auto_update_core_minor`. `wp option get` liefert dort
-  trotzdem einen Wert -- der Aufruf schlägt nicht fehl, er antwortet falsch. Beide
-  Ebenen können gleichzeitig existieren und sich widersprechen; bei einer Erhebung
-  über mehrere Installationen wurde deshalb zweimal der falsche Zustand berichtet und
-  eine Änderung landete auf der wirkungslosen Ebene. Abschnitt 6 hat jetzt die Regel
-  samt Gegenprobe (`wp config get MULTISITE`, dann
-  `wp network meta get|update 1 <option>`), der Options-Abschnitt verweist darauf.
-- **`mainwp`: `list-sites-v1` liefert keine Versionen.** Zurück kommen nur `id`, `url`,
-  `name`, `status` und `client_id` -- `wp_version` und `php_version` gibt es
-  ausschließlich über `get-site-v1`, also einen Aufruf je Site. Der dortige Parameter
-  heißt `site_id_or_domain`, nicht `site_id`; die SKILL.md nannte den falschen Namen.
-  Neu dokumentiert: die Felder beider Abilities und ein Muster für die Erhebung über
-  alle Sites (`xargs -P 6`, Antworten in getrennte Dateien, weil paralleles Schreiben
-  in eine Datei das mehrzeilige JSON vermischt).
-- **`mainwp`: Abilities nur über den Wrapper aufrufen.** Bei einem direkten Request an
-  die Abilities-API kommen die Query-Parameter nicht an. Die Paginierung läuft dann
-  still über dieselbe Default-Seite und liefert Dubletten statt der nächsten Seite --
-  ohne Fehlermeldung, die Ausgabe sieht plausibel aus.
+- **`mainwp`: Die SKILL.md nannte eine Ability, die es nicht gibt.**
+  `update-plugins-v1` und `update-all-plugins-v1` zogen sich als Beispiel durch
+  mehrere Abschnitte -- beide antworten mit `404 rest_ability_not_found`. Updates laufen
+  über `run-updates-v1`, und dessen Parameter heißen anders als dokumentiert:
+  `site_ids_or_domains` (Array aus IDs oder Domains), `types` und
+  `specific_items`. Der Abschnitt heißt jetzt „Updates einspielen" und beschreibt
+  auch die Antwort (`updated`/`errors`/`summary`, ab 200 Sites stattdessen
+  `queued`/`job_id`/`status_url`).
+- **Ein leeres Array bedeutet bei `run-updates-v1` „alle" -- und ein weggelassener
+  Parameter ist ein leeres Array.** Der Aufruf ohne `--param` spielt damit alle
+  verfügbaren Updates auf allen Sites ein. Dass der Wrapper das abfängt, stimmte
+  ebenfalls nicht: er verlangt `--confirm` nur bei `destructive: true` oder wenn
+  der Ability-Name eines von fünf Verben enthält (`delete`, `remove`,
+  `disconnect`, `deactivate`, `suspend`). Updates erfüllen weder das eine noch das
+  andere und laufen ungebremst durch. Beides steht jetzt dort, wo die
+  Update-Befehle stehen, und der Sicherheitsabschnitt nennt die Bedingung, statt
+  einen Schutz zu behaupten, den es nicht gibt.
+- Das Beispiel `--param status=active` nannte einen Enum-Wert, den
+  `list-sites-v1` nicht kennt (zulässig sind `any`, `connected`, `disconnected`,
+  `suspended`, `available_update`). Korrigiert auf `connected`, mit dem Hinweis,
+  dass die API ungültige Enum-Werte immerhin selbst mit `400
+  ability_invalid_input` abweist -- ein falscher Ability-Name dagegen erst beim
+  Aufruf auffällt.

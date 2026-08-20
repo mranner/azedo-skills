@@ -81,7 +81,7 @@ bevor eine unbekannte Ability ausgefuehrt wird.
 
 ```bash
 python3 "$SKILL_DIR/mainwp" info mainwp/list-sites-v1
-python3 "$SKILL_DIR/mainwp" info mainwp/update-plugins-v1
+python3 "$SKILL_DIR/mainwp" info mainwp/run-updates-v1
 ```
 
 ### run \<ability-name\> [--param key=value ...] [--confirm] [--dry-run]
@@ -94,20 +94,23 @@ Ability ausfuehren. Parameter werden als `--param key=value` uebergeben
 # Readonly — keine Bestaetigung noetig
 python3 "$SKILL_DIR/mainwp" run mainwp/list-sites-v1
 
-# Mit Parametern
-python3 "$SKILL_DIR/mainwp" run mainwp/list-sites-v1 --param status=active
+# Mit Parametern (Werte aus dem Schema, nicht geraten -- vorher `info`)
+python3 "$SKILL_DIR/mainwp" run mainwp/list-sites-v1 --param status=connected
 
-# Destruktive Operation — erst Vorschau, dann ausfuehren
-python3 "$SKILL_DIR/mainwp" run mainwp/update-plugins-v1 --param site_id=42 --dry-run
-python3 "$SKILL_DIR/mainwp" run mainwp/update-plugins-v1 --param site_id=42 --confirm
+# Schreibende Operation -- erst Vorschau, dann ausfuehren
+python3 "$SKILL_DIR/mainwp" run mainwp/run-updates-v1 \
+  --param 'site_ids_or_domains=[42]' --param 'types=["plugins"]' --dry-run
+python3 "$SKILL_DIR/mainwp" run mainwp/run-updates-v1 \
+  --param 'site_ids_or_domains=[42]' --param 'types=["plugins"]' --confirm
 
 # Batch mit angepasstem Polling
-python3 "$SKILL_DIR/mainwp" run mainwp/update-all-plugins-v1 --confirm --poll-interval 10 --poll-timeout 600
+python3 "$SKILL_DIR/mainwp" run mainwp/sync-sites-v1 --param 'site_ids=[]' \
+  --poll-interval 10 --poll-timeout 600
 ```
 
 **Flags:**
-- `--confirm` — Destruktive Operation bestaetigen (Pflicht bei delete, update, etc.)
-- `--dry-run` — Zeigt den Request ohne auszufuehren
+- `--confirm` — Destruktive Operation bestaetigen
+- `--dry-run` — Zeigt den Request ohne auszufuehren (fuer **jede** Ability)
 - `--batch-size N` — site_ids in Gruppen von N aufteilen (Default: 25, 0=aus)
 - `--poll-interval N` — Batch-Polling-Intervall in Sekunden (Default: 5)
 - `--poll-timeout N` — Batch-Polling-Timeout in Sekunden (Default: 300)
@@ -125,7 +128,8 @@ python3 "$SKILL_DIR/mainwp" run mainwp/update-all-plugins-v1 --confirm --poll-in
 
 4. Ausfuehren:
    - Readonly: `run <ability-name> [--param ...]`
-   - Destruktiv: IMMER zuerst `--dry-run`, dann `--confirm`
+   - Schreibend: IMMER zuerst `--dry-run`, dann `--confirm` -- auch dann, wenn
+     das Script den Aufruf ohne `--confirm` durchliesse (siehe Sicherheitshinweise)
 
 5. Ergebnis dem User in lesbarer Form praesentieren (JSON parsen, relevante
    Felder extrahieren).
@@ -209,14 +213,40 @@ for e in d.get('errors', []):
 python3 "$SKILL_DIR/mainwp" run mainwp/list-updates-v1 --param per_page=100
 ```
 
-### Plugin-Update auf einer Site installieren
+### Updates einspielen
+
+Zustaendig ist `run-updates-v1` -- eine Ability `update-plugins-v1` gibt es
+**nicht**. Die Parameter heissen `site_ids_or_domains` (Array aus IDs oder
+Domains), `types` (`core`, `plugins`, `themes`, `translations`) und
+`specific_items` (Slugs).
 
 ```bash
-# Vorschau
-python3 "$SKILL_DIR/mainwp" run mainwp/update-plugins-v1 --param site_id=42 --dry-run
-# Ausfuehren
-python3 "$SKILL_DIR/mainwp" run mainwp/update-plugins-v1 --param site_id=42 --confirm
+# Vorschau -- zeigt den Request, ohne etwas zu aendern
+python3 "$SKILL_DIR/mainwp" run mainwp/run-updates-v1 \
+  --param 'site_ids_or_domains=[42]' --param 'types=["plugins"]' --dry-run
+
+# ein bestimmtes Plugin auf einer Site
+python3 "$SKILL_DIR/mainwp" run mainwp/run-updates-v1 \
+  --param 'site_ids_or_domains=[42]' --param 'types=["plugins"]' \
+  --param 'specific_items=["akismet"]' --confirm
 ```
+
+**Ein leeres Array bedeutet „alle".** Das gilt fuer jeden der drei Parameter,
+und ein weggelassener Parameter ist ein leeres Array. `run mainwp/run-updates-v1`
+ohne `--param` spielt also saemtliche verfuegbaren Updates auf **allen** Sites
+ein. Die Ziele deshalb immer explizit setzen.
+
+**Der Wrapper haelt hier nichts auf.** `run-updates-v1` traegt
+`destructive: false` und enthaelt keines der Verben, an denen die Heuristik des
+Scripts greift (`delete`, `remove`, `disconnect`, `deactivate`, `suspend`) -- der
+Aufruf laeuft ohne `--confirm` durch. Der Schutz muss hier also vom Aufrufer
+kommen: erst `--dry-run`, dann ausfuehren.
+
+Ausgabe: `updated[]`, `errors[]` (je mit `code` und `message`) und `summary`
+(`total_updated`, `total_errors`, `sites_updated`). Ab mehr als 200 Sites
+schaltet MainWP auf Hintergrundverarbeitung um und liefert stattdessen `queued`,
+`job_id` und `status_url`. Einzelne fehlgeschlagene Updates lassen den
+Gesamtaufruf erfolgreich aussehen -- `errors[]` immer pruefen.
 
 ### Site-Details abrufen
 
@@ -335,7 +365,15 @@ den Defaults. `--param` gehoert an den Wrapper.
 - Updates: Zuerst `info` pruefen, dann `--dry-run`, dann `--confirm`.
 - Batch-Updates: Ergebnis abwarten, Job-Status pruefen.
 - Nie mehrere destruktive Operationen blind hintereinander ausfuehren.
-- Das Script verweigert destruktive Operationen ohne `--confirm`.
+- Das Script verweigert eine Ability ohne `--confirm` nur dann, wenn sie
+  `destructive: true` traegt oder ihr Name `delete`, `remove`, `disconnect`,
+  `deactivate` oder `suspend` enthaelt. **Updates fallen unter keines von
+  beidem** und laufen ungebremst durch -- siehe „Updates einspielen".
+- Parameterwerte aus dem Schema nehmen (`info`), nicht aus dem Gedaechtnis.
+  Enum-Werte prueft die API immerhin selbst und antwortet mit
+  `400 ability_invalid_input` samt Liste der zulaessigen Werte (`status=active`
+  gibt es z.B. nicht, gemeint ist `connected`). Ein falscher **Ability-Name**
+  faellt dagegen erst beim Aufruf mit `404 rest_ability_not_found` auf.
 
 ## Hinweise
 
