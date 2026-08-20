@@ -3,6 +3,29 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.43.1
+
+- **`wp-cli`: Bei Multisites liest WordPress etliche Optionen aus `wp_sitemeta`, nicht
+  aus `wp_options`.** Betroffen sind unter anderem `auto_update_plugins`,
+  `auto_update_core_major` und `auto_update_core_minor`. `wp option get` liefert dort
+  trotzdem einen Wert -- der Aufruf schlägt nicht fehl, er antwortet falsch. Beide
+  Ebenen können gleichzeitig existieren und sich widersprechen; bei einer Erhebung
+  über mehrere Installationen wurde deshalb zweimal der falsche Zustand berichtet und
+  eine Änderung landete auf der wirkungslosen Ebene. Abschnitt 6 hat jetzt die Regel
+  samt Gegenprobe (`wp config get MULTISITE`, dann
+  `wp network meta get|update 1 <option>`), der Options-Abschnitt verweist darauf.
+- **`mainwp`: `list-sites-v1` liefert keine Versionen.** Zurück kommen nur `id`, `url`,
+  `name`, `status` und `client_id` -- `wp_version` und `php_version` gibt es
+  ausschließlich über `get-site-v1`, also einen Aufruf je Site. Der dortige Parameter
+  heißt `site_id_or_domain`, nicht `site_id`; die SKILL.md nannte den falschen Namen.
+  Neu dokumentiert: die Felder beider Abilities und ein Muster für die Erhebung über
+  alle Sites (`xargs -P 6`, Antworten in getrennte Dateien, weil paralleles Schreiben
+  in eine Datei das mehrzeilige JSON vermischt).
+- **`mainwp`: Abilities nur über den Wrapper aufrufen.** Bei einem direkten Request an
+  die Abilities-API kommen die Query-Parameter nicht an. Die Paginierung läuft dann
+  still über dieselbe Default-Seite und liefert Dubletten statt der nächsten Seite --
+  ohne Fehlermeldung, die Ausgabe sieht plausibel aus.
+
 ### 1.43.0
 
 - **`image-optimize`: `analyze` meldete ohne GraphicsMagick die JFIF-Density statt

@@ -514,36 +514,25 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.43.0
+### 1.43.1
 
-- **`image-optimize`: `analyze` meldete ohne GraphicsMagick die JFIF-Density statt
-  der Auflösung.** Der Fallback las die Maße aus `file(1)`, und dessen Ausgabe nennt
-  bei JFIF-JPEGs `density 96x96` vor der echten Größe -- eine Regex über das erste
-  Zahlenpaar greift also daneben. Betroffen war genau der Wert, an dem die
-  Entscheidung „muss skaliert werden?" hängt: mit 96x96 sieht jedes Bild klein genug
-  aus, ein `resize` täte stillschweigend nichts, und es gab keinen Hinweis auf das
-  fehlende Werkzeug.
-- Maße kommen jetzt aus `gm identify`/`magick identify` und sonst aus einem eigenen
-  Header-Parser (stdlib `struct`) für PNG, JPEG, GIF, WebP, BMP und TIFF; bei JPEG
-  über den SOF-Marker statt über Fließtext. `file(1)` entfällt als Quelle. Gegen
-  `gm` geprüft: 107 Dateien über alle Formate, keine Abweichung.
-- `analyze` schreibt die verwendete Messquelle in die erste Zeile und meldet
-  unbestimmbare Maße als Problem, statt sie als 0 durchzureichen. `web` bricht mit
-  Exit-Code 1 ab, wenn ein Bild skaliert werden müsste, aber kein Bildwandler da ist
-  -- vorher lief die Pipeline scheinbar erfolgreich durch und ließ das zu große Bild
-  liegen.
-- **Neu: `convert`-Subcommand** für Formatwechsel (`--to jpg|png|webp|gif|tiff`).
-  Bei JPEG als Ziel wird Transparenz auf einen Hintergrund gelegt (`--background`,
-  Default weiß), sonst kommt der transparente Bereich schwarz heraus. Schutz gegen
-  Datenverlust: Quelle == Ziel und vorhandene Zieldateien werden übersprungen
-  (`--force` überschreibt), das Original bleibt liegen (`--remove-source` entfernt es).
-  Zielen zwei Quellen auf denselben Namen (`foto.png` und `foto.tif` auf `foto.jpg`),
-  ist das ein Fehler statt eines Überschreibens -- auch mit `--force`, das
-  vorhandenen Dateien gilt und nicht der eigenen Ausgabe des Laufs.
-- JPEGs werden von `optimize` und `web` progressiv geschrieben, `--baseline` schaltet
-  zurück. Bei Fotos in Webgröße spart das nochmals Bytes; `jpegoptim` ersetzt eine
-  Datei ohnehin nur, wenn das Ergebnis kleiner ist.
-- Resize und Convert akzeptieren ImageMagick 7 als Ersatz für GraphicsMagick --
-  angesprochen wird dabei `magick`, nie das abgekündigte `convert`.
-- `check_tool()` prüft über `shutil.which()` statt einen `--version`-Aufruf zu starten;
-  die Werkzeugsuche läuft einmal statt einmal pro Bild.
+- **`wp-cli`: Bei Multisites liest WordPress etliche Optionen aus `wp_sitemeta`, nicht
+  aus `wp_options`.** Betroffen sind unter anderem `auto_update_plugins`,
+  `auto_update_core_major` und `auto_update_core_minor`. `wp option get` liefert dort
+  trotzdem einen Wert -- der Aufruf schlägt nicht fehl, er antwortet falsch. Beide
+  Ebenen können gleichzeitig existieren und sich widersprechen; bei einer Erhebung
+  über mehrere Installationen wurde deshalb zweimal der falsche Zustand berichtet und
+  eine Änderung landete auf der wirkungslosen Ebene. Abschnitt 6 hat jetzt die Regel
+  samt Gegenprobe (`wp config get MULTISITE`, dann
+  `wp network meta get|update 1 <option>`), der Options-Abschnitt verweist darauf.
+- **`mainwp`: `list-sites-v1` liefert keine Versionen.** Zurück kommen nur `id`, `url`,
+  `name`, `status` und `client_id` -- `wp_version` und `php_version` gibt es
+  ausschließlich über `get-site-v1`, also einen Aufruf je Site. Der dortige Parameter
+  heißt `site_id_or_domain`, nicht `site_id`; die SKILL.md nannte den falschen Namen.
+  Neu dokumentiert: die Felder beider Abilities und ein Muster für die Erhebung über
+  alle Sites (`xargs -P 6`, Antworten in getrennte Dateien, weil paralleles Schreiben
+  in eine Datei das mehrzeilige JSON vermischt).
+- **`mainwp`: Abilities nur über den Wrapper aufrufen.** Bei einem direkten Request an
+  die Abilities-API kommen die Query-Parameter nicht an. Die Paginierung läuft dann
+  still über dieselbe Default-Seite und liefert Dubletten statt der nächsten Seite --
+  ohne Fehlermeldung, die Ausgabe sieht plausibel aus.

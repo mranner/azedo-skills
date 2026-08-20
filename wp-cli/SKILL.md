@@ -260,6 +260,11 @@ wp option delete <name>                     # Option loeschen
 wp option list --search="*woo*"             # Options durchsuchen
 ```
 
+**Bei Multisite zuerst pruefen, ob die Option ueberhaupt in `wp_options` liegt.**
+Eine Reihe von Einstellungen kommt dort aus `wp_sitemeta`; `wp option get` liefert
+trotzdem einen Wert, nur steuert der nichts. Siehe Abschnitt 6, „Optionen liegen bei
+Multisite in `sitemeta`".
+
 ### Cache
 
 ```sh
@@ -351,6 +356,39 @@ wp plugin activate <slug> --network
 ```
 
 Bei Multisite-Installationen **immer** `--url=<site>` angeben, sonst wirkt der Befehl nur auf die Haupt-Site.
+
+### Optionen liegen bei Multisite in `sitemeta`
+
+Bei einer Multisite liest WordPress eine Reihe von Einstellungen ueber
+`get_site_option()`, also aus `wp_sitemeta` statt aus `wp_options` der einzelnen
+Site. `wp option get` antwortet dort trotzdem mit einem Wert -- der Aufruf schlaegt
+nicht fehl, er antwortet **falsch**. Betroffen sind unter anderem
+`auto_update_plugins`, `auto_update_core_major` und `auto_update_core_minor`.
+
+Beide Ebenen koennen gleichzeitig existieren und sich widersprechen. Wer nur
+`option get` fragt, dokumentiert den falschen Zustand und aendert anschliessend an
+der wirkungslosen Stelle, ohne dass etwas auffaellt.
+
+```sh
+# Erst pruefen, ob Multisite (Exit-Code 1, wenn die Konstante fehlt):
+wp config get MULTISITE
+
+# FALSCH bei Multisite -- Wert existiert, ist aber wirkungslos:
+wp option get auto_update_plugins --format=json
+
+# RICHTIG -- Netzwerk-Ebene:
+wp network meta get 1 auto_update_plugins --format=json
+wp network meta update 1 auto_update_core_major disabled
+```
+
+Die `1` ist die Network-ID; bei einer einzelnen Multisite-Installation ist das immer
+`1` (`wp network list` zeigt sie).
+
+**Regel:** Vor jedem `option get`/`option update` auf `MULTISITE` pruefen und bei
+einer Multisite auf `network meta get|update 1 <option>` verzweigen. Bei einer
+Erhebung ueber mehrere Installationen gilt das ausnahmslos. Ein Plugin mit Status
+`active-network` in `wp plugin list` ist ein zuverlaessiges Indiz fuer eine
+Multisite.
 
 **Achtung:** `--url` filtert nur auf Standard-WordPress-Tabellen (mit Site-Prefix). Custom-Tabellen wie `wp_*_icl_strings` (WPML) oder andere Plugin-Tabellen ohne Site-Prefix werden von `--url` **nicht** erfasst. Fuer Operationen auf solchen Tabellen `--all-tables` verwenden:
 

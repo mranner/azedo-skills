@@ -152,6 +152,17 @@ python3 "$SKILL_DIR/mainwp" run mainwp/list-sites-v1 --param search=globex
 python3 "$SKILL_DIR/mainwp" run mainwp/list-sites-v1 --param tag_id=4 --param per_page=100
 ```
 
+**Welche Felder zurueckkommen:** `id`, `url`, `name`, `status`, `client_id` -- mehr
+nicht. Insbesondere **keine** `wp_version` und **keine** `php_version`. Wer die
+Versionen braucht, kommt an `get-site-v1` je Site nicht vorbei (siehe
+„Site-Details abrufen").
+
+**Parameter immer ueber den Wrapper geben.** Ein direkter Griff auf die
+Abilities-API am Script vorbei funktioniert nicht zuverlaessig: die
+Query-Parameter kommen dort nicht an. Die Paginierung laeuft dann still ueber
+dieselbe Default-Seite und liefert Dubletten statt der naechsten 100 Sites --
+ohne Fehlermeldung, die Ausgabe sieht plausibel aus.
+
 ### Alle Sites syncen
 
 Das Script teilt site_ids automatisch in Batches (Default: 25 pro Batch),
@@ -209,9 +220,49 @@ python3 "$SKILL_DIR/mainwp" run mainwp/update-plugins-v1 --param site_id=42 --co
 
 ### Site-Details abrufen
 
+Der Parameter heisst `site_id_or_domain` (nicht `site_id`) und nimmt beides:
+Site-ID oder Domain/URL.
+
 ```bash
-python3 "$SKILL_DIR/mainwp" run mainwp/get-site-v1 --param site_id=42
+python3 "$SKILL_DIR/mainwp" run mainwp/get-site-v1 --param site_id_or_domain=42
+python3 "$SKILL_DIR/mainwp" run mainwp/get-site-v1 --param site_id_or_domain=www.example.at
+
+# mit Statistiken (Update-Zahlen, Health)
+python3 "$SKILL_DIR/mainwp" run mainwp/get-site-v1 --param site_id_or_domain=42 --param include_stats=true
 ```
+
+Geliefert werden `id`, `url`, `name`, `status`, `client_id`, `wp_version`,
+`php_version`, `last_sync`, `admin_username`, `child_version`, `notes` und -- mit
+`include_stats` -- `stats`.
+
+**Versionen ueber alle Sites erheben.** Das ist ein Aufruf **je Site**; bei einem
+Dashboard mit gut hundert Sites also gut hundert Aufrufe. Praktikabel bleibt das
+nur parallel:
+
+```bash
+# IDs einsammeln (beide Seiten, siehe „Sites auflisten")
+python3 "$SKILL_DIR/mainwp" run mainwp/list-sites-v1 --param per_page=100 \
+  >.tmp/mainwp_sites_1.json
+python3 "$SKILL_DIR/mainwp" run mainwp/list-sites-v1 --param per_page=100 --param page=2 \
+  >.tmp/mainwp_sites_2.json
+
+python3 -c "
+import json, glob
+for f in sorted(glob.glob('.tmp/mainwp_sites_*.json')):
+    for it in json.load(open(f)).get('items', []):
+        print(it['id'])
+" >.tmp/mainwp_ids.txt
+
+# je Site abfragen, 6 parallel -- jede Antwort in eine eigene Datei
+export SKILL_DIR
+xargs -P 6 -I{} sh -c 'python3 "$SKILL_DIR/mainwp" run mainwp/get-site-v1 --param site_id_or_domain=$1 >.tmp/mainwp_site_$1.json' _ {} \
+  <.tmp/mainwp_ids.txt
+```
+
+Die Antworten **nicht** parallel in dieselbe Datei schreiben: die Ausgabe des
+Wrappers ist mehrzeiliges JSON, bei sechs gleichzeitigen Schreibern vermischen
+sich die Bloecke. `export SKILL_DIR` ist noetig, weil die Variable sonst in der
+`sh -c`-Subshell leer ist und `python3` still auf einen falschen Pfad zeigt.
 
 ### Tags verwalten (REST API v2)
 
@@ -273,6 +324,10 @@ MainWP hat **zwei separate APIs** mit unterschiedlicher Authentifizierung:
 
 Das `mainwp` Script verwendet die Abilities-API. Fuer Tag-Operationen
 direkt die v2 REST API via `requests` aufrufen (siehe Beispiele oben).
+
+Abilities-Aufrufe dagegen **nicht** am Script vorbei absetzen: Parameter kommen
+bei einem direkten Request nicht an, der Aufruf laeuft dann stillschweigend mit
+den Defaults. `--param` gehoert an den Wrapper.
 
 ## Sicherheitshinweise
 
