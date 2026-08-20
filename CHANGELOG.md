@@ -3,6 +3,48 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.44.0
+
+- **`wiki`: neues Script `audit-wiki.py` und die Subcommands `audit` und
+  `refactor`.** Anlass war die Service-Entity `mail-azedo-at` mit 899 Zeilen -- das
+  Vierfache des p90 ihres Typs, mit 30 Codeblöcken und 39 Historie-Markern im
+  Fliesstext. Solche Artikel wachsen unbemerkt, weil jede einzelne Ergänzung
+  vernünftig aussieht; auffällig wird erst die Summe, und die sieht niemand beim
+  Schreiben.
+- **Der Massstab ist typrelativ, nicht absolut.** Eine feste Zeilengrenze wäre
+  entweder für `access` (Median 29) oder für `procedure` (Median 135) falsch.
+  `audit` rechnet deshalb je Entity-Typ ein p90 über das ganze Wiki und misst
+  jeden Artikel daran; Untergrenzen je Typ fangen den Fall ab, dass in einem
+  jungen Wiki alles kurz ist. Filter (`--type`, `--path`) verschieben die
+  Baseline nicht -- sie wird immer über den vollen Bestand gerechnet.
+- **Datierte Belege sind keine Historie.** Der Abschnitt `## Quellen` bleibt bei
+  der Historie-Messung aussen vor, und `refactor` unterscheidet ausdrücklich
+  „Zustand, der nicht mehr gilt" (streichen) von „zeitlose Begründung mit Datum
+  als Beleg" (bleibt). Ohne diese Trennung würde ausgerechnet
+  `freebsd-shell-pitfalls` mit seinen Verifikationsdaten zum Löschkandidaten.
+- **Score-Skala nach dem ersten Umbau korrigiert.** Aus `mail-azedo-at` wanderten
+  118 Zeilen in eine Procedure -- der Score bewegte sich um 0,1 Punkte nach
+  **oben**. Zwei Konstruktionsfehler: die Umfangs-Punkte waren beim 3-fachen der
+  Baseline gedeckelt, und über dem Deckel liegen genau die Artikel, an denen man
+  arbeitet (4,5x und 3,9x gaben denselben Wert). Und die Historie-Dichte ist ein
+  Verhältnis: wer historienarme Zeilen entfernt, treibt sie hoch. Der Umfang
+  skaliert jetzt logarithmisch (ausgereizt erst beim 8-fachen), die Historie
+  gewichtet Dichte und absolute Menge 60:40. Derselbe Umbau ergibt damit 68,3 →
+  65,1. Die Rangfolge an der Spitze bleibt unverändert; im Mittelfeld rücken
+  Artikel nach vorn, die viele Marker auf viel Text tragen, statt weniger auf
+  wenig.
+- **Fünfte Kategorie `→ TASK` in `refactor`.** Beim ersten echten Durchlauf
+  (Service-Entity `mail-azedo-at`) liess sich ein Abschnitt in keine der vier
+  Kategorien einordnen: eine Arbeitsliste von neun noch offenen Hosts. Das ist
+  weder Ist-Zustand noch Historie noch Duplikat, sondern eine offene Aufgabe --
+  sie gehört ins Ticketsystem und veraltet im Wiki still, weil niemand sie
+  nachpflegt, wenn die Arbeit getan ist.
+- `audit` liefert **Rohwerte statt nur einen Score** und ist bewusst von `lint`
+  getrennt: der Linter meldet Fehler und liefert Exit 1, `audit` bewertet und
+  liefert immer 0. Ein Audit-Befund ist ein Kandidat, kein Auftrag. `refactor`
+  läuft pro Entity, nie im Batch, und schreibt erst nach Freigabe -- dann aber
+  vollständig (Zielartikel, Wikilink, `index.md`, `log.md`, `lint`).
+
 ### 1.43.2
 
 - **`mainwp`: Die SKILL.md nannte eine Ability, die es nicht gibt.**

@@ -6,7 +6,8 @@ description: >
   grep-basierter Discovery. Jedes Wiki hat sein eigenes Entity-Modell
   (Infra: Server/Service/Access/Site/Procedure; Projekt-Wikis abweichend).
   Nutze diesen Skill wenn der User Wissen ins Wiki eintragen, abfragen,
-  kompilieren oder validieren will.
+  kompilieren, validieren oder aufgeblaehte Artikel entflechten will
+  (audit findet lange/historienlastige Artikel, refactor baut eine Entity um).
   Auch aktiv verwenden wenn der User sagt "trag das ins Wiki ein",
   "wiki aktualisieren", "was steht im Wiki zu X", o.ae.
   Kann Wikis eines anderen Hosts read-only per SSH abfragen (Config
@@ -263,6 +264,99 @@ Prueft:
 - **Missing index entries**: Artikel die nicht in index.md gelistet sind
 - **Naming violations**: Dateinamen die nicht der Konvention entsprechen
 - **Low connectivity**: Artikel mit weniger als 3 Wikilinks
+
+### audit
+
+Das ganze Wiki nach aufgeblähten und historienlastigen Artikeln durchsuchen.
+
+```
+/wiki audit                       # ganzes Wiki, Top 10
+/wiki audit --type service        # nur einen Entity-Typ
+/wiki audit --path procedures     # nur einen Unterpfad
+/wiki audit --all                 # alle Auffälligen, nicht nur Top 10
+```
+
+Führt `python3 "$SKILL_DIR/scripts/audit-wiki.py" [optionen] <WIKI_ROOT>` aus.
+Zusätzlich gibt es `--top <n>` und `--json` (maschinenlesbar, für die Auswahl der
+nächsten `refactor`-Kandidaten).
+
+**Abgrenzung zu `lint`:** Der Linter meldet Fehler und liefert Exit 1. `audit`
+bewertet — es gibt keine falschen Artikel, nur auffällige, deshalb immer Exit 0.
+Ein Audit-Befund ist ein Kandidat, kein Auftrag.
+
+Gemessen wird je Artikel:
+
+- **LANG** — Zeilen relativ zum p90 des **eigenen Entity-Typs**, nicht absolut.
+  Eine access-Entity mit 90 Zeilen ist auffällig, eine procedure mit 90 nicht.
+  Untergrenzen je Typ verhindern Fehlalarme in einem jungen Wiki.
+- **HISTORIE** — Dichte von Datumsangaben, „Session", CR-Nummern und Wörtern wie
+  „inzwischen"/„früher" im Fliesstext. Der Abschnitt `## Quellen` ist ausgenommen:
+  dort ist die Datierung Konvention und kein Ballast.
+- **PROZEDURAL** — Codeblöcke und FALSCH/RICHTIG-Rezepte in einer server-,
+  service-, access- oder site-Entity. Das gehört in eine procedure.
+- **DOMINANT** — ein Abschnitt frisst den Grossteil der Datei.
+- **TIEF** — viele H3 oder Verschachtelung ab H4.
+
+Die Ausgabe zeigt **Rohwerte, nicht nur einen Score** — der Score ordnet nur die
+Rangfolge, entschieden wird an den Rohwerten. Zu jedem auffälligen Artikel nennt
+das Script bestehende Procedures als mögliche Verschiebeziele (Wortüberlappung
+Überschrift ↔ Slug, ausdrücklich **ungeprüft**).
+
+Bei einem **Remote-Wiki** entfällt `audit` — es läuft nur auf einer lokalen Kopie.
+
+### refactor
+
+Eine einzelne Entity abschnittsweise analysieren und einen Umbauvorschlag
+vorlegen. **Schreibt nichts** ohne ausdrückliche Freigabe.
+
+```
+/wiki refactor <slug>             # z.B. /wiki refactor mail-azedo-at
+```
+
+Immer **eine** Entity pro Aufruf — nie im Batch über die Audit-Top-N. Der
+Vorschlag muss überschaubar bleiben, sonst wird die Freigabe zur Formsache.
+
+Ablauf:
+
+1. `<WIKI_ROOT>/CLAUDE.md` und den Artikel **vollständig** lesen.
+2. `audit` für diesen Artikel laufen lassen (`--json`), um die Befunde und die
+   vorgeschlagenen Verschiebeziele zu haben.
+3. Genannte Ziel-Procedures lesen — steht der Inhalt dort schon?
+4. **Jeden** H2/H3-Abschnitt in genau eine der vier Kategorien einordnen:
+
+   | Kategorie | Bedeutung | Aktion im Vorschlag |
+   |---|---|---|
+   | `BLEIBT` | beschreibt den Ist-Zustand des Systems | unverändert |
+   | `→ PROCEDURE` | operative Anleitung | in bestehende Procedure X oder neue anlegen |
+   | `HISTORIE` | Zustand, der nicht mehr gilt | streichen, einzeilig unter `## Quellen` |
+   | `DUPLIKAT` | steht schon in Artikel Y | streichen, Wikilink setzen |
+   | `→ TASK` | offene Aufgabe, keine Doku | ins Ticketsystem, aus dem Wiki raus |
+
+5. Vorschlag als Tabelle im Chat ausgeben, mit Zeilenumfang je Abschnitt und der
+   erwarteten Restlänge. Nichts schreiben.
+6. Erst **nach Freigabe** umsetzen, und dann vollständig: Zielartikel anlegen
+   bzw. ergänzen, Wikilink im Restartikel setzen, `index.md` ergänzen,
+   Frontmatter-Datum aktualisieren, Zeile in `log.md`, danach `/wiki lint`.
+
+**Die Historie-Regel.** Nicht „alt" ist das Kriterium, sondern „gilt nicht mehr".
+Ein datierter Beleg („verifiziert 2026-07-28 auf [[fry-azedo-at]]") ist eine
+zeitlose Begründung und **bleibt** — er sieht nur aus wie Historie. Gestrichen
+wird ein beschriebener Zustand, den es so nicht mehr gibt. Im Zweifel: der
+Vorschlag markiert den Abschnitt als unklar und fragt, statt ihn einzuordnen.
+
+Ersatzlos gelöscht wird nur, was der aktuelle Stand **widerlegt**. Alles andere
+wandert einzeilig unter `## Quellen` oder nach `log.md`. Das Argument fürs
+Streichen ist nie „ist alt", sondern dass git die Fassung ohnehin vorhält.
+
+**Arbeitslisten sind keine Dokumentation.** Aufzählungen der Form „X steht noch
+aus", „bei Gelegenheit auch für Y" beschreiben nicht den Server, sondern die
+eigene Absicht. Sie veralten still (niemand pflegt sie nach, wenn die Arbeit
+getan ist) und lesen sich später wie ein Ist-Zustand. Solche Abschnitte
+bekommen `→ TASK`: der Vorschlag nennt sie, den Ticket-Eintrag macht der User,
+und aus dem Artikel fliegen sie raus. Ein Satz „offene Punkte siehe Ticket
+CR####" darf stehen bleiben, die Liste selbst nicht.
+
+Für **Remote-Wikis** nicht erlaubt (schreibend) — dort `<remote>:handoff` nutzen.
 
 ### status
 

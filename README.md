@@ -401,13 +401,15 @@ Referenz-Skill fuer Ninja-Forms-Administration in WordPress-(Multi-)Sites per WP
 
 ### wiki
 
-LLM Wiki-Verwaltung fuer strukturierte Dokumentation. Unterstuetzt **mehrere Wikis** mit je eigenem Entity-Modell (Infra `azedo`: Server/Service/Access/Site/Procedure; Projekt-Wikis abweichend). Kein eigenes Script (bis auf lint-wiki.py), reine SKILL.md mit Subcommands:
+LLM Wiki-Verwaltung fuer strukturierte Dokumentation. Unterstuetzt **mehrere Wikis** mit je eigenem Entity-Modell (Infra `azedo`: Server/Service/Access/Site/Procedure; Projekt-Wikis abweichend). Zwei Scripts (`lint-wiki.py`, `audit-wiki.py`), sonst reine SKILL.md mit Subcommands:
 
 - init: neues Wiki-Unterverzeichnis anlegen (inkl. Default-`wiki-schema.json`)
 - ingest: Quellen ins Wiki aufnehmen (nach raw/, immutable)
 - compile: Quellen zu Wiki-Entities verarbeiten (erlaubte Typen laut Wiki-`CLAUDE.md`)
 - query: Fragen gegen das Wiki beantworten
 - lint: strukturelle Pruefung (Frontmatter, tote Links, Konnektivitaet, Namenskonventionen); `--check-remotes` verifiziert Remote-Pointer per SSH
+- audit: aufgeblaehte und historienlastige Artikel finden (Zeilen relativ zum p90 des eigenen Entity-Typs, Historie-Dichte, prozeduraler Inhalt in erzaehlenden Entities); bewertet statt zu pruefen, Exit immer 0
+- refactor: eine Entity abschnittsweise einordnen (bleibt / gehoert in eine Procedure / ueberholte Historie / Duplikat) und einen Umbauvorschlag vorlegen; schreibt nichts ohne Freigabe
 - status: Ueberblick ueber Wiki-Zustand
 - handoff: aus lokalen Erkenntnissen eine ingest-fertige Note fuer ein Remote-Wiki erzeugen (manueller Ingest auf dem Zielhost)
 
@@ -514,28 +516,44 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.43.2
+### 1.44.0
 
-- **`mainwp`: Die SKILL.md nannte eine Ability, die es nicht gibt.**
-  `update-plugins-v1` und `update-all-plugins-v1` zogen sich als Beispiel durch
-  mehrere Abschnitte -- beide antworten mit `404 rest_ability_not_found`. Updates laufen
-  über `run-updates-v1`, und dessen Parameter heißen anders als dokumentiert:
-  `site_ids_or_domains` (Array aus IDs oder Domains), `types` und
-  `specific_items`. Der Abschnitt heißt jetzt „Updates einspielen" und beschreibt
-  auch die Antwort (`updated`/`errors`/`summary`, ab 200 Sites stattdessen
-  `queued`/`job_id`/`status_url`).
-- **Ein leeres Array bedeutet bei `run-updates-v1` „alle" -- und ein weggelassener
-  Parameter ist ein leeres Array.** Der Aufruf ohne `--param` spielt damit alle
-  verfügbaren Updates auf allen Sites ein. Dass der Wrapper das abfängt, stimmte
-  ebenfalls nicht: er verlangt `--confirm` nur bei `destructive: true` oder wenn
-  der Ability-Name eines von fünf Verben enthält (`delete`, `remove`,
-  `disconnect`, `deactivate`, `suspend`). Updates erfüllen weder das eine noch das
-  andere und laufen ungebremst durch. Beides steht jetzt dort, wo die
-  Update-Befehle stehen, und der Sicherheitsabschnitt nennt die Bedingung, statt
-  einen Schutz zu behaupten, den es nicht gibt.
-- Das Beispiel `--param status=active` nannte einen Enum-Wert, den
-  `list-sites-v1` nicht kennt (zulässig sind `any`, `connected`, `disconnected`,
-  `suspended`, `available_update`). Korrigiert auf `connected`, mit dem Hinweis,
-  dass die API ungültige Enum-Werte immerhin selbst mit `400
-  ability_invalid_input` abweist -- ein falscher Ability-Name dagegen erst beim
-  Aufruf auffällt.
+- **`wiki`: neues Script `audit-wiki.py` und die Subcommands `audit` und
+  `refactor`.** Anlass war die Service-Entity `mail-azedo-at` mit 899 Zeilen -- das
+  Vierfache des p90 ihres Typs, mit 30 Codeblöcken und 39 Historie-Markern im
+  Fliesstext. Solche Artikel wachsen unbemerkt, weil jede einzelne Ergänzung
+  vernünftig aussieht; auffällig wird erst die Summe, und die sieht niemand beim
+  Schreiben.
+- **Der Massstab ist typrelativ, nicht absolut.** Eine feste Zeilengrenze wäre
+  entweder für `access` (Median 29) oder für `procedure` (Median 135) falsch.
+  `audit` rechnet deshalb je Entity-Typ ein p90 über das ganze Wiki und misst
+  jeden Artikel daran; Untergrenzen je Typ fangen den Fall ab, dass in einem
+  jungen Wiki alles kurz ist. Filter (`--type`, `--path`) verschieben die
+  Baseline nicht -- sie wird immer über den vollen Bestand gerechnet.
+- **Datierte Belege sind keine Historie.** Der Abschnitt `## Quellen` bleibt bei
+  der Historie-Messung aussen vor, und `refactor` unterscheidet ausdrücklich
+  „Zustand, der nicht mehr gilt" (streichen) von „zeitlose Begründung mit Datum
+  als Beleg" (bleibt). Ohne diese Trennung würde ausgerechnet
+  `freebsd-shell-pitfalls` mit seinen Verifikationsdaten zum Löschkandidaten.
+- **Score-Skala nach dem ersten Umbau korrigiert.** Aus `mail-azedo-at` wanderten
+  118 Zeilen in eine Procedure -- der Score bewegte sich um 0,1 Punkte nach
+  **oben**. Zwei Konstruktionsfehler: die Umfangs-Punkte waren beim 3-fachen der
+  Baseline gedeckelt, und über dem Deckel liegen genau die Artikel, an denen man
+  arbeitet (4,5x und 3,9x gaben denselben Wert). Und die Historie-Dichte ist ein
+  Verhältnis: wer historienarme Zeilen entfernt, treibt sie hoch. Der Umfang
+  skaliert jetzt logarithmisch (ausgereizt erst beim 8-fachen), die Historie
+  gewichtet Dichte und absolute Menge 60:40. Derselbe Umbau ergibt damit 68,3 →
+  65,1. Die Rangfolge an der Spitze bleibt unverändert; im Mittelfeld rücken
+  Artikel nach vorn, die viele Marker auf viel Text tragen, statt weniger auf
+  wenig.
+- **Fünfte Kategorie `→ TASK` in `refactor`.** Beim ersten echten Durchlauf
+  (Service-Entity `mail-azedo-at`) liess sich ein Abschnitt in keine der vier
+  Kategorien einordnen: eine Arbeitsliste von neun noch offenen Hosts. Das ist
+  weder Ist-Zustand noch Historie noch Duplikat, sondern eine offene Aufgabe --
+  sie gehört ins Ticketsystem und veraltet im Wiki still, weil niemand sie
+  nachpflegt, wenn die Arbeit getan ist.
+- `audit` liefert **Rohwerte statt nur einen Score** und ist bewusst von `lint`
+  getrennt: der Linter meldet Fehler und liefert Exit 1, `audit` bewertet und
+  liefert immer 0. Ein Audit-Befund ist ein Kandidat, kein Auftrag. `refactor`
+  läuft pro Entity, nie im Batch, und schreibt erst nach Freigabe -- dann aber
+  vollständig (Zielartikel, Wikilink, `index.md`, `log.md`, `lint`).
