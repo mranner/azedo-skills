@@ -517,21 +517,21 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.44.5
+### 1.44.6
 
-- **`imap`: Das Batch-Beispiel fuehrte in eine Berechtigungssperre.** Als
-  kanonische Form stand dort `echo '[…]' | … batch -`. In Agent-Umgebungen mit
-  Berechtigungspruefung greift die Freigabe fuer den Skill aber nur, wenn der
-  Aufruf am **Anfang** des Befehls steht -- eine Pipe, ein Heredoc oder ein
-  verkettetes `&&` davor laesst die Regel ins Leere laufen. Wer der Doku folgte,
-  lief also zuverlaessig in eine Ablehnung, deren Meldung nach einem
-  Skill-Fehler aussieht statt nach einer Berechtigungsfrage.
-- **Jetzt zwei Schritte:** Aktionsliste als Datei nach `.tmp/`, dann der
-  `batch`-Aufruf als eigenstaendiger Befehl darauf. Mit der Begruendung
-  daneben, sonst wird die kuerzere Pipe beim naechsten Bearbeiten wieder
-  eingebaut.
-- **`--dry-run` gehoert jetzt in den Triage-Ablauf.** Schritt 6 war „nach
-  Freigabe: ein `batch`-Aufruf". Der Probelauf zeigt, wohin die Sonderrollen
-  aufloesen und welche UID in welchem Ordner getroffen wird -- weil UIDs
-  ordner-lokal sind, ist das die letzte Gelegenheit, eine falsch adressierte
-  Aktion zu bemerken.
+- **`wiki`: `audit` meldet DOMINANT bei Procedures nur noch mit zweitem Grund.**
+  Der Befund („ein Abschnitt frisst den Grossteil der Datei") traf bisher jeden
+  Entity-Typ gleich. Bei einer `procedure` ist der Schritte-Block aber die
+  Bauform und nicht der Mangel: fuenf corris-Procedures mit 104-141 Zeilen
+  belegten die Audit-Liste allein deswegen - gegen eine Laengen-Schwelle von 250,
+  ohne LANG, HISTORIE oder PROZEDURAL.
+- **Nachgerechnet statt geschaetzt:** An `changemaker-voucher-monitoring`
+  durchgespielt lag aller kuerzbare Ballast (Fallzahlen, Einzelfall-Beispiel,
+  Messwerte) *ausserhalb* des Ablaufs. Nach dem Umbau stieg der Anteil von 51 auf
+  52 Prozent und der Score von 15,4 auf 15,7 - der Artikel wurde besser und im
+  Audit schlechter. Den Score zu senken ginge nur durchs Zerlegen der Anleitung.
+- **Neue Regel:** Bei `type: procedure` zaehlen Befund *und* Punkte nur, wenn
+  zusaetzlich LANG oder HISTORIE zutrifft. Eine wirklich aufgeblaehte Procedure
+  bleibt damit sichtbar, die kompakte Anleitung verschwindet aus der Liste. Im
+  azedo-Wiki faellt die Zahl der auffaelligen Artikel von 34 auf 26; alle acht
+  entfallenen waren reine DOMINANT-Faelle. Kein Artikel kam hinzu.

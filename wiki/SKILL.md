@@ -353,7 +353,11 @@ Gemessen wird je Artikel:
   dort ist die Datierung Konvention und kein Ballast.
 - **PROZEDURAL** — Codeblöcke und FALSCH/RICHTIG-Rezepte in einer server-,
   service-, access- oder site-Entity. Das gehört in eine procedure.
-- **DOMINANT** — ein Abschnitt frisst den Grossteil der Datei.
+- **DOMINANT** — ein Abschnitt frisst den Grossteil der Datei. Bei einer
+  `procedure` zählt der Befund nur, wenn zusätzlich LANG oder HISTORIE zutrifft:
+  dort ist der Schritte-Block die Bauform und nicht der Mangel, und kürzbarer
+  Ballast liegt typischerweise ausserhalb des Ablaufs — ein geglückter Umbau
+  liesse den Anteil sogar steigen.
 - **TIEF** — viele H3 oder Verschachtelung ab H4.
 
 Die Ausgabe zeigt **Rohwerte, nicht nur einen Score** — der Score ordnet nur die

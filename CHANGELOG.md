@@ -3,6 +3,25 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.44.6
+
+- **`wiki`: `audit` meldet DOMINANT bei Procedures nur noch mit zweitem Grund.**
+  Der Befund („ein Abschnitt frisst den Grossteil der Datei") traf bisher jeden
+  Entity-Typ gleich. Bei einer `procedure` ist der Schritte-Block aber die
+  Bauform und nicht der Mangel: fuenf corris-Procedures mit 104-141 Zeilen
+  belegten die Audit-Liste allein deswegen - gegen eine Laengen-Schwelle von 250,
+  ohne LANG, HISTORIE oder PROZEDURAL.
+- **Nachgerechnet statt geschaetzt:** An `changemaker-voucher-monitoring`
+  durchgespielt lag aller kuerzbare Ballast (Fallzahlen, Einzelfall-Beispiel,
+  Messwerte) *ausserhalb* des Ablaufs. Nach dem Umbau stieg der Anteil von 51 auf
+  52 Prozent und der Score von 15,4 auf 15,7 - der Artikel wurde besser und im
+  Audit schlechter. Den Score zu senken ginge nur durchs Zerlegen der Anleitung.
+- **Neue Regel:** Bei `type: procedure` zaehlen Befund *und* Punkte nur, wenn
+  zusaetzlich LANG oder HISTORIE zutrifft. Eine wirklich aufgeblaehte Procedure
+  bleibt damit sichtbar, die kompakte Anleitung verschwindet aus der Liste. Im
+  azedo-Wiki faellt die Zahl der auffaelligen Artikel von 34 auf 26; alle acht
+  entfallenen waren reine DOMINANT-Faelle. Kein Artikel kam hinzu.
+
 ### 1.44.5
 
 - **`imap`: Das Batch-Beispiel fuehrte in eine Berechtigungssperre.** Als

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # stdlib only, no pip dependencies
-# version 1.44.3
+# version 1.44.6
 
 """
 audit-wiki.py — misst Aufblähung und überholte Historie in LLM-Wikis.
@@ -18,7 +18,8 @@ Gemessen wird je Artikel:
   Der Abschnitt "## Quellen" ist ausgenommen — dort ist die Datierung Konvention
 - typfremder Inhalt: Codeblöcke und FALSCH/RICHTIG-Rezepte in server-, service-,
   access- oder site-Entities (gehört in eine procedure)
-- dominanter Abschnitt: ein Kapitel frisst den Grossteil der Datei
+- dominanter Abschnitt: ein Kapitel frisst den Grossteil der Datei (bei einer
+  procedure nur, wenn zusaetzlich Umfang oder Historie auffaellt)
 - Strukturtiefe: Anzahl H3 und Verschachtelung ab H4
 
 Zusätzlich schlägt das Script je auffälligem Artikel bestehende Procedures als
@@ -205,7 +206,8 @@ def score(article, p90_by_type):
     # keinen Unterschied — 118 entfernte Zeilen bewegten den Score um 0,1 Punkte.
     # Genau die Artikel, an denen man arbeitet, liegen aber ueber dem Deckel.
     size_pts = 30 * clamp(math.log2(ratio) / 3.0) if ratio > 0 else 0
-    if ratio > 1.0:
+    is_long = ratio > 1.0
+    if is_long:
         findings.append(f"LANG ({article['lines']} Zeilen, {ratio:.1f}x Baseline {typ})")
     points += size_pts
 
@@ -216,7 +218,8 @@ def score(article, p90_by_type):
         0.6 * clamp(article["hist_per_100"] / 6.0)
         + 0.4 * clamp(article["hist_hits"] / 40.0)
     )
-    if article["hist_per_100"] >= 3.0 and article["hist_hits"] >= 8:
+    is_historic = article["hist_per_100"] >= 3.0 and article["hist_hits"] >= 8
+    if is_historic:
         findings.append(
             f"HISTORIE ({article['hist_hits']} Marker, {article['hist_per_100']:.1f}/100 Zeilen"
             + (f", ältester {article['oldest_date']}" if article["oldest_date"] else "")
@@ -234,13 +237,18 @@ def score(article, p90_by_type):
             )
         points += proc_pts
 
-    # Dominanter Abschnitt: erst ab einem Viertel der Datei zaehlend
-    dom_pts = 15 * clamp((article["big_share"] - 0.25) / 0.35)
-    if article["big_share"] > 0.30 and article["lines"] > 80:
-        findings.append(
-            f"DOMINANT (\"{article['big_section']}\" = {article['big_share']*100:.0f}% der Datei)"
-        )
-    points += dom_pts
+    # Dominanter Abschnitt: erst ab einem Viertel der Datei zaehlend.
+    # In einer procedure ist der Schritte-Block die Bauform und nicht der Mangel
+    # — kuerzbarer Ballast liegt dort typischerweise ausserhalb des Ablaufs, sodass
+    # ein geglueckter Umbau den Anteil sogar steigen laesst. Der Befund zaehlt dort
+    # deshalb nur, wenn der Artikel ohnehin durch Umfang oder Historie auffaellt.
+    dom_counts = typ != "procedure" or is_long or is_historic
+    if dom_counts:
+        points += 15 * clamp((article["big_share"] - 0.25) / 0.35)
+        if article["big_share"] > 0.30 and article["lines"] > 80:
+            findings.append(
+                f"DOMINANT (\"{article['big_section']}\" = {article['big_share']*100:.0f}% der Datei)"
+            )
 
     # Struktur: viele H3 oder Verschachtelung ab H4
     struct_pts = 10 * clamp(article["h3"] / 25.0)
