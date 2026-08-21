@@ -3,6 +3,25 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.44.5
+
+- **`imap`: Das Batch-Beispiel fuehrte in eine Berechtigungssperre.** Als
+  kanonische Form stand dort `echo '[…]' | … batch -`. In Agent-Umgebungen mit
+  Berechtigungspruefung greift die Freigabe fuer den Skill aber nur, wenn der
+  Aufruf am **Anfang** des Befehls steht -- eine Pipe, ein Heredoc oder ein
+  verkettetes `&&` davor laesst die Regel ins Leere laufen. Wer der Doku folgte,
+  lief also zuverlaessig in eine Ablehnung, deren Meldung nach einem
+  Skill-Fehler aussieht statt nach einer Berechtigungsfrage.
+- **Jetzt zwei Schritte:** Aktionsliste als Datei nach `.tmp/`, dann der
+  `batch`-Aufruf als eigenstaendiger Befehl darauf. Mit der Begruendung
+  daneben, sonst wird die kuerzere Pipe beim naechsten Bearbeiten wieder
+  eingebaut.
+- **`--dry-run` gehoert jetzt in den Triage-Ablauf.** Schritt 6 war „nach
+  Freigabe: ein `batch`-Aufruf". Der Probelauf zeigt, wohin die Sonderrollen
+  aufloesen und welche UID in welchem Ordner getroffen wird -- weil UIDs
+  ordner-lokal sind, ist das die letzte Gelegenheit, eine falsch adressierte
+  Aktion zu bemerken.
+
 ### 1.44.4
 
 - **`wiki`: `refactor` hat einen zweiten Durchgang auf Satzebene.** Der

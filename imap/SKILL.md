@@ -422,13 +422,23 @@ Jede schreibende Aktion kennt `--dry-run`.
 
 ## Batch -- der Normalfall fuer Aktionen
 
+Zwei Schritte: erst die Aktionsliste als Datei nach `.tmp/` schreiben, dann den
+`batch`-Aufruf **als eigenstaendigen Befehl** darauf ansetzen.
+
 ```
-echo '[
+# Schritt 1 -- Datei schreiben (eigener Befehl)
+cat > .tmp/imap-batch.json <<'EOF'
+[
   {"account":"office","action":"spam",  "uid":8815},
   {"account":"office","action":"move",  "uid":8802, "target":"Archives.2026"},
   {"account":"office","action":"delete","uid":8819},
   {"account":"office","action":"move",  "uid":8790, "target":"Archives.2026", "to_account":"mail"}
-]' | python3 "$SKILL_DIR/imap" batch - --json
+]
+EOF
+
+# Schritt 2 -- Probelauf, dann Ausfuehrung (je ein eigener Befehl)
+python3 "$SKILL_DIR/imap" batch <pfad>/.tmp/imap-batch.json --dry-run --json
+python3 "$SKILL_DIR/imap" batch <pfad>/.tmp/imap-batch.json --json
 ```
 
 Ein Login je Konto statt eines je Mail. Das ist nicht nur schneller, sondern
@@ -437,6 +447,18 @@ landet und dort die Brute-Force-Erkennung streift.
 
 Felder: `account`, `action`, `uid`, optional `folder` (Default `INBOX`),
 `target`, `to_account`. `--dry-run` gilt fuer den ganzen Lauf.
+
+**Warum zwei Befehle und nicht die kuerzere Pipe?** `batch` liest die Liste zwar
+auch von stdin (`batch -`), aber die naheliegende Form
+`echo '[…]' | python3 "$SKILL_DIR/imap" batch -` wird in Agent-Umgebungen mit
+Berechtigungspruefung **abgelehnt**: die Freigabe fuer den Skill greift nur, wenn
+der Aufruf am Anfang des Befehls steht. Sobald eine Pipe, ein Heredoc oder ein
+verkettetes `&&` davor haengt, trifft die Regel nicht mehr, und die Aktion bricht
+mit einer Meldung ab, die nach einem Skill-Fehler aussieht statt nach einer
+Berechtigungsfrage. Dasselbe gilt fuer `mkdir … && cat > datei <<EOF … && python3 …`
+in einem Rutsch. Die Zwei-Schritt-Form ist deshalb nicht umstaendlicher, sondern
+die einzige, die zuverlaessig durchlaeuft -- und sie hinterlaesst die Aktionsliste
+als nachvollziehbare Datei.
 
 ## Kontouebergreifend
 
@@ -530,7 +552,13 @@ ok / einzeln anpassen?
 ```
 
 5. **Warten.** Nichts ausfuehren, bevor der User zugestimmt hat.
-6. Nach Freigabe: ein `batch`-Aufruf, danach das Ergebnis melden.
+6. Nach Freigabe: Aktionsliste als Datei schreiben, mit `--dry-run` gegenlesen,
+   dann ausfuehren -- drei eigenstaendige Befehle (siehe [Batch](#batch----der-normalfall-fuer-aktionen)).
+   Der Probelauf zeigt, wohin die Sonderrollen tatsaechlich aufloesen (`-> Trash`,
+   `-> Junk`) und welche UID in welchem Ordner getroffen wird. Weil UIDs
+   ordner-lokal sind, ist das die letzte Gelegenheit, eine falsch adressierte
+   Aktion zu bemerken -- danach liegt die falsche Mail im Papierkorb.
+7. Ergebnis melden.
 
 **Regeln fuer die Vorschlagsgruppen:**
 

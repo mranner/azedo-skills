@@ -517,20 +517,21 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.44.4
+### 1.44.5
 
-- **`wiki`: `refactor` hat einen zweiten Durchgang auf Satzebene.** Der
-  Subcommand verschob bisher nur Abschnitte. Ein Artikel kann danach
-  strukturell fertig sein und trotzdem ein Fuenftel zu lang bleiben -- die
-  Fuelle steckt dann in den Saetzen, nicht im Aufbau. Wer nur den ersten
-  Durchgang macht, verteilt sie bloss auf mehr Dateien.
-- **Fuenf mechanisch erkennbare Muster, mit Vorher/Nachher im Vorschlag.**
-  Dieselbe Aussage dreimal (Behauptung, Umkehrung, Handlungsanweisung),
-  Fremdcode als Beweis fuer einen Satz, Erzaehlrahmen vor dem Inhalt, ein
-  Hinweis der doppelt im selben Artikel steht, und Quellen, die einen Vorfall
-  nacherzaehlen statt ihn zu belegen. Der Vorschlag zeigt die Ersetzung am
-  konkreten Satz, damit sie freigegeben oder abgelehnt werden kann.
-- **Mit angesagter Grenze.** Gekuerzt wird der Weg zur Aussage, nie die Aussage;
-  Behauptung, Folge und Beleg bleiben. Und der Durchgang raeumt keinen
-  `LANG`-Befund ab -- realistisch sind 10-20 % der Zeilen. Das steht jetzt im
-  Skill, damit nicht weiter gekuerzt wird, bis die Zahl stimmt.
+- **`imap`: Das Batch-Beispiel fuehrte in eine Berechtigungssperre.** Als
+  kanonische Form stand dort `echo '[…]' | … batch -`. In Agent-Umgebungen mit
+  Berechtigungspruefung greift die Freigabe fuer den Skill aber nur, wenn der
+  Aufruf am **Anfang** des Befehls steht -- eine Pipe, ein Heredoc oder ein
+  verkettetes `&&` davor laesst die Regel ins Leere laufen. Wer der Doku folgte,
+  lief also zuverlaessig in eine Ablehnung, deren Meldung nach einem
+  Skill-Fehler aussieht statt nach einer Berechtigungsfrage.
+- **Jetzt zwei Schritte:** Aktionsliste als Datei nach `.tmp/`, dann der
+  `batch`-Aufruf als eigenstaendiger Befehl darauf. Mit der Begruendung
+  daneben, sonst wird die kuerzere Pipe beim naechsten Bearbeiten wieder
+  eingebaut.
+- **`--dry-run` gehoert jetzt in den Triage-Ablauf.** Schritt 6 war „nach
+  Freigabe: ein `batch`-Aufruf". Der Probelauf zeigt, wohin die Sonderrollen
+  aufloesen und welche UID in welchem Ordner getroffen wird -- weil UIDs
+  ordner-lokal sind, ist das die letzte Gelegenheit, eine falsch adressierte
+  Aktion zu bemerken.
