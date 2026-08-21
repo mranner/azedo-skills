@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # stdlib only, no pip dependencies
-# version 1.44.6
+# version 1.44.7
 
 """
 audit-wiki.py — misst Aufblähung und überholte Historie in LLM-Wikis.
@@ -18,8 +18,8 @@ Gemessen wird je Artikel:
   Der Abschnitt "## Quellen" ist ausgenommen — dort ist die Datierung Konvention
 - typfremder Inhalt: Codeblöcke und FALSCH/RICHTIG-Rezepte in server-, service-,
   access- oder site-Entities (gehört in eine procedure)
-- dominanter Abschnitt: ein Kapitel frisst den Grossteil der Datei (bei einer
-  procedure nur, wenn zusaetzlich Umfang oder Historie auffaellt)
+- dominanter Abschnitt: ein Kapitel frisst den Grossteil der Datei — nur
+  gemeldet, wenn zusaetzlich Umfang oder Historie auffaellt
 - Strukturtiefe: Anzahl H3 und Verschachtelung ab H4
 
 Zusätzlich schlägt das Script je auffälligem Artikel bestehende Procedures als
@@ -237,12 +237,13 @@ def score(article, p90_by_type):
             )
         points += proc_pts
 
-    # Dominanter Abschnitt: erst ab einem Viertel der Datei zaehlend.
-    # In einer procedure ist der Schritte-Block die Bauform und nicht der Mangel
-    # — kuerzbarer Ballast liegt dort typischerweise ausserhalb des Ablaufs, sodass
-    # ein geglueckter Umbau den Anteil sogar steigen laesst. Der Befund zaehlt dort
-    # deshalb nur, wenn der Artikel ohnehin durch Umfang oder Historie auffaellt.
-    dom_counts = typ != "procedure" or is_long or is_historic
+    # Dominanter Abschnitt: erst ab einem Viertel der Datei zaehlend, und nur bei
+    # einem Artikel, der ohnehin durch Umfang oder Historie auffaellt. Fuer sich
+    # genommen ist ein Schwerpunkt kein Mangel, sondern die Bauform — er erklaert
+    # bei einem zu langen Artikel, *wo* der Ballast sitzt. Ueber 205 Artikel des
+    # azedo-Wikis hat die Rohbedingung ohne zweiten Grund ausschliesslich kurze
+    # Artikel getroffen (38-62 % der Typ-Schwelle); ein Zerlegen waere dort falsch.
+    dom_counts = is_long or is_historic
     if dom_counts:
         points += 15 * clamp((article["big_share"] - 0.25) / 0.35)
         if article["big_share"] > 0.30 and article["lines"] > 80:

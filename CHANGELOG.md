@@ -3,6 +3,27 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.44.7
+
+- **`wiki`: DOMINANT ist kein eigenstaendiger Ausloeser mehr — fuer keinen Typ.**
+  1.44.6 hatte den Befund bei `type: procedure` an einen zweiten Grund gekoppelt.
+  Die Gegenprobe ueber alle 205 Artikel des azedo-Wikis zeigte, dass der Typ nie
+  die eigentliche Trennlinie war, sondern die Laenge: von den zehn Artikeln, die
+  die Rohbedingung ohne LANG oder HISTORIE erfuellen, liegt der laengste bei
+  **62 %** seiner Typ-Schwelle. DOMINANT war dort also kein einziges Mal aus
+  eigener Kraft ein echter Befund. Die Procedures fielen nur zuerst als Gruppe
+  auf, weil ihre Schwelle mit 271 Zeilen am hoechsten liegt.
+- **Neue Regel:** `dom_counts = is_long or is_historic`, ohne Typ-Sonderfall. Ein
+  Schwerpunkt ist fuer sich kein Mangel; er erklaert bei einem ohnehin zu langen
+  oder historienlastigen Artikel, *wo* der Ballast sitzt. Der Code wird dadurch
+  kuerzer als in 1.44.6, nicht laenger.
+- **Nicht** an den Schwellen gedreht (30 % Anteil, 80 Zeilen): das verschoebe die
+  Fehlalarm-Grenze, ohne das Prinzip zu treffen — bei sechs Abschnitten ist ein
+  30-%-Block schlicht Arithmetik.
+- Wirkung im azedo-Wiki: 26 -> 24 auffaellige Artikel (`zoidberg-azedo-at` 83
+  Zeilen, `openvpn-seiersberg` 93 Zeilen). Kein Artikel kam hinzu, kein Score
+  verschob sich.
+
 ### 1.44.6
 
 - **`wiki`: `audit` meldet DOMINANT bei Procedures nur noch mit zweitem Grund.**

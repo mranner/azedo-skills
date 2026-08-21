@@ -517,21 +517,23 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.44.6
+### 1.44.7
 
-- **`wiki`: `audit` meldet DOMINANT bei Procedures nur noch mit zweitem Grund.**
-  Der Befund („ein Abschnitt frisst den Grossteil der Datei") traf bisher jeden
-  Entity-Typ gleich. Bei einer `procedure` ist der Schritte-Block aber die
-  Bauform und nicht der Mangel: fuenf corris-Procedures mit 104-141 Zeilen
-  belegten die Audit-Liste allein deswegen - gegen eine Laengen-Schwelle von 250,
-  ohne LANG, HISTORIE oder PROZEDURAL.
-- **Nachgerechnet statt geschaetzt:** An `changemaker-voucher-monitoring`
-  durchgespielt lag aller kuerzbare Ballast (Fallzahlen, Einzelfall-Beispiel,
-  Messwerte) *ausserhalb* des Ablaufs. Nach dem Umbau stieg der Anteil von 51 auf
-  52 Prozent und der Score von 15,4 auf 15,7 - der Artikel wurde besser und im
-  Audit schlechter. Den Score zu senken ginge nur durchs Zerlegen der Anleitung.
-- **Neue Regel:** Bei `type: procedure` zaehlen Befund *und* Punkte nur, wenn
-  zusaetzlich LANG oder HISTORIE zutrifft. Eine wirklich aufgeblaehte Procedure
-  bleibt damit sichtbar, die kompakte Anleitung verschwindet aus der Liste. Im
-  azedo-Wiki faellt die Zahl der auffaelligen Artikel von 34 auf 26; alle acht
-  entfallenen waren reine DOMINANT-Faelle. Kein Artikel kam hinzu.
+- **`wiki`: DOMINANT ist kein eigenstaendiger Ausloeser mehr — fuer keinen Typ.**
+  1.44.6 hatte den Befund bei `type: procedure` an einen zweiten Grund gekoppelt.
+  Die Gegenprobe ueber alle 205 Artikel des azedo-Wikis zeigte, dass der Typ nie
+  die eigentliche Trennlinie war, sondern die Laenge: von den zehn Artikeln, die
+  die Rohbedingung ohne LANG oder HISTORIE erfuellen, liegt der laengste bei
+  **62 %** seiner Typ-Schwelle. DOMINANT war dort also kein einziges Mal aus
+  eigener Kraft ein echter Befund. Die Procedures fielen nur zuerst als Gruppe
+  auf, weil ihre Schwelle mit 271 Zeilen am hoechsten liegt.
+- **Neue Regel:** `dom_counts = is_long or is_historic`, ohne Typ-Sonderfall. Ein
+  Schwerpunkt ist fuer sich kein Mangel; er erklaert bei einem ohnehin zu langen
+  oder historienlastigen Artikel, *wo* der Ballast sitzt. Der Code wird dadurch
+  kuerzer als in 1.44.6, nicht laenger.
+- **Nicht** an den Schwellen gedreht (30 % Anteil, 80 Zeilen): das verschoebe die
+  Fehlalarm-Grenze, ohne das Prinzip zu treffen — bei sechs Abschnitten ist ein
+  30-%-Block schlicht Arithmetik.
+- Wirkung im azedo-Wiki: 26 -> 24 auffaellige Artikel (`zoidberg-azedo-at` 83
+  Zeilen, `openvpn-seiersberg` 93 Zeilen). Kein Artikel kam hinzu, kein Score
+  verschob sich.
