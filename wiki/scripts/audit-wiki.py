@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # stdlib only, no pip dependencies
-# version 1.44.7
+# version 1.44.9
 
 """
 audit-wiki.py — misst Aufblähung und überholte Historie in LLM-Wikis.
@@ -20,7 +20,7 @@ Gemessen wird je Artikel:
   access- oder site-Entities (gehört in eine procedure)
 - dominanter Abschnitt: ein Kapitel frisst den Grossteil der Datei — nur
   gemeldet, wenn zusaetzlich Umfang oder Historie auffaellt
-- Strukturtiefe: Anzahl H3 und Verschachtelung ab H4
+- Strukturtiefe: Anzahl H3 und Verschachtelung ab H4 (Punkte nur mit Befund)
 
 Zusätzlich schlägt das Script je auffälligem Artikel bestehende Procedures als
 Verschiebeziel vor (Wortüberlappung Überschrift ↔ Procedure-Slug). Das ist ein
@@ -251,11 +251,14 @@ def score(article, p90_by_type):
                 f"DOMINANT (\"{article['big_section']}\" = {article['big_share']*100:.0f}% der Datei)"
             )
 
-    # Struktur: viele H3 oder Verschachtelung ab H4
-    struct_pts = 10 * clamp(article["h3"] / 25.0)
+    # Struktur: viele H3 oder Verschachtelung ab H4. Punkte nur mit Befund — sonst
+    # verschiebt das Signal die Rangfolge, ohne in der Ausgabe zu erscheinen.
+    # Im azedo-Wiki loest keiner der 205 Artikel den Befund aus (h3 max 13 gegen
+    # Schwelle 15, H4 max 1 gegen 5), waehrend struct_pts bis zu 5,2 Punkte
+    # beitrug. Ausserdem folgt h3 im Wesentlichen der Laenge, die LANG schon misst.
     if article["h3"] >= 15 or article["deep"] >= 5:
         findings.append(f"TIEF ({article['h3']}x H3, {article['deep']}x H4+)")
-    points += struct_pts
+        points += 10 * clamp(article["h3"] / 25.0)
 
     article["score"] = round(points, 1)
     article["findings"] = findings

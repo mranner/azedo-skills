@@ -517,18 +517,23 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.44.8
+### 1.44.9
 
-- **`wiki`: der Default ohne Praefix wird abgeleitet statt fest verdrahtet.**
-  `/wiki <subcommand>` ohne Wiki-Namen zielte laut SKILL.md immer auf `azedo`.
-  Dieser Name ist genau in dem Projekt richtig, in dem er gesetzt wurde, und in
-  jedem anderen falsch: in einem Projekt mit `wiki/cris/` lief `/wiki audit`
-  gegen ein Wiki, das es dort weder lokal noch als Remote gibt.
-- **Neue Regel (Schritt 1):** `wiki/` auflisten. Genau ein lokales Wiki → das ist
-  der Default; mehrere → Namen nennen und nachfragen; keins → auf `init`
-  hinweisen. Der Name richtet sich damit nach dem Projekt, nicht nach dem Skill.
-- Fuer Schritt 3c aendert sich nichts: ein **ausdruecklich genanntes** Wiki, das
-  es nicht gibt, bleibt ein Abbruch mit Hinweis. Abgeleitet wird nur der
-  weggelassene Name, nie ein falsch geschriebener.
-- Nebenbei die Formulierung „Default-Wiki" im `lint`-Abschnitt entfernt, die
-  denselben festen Namen ein zweites Mal behauptet hat.
+- **`wiki`: TIEF punktet nur noch zusammen mit dem Befund.** Gegenstueck zu
+  1.44.7: dort meldete ein Befund ohne Aussage, hier verschob ein Signal die
+  Rangfolge, ohne je sichtbar zu werden. `struct_pts` lief unabhaengig vom
+  Befund und trug bis zu 5,2 Punkte bei.
+- **Wie tot das Signal ist, zeigt die Messung ueber alle 205 Artikel des
+  azedo-Wikis:** die h3-Schwelle steht bei 15, das wikiweite Maximum bei 13
+  (Median 0); die H4-Schwelle bei 5, waehrend im **ganzen Wiki genau ein** H4
+  existiert. Kein einziger Artikel loest den Befund aus. Zudem folgt h3 im
+  Wesentlichen der Laenge (h3=13 bei 459 Zeilen, h3=0 bei kurzen Artikeln) --
+  gemessen wird also, was LANG schon misst.
+- Wirkung: die Menge der auffaelligen Artikel bleibt bei 24, aber **17 davon
+  verlieren Punkte** und die Rangfolge aendert sich an fuenf Stellen.
+  `wp-brute-force-scan-defense` faellt von Platz 11 auf 14 -- es hatte 3,2 Punkte
+  aus acht H3 bezogen, ohne dass das irgendwo stand.
+- **Nicht** entfernt und **nicht** an den Schwellen gedreht: die Evidenz stammt
+  aus einem Infra-Wiki mit flacher Konvention. Ein Projekt-Wiki kann anders
+  aussehen, und die Kopplung kommt ohne diese Annahme aus -- dort greift TIEF
+  unveraendert weiter.

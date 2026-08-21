@@ -370,7 +370,10 @@ Gemessen wird je Artikel:
   Schwerpunkt die Bauform und nicht der Mangel. Der Befund sagt bei einem ohnehin
   auffälligen Artikel, **wo** der Ballast sitzt; als eigener Auslöser trifft er
   nur kurze, thematisch fokussierte Artikel, bei denen Zerlegen falsch wäre.
-- **TIEF** — viele H3 oder Verschachtelung ab H4.
+- **TIEF** — viele H3 oder Verschachtelung ab H4. Punktet nur, wenn der Befund
+  auch gemeldet wird; ein Signal, das die Rangfolge verschiebt, ohne in der
+  Ausgabe zu stehen, ist nicht nachvollziehbar. In einem flach gegliederten Wiki
+  ist TIEF damit schlicht inaktiv statt unsichtbar wirksam.
 
 Die Ausgabe zeigt **Rohwerte, nicht nur einen Score** — der Score ordnet nur die
 Rangfolge, entschieden wird an den Rohwerten. Zu jedem auffälligen Artikel nennt
