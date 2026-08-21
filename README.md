@@ -517,23 +517,18 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.44.7
+### 1.44.8
 
-- **`wiki`: DOMINANT ist kein eigenstaendiger Ausloeser mehr — fuer keinen Typ.**
-  1.44.6 hatte den Befund bei `type: procedure` an einen zweiten Grund gekoppelt.
-  Die Gegenprobe ueber alle 205 Artikel des azedo-Wikis zeigte, dass der Typ nie
-  die eigentliche Trennlinie war, sondern die Laenge: von den zehn Artikeln, die
-  die Rohbedingung ohne LANG oder HISTORIE erfuellen, liegt der laengste bei
-  **62 %** seiner Typ-Schwelle. DOMINANT war dort also kein einziges Mal aus
-  eigener Kraft ein echter Befund. Die Procedures fielen nur zuerst als Gruppe
-  auf, weil ihre Schwelle mit 271 Zeilen am hoechsten liegt.
-- **Neue Regel:** `dom_counts = is_long or is_historic`, ohne Typ-Sonderfall. Ein
-  Schwerpunkt ist fuer sich kein Mangel; er erklaert bei einem ohnehin zu langen
-  oder historienlastigen Artikel, *wo* der Ballast sitzt. Der Code wird dadurch
-  kuerzer als in 1.44.6, nicht laenger.
-- **Nicht** an den Schwellen gedreht (30 % Anteil, 80 Zeilen): das verschoebe die
-  Fehlalarm-Grenze, ohne das Prinzip zu treffen — bei sechs Abschnitten ist ein
-  30-%-Block schlicht Arithmetik.
-- Wirkung im azedo-Wiki: 26 -> 24 auffaellige Artikel (`zoidberg-azedo-at` 83
-  Zeilen, `openvpn-seiersberg` 93 Zeilen). Kein Artikel kam hinzu, kein Score
-  verschob sich.
+- **`wiki`: der Default ohne Praefix wird abgeleitet statt fest verdrahtet.**
+  `/wiki <subcommand>` ohne Wiki-Namen zielte laut SKILL.md immer auf `azedo`.
+  Dieser Name ist genau in dem Projekt richtig, in dem er gesetzt wurde, und in
+  jedem anderen falsch: in einem Projekt mit `wiki/cris/` lief `/wiki audit`
+  gegen ein Wiki, das es dort weder lokal noch als Remote gibt.
+- **Neue Regel (Schritt 1):** `wiki/` auflisten. Genau ein lokales Wiki → das ist
+  der Default; mehrere → Namen nennen und nachfragen; keins → auf `init`
+  hinweisen. Der Name richtet sich damit nach dem Projekt, nicht nach dem Skill.
+- Fuer Schritt 3c aendert sich nichts: ein **ausdruecklich genanntes** Wiki, das
+  es nicht gibt, bleibt ein Abbruch mit Hinweis. Abgeleitet wird nur der
+  weggelassene Name, nie ein falsch geschriebener.
+- Nebenbei die Formulierung „Default-Wiki" im `lint`-Abschnitt entfernt, die
+  denselben festen Namen ein zweites Mal behauptet hat.

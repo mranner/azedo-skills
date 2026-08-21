@@ -3,6 +3,22 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.44.8
+
+- **`wiki`: der Default ohne Praefix wird abgeleitet statt fest verdrahtet.**
+  `/wiki <subcommand>` ohne Wiki-Namen zielte laut SKILL.md immer auf `azedo`.
+  Dieser Name ist genau in dem Projekt richtig, in dem er gesetzt wurde, und in
+  jedem anderen falsch: in einem Projekt mit `wiki/cris/` lief `/wiki audit`
+  gegen ein Wiki, das es dort weder lokal noch als Remote gibt.
+- **Neue Regel (Schritt 1):** `wiki/` auflisten. Genau ein lokales Wiki → das ist
+  der Default; mehrere → Namen nennen und nachfragen; keins → auf `init`
+  hinweisen. Der Name richtet sich damit nach dem Projekt, nicht nach dem Skill.
+- Fuer Schritt 3c aendert sich nichts: ein **ausdruecklich genanntes** Wiki, das
+  es nicht gibt, bleibt ein Abbruch mit Hinweis. Abgeleitet wird nur der
+  weggelassene Name, nie ein falsch geschriebener.
+- Nebenbei die Formulierung „Default-Wiki" im `lint`-Abschnitt entfernt, die
+  denselben festen Namen ein zweites Mal behauptet hat.
+
 ### 1.44.7
 
 - **`wiki`: DOMINANT ist kein eigenstaendiger Ausloeser mehr — fuer keinen Typ.**

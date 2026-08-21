@@ -30,12 +30,24 @@ Alle Subcommands nehmen optional einen Wiki-Namen als Praefix an:
 
 ```
 /wiki <name>:<subcommand> [args]     # z.B. /wiki cris:query "Wie laeuft Auth?"
-/wiki <subcommand> [args]            # ohne name → Wiki 'azedo' (Default)
+/wiki <subcommand> [args]            # ohne name → Default, siehe Schritt 1
 ```
 
 Vor jeder Operation:
 
-1. Wiki-Name aus dem Argument parsen (Muster `^([a-z0-9-]+):`), sonst `azedo`.
+1. Wiki-Name aus dem Argument parsen (Muster `^([a-z0-9-]+):`). **Ohne Praefix
+   den Default ableiten, nicht raten** — `wiki/` im Projekt-Root auflisten:
+
+   | Lage | Verhalten |
+   |---|---|
+   | genau **ein** lokales Wiki | das ist der Default, ohne Rueckfrage |
+   | **mehrere** lokale Wikis | die Namen nennen und nachfragen, keins waehlen |
+   | **keins** | auf `/wiki init <name>` hinweisen |
+
+   Ein fest verdrahteter Default-Name waere genau in dem Projekt richtig, in dem
+   er gesetzt wurde, und in jedem anderen falsch: `/wiki audit` liefe dort gegen
+   ein Wiki, das es nicht gibt. Der Name des Wikis richtet sich nach dem
+   Projekt, nicht nach dem Skill.
 2. Wiki-Root ableiten: `WIKI_ROOT = wiki/<name>/` — **relativ zum Projekt-Root**
    (dem Arbeitsverzeichnis, in dem der Skill laeuft; dort liegen die Wikis unter
    `wiki/`). Analog zur Projekt-`CLAUDE.md`, die das Wiki als `wiki/azedo/…`
@@ -306,8 +318,8 @@ Wiki auf strukturelle Probleme pruefen.
 ```
 
 Fuehrt `python3 "$SKILL_DIR/scripts/lint-wiki.py" <WIKI_ROOT>` aus (z.B.
-`wiki/azedo/` fuer das Default-Wiki, `wiki/cris/` fuer `cris` — jeweils relativ zum
-Projekt-Root).
+`wiki/azedo/`, `wiki/cris/` — jeweils relativ zum Projekt-Root; welches Wiki ohne
+Praefix gemeint ist, klaert Schritt 1 unter [Ziel-Wiki bestimmen](#ziel-wiki-bestimmen)).
 
 Das erlaubte Entity-Modell (Typen + Pflichtfelder) liest der Linter aus
 `<WIKI_ROOT>/wiki-schema.json`; fehlt die Datei, gilt das Infra-Default.
