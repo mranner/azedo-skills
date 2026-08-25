@@ -3,6 +3,22 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.44.10
+
+- **`kimai`: `log` setzt Slots nur noch auf das Viertelstunden-Raster.** `begin`
+  wird auf die naechste Viertelstunde aufgerundet (`:00`, `:15`, `:30`, `:45`) -
+  auch ein explizit gesetztes `--begin`. Bisher uebernahm der Auto-Anker das Ende
+  des Vorgaengers unveraendert; ein einziger schiefer Eintrag (Ende 15:48) schob
+  damit den gesamten restlichen Tag auf krumme Minuten (15:48, 16:03, 16:18 …).
+  Ein verschobenes `--begin` wird auf stderr gemeldet, nie stillschweigend.
+- **Overlap-Guard greift nur noch im Automatikfall.** Mit `--begin` ist eine
+  Ueberlappung jetzt erlaubt und wird gebucht: wer die Startzeit selbst setzt,
+  platziert den Eintrag bewusst, und parallele Arbeit am selben Tag ist ein
+  realer Fall. Ohne `--begin` bricht der Befehl bei einer Kollision weiterhin ab
+  (deckt auch den Race zwischen parallelen Sessions).
+- Neue Hilfsfunktion `ceil_quarter()`; Sekunden und Mikrosekunden fallen dabei
+  weg. Bereits ausgerichtete Zeiten bleiben unveraendert.
+
 ### 1.44.9
 
 - **`wiki`: TIEF punktet nur noch zusammen mit dem Befund.** Gegenstueck zu

@@ -2,7 +2,7 @@
 
 # Kimai REST API helper
 # stdlib only, no pip dependencies
-# version 1.34.5
+# version 1.44.10
 
 import argparse
 import json
@@ -116,6 +116,22 @@ def parse_kimai_dt(s):
     """
     s = re.sub(r'[+-]\d{2}:?\d{2}$|Z$', '', s)
     return datetime.fromisoformat(s)
+
+
+def ceil_quarter(dt):
+    """Round a datetime up to the next quarter hour (:00, :15, :30, :45).
+
+    Automatically created slots must never start at an odd minute. The anchor
+    is the previous entry's end, and that end is only on the grid if every
+    earlier entry was - one manually booked 14:48 otherwise shifts the whole
+    rest of the day off-grid. Already-aligned times (and whole quarters) stay
+    untouched; seconds and microseconds are dropped.
+    """
+    dt = dt.replace(second=0, microsecond=0)
+    remainder = dt.minute % 15
+    if remainder == 0:
+        return dt
+    return dt + timedelta(minutes=15 - remainder)
 
 
 _instance = None
@@ -1104,28 +1120,43 @@ def cmd_log(args):
 
     # Determine the begin time: explicit --begin wins; otherwise the latest end
     # of today's entries; fallback 08:00 when there are none.
-    if getattr(args, "begin", None):
+    explicit_begin = bool(getattr(args, "begin", None))
+    if explicit_begin:
         begin_dt = parse_kimai_dt(args.begin)
     elif spans:
         begin_dt = max(e for _, e in spans)
     else:
         begin_dt = datetime.fromisoformat(f"{today}T08:00:00")
 
+    # The quarter-hour grid applies unconditionally - an explicit --begin is
+    # snapped too. A snapped explicit start is reported, never silent.
+    snapped_from = begin_dt
+    begin_dt = ceil_quarter(begin_dt)
+    if explicit_begin and begin_dt != snapped_from:
+        print(
+            f"Note: --begin {snapped_from.strftime('%H:%M')} snapped to "
+            f"{begin_dt.strftime('%H:%M')} (quarter-hour grid).",
+            file=sys.stderr,
+        )
+
     end_dt = begin_dt + timedelta(minutes=minutes)
 
-    # Overlap guard: never book a slot that collides with an existing today
-    # entry (covers the race between parallel Claude sessions too).
-    for b, e in spans:
-        if begin_dt < e and b < end_dt:
-            print(
-                f"Error: proposed slot "
-                f"{begin_dt.strftime('%H:%M')}–{end_dt.strftime('%H:%M')} "
-                f"overlaps existing entry "
-                f"{b.strftime('%H:%M')}–{e.strftime('%H:%M')}. "
-                f"Aborting — pass --begin to set the start time explicitly.",
-                file=sys.stderr,
-            )
-            sys.exit(1)
+    # Overlap guard - automatic slots only. An explicit --begin means the user
+    # deliberately placed the entry, so an overlap there is allowed (parallel
+    # work on the same day is a real case). Without --begin nothing may collide:
+    # that also covers the race between parallel Claude sessions.
+    if not explicit_begin:
+        for b, e in spans:
+            if begin_dt < e and b < end_dt:
+                print(
+                    f"Error: proposed slot "
+                    f"{begin_dt.strftime('%H:%M')}–{end_dt.strftime('%H:%M')} "
+                    f"overlaps existing entry "
+                    f"{b.strftime('%H:%M')}–{e.strftime('%H:%M')}. "
+                    f"Aborting — pass --begin to set the start time explicitly.",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
 
     # Create timesheet
     data = {

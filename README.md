@@ -517,23 +517,12 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.44.9
+### 1.44.10
 
-- **`wiki`: TIEF punktet nur noch zusammen mit dem Befund.** Gegenstueck zu
-  1.44.7: dort meldete ein Befund ohne Aussage, hier verschob ein Signal die
-  Rangfolge, ohne je sichtbar zu werden. `struct_pts` lief unabhaengig vom
-  Befund und trug bis zu 5,2 Punkte bei.
-- **Wie tot das Signal ist, zeigt die Messung ueber alle 205 Artikel des
-  azedo-Wikis:** die h3-Schwelle steht bei 15, das wikiweite Maximum bei 13
-  (Median 0); die H4-Schwelle bei 5, waehrend im **ganzen Wiki genau ein** H4
-  existiert. Kein einziger Artikel loest den Befund aus. Zudem folgt h3 im
-  Wesentlichen der Laenge (h3=13 bei 459 Zeilen, h3=0 bei kurzen Artikeln) --
-  gemessen wird also, was LANG schon misst.
-- Wirkung: die Menge der auffaelligen Artikel bleibt bei 24, aber **17 davon
-  verlieren Punkte** und die Rangfolge aendert sich an fuenf Stellen.
-  `wp-brute-force-scan-defense` faellt von Platz 11 auf 14 -- es hatte 3,2 Punkte
-  aus acht H3 bezogen, ohne dass das irgendwo stand.
-- **Nicht** entfernt und **nicht** an den Schwellen gedreht: die Evidenz stammt
-  aus einem Infra-Wiki mit flacher Konvention. Ein Projekt-Wiki kann anders
-  aussehen, und die Kopplung kommt ohne diese Annahme aus -- dort greift TIEF
-  unveraendert weiter.
+- **`kimai`: `log` setzt Slots nur noch auf das Viertelstunden-Raster.** `begin`
+  wird auf die naechste Viertelstunde aufgerundet (`:00`, `:15`, `:30`, `:45`) -
+  auch ein explizit gesetztes `--begin`. Ein einziger schiefer Eintrag (Ende
+  15:48) schob bisher den gesamten restlichen Tag auf krumme Minuten.
+- **Overlap-Guard greift nur noch im Automatikfall.** Mit `--begin` ist eine
+  Ueberlappung erlaubt und wird gebucht; ohne `--begin` bricht der Befehl bei
+  einer Kollision weiterhin ab.

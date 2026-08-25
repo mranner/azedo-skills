@@ -128,12 +128,24 @@ das **spaeteste `end`** des Tages (`max(end)`); ohne heutige Eintraege auf 08:00
 nicht chronologisch, und lieferte daher keinen verlaesslichen Anker (neue Eintraege
 wanderten in belegte Slots, v.a. bei parallelen Sessions).
 
-**Overlap-Guard:** Kollidiert der berechnete Slot `[begin, end)` mit einem bestehenden
+**Viertelstunden-Raster (immer):** `begin` wird auf die **naechste Viertelstunde
+aufgerundet** (`:00`, `:15`, `:30`, `:45`) - **auch ein explizit gesetztes `--begin`**.
+Ein Slot startet nie zu einer krummen Minute. Noetig ist das, weil der Anker das Ende des
+Vorgaengers ist: liegt **ein** Eintrag schief (z.B. Ende 15:48), erbt sonst der ganze
+restliche Tag den Versatz. Wird ein explizites `--begin` verschoben, meldet der Befehl das
+auf stderr - verschoben wird nie stillschweigend.
+
+**Overlap-Guard nur im Automatikfall:** Ohne `--begin` bricht der Befehl bei einer
+Kollision ab (siehe unten). **Mit** `--begin` ist eine Ueberlappung **erlaubt** und wird
+gebucht: wer die Startzeit selbst setzt, platziert den Eintrag bewusst, und
+parallel laufende Arbeit am selben Tag ist ein realer Fall.
+
+Konkret: kollidiert der automatisch berechnete Slot `[begin, end)` mit einem bestehenden
 heutigen Eintrag, bricht der Befehl mit klarer Meldung ab, statt still zu buchen (deckt
 auch den Race zwischen parallelen Sessions ab).
 
-**`--begin`:** Uebersteuert den Auto-Anker mit einer expliziten ISO-Startzeit; der
-Overlap-Guard greift weiterhin.
+**`--begin`:** Uebersteuert den Auto-Anker mit einer expliziten ISO-Startzeit. Damit
+entfaellt der Overlap-Guard; das Viertelstunden-Raster gilt weiterhin.
 
 **Duration-Formate:** Dezimalstunden (`0.5`, `1.5`), Minuten (`30m`, `90m`), gemischt (`1h30m`, `2h`).
 
@@ -280,7 +292,8 @@ python3 "$SKILL_DIR/kimai" log --duration 0.5 --shortcut initech --description "
 
 ## Hinweise
 
-- **Neue Eintraege zeitlich anschliessen:** `log` erledigt das automatisch — Anker ist das spaeteste `end` aller heutigen Eintraege (`max(end)`, sonst 08:00), mit Overlap-Guard (siehe Log-Abschnitt). Bei **manuellen** `create-timesheet`-Buchungen dieselbe Regel anwenden: heutige Eintraege abfragen (`list-timesheets --begin <heute>T00:00:00 --end <heute>T23:59:59`) und `--begin` auf das **spaeteste** `end` setzen — **nicht** auf `recent-timesheets[0]` (nach Bearbeitungs-, nicht Uhrzeit-Reihenfolge sortiert).
+- **Neue Eintraege zeitlich anschliessen:** `log` erledigt das automatisch — Anker ist das spaeteste `end` aller heutigen Eintraege (`max(end)`, sonst 08:00), auf die naechste Viertelstunde aufgerundet, mit Overlap-Guard (siehe Log-Abschnitt). Bei **manuellen** `create-timesheet`-Buchungen dieselbe Regel anwenden: heutige Eintraege abfragen (`list-timesheets --begin <heute>T00:00:00 --end <heute>T23:59:59`) und `--begin` auf das **spaeteste** `end` setzen — **nicht** auf `recent-timesheets[0]` (nach Bearbeitungs-, nicht Uhrzeit-Reihenfolge sortiert).
+- **Slots starten immer auf `:00`, `:15`, `:30` oder `:45`.** Gilt fuer `log` (dort erzwungen) ebenso wie fuer manuelle `create-timesheet`-Buchungen: kein automatisch gesetzter Zeitpunkt darf auf einer krummen Minute liegen. Ueberlappen duerfen sich Eintraege nur, wenn der Nutzer die Startzeit ausdruecklich vorgibt.
 - **CR-Kontext beachten:** Wenn ein CR-Kontext aktiv ist (gesetzt via `/kanboard cr <id>`), die Beschreibung (`--description`) immer mit `CR{id}: ` prefixen. Bei mehreren aktiven CRs nachfragen. Details siehe Kanboard SKILL.md, Abschnitt "CR-Kontext".
 - **Shortcut am Task hinterlegen (Write-back):** Wurde unter aktivem CR mit einem `--shortcut` gebucht, den Shortcut am Kanboard-Task als Tag `kimai:<shortcut>` ablegen — automatische Regel, keine Rueckfrage. Dazu den **kanboard-Skill** aufrufen: `set-kimai <task_id> --shortcut <shortcut>` (`<task_id>` = die CR-ID). Dann steht der Shortcut beim naechsten `/kanboard cr <id>` im Feld `kimai` bereit. Nur bei aktivem CR **und** verwendetem Shortcut; passt der `kimai:`-Tag schon oder wurde ohne CR/Shortcut gebucht, entfaellt es. Details siehe Kanboard SKILL.md, Abschnitt "Kimai-Prefixing".
 - **Config-Quelle** (`KIMAI_HOST`, `KIMAI_TOKEN`) — in dieser Reihenfolge: `KIMAI_ENV`
