@@ -3,6 +3,15 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.44.11
+
+- **`wiki`: Der Lint-Check „Datum in Ueberschrift" erkennt jetzt auch die deutsche
+  Schreibweise (`15.08.2026`).** Bisher matchte nur ISO (`2026-08-15`), womit
+  Ueberschriften wie „Rollout-Stand (15.08.2026)" unbeanstandet durchliefen - der
+  Check meldete also genau die Haelfte der Faelle und wirkte dabei vollstaendig.
+  Das deutsche Muster verlangt ein vierstelliges Jahr, damit Versions- und
+  Abschnittsnummern (`8.2.33`) nicht als Datum gelesen werden.
+
 ### 1.44.10
 
 - **`kimai`: `log` setzt Slots nur noch auf das Viertelstunden-Raster.** `begin`

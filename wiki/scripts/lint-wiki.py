@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # stdlib only, no pip dependencies
-# version 1.44.2
+# version 1.44.11
 
 """
 lint-wiki.py — Strukturpruefung fuer LLM Wikis (Infra + Projekt-Doku).
@@ -112,8 +112,12 @@ MIN_WIKILINKS = 3
 # weil die naechste Sitzung den naechsten anlegt, statt den alten zu ersetzen.
 # Ein Datum im Fliesstext ("seit 2026-08-15") ist unbedenklich und wird nicht
 # geprueft. Siehe SKILL.md, Abschnitt Schreibregeln.
+#
+# Erkannt werden ISO (2026-08-15) und die deutsche Schreibweise (15.08.2026).
+# Letztere verlangt ein vierstelliges Jahr, damit Versionsnummern ("8.2.33")
+# und Abschnittsnummern nicht als Datum durchgehen.
 DATED_HEADING_PATTERN = re.compile(
-    r"^#{1,6}\s+.*?(\d{4}-\d{2}-\d{2}|\bStand\s+\d{4}\b|\b(?:Q[1-4]|Jaenner|Januar|Februar|Maerz|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember)\s+\d{4}\b)",
+    r"^#{1,6}\s+.*?(\d{4}-\d{2}-\d{2}|\b\d{1,2}\.\d{1,2}\.(?:19|20)\d{2}\b|\bStand\s+\d{4}\b|\b(?:Q[1-4]|Jaenner|Januar|Februar|Maerz|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember)\s+\d{4}\b)",
     re.M,
 )
 

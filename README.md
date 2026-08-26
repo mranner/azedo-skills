@@ -517,12 +517,11 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.44.10
+### 1.44.11
 
-- **`kimai`: `log` setzt Slots nur noch auf das Viertelstunden-Raster.** `begin`
-  wird auf die naechste Viertelstunde aufgerundet (`:00`, `:15`, `:30`, `:45`) -
-  auch ein explizit gesetztes `--begin`. Ein einziger schiefer Eintrag (Ende
-  15:48) schob bisher den gesamten restlichen Tag auf krumme Minuten.
-- **Overlap-Guard greift nur noch im Automatikfall.** Mit `--begin` ist eine
-  Ueberlappung erlaubt und wird gebucht; ohne `--begin` bricht der Befehl bei
-  einer Kollision weiterhin ab.
+- **`wiki`: Der Lint-Check „Datum in Ueberschrift" erkennt jetzt auch die deutsche
+  Schreibweise (`15.08.2026`).** Bisher matchte nur ISO (`2026-08-15`), womit
+  Ueberschriften wie „Rollout-Stand (15.08.2026)" unbeanstandet durchliefen - der
+  Check meldete also genau die Haelfte der Faelle und wirkte dabei vollstaendig.
+  Das deutsche Muster verlangt ein vierstelliges Jahr, damit Versions- und
+  Abschnittsnummern (`8.2.33`) nicht als Datum gelesen werden.
