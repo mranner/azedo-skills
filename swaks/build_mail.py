@@ -6,9 +6,10 @@
 # um das alternative-Part gelegt. Bei einer Antwort kommt der Zitatblock aus
 # `imap quote` unter Body und Signatur (Top-Posting), die Threading-Header
 # In-Reply-To und References haengen die Antwort an den bestehenden Thread.
-# version 1.42.2
+# version 1.44.12
 
 import argparse
+import hashlib
 import json
 import mimetypes
 import os
@@ -19,6 +20,8 @@ import sys
 from html import escape as html_escape
 
 from email import encoders
+from email import policy
+from email.parser import BytesParser
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -272,10 +275,164 @@ def route_env(route):
         "export SWAKS_OPT_%s='%s'" % (k, v.replace("'", "'\\''"))
         for k, v in env.items())
 
+# --- Darstellungspruefung: HTML-Part und fertige .eml -------------------------
+
+# Zwei Fehlerklassen, die der Versand selbst nicht bemerkt, weil swaks nur die
+# uebertragenen Bytes quittiert:
+#
+#   1. Der HTML-Part enthaelt rohen Text ohne ein einziges Tag — jeder Client
+#      rendert die Mail dann als einen einzigen Absatz. Entsteht, sobald
+#      --text-file und --html-file auf dieselbe Datei zeigen.
+#   2. Die .eml wurde zwischen Bauen und Senden ueberschrieben (parallele
+#      Session, gleicher Pfad). Der Versand ist fehlerfrei, der Inhalt falsch.
+#
+# Fall 1 faengt html_has_markup() beim Bauen ab, Fall 2 der --verify-Modus
+# unmittelbar vor dem swaks-Aufruf.
+
+MARKUP_RE = re.compile(r"<\s*(p|br|div|table|tr|td|ul|ol|li|h[1-6]|blockquote|a|"
+                       r"strong|em|b|i|pre|span|img|hr)\b[^>]*>", re.I)
+
+
+def html_has_markup(html):
+    """True, wenn im HTML wenigstens ein darstellungsrelevantes Tag steht.
+    Ein HTML-Part ohne jedes Markup ist praktisch immer ein Versehen."""
+    return bool(MARKUP_RE.search(html))
+
+
+def text_to_html(text):
+    """Text in Absaetze umwandeln — der freundliche Weg fuer 'ich habe nur
+    Text': Leerzeilen trennen <p>, einfache Umbrueche werden zu <br>."""
+    blocks = re.split(r"\n\s*\n", text.strip("\n"))
+    out = []
+
+    for block in blocks:
+        lines = [html_escape(l.rstrip()) for l in block.split("\n") if l.strip()]
+
+        if lines:
+            out.append("<p>" + "<br>\n".join(lines) + "</p>")
+
+    return "\n".join(out) + "\n" if out else ""
+
+
+def sha256_file(path):
+    h = hashlib.sha256()
+
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(65536), b""):
+            h.update(chunk)
+
+    return h.hexdigest()
+
+
+def normalize(s):
+    """Fuer den Marker-Vergleich: Zeilenumbrueche und Mehrfach-Leerzeichen
+    einebnen. quoted-printable bricht Zeilen an anderer Stelle als der
+    Entwurf, ein roher Vergleich schluege deshalb falsch fehl."""
+    return re.sub(r"\s+", " ", s).strip()
+
+
+def verify_eml(path, expect_sha256=None, expect_marker=None):
+    """Die fertige .eml pruefen, bevor sie an swaks geht. Liefert (report, fehler)."""
+    errors = []
+
+    if not os.path.isfile(path):
+        return {"file": path}, [f"{path} existiert nicht."]
+
+    size = os.path.getsize(path)
+    digest = sha256_file(path)
+
+    report = {"file": path, "bytes": size, "sha256": digest}
+
+    if size == 0:
+        return report, [f"{path} ist leer."]
+
+    if expect_sha256 and digest != expect_sha256:
+        errors.append(
+            f"Pruefsumme weicht ab: erwartet {expect_sha256}, gefunden {digest}. "
+            "Die Datei wurde zwischen Bauen und Senden veraendert — sehr "
+            "wahrscheinlich von einer parallel laufenden Session, die denselben "
+            "Pfad benutzt. Abbruch statt fremden Inhalt zu versenden.")
+
+    with open(path, "rb") as f:
+        msg = BytesParser(policy=policy.default).parse(f)
+
+    report["subject"] = msg.get("Subject")
+    report["from"] = msg.get("From")
+    report["to"] = msg.get("To")
+
+    tpart = msg.get_body(preferencelist=("plain",))
+    hpart = msg.get_body(preferencelist=("html",))
+
+    text = tpart.get_content() if tpart else ""
+    html = hpart.get_content() if hpart else ""
+
+    report["text_chars"] = len(text)
+    report["html_chars"] = len(html)
+
+    if not text.strip():
+        errors.append("Kein oder leerer Text-Part.")
+
+    if not html.strip():
+        errors.append("Kein oder leerer HTML-Part.")
+    else:
+        if not html_has_markup(html):
+            errors.append(
+                "Der HTML-Part enthaelt kein einziges Tag — er wuerde beim "
+                "Empfaenger als ein einziger Absatz ankommen.")
+
+        if normalize(text)[:200] and normalize(text)[:200] == normalize(html)[:200]:
+            errors.append(
+                "Text- und HTML-Part sind identisch — vermutlich zeigen "
+                "--text-file und --html-file auf dieselbe Datei.")
+
+    if expect_marker:
+        marker = normalize(expect_marker)
+
+        if marker and marker not in normalize(text):
+            errors.append(
+                f"Marker nicht im Text-Part gefunden: {expect_marker!r}. Die "
+                ".eml enthaelt nicht den freigegebenen Entwurf. (Ein grep auf "
+                "die rohe .eml genuegt hier nicht — der Body ist "
+                "quoted-printable kodiert.)")
+
+        report["marker_ok"] = not any("Marker nicht" in e for e in errors)
+
+    return report, errors
+
+
 config = load_config()
 
 # --show-config wird vor argparse abgefangen, damit die Abfrage ohne die sonst
 # noetigen Pflichtargumente (--subject, --text-file, ...) funktioniert.
+
+if "--verify" in sys.argv[1:]:
+    vp = argparse.ArgumentParser(prog="build_mail.py --verify")
+    vp.add_argument("--verify", metavar="EML", required=True,
+                    help="Fertige .eml pruefen und beenden: Pruefsumme, "
+                         "Text-/HTML-Part, Markup, optional ein Marker aus dem "
+                         "freigegebenen Entwurf. Exit != 0 bei jedem Befund.")
+    vp.add_argument("--expect-sha256",
+                    help="sha256 der .eml direkt nach dem Bauen. Weicht sie ab, "
+                         "hat jemand die Datei zwischenzeitlich ueberschrieben.")
+    vp.add_argument("--expect-marker",
+                    help="Woertliches Textstueck aus dem freigegebenen Entwurf. "
+                         "Muss im dekodierten Text-Part stehen.")
+    vargs, _ = vp.parse_known_args()
+
+    report, errors = verify_eml(vargs.verify, vargs.expect_sha256,
+                                vargs.expect_marker)
+    report["ok"] = not errors
+    report["errors"] = errors
+
+    print(json.dumps(report, indent=2, ensure_ascii=False))
+
+    if errors:
+        for e in errors:
+            print(f"build_mail.py: Fehler — {e}", file=sys.stderr)
+
+        sys.exit(1)
+
+    sys.exit(0)
 
 if "--swaks-env" in sys.argv[1:]:
     print(route_env(resolve_route(config)))
@@ -299,6 +456,14 @@ parser.add_argument("--show-config", action="store_true",
                     help="Aufgeloeste Versand-Defaults aus swaks.json und den "
                          "ermittelten Versandweg ausgeben und beenden "
                          "(Passwort maskiert).")
+parser.add_argument("--verify", metavar="EML",
+                    help="Fertige .eml unmittelbar vor dem Versand pruefen und "
+                         "beenden (Pruefsumme, Text-/HTML-Part, Markup, Marker). "
+                         "Siehe --expect-sha256 und --expect-marker.")
+parser.add_argument("--expect-sha256",
+                    help="Nur mit --verify: erwartete sha256 der .eml.")
+parser.add_argument("--expect-marker",
+                    help="Nur mit --verify: Textstueck aus dem freigegebenen Entwurf.")
 parser.add_argument("--swaks-env", action="store_true",
                     help="Versandweg als SWAKS_OPT_*-Exportzeilen ausgeben und "
                          "beenden. Per eval in die Shell holen, dann braucht "
@@ -310,7 +475,11 @@ parser.add_argument("--bcc", help="Bcc-Empfaenger (kommasepariert). Setzt bewuss
 parser.add_argument("--from", dest="sender",
                     help="Absender. Ohne Angabe gilt 'from' aus swaks.json.")
 parser.add_argument("--text-file", required=True)
-parser.add_argument("--html-file", required=True)
+parser.add_argument("--html-file",
+                    help="HTML-Body. Ohne Angabe wird er aus --text-file "
+                         "erzeugt (Absaetze). Auf --text-file zeigen lassen "
+                         "darf man ihn nicht: der Part haette dann kein Markup "
+                         "und kaeme als eine einzige Zeile an.")
 parser.add_argument("--sig-text-file",
                     help="Text-Signatur. Ohne Angabe wird die Standard-Signatur "
                          "aufgeloest (projektlokal .claude/ vor global ~/.claude/).")
@@ -330,6 +499,11 @@ parser.add_argument("--in-reply-to",
 parser.add_argument("--references",
                     help="References-Kette der Antwort "
                          "(Feld reply.references aus `imap quote --json`).")
+parser.add_argument("--sha-file",
+                    help="sha256 der gebauten DATA zusaetzlich in diese Datei "
+                         "schreiben. Der Wert geht danach an "
+                         "`--verify --expect-sha256`, unmittelbar vor dem "
+                         "swaks-Aufruf.")
 parser.add_argument("--attach", action="append", default=[])
 args = parser.parse_args()
 
@@ -357,7 +531,29 @@ else:
     sig_html_file = args.sig_html_file or resolve_claude_file("swaks-signature.html")
 
 text = read(args.text_file)
-html = read(args.html_file)
+
+# HTML-Part: fehlt er, wird er aus dem Text gebaut. Kommt er als Datei, aber
+# ohne jedes Tag (haeufigster Fall: --text-file und --html-file zeigen auf
+# denselben Pfad), wird er ebenfalls umgewandelt — roh durchgereicht kaeme die
+# Mail beim Empfaenger als ein einziger Absatz an, ohne dass beim Versand
+# irgendetwas auffaellt.
+
+if not args.html_file:
+    html = text_to_html(text)
+else:
+    html = read(args.html_file)
+
+    same_path = os.path.realpath(args.html_file) == os.path.realpath(args.text_file)
+
+    if same_path or not html_has_markup(html):
+        reason = ("zeigt auf dieselbe Datei wie --text-file" if same_path
+                  else "enthaelt kein einziges Tag")
+
+        print(f"build_mail.py: Warnung — --html-file {reason}; der Part wird "
+              "in Absaetze umgewandelt. Ohne das kaeme die Mail beim "
+              "Empfaenger in einer einzigen Zeile an.", file=sys.stderr)
+
+        html = text_to_html(html if not same_path else text)
 
 # Signaturen anhaengen (Text mit Leerzeile Abstand, HTML als Block)
 
@@ -483,4 +679,22 @@ out = msg.as_string()
 if not out.strip():
     sys.exit("build_mail.py: Fehler — leere Ausgabe. Abbruch, kein Versand.")
 
-sys.stdout.write(out)
+# Bytes explizit schreiben, damit die Pruefsumme unten ueber genau das
+# laeuft, was in der Datei landet — unabhaengig vom Locale der Umgebung.
+
+data = out.encode("utf-8")
+sys.stdout.buffer.write(data)
+
+# Pruefsumme der gebauten DATA auf stderr. Sie ist der Wert fuer
+# `--verify --expect-sha256` unmittelbar vor dem swaks-Aufruf und gehoert in
+# die Erfolgsmeldung an den Nutzer: "versendet" allein stuetzt sich sonst auf
+# den Rueckgabewert von swaks, der nur die uebertragenen Bytes quittiert.
+
+digest = hashlib.sha256(data).hexdigest()
+
+print("build_mail.py: sha256(DATA) = %s (%d Byte)" % (digest, len(data)),
+      file=sys.stderr)
+
+if args.sha_file:
+    with open(args.sha_file, "w", encoding="utf-8") as f:
+        f.write(digest + "\n")

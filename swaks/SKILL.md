@@ -172,35 +172,68 @@ Immer UTF-8 Header mitgeben, damit Umlaute korrekt ankommen:
 
 Für HTML-Mails stattdessen `text/html; charset=utf-8` (siehe Abschnitt HTML-Body).
 
+## Arbeitsverzeichnis: pro Versand ein eigenes
+
+**Nicht in feste Pfade wie `.tmp/mail.eml` oder `.tmp/reply/` bauen.** Laufen zwei
+Sessions parallel, schreiben sie dieselben Dateien: Session A baut ihre `.eml`,
+Session B überschreibt sie, Session A sendet den Inhalt von B. Der Versand meldet
+dabei nichts — swaks quittiert die übertragenen Bytes, nicht die gebauten. Beim
+Empfänger steht dann eine fremde Mail unter korrektem Betreff und korrekter
+Anrede.
+
+Deshalb bekommt **jeder Versand ein eigenes Verzeichnis**, das kein zweiter
+Prozess kennt:
+
+```bash
+M=$(mktemp -d .tmp/mail.XXXXXX)
+```
+
+Ein `mktemp -d` unter dem Projekt-`.tmp/` reicht; das Scratchpad-Verzeichnis der
+Session tut es genauso. Der gemeinsame `.tmp/` bleibt für Artefakte, die
+absichtlich sessionübergreifend liegen bleiben.
+
+Das allein genügt nicht — es schließt nur die häufigste Ursache aus. Die Prüfung
+unmittelbar vor dem Versand (siehe „Vor dem Versand prüfen") fängt auch die
+übrigen ab.
+
 ## Standardversand: Multipart (Text + HTML)
 
 **Default für zusammengesetzte Mails.** Es wird eine `multipart/alternative`-Mail erzeugt (Text- **und** HTML-Part im selben Objekt) – gut für Copy/Paste in Thunderbird und beim Weiterleiten, mit Fallback für Plain-Text-Clients. HTML bewusst schlicht halten (Absätze `<p>`, Umbrüche `<br>`, keine CSS-Spielereien).
 
 Ablauf: `build_mail.py` baut die MIME-DATA (korrekte Boundaries/Encoding, hängt Signaturen an) in eine Datei, danach geht diese per `swaks --data @<datei>` raus.
 
-1. Text-Body als `.txt` und HTML-Body als `.html` in `.tmp/` schreiben (jeweils **ohne** Signatur – die hängt der Helper an).
-2. Versandweg laden, MIME-DATA bauen, senden, Ergebnis prüfen. **Erst in eine Datei bauen, dann senden** – nicht direkt in `swaks` pipen: schlägt der Bau fehl (Exit ≠ 0 oder Interpreter nicht gefunden), würde `swaks` sonst auf leerem STDIN laufen und seine eingebaute **Default-Test-Mail** verschicken. Die `&&`-Kette stoppt vor `swaks`, sobald der Bau fehlschlägt oder die Datei leer ist:
+1. Text-Body als `.txt` und HTML-Body als `.html` ins Versand-Verzeichnis `$M` schreiben (jeweils **ohne** Signatur – die hängt der Helper an). Liegt nur Text vor, `--html-file` schlicht weglassen – der Helper baut den HTML-Part daraus (siehe „HTML-Part").
+2. Versandweg laden, MIME-DATA bauen, **prüfen**, senden, Ergebnis prüfen. **Erst in eine Datei bauen, dann senden** – nicht direkt in `swaks` pipen: schlägt der Bau fehl (Exit ≠ 0 oder Interpreter nicht gefunden), würde `swaks` sonst auf leerem STDIN laufen und seine eingebaute **Default-Test-Mail** verschicken. Die `&&`-Kette stoppt vor `swaks`, sobald der Bau fehlschlägt, die Datei leer ist oder die Prüfung anschlägt:
 
 ```bash
-ENV=$(python3 ~/.claude/skills/swaks/build_mail.py --swaks-env) \
+M=$(mktemp -d .tmp/mail.XXXXXX)
+B=~/.claude/skills/swaks/build_mail.py
+
+# Bodies nach $M/body.txt und $M/body.html schreiben, dann:
+
+ENV=$(python3 $B --swaks-env) \
   && test -n "$ENV" \
-  && python3 ~/.claude/skills/swaks/build_mail.py \
+  && python3 $B \
       --subject "Betreff" \
       --to "empfaenger@example.com" \
       --from <absender> \
-      --text-file .tmp/body.txt \
-      --html-file .tmp/body.html \
-      > .tmp/mail.eml \
-  && test -s .tmp/mail.eml \
+      --text-file $M/body.txt \
+      --html-file $M/body.html \
+      --sha-file $M/mail.sha256 \
+      > $M/mail.eml \
+  && test -s $M/mail.eml \
+  && python3 $B --verify $M/mail.eml \
+      --expect-sha256 "$(cat $M/mail.sha256)" \
+      --expect-marker "<wörtliches Stück aus dem freigegebenen Entwurf>" \
   && ( eval "$ENV"; swaks \
       --to "empfaenger@example.com" \
       --from <absender> \
-      --data @.tmp/mail.eml ) > .tmp/swaks.log 2>&1
+      --data @$M/mail.eml ) > $M/swaks.log 2>&1
 RC=$?
 
-test $RC -eq 0 && grep -q "queued as" .tmp/swaks.log && ! grep -qE '^<.\*' .tmp/swaks.log \
-  && grep "queued as" .tmp/swaks.log \
-  || { echo "FEHLGESCHLAGEN (rc=$RC) — siehe .tmp/swaks.log"; grep -E '^<.\*' .tmp/swaks.log; }
+test $RC -eq 0 && grep -q "queued as" $M/swaks.log && ! grep -qE '^<.\*' $M/swaks.log \
+  && grep "queued as" $M/swaks.log \
+  || { echo "FEHLGESCHLAGEN (rc=$RC) — siehe $M/swaks.log"; grep -E '^<.\*' $M/swaks.log; }
 ```
 
 Die Prüfung am Ende ist **kein Beiwerk** – ohne sie geht ein Reject als Erfolg durch (siehe „Ergebnis prüfen").
@@ -211,6 +244,7 @@ Hinweise:
 - **Bcc:** `--bcc "adr"` an `build_mail.py` setzt **bewusst keinen** Header (sonst wären die Empfänger sichtbar). Die Bcc-Adresse **nur** in den swaks-Envelope `--to` aufnehmen — sie bleibt für die anderen Empfänger unsichtbar. Beispiel: Header via `build_mail.py --to a@x --cc cc@x --bcc bcc@x`, Envelope via `swaks --to "a@x,cc@x,bcc@x" …`.
 - **Leerer Body / Bau-Fehler:** `build_mail.py` bricht mit Exit ≠ 0 ab, wenn Text *und* HTML leer sind. Deshalb **nie direkt in `swaks` pipen** — bei einem Bau-Fehler (Exit ≠ 0 oder Interpreter nicht gefunden) läuft `swaks` sonst auf leerem STDIN und sendet seine eingebaute Default-Test-Mail. Immer erst in eine Datei bauen und mit `&& test -s <datei> && swaks … --data @<datei>` absichern. `set -o pipefail` allein genügt **nicht**, da `swaks` in der Pipe trotzdem startet.
 - **`--data` braucht zwingend das `@`:** `swaks --data <datei>` liest die Datei **nicht**, sondern verschickt den **Pfad als Body-Text**. Es gibt keine Fehlermeldung — swaks quittiert mit `250 Ok`, zugestellt wird eine Mail ohne Betreff und ohne die gebauten Header, mit dem Dateinamen als einzigem Inhalt. Beim Empfänger sieht das nach Spam oder kompromittiertem Konto aus, und zurückholen lässt es sich nicht. Immer `--data @<datei>` schreiben. Gegenprobe direkt nach dem Versand: die `size=`-Angabe der Queue-ID im Maillog des Relays gegen die Größe der `.eml` halten — ein paar hundert Bytes statt einiger KB heißt, das `@` hat gefehlt.
+- **HTML-Part:** `--html-file` ist **optional**. Fehlt es, baut der Helper den HTML-Part aus dem Text (Leerzeilen werden `<p>`, einfache Umbrüche `<br>`). **Niemals dieselbe Datei an `--text-file` und `--html-file` geben** — der HTML-Part hätte dann kein einziges Tag und käme beim Empfänger als eine einzige Zeile an („in einer Wurst"), inklusive Tabellen und Kennwortlisten. Der Helper erkennt diesen Fall inzwischen, warnt auf stderr und wandelt um; die Warnung ist trotzdem ein Grund, den Aufruf zu korrigieren.
 - **Signatur:** wird automatisch aus `~/.claude/swaks-signature.*` (bzw. projektlokal `.claude/`) aufgelöst – die `--sig-*-file`-Zeilen sind **optional** und nur als expliziter Override nötig. Ganz weglassen: `--no-sig`.
 - **Antwort auf eine Mail:** `--quote-text-file` / `--quote-html-file` hängen den Zitatblock **unter** Body und Signatur an (Top-Posting), `--in-reply-to` / `--references` setzen die Threading-Header. Der Quote wird **nicht getippt**, sondern mit `imap quote` erzeugt — siehe eigener Abschnitt unten.
 - **Anhänge:** pro Datei ein `--attach <pfad>` an `build_mail.py` – dann wird `multipart/mixed` um das Text+HTML-Part gelegt (MIME-Type wird automatisch erraten):
@@ -225,6 +259,40 @@ python3 ~/.claude/skills/swaks/build_mail.py ... \
 ```
 
 Die folgenden Abschnitte (reiner Text-Body, HTML-Body, `--attach` direkt an swaks) sind **einfachere Sonderfälle** – nur nutzen, wenn explizit nur Text gewünscht ist oder es rein um einen Dateiversand ohne formatierten Body geht.
+
+## Vor dem Versand prüfen — was `250 Ok` nicht abdeckt
+
+Ein erfolgreicher Rückgabewert von swaks sagt nur, dass der Server die Bytes
+angenommen hat. Er sagt **nicht**, dass die richtigen Bytes drinstanden, und
+**nicht**, dass sie beim Empfänger lesbar ankommen. Beides ist schon passiert,
+beide Male ohne jede Auffälligkeit beim Versand. Die Prüfung gehört deshalb an
+die fertige `.eml`, nicht an den Exit-Code:
+
+```bash
+python3 $B --verify $M/mail.eml \
+  --expect-sha256 "$(cat $M/mail.sha256)" \
+  --expect-marker "hier die Zugangsdaten"
+```
+
+Exit `0` und ein JSON-Bericht heißt: senden. Exit `1` heißt: **nicht senden**,
+den Befund dem Nutzer nennen. Geprüft wird:
+
+| Prüfung | fängt |
+|---|---|
+| `--expect-sha256` gegen die Datei | die `.eml` wurde zwischen Bauen und Senden überschrieben — typischerweise von einer parallel laufenden Session mit demselben Pfad |
+| Text-Part vorhanden und nicht leer | Bau ohne Body |
+| HTML-Part enthält Markup | der „Wurst"-Fall: rohem Text als HTML-Part, alles in einer Zeile |
+| Text- und HTML-Part nicht identisch | dieselbe Datei an `--text-file` und `--html-file` |
+| `--expect-marker` im **dekodierten** Text-Part | die `.eml` trägt nicht den freigegebenen Entwurf |
+
+Zum Marker: ein wörtliches Stück aus dem Entwurf, das in keiner anderen Mail
+vorkommt — ein halber Satz genügt. **Ein `grep` auf die rohe `.eml` genügt
+dafür nicht**: der Body ist quoted-printable kodiert, Umlaute stehen dort als
+`=C3=A4` und Zeilen sind an anderer Stelle umgebrochen als im Entwurf. `--verify`
+dekodiert den Part und ebnet Leerraum ein, bevor es vergleicht.
+
+Die `--sha-file`-Datei entsteht beim Bau; ohne sie steht die Prüfsumme auch auf
+stderr (`build_mail.py: sha256(DATA) = …`).
 
 ## Ergebnis prüfen — Pflicht nach jedem Versand
 
@@ -279,6 +347,34 @@ Bei Erfolg zusätzlich die Gegenprobe auf das fehlende `@`: die `size=`-Angabe
 zur Queue-ID im Maillog gegen die Größe der `.eml` halten. Ein paar hundert
 Bytes statt einiger KB heißt, es ging der Dateiname statt der Mail raus.
 
+### Was in der Erfolgsmeldung stehen muss
+
+„Versendet" darf sich **nicht allein auf `250 Ok` stützen** — der Satz bezieht
+sich sonst auf das, was übertragen wurde, nicht auf das, was gebaut wurde. In
+die Meldung an den Nutzer gehören deshalb vier Angaben:
+
+- die **Queue-ID** aus dem swaks-Log,
+- **welche Datei** übertragen wurde (`$M/mail.eml`) mit ihrer **sha256** und Größe,
+- die **Empfänger** des Envelope (inklusive Bcc — die stehen in keinem Header),
+- **wo die Kopie liegt** (siehe unten).
+
+Mit Prüfsumme und Dateiname kann der Nutzer eine Verwechslung überhaupt erst
+erkennen; ohne sie bleibt ihm nur der Betreff, und genau der stimmt im
+Verwechslungsfall.
+
+### Ablage: swaks legt nichts in „Gesendet"
+
+`swaks` spricht SMTP und sonst nichts — es gibt **keine Kopie im Sent-Ordner**.
+Die einzige Spur ist die Bcc-Kopie im Posteingang (`send.bcc` aus dem
+mail-as-me-Profil bzw. eine ausdrücklich gesetzte Bcc-Adresse). Wer die Mail
+später sucht, sucht zuerst im falschen Ordner und verliert Zeit.
+
+Deshalb: **die Fundstelle in der Erfolgsmeldung nennen** — „Kopie liegt im
+Posteingang von `<konto>` (Bcc), nicht in Gesendet". Ist keine Bcc gesetzt, gibt
+es außer dem Maillog des Relays gar keine Spur; dann das ausdrücklich sagen.
+Die lokale `$M/mail.eml` ist die dritte Spur, hält aber nur bis zum nächsten
+Aufräumen.
+
 ## Antwort auf eine Mail (Zitat + Threading)
 
 Zwei Dinge unterscheiden eine Antwort von einer neuen Mail: der **Zitatblock** und die
@@ -287,10 +383,10 @@ eingesetzt — von Hand getippte `> `-Präfixe weichen bei jeder Mail leicht ab 
 ignorieren `format=flowed`.
 
 ```bash
-Q=.tmp/reply
-mkdir -p $Q
+Q=$(mktemp -d .tmp/reply.XXXXXX)
+B=~/.claude/skills/swaks/build_mail.py
 
-ENV=$(python3 ~/.claude/skills/swaks/build_mail.py --swaks-env)
+ENV=$(python3 $B --swaks-env)
 
 python3 ~/.claude/skills/imap/imap quote <uid> -a <konto> > $Q/quote.txt
 python3 ~/.claude/skills/imap/imap quote <uid> -a <konto> --format html > $Q/quote.html
@@ -299,7 +395,7 @@ python3 ~/.claude/skills/imap/imap quote <uid> -a <konto> --json > $Q/quote.json
 IRT=$(python3 -c "import json;print(json.load(open('$Q/quote.json'))['reply']['in_reply_to'])")
 REF=$(python3 -c "import json;print(json.load(open('$Q/quote.json'))['reply']['references'])")
 
-python3 ~/.claude/skills/swaks/build_mail.py \
+python3 $B \
   --subject "Re: <betreff>" \
   --to "empfaenger@example.com" \
   --text-file $Q/body.txt \
@@ -308,8 +404,12 @@ python3 ~/.claude/skills/swaks/build_mail.py \
   --quote-html-file $Q/quote.html \
   --in-reply-to "$IRT" \
   --references "$REF" \
+  --sha-file $Q/mail.sha256 \
   > $Q/mail.eml \
   && test -s $Q/mail.eml \
+  && python3 $B --verify $Q/mail.eml \
+      --expect-sha256 "$(cat $Q/mail.sha256)" \
+      --expect-marker "<wörtliches Stück aus dem Entwurf>" \
   && ( eval "$ENV"; swaks --to "empfaenger@example.com" --data @$Q/mail.eml ) \
      > $Q/swaks.log 2>&1
 grep -q "queued as" $Q/swaks.log && ! grep -qE '^<.\*' $Q/swaks.log \
@@ -317,6 +417,7 @@ grep -q "queued as" $Q/swaks.log && ! grep -qE '^<.\*' $Q/swaks.log \
   || echo "FEHLGESCHLAGEN — siehe $Q/swaks.log"
 ```
 
+- **Eigenes Verzeichnis, kein festes `.tmp/reply`.** Genau dieser feste Pfad ist der Kollisionspunkt gewesen: eine zweite Session schrieb dieselbe `mail.eml`, und die Antwort ging mit fremdem Inhalt an den Kunden. `mktemp -d` plus die `--verify`-Zeile schließen das aus.
 - **Position:** Antwort oben, Zitat unten (Top-Posting). Die Reihenfolge im fertigen Part ist Body → Signatur → Zitat. Der Body-Text enthält also **kein** Zitat, das hängt der Helper an.
 - **Beide Parts:** Der Quote geht in den Text- **und** den HTML-Part. Fehlt `--quote-html-file`, wird die HTML-Fassung aus dem Text escaped nachgebaut (`<blockquote type="cite">` mit `<br>`). Umgekehrt geht nicht: `--quote-html-file` **ohne** `--quote-text-file` bricht ab, sonst hätte ein Part das Zitat und der andere nicht.
 - **Leere Quote-Datei bricht ab.** Sie entsteht, wenn `imap quote` fehlschlägt (falsche UID, Mail inzwischen verschoben) und die Ausgabe trotzdem umgeleitet wurde. Ohne diese Prüfung ginge die Antwort still ohne Zitat raus.
@@ -449,12 +550,14 @@ swaks \
 
 1. **Empfänger auflösen:** Wenn ein Name statt E-Mail-Adresse genannt wird, `grep -i <name> .claude/swaks-contacts.tsv` ausführen. Bei Treffer: E-Mail aus zweitem Feld verwenden. Bei keinem Treffer: nachfragen.
 2. **Versandart wählen:** Default ist **Multipart (Text + HTML)** via `build_mail.py`. Nur reinen Text senden, wenn der User das will oder es rein um einen Dateiversand ohne formatierten Body geht.
-3. **Body erstellen:** Für Multipart Text- und HTML-Body in `.tmp/` ablegen (ohne Signatur). HTML schlicht halten.
+3. **Body erstellen:** Versand-Verzeichnis mit `mktemp -d` anlegen (kein fester Pfad, siehe „Arbeitsverzeichnis"), Text- und HTML-Body dort ablegen (ohne Signatur). HTML schlicht halten; liegt nur Text vor, `--html-file` weglassen statt die Textdatei doppelt anzugeben.
 4. **Signatur:** wird automatisch aufgelöst (global `~/.claude/swaks-signature.*`, projektlokal `.claude/` mit Vorrang) – nichts zu übergeben. Unter der eigenen Adresse des Nutzers **immer** dranlassen (globale Signatur = dessen persönliche). `--no-sig` nur bei explizitem "ohne Signatur" oder einem **dritten** Absender (weder der Nutzer noch Claude); für eine abweichende Signatur explizit `--sig-text-file`/`--sig-html-file`.
 5. Fehlende Angaben aus dem Kontext ableiten (Betreff, Body, Anhänge).
 6. Befehl zusammenbauen und dem Nutzer kurz zeigen; auf Bestätigung warten – außer der Nutzer hat bereits „ja" gesagt oder den Versand klar angeordnet.
-7. **Versandweg laden** (`eval` des `--swaks-env`, siehe Versandweg), Befehl ausführen, Ausgabe mitschreiben und **prüfen** — Exit-Code, `queued as` *und* keine `^<.\*`-Zeile (siehe „Ergebnis prüfen"). Nur bei allen dreien „versendet" melden, sonst den Fehlschlag mit Statuscode nennen.
-8. **Kontakt ergänzen:** Wenn eine neue E-Mail-Adresse verwendet wurde, die noch nicht in `.claude/swaks-contacts.tsv` steht, per `printf` anhängen.
+7. **Vor dem Versand prüfen:** `--verify` auf die fertige `.eml`, mit `--expect-sha256` aus der `--sha-file` und einem `--expect-marker` aus dem freigegebenen Entwurf (siehe „Vor dem Versand prüfen"). Exit ≠ 0 heißt: nicht senden.
+8. **Versandweg laden** (`eval` des `--swaks-env`, siehe Versandweg), Befehl ausführen, Ausgabe mitschreiben und **prüfen** — Exit-Code, `queued as` *und* keine `^<.\*`-Zeile (siehe „Ergebnis prüfen"). Nur bei allen dreien „versendet" melden, sonst den Fehlschlag mit Statuscode nennen.
+9. **Erfolgsmeldung:** Queue-ID, übertragene Datei mit sha256 und Größe, Envelope-Empfänger (inkl. Bcc) und die Fundstelle der Kopie nennen (siehe „Was in der Erfolgsmeldung stehen muss").
+10. **Kontakt ergänzen:** Wenn eine neue E-Mail-Adresse verwendet wurde, die noch nicht in `.claude/swaks-contacts.tsv` steht, per `printf` anhängen.
 
 ## Hinweise
 
@@ -462,4 +565,6 @@ swaks \
 - MX-Routing ist nicht verfügbar (Net::DNS fehlt). Ohne geladenen Versandweg nimmt swaks deshalb **stillschweigend `localhost:25`** — kein Fehler, aber der falsche Weg. Immer erst `eval "$ENV"`.
 - Erfolg erkennbar an: `250 2.0.0 Ok: queued as <ID>` **bei Exit-Code 0 und ohne `<**`/`<~*`-Zeile**. Alle drei prüfen — bei mehreren Empfängern ist ein einzelner Reject sonst unsichtbar.
 - Zum Ausprobieren einer Route ohne Zustellung: `--quit-after RCPT` — die Verbindung endet vor `DATA`, es geht nichts raus.
+- Ein `250 Ok` sagt nur, dass der Server die Bytes genommen hat. Ob es die **richtigen** Bytes waren (Datei zwischenzeitlich überschrieben) und ob sie beim Empfänger **lesbar** ankommen (HTML-Part ohne Markup), sagt es nicht — dafür gibt es `--verify`.
+- `swaks` legt **keine Kopie in „Gesendet"** ab. Einzige Spur ist die Bcc-Kopie im Posteingang; das gehört in die Erfolgsmeldung, sonst sucht der Nutzer später am falschen Ort.
 

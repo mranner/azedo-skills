@@ -517,11 +517,35 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.44.11
+### 1.44.12
 
-- **`wiki`: Der Lint-Check „Datum in Ueberschrift" erkennt jetzt auch die deutsche
-  Schreibweise (`15.08.2026`).** Bisher matchte nur ISO (`2026-08-15`), womit
-  Ueberschriften wie „Rollout-Stand (15.08.2026)" unbeanstandet durchliefen - der
-  Check meldete also genau die Haelfte der Faelle und wirkte dabei vollstaendig.
-  Das deutsche Muster verlangt ein vierstelliges Jahr, damit Versions- und
-  Abschnittsnummern (`8.2.33`) nicht als Datum gelesen werden.
+- **`swaks`: `--verify` prueft die fertige `.eml`, bevor sie an swaks geht.**
+  Geprueft werden Pruefsumme (`--expect-sha256`), Text- und HTML-Part, Markup im
+  HTML-Part und ein woertlicher Marker aus dem freigegebenen Entwurf
+  (`--expect-marker`, gegen den **dekodierten** Text-Part - ein `grep` auf die
+  rohe `.eml` scheitert an der quoted-printable-Kodierung). Exit != 0 heisst:
+  nicht senden.
+- **Anlass waren zwei Faelle mit demselben blinden Fleck.** Eine parallel
+  laufende Session ueberschrieb eine fertig gebaute `.eml` unter dem festen Pfad
+  `.tmp/reply/mail.eml`; versendet wurde daraufhin fremder Inhalt unter korrektem
+  Betreff und korrektem Empfaenger. Und ein zweites Mal ging dieselbe Textdatei
+  an `--text-file` **und** `--html-file`, worauf die Mail beim Empfaenger in einer
+  einzigen Zeile ankam. Beide Male quittierte swaks mit `250 Ok` - der
+  Rueckgabewert bezieht sich auf die uebertragenen Bytes, nicht auf die gebauten
+  und nicht auf ihre Lesbarkeit.
+- **`--html-file` ist jetzt optional**: fehlt es, baut `build_mail.py` den
+  HTML-Part aus dem Text (Leerzeilen werden `<p>`, Umbrueche `<br>`). Zeigt es auf
+  dieselbe Datei wie `--text-file` oder enthaelt die Datei kein einziges Tag,
+  warnt der Helper auf stderr und wandelt ebenfalls um, statt rohen Text als
+  HTML durchzureichen.
+- **`--sha-file`** schreibt die Pruefsumme der gebauten DATA in eine Datei; sie
+  steht zusaetzlich auf stderr. Von dort geht sie an `--verify --expect-sha256`.
+- **`swaks`, `mail-as-me`: Versand-Dateien in ein eigenes Verzeichnis pro
+  Versand** (`mktemp -d` unter `.tmp/`) statt in feste Pfade. Der feste Pfad war
+  der Kollisionspunkt; der gemeinsame `.tmp/` bleibt fuer Artefakte, die
+  absichtlich sessionuebergreifend liegen bleiben.
+- **Erfolgsmeldung praezisiert:** "versendet" braucht Queue-ID, uebertragene
+  Datei mit sha256 und Groesse, die Envelope-Empfaenger inklusive Bcc und die
+  Fundstelle der Kopie. swaks legt **nichts** in "Gesendet" ab - einzige Spur ist
+  die Bcc-Kopie im Posteingang, und wer das nicht dazusagt, schickt den Nutzer
+  spaeter in den falschen Ordner.

@@ -219,20 +219,42 @@ Umsetzung im swaks-Aufruf — `from` geht an **beide** Seiten (Header und Envelo
 `bcc` **nur** in den Envelope, sonst wird die Kopie fuer die Empfaenger sichtbar:
 
 ```bash
-python3 ~/.claude/skills/swaks/build_mail.py \
+M=$(mktemp -d .tmp/mail.XXXXXX)
+B=~/.claude/skills/swaks/build_mail.py
+
+python3 $B \
   --subject "Betreff" \
   --to "empfaenger@example.com" \
   --from ich@example.org \
   --bcc ich@example.org \
-  --text-file .tmp/body.txt \
-  --html-file .tmp/body.html \
-  > .tmp/mail.eml \
-  && test -s .tmp/mail.eml \
+  --text-file $M/body.txt \
+  --html-file $M/body.html \
+  --sha-file $M/mail.sha256 \
+  > $M/mail.eml \
+  && test -s $M/mail.eml \
+  && python3 $B --verify $M/mail.eml \
+      --expect-sha256 "$(cat $M/mail.sha256)" \
+      --expect-marker "<woertliches Stueck aus dem freigegebenen Entwurf>" \
   && swaks --server <server> \
       --to "empfaenger@example.com,ich@example.org" \
       --from ich@example.org \
-      --data @.tmp/mail.eml
+      --data @$M/mail.eml
 ```
+
+**Kein fester Pfad wie `.tmp/mail.eml`, und die `--verify`-Zeile gehoert dazu.**
+Eine parallel laufende Session schreibt sonst dieselbe Datei, und der Versand
+nimmt, was zuletzt drinstand -- mit korrektem Betreff, korrektem Empfaenger und
+dem Text einer fremden Mail. Beim Versand faellt das nicht auf: swaks quittiert
+die uebertragenen Bytes, nicht die gebauten. Der Marker ist ein woertliches
+Stueck aus dem freigegebenen Entwurf; `--verify` dekodiert den Text-Part und
+sucht es dort (ein `grep` auf die rohe `.eml` findet es nicht, der Body ist
+quoted-printable kodiert). Details im swaks-Skill, Abschnitt "Vor dem Versand
+pruefen".
+
+**Nur Text und kein HTML-Entwurf?** Dann `--html-file` weglassen, nicht die
+Textdatei ein zweites Mal angeben. Ein HTML-Part aus rohem Text hat kein
+einziges Tag und kommt beim Empfaenger in einer einzigen Zeile an -- Aufzaehlung,
+Tabelle und Zugangsdaten inklusive.
 
 `--bcc` an `build_mail.py` setzt bewusst **keinen** Header; zugestellt wird die Kopie
 allein ueber den Envelope-`--to` von swaks. Fehlt sie dort, kommt trotz `--bcc` nichts
@@ -269,9 +291,9 @@ solange der Quote ueber `--quote-text-file`/`--quote-html-file` hereinkommt. Der
 selbst enthaelt also **kein** Zitat.
 
 ```bash
-Q=.tmp/reply
-mkdir -p $Q
+Q=$(mktemp -d .tmp/reply.XXXXXX)
 IMAP=~/.claude/skills/imap/imap
+B=~/.claude/skills/swaks/build_mail.py
 
 # 1. Zitat und Threading erzeugen -- nicht tippen.
 #    -f gehoert dazu, sobald die Mail nicht in der INBOX liegt (UIDs sind
@@ -302,7 +324,7 @@ for _,a in addrs:
 print(','.join(seen))")
 
 # 4. Mail bauen -- Body ohne Zitat, der Helper haengt es unter die Signatur
-python3 ~/.claude/skills/swaks/build_mail.py \
+python3 $B \
   --subject "$SUBJ" \
   --to "$TO" \
   --from ich@example.org \
@@ -312,8 +334,12 @@ python3 ~/.claude/skills/swaks/build_mail.py \
   --quote-html-file $Q/quote.html \
   --in-reply-to "$IRT" \
   --references "$REF" \
+  --sha-file $Q/mail.sha256 \
   > $Q/mail.eml \
   && test -s $Q/mail.eml \
+  && python3 $B --verify $Q/mail.eml \
+      --expect-sha256 "$(cat $Q/mail.sha256)" \
+      --expect-marker "<woertliches Stueck aus dem Entwurf>" \
   && swaks --server <server> --to "$TO" \
       --from ich@example.org --data @$Q/mail.eml
 ```
@@ -362,6 +388,9 @@ Bezug; diese Checkliste ist die **Ergaenzung** zum Skill-Lauf, nicht sein Ersatz
 
 - Profil-Daten liegen **ausserhalb** des Skills (`~/.claude/mail-as-me/`), damit der
   versionierte Skill und die persoenlichen Daten getrennt bleiben.
-- Temporaere Dateien ins Projekt-`.tmp/`, nie ins Skill-Verzeichnis.
+- Temporaere Dateien ins Projekt-`.tmp/`, nie ins Skill-Verzeichnis. Die Dateien
+  eines Versands (Body, `.eml`, Quote) aber in ein **eigenes** Verzeichnis pro
+  Versand (`mktemp -d` unter `.tmp/`): feste Pfade kollidieren mit parallel
+  laufenden Sessions, siehe Abschnitt Versand.
 - Der Auto-Register-/Dialekt-Vorschlag ist bewusst nur ein Vorschlag — im Zweifel
   im Interview bestaetigen lassen (der Auto-Detect kann daneben liegen).
