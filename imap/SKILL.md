@@ -7,17 +7,20 @@ description: >
   lassen sich auflisten und herausschreiben, etwa um sie an einen Task oder ein
   Ticket zu haengen. Fuer eine Antwort erzeugt `quote` den Zitatblock im
   Thunderbird-Format samt Threading-Headern; `find` loest eine Message-ID zu
-  Konto, Ordner und UID auf. Zugangsdaten
+  Konto, Ordner und UID auf. `append` legt eine lokale `.eml` in einen Ordner --
+  die Ablage der versendeten Mail in "Gesendet", die `swaks` selbst nicht
+  vornimmt. Zugangsdaten
   kommen aus der muttrc (`account-hook`), es gibt keine zweite Credential-Datei.
   Gelesen wird mit BODY.PEEK, der Ungelesen-Status bleibt dabei unangetastet.
-  Schreibende Aktionen laufen ausschliesslich gebuendelt ueber `batch` und erst
-  nach ausdruecklicher Freigabe durch den Nutzer. stdlib-only Python, kein
+  Schreibende Aktionen laufen erst nach ausdruecklicher Freigabe durch den
+  Nutzer; bei der Triage gebuendelt ueber `batch`. stdlib-only Python, kein
   Server-Prozess, lauffaehig auf FreeBSD + macOS. Nutze diesen Skill wenn der
   User seinen Posteingang durchgehen, Mails zusammengefasst haben, aufraeumen,
   Spam aussortieren oder Mails zwischen Konten bewegen will. Auch aktiv
   verwenden bei "geh meine Inbox durch", "was ist heute reingekommen", "raeum
   den Posteingang auf", "gibt es was Wichtiges in der Mail", "verschieb das ins
   Archiv", "hol den Anhang aus der Mail", "zitier die Mail fuer meine Antwort",
+  "leg die versendete Mail in Gesendet ab",
   "finde die Mail mit dieser Message-ID".
   Trigger: /imap.
 ---
@@ -412,6 +415,7 @@ python3 "$KANBOARD_SKILL_DIR/kanboard" attach-file 1234 --file /pfad/aus/dem/jso
 | `delete <uid>` | in den Papierkorb -- **nie** expunge |
 | `seen` / `unseen` | Gelesen-Status |
 | `flag` / `unflag` | Markierung |
+| `append <datei.eml>` | eine lokale `.eml` in einen Ordner legen (Default: Gesendet) |
 
 Als `-t/--target` sind **Sonderrollen** erlaubt: `junk`, `trash`, `archive`,
 `sent`, `drafts`. Die werden per SPECIAL-USE beim Server aufgeloest, sonst ueber
@@ -419,6 +423,47 @@ eine Namensheuristik. Findet sich nichts, bricht der Aufruf ab, statt einen
 Ordner anzulegen.
 
 Jede schreibende Aktion kennt `--dry-run`.
+
+## `append` -- die versendete Mail in "Gesendet" ablegen
+
+`swaks` spricht SMTP und sonst nichts: es legt **keine Kopie in "Gesendet"** ab.
+Die einzige Spur einer versendeten Mail ist die Bcc-Kopie im Posteingang. Wer sie
+spaeter sucht, sucht zuerst im falschen Ordner und findet nichts -- der Versand
+sieht dann aus, als haette er nie stattgefunden. `append` schliesst die Luecke:
+
+```bash
+python3 "$SKILL_DIR/imap" append $M/mail.eml -a <konto>
+python3 "$SKILL_DIR/imap" append $M/mail.eml -a <konto> --dry-run --json
+```
+
+Abgelegt wird **genau die Datei, die versendet wurde** -- dieselbe, die an
+`swaks --data @...` ging. Ein zweiter Bau waere eine andere Mail: Message-ID und
+`Date` entstehen bei jedem Lauf neu.
+
+| Option | Wirkung |
+|---|---|
+| `-f/--folder` | Zielordner; Default die Sonderrolle `sent`. Auch `drafts`, `archive`, `junk`, `trash` oder ein echter Ordnername |
+| `--flags` | IMAP-Flags, leerzeichengetrennt. Default `\Seen` |
+| `--date` | `INTERNALDATE`; Default `now` |
+| `--allow-duplicate` | auch anlegen, wenn dieselbe Message-ID schon im Ordner liegt |
+| `--dry-run` | nur zeigen, was passieren wuerde |
+
+**Warum `\Seen` der Default ist:** eine selbst versendete Mail ist nicht
+ungelesen. Ohne das Flag steht der Eintrag fett im Ordner und sieht nach
+eingegangener Post aus.
+
+**Wiederholbar:** liegt im Zielordner bereits eine Mail mit derselben
+Message-ID, schreibt `append` **nichts** und meldet `duplicate: true`. Der
+Abbruch eines Laufs zwischen Versand und Ablage ist der haeufige Fall, ein
+doppelter Eintrag in "Gesendet" der laestige.
+
+**Geprueft wird vorher**, ob die Datei ueberhaupt eine Mail ist: fehlen `From`
+und `To` im Kopf, bricht der Aufruf ab. Der typische Fehlgriff ist die
+Body-Datei (`body.txt`) statt der fertigen `.eml`; ohne die Pruefung landete sie
+als kopfloser Fremdkoerper im Ordner.
+
+Der Ordner wird **nicht angelegt**: findet sich keine `sent`-Sonderrolle und kein
+Ordner dieses Namens, bricht der Aufruf ab (wie bei `-t/--target`).
 
 ## Batch -- der Normalfall fuer Aktionen
 
@@ -598,6 +643,7 @@ ok / einzeln anpassen?
 ## Verwandte Skills
 
 - [swaks](../swaks/SKILL.md) -- Versand; dieser Skill ist die Lese-Seite dazu
+  und mit `append` die Ablage danach (swaks legt nichts in "Gesendet" ab)
 - [mail-as-me](../mail-as-me/SKILL.md) -- Antworten im eigenen Schreibstil
 - [pushover](../pushover/SKILL.md) -- Zusammenfassung als Push aufs Handy
 - [kanboard](../kanboard/SKILL.md) / [jira](../jira/SKILL.md) -- Ziel fuer

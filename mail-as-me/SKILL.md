@@ -251,6 +251,17 @@ sucht es dort (ein `grep` auf die rohe `.eml` findet es nicht, der Body ist
 quoted-printable kodiert). Details im swaks-Skill, Abschnitt "Vor dem Versand
 pruefen".
 
+**Nach dem Versand ablegen.** swaks legt keine Kopie in "Gesendet" ab; das holt
+`imap append` nach, mit genau der Datei, die versendet wurde:
+
+```bash
+python3 ~/.claude/skills/imap/imap append $M/mail.eml -a <konto>
+```
+
+Erst nach dem erfolgreichen Versand, nie davor -- eine Kopie in "Gesendet" zu
+einer abgewiesenen Mail ist eine Falschaussage im Postfach. Ein wiederholter
+Lauf legt keinen zweiten Eintrag an (gleiche Message-ID).
+
 **Nur Text und kein HTML-Entwurf?** Dann `--html-file` weglassen, nicht die
 Textdatei ein zweites Mal angeben. Ein HTML-Part aus rohem Text hat kein
 einziges Tag und kommt beim Empfaenger in einer einzigen Zeile an -- Aufzaehlung,
@@ -382,6 +393,8 @@ Bezug; diese Checkliste ist die **Ergaenzung** zum Skill-Lauf, nicht sein Ersatz
   auf -- der Handabgleich ueber `folders` + `list` entfaellt.
 - **swaks** — Versand (`mail-as-me` schreibt, `swaks` sendet; Signatur kommt aus
   swaks, Absender und Bcc aus `config.json.send` des Profils).
+- **imap** — `quote` fuer Zitat und Threading vor dem Versand, `append` fuer die
+  Ablage in "Gesendet" danach.
 - **kanboard/handoff** — optional CR-Kontext fuer den `learn`-Loop.
 
 ## Hinweise

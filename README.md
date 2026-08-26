@@ -140,6 +140,9 @@ Posteingang-Triage über mehrere IMAP-Konten — das Gegenstück zu `swaks`. Unt
 - Sonderrollen (`junk`, `trash`, `archive`) statt Ordnernamen, per SPECIAL-USE am Server aufgelöst
 - Kopieren und Verschieben **zwischen** zwei Konten (`APPEND` zuerst, Quelle erst danach)
 - `batch` führt Aktionen mit einem Login je Konto aus, erst nach Freigabe durch den Nutzer
+- `append <datei.eml>` legt eine lokale `.eml` in einen Ordner (Default: Gesendet) — die Ablage, die
+  `swaks` selbst nicht vornimmt; `\Seen` als Default-Flag, und eine schon vorhandene Message-ID
+  verhindert den zweiten Eintrag
 - Anhänge auflisten (`attachments`) und herausschreiben (`save-attachment`, per `--name`/`--index`/`--all`,
   ohne `--output` nach `.tmp/`) — Dateinamen RFC-2231/2047-dekodiert, Pfadanteile gestrippt, nichts wird
   überschrieben; Inline-Teile per Default ausgeblendet
@@ -158,6 +161,10 @@ Versendet E-Mails via `swaks` über einen Postfix-Relay. Unterstützt:
 - Kontakt-Shortcuts (`.claude/swaks-contacts.tsv` — Name-zu-Email-Lookup)
 - Optionale Default-Signatur (`.claude/swaks-signature.txt`)
 - Versand-Defaults (`to`, `from`, `server`, `message_id_domain`) aus `.claude/swaks.json` — projektlokal vor global, Vorlage `swaks.json.example`
+- `--verify` prüft die fertige `.eml` vor dem Versand: Prüfsumme (`--expect-sha256`, gegen die
+  `--sha-file` aus dem Bau), Markup im HTML-Part und ein Marker aus dem freigegebenen Entwurf
+  (`--expect-marker`, gegen den dekodierten Text-Part)
+- `--html-file` ist optional — fehlt es, entsteht der HTML-Part aus dem Text (`<p>`/`<br>`)
 
 **Voraussetzungen:** `swaks` installiert, `.claude/swaks.json` mit erreichbarem `server`
 
@@ -517,35 +524,31 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.44.12
+### 1.44.13
 
-- **`swaks`: `--verify` prueft die fertige `.eml`, bevor sie an swaks geht.**
-  Geprueft werden Pruefsumme (`--expect-sha256`), Text- und HTML-Part, Markup im
-  HTML-Part und ein woertlicher Marker aus dem freigegebenen Entwurf
-  (`--expect-marker`, gegen den **dekodierten** Text-Part - ein `grep` auf die
-  rohe `.eml` scheitert an der quoted-printable-Kodierung). Exit != 0 heisst:
-  nicht senden.
-- **Anlass waren zwei Faelle mit demselben blinden Fleck.** Eine parallel
-  laufende Session ueberschrieb eine fertig gebaute `.eml` unter dem festen Pfad
-  `.tmp/reply/mail.eml`; versendet wurde daraufhin fremder Inhalt unter korrektem
-  Betreff und korrektem Empfaenger. Und ein zweites Mal ging dieselbe Textdatei
-  an `--text-file` **und** `--html-file`, worauf die Mail beim Empfaenger in einer
-  einzigen Zeile ankam. Beide Male quittierte swaks mit `250 Ok` - der
-  Rueckgabewert bezieht sich auf die uebertragenen Bytes, nicht auf die gebauten
-  und nicht auf ihre Lesbarkeit.
-- **`--html-file` ist jetzt optional**: fehlt es, baut `build_mail.py` den
-  HTML-Part aus dem Text (Leerzeilen werden `<p>`, Umbrueche `<br>`). Zeigt es auf
-  dieselbe Datei wie `--text-file` oder enthaelt die Datei kein einziges Tag,
-  warnt der Helper auf stderr und wandelt ebenfalls um, statt rohen Text als
-  HTML durchzureichen.
-- **`--sha-file`** schreibt die Pruefsumme der gebauten DATA in eine Datei; sie
-  steht zusaetzlich auf stderr. Von dort geht sie an `--verify --expect-sha256`.
-- **`swaks`, `mail-as-me`: Versand-Dateien in ein eigenes Verzeichnis pro
-  Versand** (`mktemp -d` unter `.tmp/`) statt in feste Pfade. Der feste Pfad war
-  der Kollisionspunkt; der gemeinsame `.tmp/` bleibt fuer Artefakte, die
-  absichtlich sessionuebergreifend liegen bleiben.
-- **Erfolgsmeldung praezisiert:** "versendet" braucht Queue-ID, uebertragene
-  Datei mit sha256 und Groesse, die Envelope-Empfaenger inklusive Bcc und die
-  Fundstelle der Kopie. swaks legt **nichts** in "Gesendet" ab - einzige Spur ist
-  die Bcc-Kopie im Posteingang, und wer das nicht dazusagt, schickt den Nutzer
-  spaeter in den falschen Ordner.
+- **`imap`: neuer Befehl `append <datei.eml>`** - legt eine lokale `.eml` in
+  einen Ordner, Default die Sonderrolle `sent`. Das ist der fehlende Gegenpart
+  zum Versand: `swaks` spricht SMTP und sonst nichts, es gibt **keine** Kopie in
+  "Gesendet". Die einzige Spur war bisher die Bcc-Kopie im Posteingang - wer die
+  Mail spaeter sucht, sucht im falschen Ordner und findet nichts.
+- Abgelegt wird **die Datei, die versendet wurde**, nicht ein zweiter Bau: bei
+  jedem Lauf entstehen Message-ID und `Date` neu, ein Nachbau waere eine andere
+  Mail.
+- **Wiederholbar:** liegt dieselbe Message-ID schon im Zielordner, schreibt
+  `append` nichts und meldet `duplicate: true`. Ein zwischen Versand und Ablage
+  abgebrochener Lauf laesst sich also einfach wiederholen, ohne einen zweiten
+  Eintrag zu erzeugen (`--allow-duplicate` hebt das auf).
+- Default-Flag ist `\Seen` - eine selbst versendete Mail ist nicht ungelesen und
+  soll im Ordner nicht wie eingegangene Post aussehen. Weiter: `--flags`,
+  `--date`, `--dry-run`, und ein Vorab-Check auf `From`/`To`, damit nicht die
+  Body-Datei statt der fertigen `.eml` im Postfach landet. Der Zielordner wird
+  nicht angelegt.
+- `Account.append()` nennt jetzt die vergebene UID (APPENDUID, RFC 4315) im
+  Ergebnis - der einzige Beleg, unter dem sich die Kopie spaeter wiederfindet.
+  Das gilt auch fuer die kontouebergreifenden Kopien, die dieselbe Methode nutzen.
+- **`swaks`, `mail-as-me`:** die Ablage nach dem Versand steht jetzt als Schritt
+  im Ablauf, mit dem Hinweis, sie **nach** dem erfolgreichen Versand zu machen -
+  eine Kopie in "Gesendet" zu einer abgewiesenen Mail ist eine Falschaussage im
+  Postfach, und zwar die unauffaelligste Sorte.
+- **`swaks`:** der Beispiel-`smtp_url` im Kommentarblock von `build_mail.py`
+  trug eine echte Adresse und ist jetzt ein Platzhalter.

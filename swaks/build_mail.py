@@ -76,7 +76,7 @@ def load_config():
 # Quelle der Zugangsdaten ist die muttrc — dieselbe Datei, aus der schon der
 # imap-Skill liest. Es gibt bewusst keine zweite Credential-Datei.
 #
-#   set smtp_url  = "smtp://mranner@mail.azedo.at:587/"
+#   set smtp_url  = "smtp://<user>@mail.example.at:587/"
 #   set smtp_pass = "..."
 #
 # Fehlt die muttrc oder steht dort kein smtp_url, bleibt es beim bisherigen

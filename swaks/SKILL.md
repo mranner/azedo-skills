@@ -369,7 +369,25 @@ Die einzige Spur ist die Bcc-Kopie im Posteingang (`send.bcc` aus dem
 mail-as-me-Profil bzw. eine ausdrücklich gesetzte Bcc-Adresse). Wer die Mail
 später sucht, sucht zuerst im falschen Ordner und verliert Zeit.
 
-Deshalb: **die Fundstelle in der Erfolgsmeldung nennen** — „Kopie liegt im
+Deshalb die Kopie **nach dem erfolgreichen Versand selbst ablegen** — mit
+`imap append`, das genau dafür da ist:
+
+```bash
+python3 ~/.claude/skills/imap/imap append $M/mail.eml -a <konto>
+```
+
+Abgelegt wird **die Datei, die versendet wurde** — dieselbe, die an
+`swaks --data @…` ging. Ein zweiter Bau wäre eine andere Mail: Message-ID und
+`Date` entstehen bei jedem Lauf neu. Liegt dieselbe Message-ID schon im Ordner,
+schreibt `append` nichts (`duplicate: true`), ein wiederholter Lauf legt also
+keinen zweiten Eintrag an. Details im imap-Skill, Abschnitt „`append`".
+
+**Erst nach dem Versand ablegen, nicht davor.** Eine Kopie in „Gesendet" zu
+einer Mail, die der Relay abgewiesen hat, ist eine Falschaussage im Postfach —
+und zwar die unauffälligste Sorte.
+
+Geht das nicht (kein IMAP-Konto zur Hand, Ordner nicht auffindbar), dann
+wenigstens **die Fundstelle in der Erfolgsmeldung nennen** — „Kopie liegt im
 Posteingang von `<konto>` (Bcc), nicht in Gesendet". Ist keine Bcc gesetzt, gibt
 es außer dem Maillog des Relays gar keine Spur; dann das ausdrücklich sagen.
 Die lokale `$M/mail.eml` ist die dritte Spur, hält aber nur bis zum nächsten
@@ -556,8 +574,9 @@ swaks \
 6. Befehl zusammenbauen und dem Nutzer kurz zeigen; auf Bestätigung warten – außer der Nutzer hat bereits „ja" gesagt oder den Versand klar angeordnet.
 7. **Vor dem Versand prüfen:** `--verify` auf die fertige `.eml`, mit `--expect-sha256` aus der `--sha-file` und einem `--expect-marker` aus dem freigegebenen Entwurf (siehe „Vor dem Versand prüfen"). Exit ≠ 0 heißt: nicht senden.
 8. **Versandweg laden** (`eval` des `--swaks-env`, siehe Versandweg), Befehl ausführen, Ausgabe mitschreiben und **prüfen** — Exit-Code, `queued as` *und* keine `^<.\*`-Zeile (siehe „Ergebnis prüfen"). Nur bei allen dreien „versendet" melden, sonst den Fehlschlag mit Statuscode nennen.
-9. **Erfolgsmeldung:** Queue-ID, übertragene Datei mit sha256 und Größe, Envelope-Empfänger (inkl. Bcc) und die Fundstelle der Kopie nennen (siehe „Was in der Erfolgsmeldung stehen muss").
-10. **Kontakt ergänzen:** Wenn eine neue E-Mail-Adresse verwendet wurde, die noch nicht in `.claude/swaks-contacts.tsv` steht, per `printf` anhängen.
+9. **Ablegen:** nach erfolgreichem Versand die `.eml` mit `imap append $M/mail.eml -a <konto>` in „Gesendet" legen — swaks tut das nicht (siehe „Ablage").
+10. **Erfolgsmeldung:** Queue-ID, übertragene Datei mit sha256 und Größe, Envelope-Empfänger (inkl. Bcc) und die Fundstelle der Kopie nennen (siehe „Was in der Erfolgsmeldung stehen muss").
+11. **Kontakt ergänzen:** Wenn eine neue E-Mail-Adresse verwendet wurde, die noch nicht in `.claude/swaks-contacts.tsv` steht, per `printf` anhängen.
 
 ## Hinweise
 
@@ -566,5 +585,5 @@ swaks \
 - Erfolg erkennbar an: `250 2.0.0 Ok: queued as <ID>` **bei Exit-Code 0 und ohne `<**`/`<~*`-Zeile**. Alle drei prüfen — bei mehreren Empfängern ist ein einzelner Reject sonst unsichtbar.
 - Zum Ausprobieren einer Route ohne Zustellung: `--quit-after RCPT` — die Verbindung endet vor `DATA`, es geht nichts raus.
 - Ein `250 Ok` sagt nur, dass der Server die Bytes genommen hat. Ob es die **richtigen** Bytes waren (Datei zwischenzeitlich überschrieben) und ob sie beim Empfänger **lesbar** ankommen (HTML-Part ohne Markup), sagt es nicht — dafür gibt es `--verify`.
-- `swaks` legt **keine Kopie in „Gesendet"** ab. Einzige Spur ist die Bcc-Kopie im Posteingang; das gehört in die Erfolgsmeldung, sonst sucht der Nutzer später am falschen Ort.
+- `swaks` legt **keine Kopie in „Gesendet"** ab. Nach erfolgreichem Versand `imap append $M/mail.eml -a <konto>` nachziehen; geht das nicht, wenigstens die Fundstelle (Bcc-Kopie im Posteingang) in der Erfolgsmeldung nennen.
 

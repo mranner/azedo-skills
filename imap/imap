@@ -617,6 +617,15 @@ class Account:
             return False, str(e)
         if typ != "OK":
             return False, as_text(data)
+
+        # Server mit UIDPLUS (RFC 4315) nennen im Antworttext die vergebene UID.
+        # Sie ist der einzige Beleg, unter dem sich die Kopie spaeter wiederfindet.
+
+        m = re.search(r"APPENDUID\s+(\d+)\s+(\d+)", as_text(data), re.I)
+
+        if m:
+            return True, f"APPEND (uid {m.group(2)})"
+
         return True, "APPEND"
 
 
@@ -1665,6 +1674,97 @@ def cmd_save_attachment(args, accounts):
         print(f"{s['path']}  ({human_size(s['size'])})")
 
 
+def cmd_append(args, accounts):
+    """Eine lokale .eml in einen Ordner legen - der fehlende Gegenpart zum Versand.
+
+    `swaks` spricht SMTP und sonst nichts: es gibt keine Kopie in "Gesendet".
+    Wer die Mail spaeter sucht, sucht dort zuerst und findet nichts. Dieser
+    Befehl legt die Datei ab, die tatsaechlich versendet wurde - dieselbe, die
+    an `swaks --data @...` ging."""
+    path = args.file
+
+    if not os.path.isfile(path):
+        die(f"Datei nicht gefunden: {path}")
+
+    with open(path, "rb") as f:
+        raw = f.read()
+
+    if not raw.strip():
+        die(f"Datei ist leer: {path}")
+
+    msg = email.message_from_bytes(raw)
+    message_id = flat(hdr(msg, "Message-ID"))
+    subject = flat(hdr(msg, "Subject"))
+
+    if not msg.get("From") or not msg.get("To"):
+        die(f"{path} sieht nicht nach einer Mail aus (kein From/To im Kopf). "
+            "Erwartet wird die fertige .eml, nicht der Body.")
+
+    flags = [f for f in (args.flags or "").split() if f]
+
+    # \Seen ist der Normalfall: eine selbst versendete Mail ist nicht ungelesen.
+    # Ein ungelesener Eintrag in "Gesendet" sieht nach eingegangener Post aus.
+
+    if not args.flags:
+        flags = ["\\Seen"]
+
+    internaldate = args.date
+
+    if internaldate in (None, "now"):
+        internaldate = imaplib.Time2Internaldate(time.time()).strip('"')
+
+    cfg = pick_account(accounts, args.account)
+
+    with Account(cfg) as a:
+        folder = resolve_target(a, args.folder)
+
+        # Wiederholbarkeit: derselbe Aufruf zweimal soll keine zweite Kopie
+        # anlegen. Der Abbruch eines Laufs zwischen Versand und Ablage ist der
+        # haeufige Fall, ein doppelter "Gesendet"-Eintrag der laestige.
+
+        existing = None
+
+        if message_id and not args.allow_duplicate:
+            found = a.find_by_message_id(message_id, folder)
+
+            if found:
+                existing = [int(u) for u in found]
+
+        result = {
+            "account": a.alias,
+            "folder": folder,
+            "file": path,
+            "bytes": len(raw),
+            "subject": subject,
+            "message_id": message_id,
+            "flags": flags,
+            "internaldate": internaldate,
+        }
+
+        if existing:
+            result.update({"ok": True, "appended": False, "duplicate": True,
+                           "uids": existing,
+                           "detail": "liegt bereits im Ordner (gleiche "
+                                     "Message-ID) - nichts geschrieben"})
+        elif args.dry_run:
+            result.update({"ok": True, "appended": False, "dry_run": True,
+                           "detail": "wuerde angelegt"})
+        else:
+            ok, detail = a.append(folder, raw, flags, internaldate)
+            result.update({"ok": ok, "appended": ok, "detail": detail})
+
+    if args.json:
+        out_json(result)
+    else:
+        mark = "ok" if result["ok"] else "FEHLER"
+        print(f"{mark}: append {result['account']}/{result['folder']} - "
+              f"{result['detail']}")
+        print(f"     {result['subject']}  ({human_size(result['bytes'])})")
+
+    if not result["ok"]:
+        sys.exit(1)
+
+
 def resolve_target(a, target):
     """Zielordner aufloesen: Sonderrolle (junk/trash/...) oder echter Name."""
     key = target.lower()
@@ -1985,6 +2085,22 @@ def build_parser():
             sp.add_argument("--to-account", help="Zielkonto fuer kontouebergreifende Kopien")
         sp.add_argument("--dry-run", action="store_true")
         sp.set_defaults(func=cmd_op)
+
+    sp = sub.add_parser("append", parents=[common],
+                        help="lokale .eml in einen Ordner legen (Default: Gesendet)")
+    sp.add_argument("file", help="Pfad zur .eml - die Datei, die versendet wurde")
+    sp.add_argument("--account", "-a")
+    sp.add_argument("--folder", "-f", default="sent",
+                    help="Ordnername oder Sonderrolle "
+                         "(sent/drafts/archive/junk/trash), Default sent")
+    sp.add_argument("--flags", help="IMAP-Flags, leerzeichengetrennt "
+                                    "(Default '\\Seen'; leerer Wert = keine)")
+    sp.add_argument("--date", help="INTERNALDATE; Default 'now'")
+    sp.add_argument("--allow-duplicate", action="store_true",
+                    help="auch anlegen, wenn dieselbe Message-ID schon im "
+                         "Ordner liegt")
+    sp.add_argument("--dry-run", action="store_true")
+    sp.set_defaults(func=cmd_append)
 
     sp = sub.add_parser("batch", parents=[common],
                         help="Operationen gebuendelt ausfuehren (ein Login je Konto)")

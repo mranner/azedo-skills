@@ -3,6 +3,35 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.44.13
+
+- **`imap`: neuer Befehl `append <datei.eml>`** - legt eine lokale `.eml` in
+  einen Ordner, Default die Sonderrolle `sent`. Das ist der fehlende Gegenpart
+  zum Versand: `swaks` spricht SMTP und sonst nichts, es gibt **keine** Kopie in
+  "Gesendet". Die einzige Spur war bisher die Bcc-Kopie im Posteingang - wer die
+  Mail spaeter sucht, sucht im falschen Ordner und findet nichts.
+- Abgelegt wird **die Datei, die versendet wurde**, nicht ein zweiter Bau: bei
+  jedem Lauf entstehen Message-ID und `Date` neu, ein Nachbau waere eine andere
+  Mail.
+- **Wiederholbar:** liegt dieselbe Message-ID schon im Zielordner, schreibt
+  `append` nichts und meldet `duplicate: true`. Ein zwischen Versand und Ablage
+  abgebrochener Lauf laesst sich also einfach wiederholen, ohne einen zweiten
+  Eintrag zu erzeugen (`--allow-duplicate` hebt das auf).
+- Default-Flag ist `\Seen` - eine selbst versendete Mail ist nicht ungelesen und
+  soll im Ordner nicht wie eingegangene Post aussehen. Weiter: `--flags`,
+  `--date`, `--dry-run`, und ein Vorab-Check auf `From`/`To`, damit nicht die
+  Body-Datei statt der fertigen `.eml` im Postfach landet. Der Zielordner wird
+  nicht angelegt.
+- `Account.append()` nennt jetzt die vergebene UID (APPENDUID, RFC 4315) im
+  Ergebnis - der einzige Beleg, unter dem sich die Kopie spaeter wiederfindet.
+  Das gilt auch fuer die kontouebergreifenden Kopien, die dieselbe Methode nutzen.
+- **`swaks`, `mail-as-me`:** die Ablage nach dem Versand steht jetzt als Schritt
+  im Ablauf, mit dem Hinweis, sie **nach** dem erfolgreichen Versand zu machen -
+  eine Kopie in "Gesendet" zu einer abgewiesenen Mail ist eine Falschaussage im
+  Postfach, und zwar die unauffaelligste Sorte.
+- **`swaks`:** der Beispiel-`smtp_url` im Kommentarblock von `build_mail.py`
+  trug eine echte Adresse und ist jetzt ein Platzhalter.
+
 ### 1.44.12
 
 - **`swaks`: `--verify` prueft die fertige `.eml`, bevor sie an swaks geht.**
