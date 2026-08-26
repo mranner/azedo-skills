@@ -1,0 +1,570 @@
+#!/usr/bin/env python3
+
+# privatebin - Pastes auf einer PrivateBin-Instanz anlegen, lesen und loeschen.
+#
+# Die Verschluesselung passiert hier lokal (PrivateBin-Format v2: AES-256-GCM,
+# PBKDF2-HMAC-SHA256, raw deflate). Der Server sieht nur Chiffrat; der Schluessel
+# steht Base58-kodiert im URL-Fragment und verlaesst den Rechner nie ueber HTTP.
+
+import argparse
+import base64
+import json
+import mimetypes
+import os
+import re
+import sys
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+import zlib
+
+def cryptography_hint():
+    # Der Weg zum Paket ist je Plattform ein anderer; ein pauschales
+    # "pip install --user" scheitert auf FreeBSD am Port und bei
+    # Homebrew-Python an der externally-managed-Sperre (PEP 668).
+
+    version = "py%d%d" % (sys.version_info.major, sys.version_info.minor)
+
+    if sys.platform.startswith("freebsd"):
+        return "  pkg install %s-cryptography" % version
+
+    if sys.platform == "darwin":
+        return ("  python3 -m pip install --user cryptography\n"
+                "  Bricht das mit 'externally-managed-environment' ab (Homebrew-Python),\n"
+                "  ein venv anlegen und das Script daraus aufrufen:\n"
+                "    python3 -m venv ~/.claude/venv ; ~/.claude/venv/bin/pip install cryptography")
+
+    return "  python3 -m pip install --user cryptography"
+
+
+try:
+    from cryptography.hazmat.primitives import hashes
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+except ImportError:
+    sys.exit("Fehlt: python-Modul 'cryptography' (AES-256-GCM, in der stdlib nicht enthalten).\n"
+             + cryptography_hint())
+
+DEFAULT_CONFIG = os.path.expanduser("~/.claude/privatebin.json")
+DEFAULT_HISTORY = os.path.expanduser("~/.claude/privatebin-pastes.log")
+HISTORY_LIMIT = 25
+
+EXPIRE_VALUES = ["5min", "10min", "1hour", "1day", "1week", "1month", "1year", "never"]
+FORMATTERS = ["plaintext", "markdown", "syntaxhighlighting"]
+
+KDF_ITERATIONS = 100000
+KDF_KEYSIZE = 256
+TAG_SIZE = 128
+
+B58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+
+
+# --- Base58 -----------------------------------------------------------------
+
+def b58encode(raw):
+    n = int.from_bytes(raw, "big")
+    out = ""
+
+    while n > 0:
+        n, rest = divmod(n, 58)
+        out = B58_ALPHABET[rest] + out
+
+    for byte in raw:
+        if byte != 0:
+            break
+        out = "1" + out
+
+    return out
+
+
+def b58decode(text):
+    n = 0
+
+    for char in text:
+        pos = B58_ALPHABET.find(char)
+        if pos < 0:
+            raise ValueError("kein gueltiger Base58-Schluessel: %r" % text)
+        n = n * 58 + pos
+
+    pad = 0
+    for char in text:
+        if char != "1":
+            break
+        pad += 1
+
+    body = n.to_bytes((n.bit_length() + 7) // 8, "big") if n else b""
+
+    return b"\x00" * pad + body
+
+
+# --- Config -----------------------------------------------------------------
+
+def load_config(path=None):
+    path = path or os.environ.get("PRIVATEBIN_CONFIG") or DEFAULT_CONFIG
+
+    if not os.path.exists(path):
+        sys.exit(
+            "Config fehlt: %s\n"
+            "Vorlage: cp <skill>/privatebin.json.example %s" % (path, path)
+        )
+
+    with open(path, encoding="utf-8") as handle:
+        cfg = json.load(handle)
+
+    if not cfg.get("instances"):
+        sys.exit("Config %s enthaelt keine 'instances'" % path)
+
+    return cfg
+
+
+def pick_instance(cfg, name=None):
+    instances = cfg["instances"]
+    name = name or cfg.get("default_instance") or next(iter(instances))
+
+    if name not in instances:
+        sys.exit("Unbekannte Instanz %r (bekannt: %s)" % (name, ", ".join(instances)))
+
+    inst = dict(instances[name])
+    inst["name"] = name
+
+    if not inst.get("url"):
+        sys.exit("Instanz %r hat keine 'url'" % name)
+
+    inst["url"] = inst["url"].rstrip("/") + "/"
+
+    return inst
+
+
+def instance_for_url(cfg, url):
+    # Beim Lesen einer fremden URL: passt sie auf eine konfigurierte Instanz,
+    # kommen deren Zugangsdaten zum Einsatz, sonst wird anonym gelesen.
+
+    for name, inst in cfg["instances"].items():
+        base = (inst.get("url") or "").rstrip("/") + "/"
+        if base != "/" and url.startswith(base):
+            found = dict(inst)
+            found["name"] = name
+            found["url"] = base
+            return found
+
+    parts = urllib.parse.urlsplit(url)
+
+    return {"name": "(unbekannt)", "url": urllib.parse.urlunsplit((parts.scheme, parts.netloc, parts.path, "", ""))}
+
+
+# --- HTTP -------------------------------------------------------------------
+
+def http_json(inst, method, query=None, payload=None):
+    url = inst["url"]
+
+    if query:
+        url += "?" + urllib.parse.urlencode(query)
+
+    headers = {"X-Requested-With": "JSONHttpRequest"}
+
+    if payload is not None:
+        headers["Content-Type"] = "application/json"
+
+    user, password = inst.get("user"), inst.get("password")
+    if user and password:
+        token = base64.b64encode(("%s:%s" % (user, password)).encode()).decode()
+        headers["Authorization"] = "Basic " + token
+
+    data = json.dumps(payload).encode() if payload is not None else None
+    req = urllib.request.Request(url, data=data, headers=headers, method=method)
+
+    try:
+        with urllib.request.urlopen(req, timeout=60) as response:
+            body = response.read()
+    except urllib.error.HTTPError as err:
+        detail = ""
+        if err.code == 401:
+            detail = "\nInstanz verlangt Basic-Auth - 'user'/'password' in der Config setzen."
+        sys.exit("HTTP %s von %s%s" % (err.code, url, detail))
+    except urllib.error.URLError as err:
+        sys.exit("Verbindung zu %s fehlgeschlagen: %s" % (url, err.reason))
+
+    try:
+        result = json.loads(body)
+    except json.JSONDecodeError:
+        sys.exit("Antwort von %s ist kein JSON (Login-Seite vorgeschaltet?)" % url)
+
+    if result.get("status") != 0:
+        message = result.get("message", "")
+
+        # Instanzen begrenzen den Abstand zwischen zwei Pastes derselben IP
+        # (Default 10 s). Einmal aussitzen statt den Aufrufer scheitern lassen.
+        wait = re.search(r"wait (\d+) second", str(message))
+        if wait and payload is not None and not getattr(http_json, "_retried", False):
+            http_json._retried = True
+            time.sleep(int(wait.group(1)) + 1)
+            try:
+                return http_json(inst, method, query=query, payload=payload)
+            finally:
+                http_json._retried = False
+
+        sys.exit("PrivateBin meldet: %s" % (message or result))
+
+    return result
+
+
+# --- Krypto -----------------------------------------------------------------
+
+def derive_key(key, password, salt, iterations, keysize):
+    secret = key + (password or "").encode()
+    kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=keysize // 8, salt=salt, iterations=iterations)
+
+    return kdf.derive(secret)
+
+
+def encrypt(payload, key, password, formatter, burn, discussion, compress=True):
+    iv = os.urandom(16)
+    salt = os.urandom(8)
+    spec = [
+        base64.b64encode(iv).decode(),
+        base64.b64encode(salt).decode(),
+        KDF_ITERATIONS,
+        KDF_KEYSIZE,
+        TAG_SIZE,
+        "aes",
+        "gcm",
+        "zlib" if compress else "none",
+    ]
+    adata = [spec, formatter, int(bool(discussion)), int(bool(burn))]
+
+    plain = json.dumps(payload, separators=(",", ":")).encode()
+
+    if compress:
+        deflate = zlib.compressobj(9, zlib.DEFLATED, -zlib.MAX_WBITS)
+        plain = deflate.compress(plain) + deflate.flush()
+
+    aead = AESGCM(derive_key(key, password, salt, KDF_ITERATIONS, KDF_KEYSIZE))
+    ct = aead.encrypt(iv, plain, json.dumps(adata, separators=(",", ":")).encode())
+
+    return adata, base64.b64encode(ct).decode()
+
+
+def decrypt(adata, ct_b64, key, password):
+    spec = adata[0]
+    iv = base64.b64decode(spec[0])
+    salt = base64.b64decode(spec[1])
+    iterations, keysize = int(spec[2]), int(spec[3])
+    compression = spec[7]
+
+    aead = AESGCM(derive_key(key, password, salt, iterations, keysize))
+
+    try:
+        plain = aead.decrypt(iv, base64.b64decode(ct_b64), json.dumps(adata, separators=(",", ":")).encode())
+    except Exception:
+        hint = "falsches Passwort" if password else "falscher Schluessel oder Paste ist passwortgeschuetzt (--password)"
+        sys.exit("Entschluesselung fehlgeschlagen: %s" % hint)
+
+    if compression == "zlib":
+        plain = zlib.decompress(plain, -zlib.MAX_WBITS)
+
+    return json.loads(plain)
+
+
+# --- History ----------------------------------------------------------------
+
+def history_path(cfg):
+    return os.path.expanduser(cfg.get("history") or DEFAULT_HISTORY)
+
+
+def history_read(cfg):
+    path = history_path(cfg)
+
+    if not os.path.exists(path):
+        return []
+
+    entries = []
+    with open(path, encoding="utf-8") as handle:
+        for line in handle:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                entries.append(json.loads(line))
+            except json.JSONDecodeError:
+                continue
+
+    return entries
+
+
+def history_add(cfg, entry):
+    # Die Datei enthaelt vollstaendige Paste-URLs samt Schluessel und die
+    # Delete-Tokens - deshalb strikt 0600 und auf die letzten N Eintraege begrenzt.
+
+    limit = int(cfg.get("history_limit") or HISTORY_LIMIT)
+    entries = (history_read(cfg) + [entry])[-limit:]
+    path = history_path(cfg)
+
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as handle:
+        for item in entries:
+            handle.write(json.dumps(item, ensure_ascii=False) + "\n")
+
+    os.chmod(path, 0o600)
+
+
+def history_lookup(cfg, paste_id):
+    for entry in reversed(history_read(cfg)):
+        if entry.get("id") == paste_id:
+            return entry
+
+    return None
+
+
+# --- URL-Zerlegung ----------------------------------------------------------
+
+def split_paste_url(text):
+    # Akzeptiert eine volle Paste-URL (?<id>#<key>), eine URL ohne Fragment
+    # oder eine nackte Paste-ID.
+
+    if "://" not in text:
+        return None, text.lstrip("?#").split("#")[0], (text.split("#", 1)[1] if "#" in text else None)
+
+    parts = urllib.parse.urlsplit(text)
+    base = urllib.parse.urlunsplit((parts.scheme, parts.netloc, parts.path, "", ""))
+
+    query = urllib.parse.parse_qs(parts.query)
+    paste_id = (query.get("pasteid") or [None])[0] or parts.query.split("&")[0]
+
+    return base, paste_id, (parts.fragment or None)
+
+
+def strip_key_marker(key):
+    # PrivateBin haengt an den Fragment-Schluessel optional ein "-" (Kennzeichen
+    # dafuer, dass der Link nicht in die Browser-Historie soll).
+
+    return key.rstrip("-") if key else key
+
+
+# --- Kommandos --------------------------------------------------------------
+
+def cmd_create(args, cfg):
+    inst = pick_instance(cfg, args.instance)
+    defaults = cfg.get("defaults") or {}
+
+    text = args.text
+
+    if args.file:
+        with open(args.file, encoding="utf-8", errors="replace") as handle:
+            text = handle.read()
+    elif text is None and (args.stdin or not sys.stdin.isatty()):
+        text = sys.stdin.read()
+
+    payload = {"paste": text if text is not None else ""}
+
+    if args.attach:
+        with open(args.attach, "rb") as handle:
+            blob = handle.read()
+
+        mime = mimetypes.guess_type(args.attach)[0] or "application/octet-stream"
+        payload["attachment"] = "data:%s;base64,%s" % (mime, base64.b64encode(blob).decode())
+        payload["attachment_name"] = args.name or os.path.basename(args.attach)
+
+    if not payload["paste"] and "attachment" not in payload:
+        sys.exit("Nichts zu teilen - Text per --text/--file/stdin oder Datei per --attach angeben.")
+
+    formatter = args.format or defaults.get("formatter") or "plaintext"
+    expire = args.expire or defaults.get("expire") or "1week"
+    burn = args.burn or bool(defaults.get("burn"))
+    discussion = args.discussion or bool(defaults.get("discussion"))
+
+    if burn and discussion:
+        sys.exit("burn-after-reading und Diskussion schliessen einander aus.")
+
+    key = os.urandom(32)
+    adata, ct = encrypt(payload, key, args.password, formatter, burn, discussion)
+
+    limit = int(cfg.get("sizelimit") or 10000000)
+    if len(ct) > limit:
+        sys.exit("Chiffrat %.1f MB ueberschreitet das Limit der Instanz (%.1f MB)." % (len(ct) / 1e6, limit / 1e6))
+
+    result = http_json(inst, "POST", payload={"v": 2, "adata": adata, "meta": {"expire": expire}, "ct": ct})
+
+    url = "%s?%s#%s" % (inst["url"], result["id"], b58encode(key))
+
+    entry = {
+        "ts": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "instance": inst["name"],
+        "id": result["id"],
+        "url": url,
+        "deletetoken": result.get("deletetoken"),
+        "expire": expire,
+        "burn": bool(burn),
+        "password": bool(args.password),
+        "attachment": payload.get("attachment_name"),
+    }
+
+    if not args.no_history:
+        history_add(cfg, entry)
+
+    if args.json:
+        print(json.dumps(entry, ensure_ascii=False, indent=2))
+    else:
+        print(url)
+
+    return 0
+
+
+def cmd_read(args, cfg):
+    base, paste_id, fragment = split_paste_url(args.url)
+
+    inst = instance_for_url(cfg, base) if base else pick_instance(cfg, args.instance)
+
+    key_text = strip_key_marker(args.key or fragment)
+
+    if not key_text:
+        entry = history_lookup(cfg, paste_id)
+        if entry:
+            key_text = strip_key_marker(split_paste_url(entry["url"])[2])
+
+    if not key_text:
+        sys.exit("Kein Schluessel - die URL braucht ihr #-Fragment, sonst --key angeben.")
+
+    result = http_json(inst, "GET", query={"pasteid": paste_id})
+    payload = decrypt(result["adata"], result["ct"], b58decode(key_text), args.password)
+
+    if args.save_attachment and "attachment" in payload:
+        header, _, data = payload["attachment"].partition(",")
+        blob = base64.b64decode(data)
+
+        target = args.save_attachment
+        if os.path.isdir(target):
+            target = os.path.join(target, payload.get("attachment_name") or paste_id)
+
+        with open(target, "wb") as handle:
+            handle.write(blob)
+
+        print("Anhang gespeichert: %s (%s, %d Bytes)" % (target, header[5:], len(blob)), file=sys.stderr)
+
+    if args.json:
+        meta = dict(result.get("meta") or {})
+        meta.update({"id": paste_id, "burn": bool(result["adata"][3]), "formatter": result["adata"][1]})
+        print(json.dumps({"meta": meta, "paste": payload.get("paste", ""),
+                          "attachment_name": payload.get("attachment_name")},
+                         ensure_ascii=False, indent=2))
+    else:
+        if payload.get("attachment_name") and not args.save_attachment:
+            print("[Anhang: %s - mit --save-attachment holen]" % payload["attachment_name"], file=sys.stderr)
+        print(payload.get("paste", ""))
+
+    return 0
+
+
+def cmd_delete(args, cfg):
+    base, paste_id, _ = split_paste_url(args.url)
+
+    inst = instance_for_url(cfg, base) if base else pick_instance(cfg, args.instance)
+
+    token = args.token
+    entry = history_lookup(cfg, paste_id)
+
+    if not token and entry:
+        token = entry.get("deletetoken")
+
+    if not token:
+        sys.exit("Kein Delete-Token - nicht in der History (max. %d Eintraege), also --token angeben."
+                 % int(cfg.get("history_limit") or HISTORY_LIMIT))
+
+    http_json(inst, "GET", query={"pasteid": paste_id, "deletetoken": token})
+
+    if entry:
+        remaining = [item for item in history_read(cfg) if item.get("id") != paste_id]
+        path = history_path(cfg)
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            for item in remaining:
+                handle.write(json.dumps(item, ensure_ascii=False) + "\n")
+
+    print("geloescht: %s" % paste_id)
+
+    return 0
+
+
+def cmd_history(args, cfg):
+    entries = history_read(cfg)[-args.number:]
+
+    if args.json:
+        print(json.dumps(entries, ensure_ascii=False, indent=2))
+        return 0
+
+    if not entries:
+        print("keine Eintraege")
+        return 0
+
+    for entry in entries:
+        flags = []
+        if entry.get("burn"):
+            flags.append("burn")
+        if entry.get("password"):
+            flags.append("pw")
+        if entry.get("attachment"):
+            flags.append("datei:%s" % entry["attachment"])
+
+        print("%s  %-8s %s%s" % (entry.get("ts", "?"), entry.get("expire", "?"), entry.get("url", "?"),
+                                 ("  [%s]" % ",".join(flags)) if flags else ""))
+
+    return 0
+
+
+# --- CLI --------------------------------------------------------------------
+
+def build_parser():
+    parser = argparse.ArgumentParser(prog="privatebin", description="PrivateBin-Pastes anlegen, lesen und loeschen")
+    parser.add_argument("--config", help="Config-Datei (Default: ~/.claude/privatebin.json)")
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    create = sub.add_parser("create", help="Paste anlegen")
+    create.add_argument("--text", help="Inhalt direkt als Argument")
+    create.add_argument("--file", help="Inhalt aus Textdatei")
+    create.add_argument("--stdin", action="store_true", help="Inhalt von stdin lesen")
+    create.add_argument("--attach", help="Datei als verschluesselten Anhang beilegen")
+    create.add_argument("--name", help="abweichender Dateiname fuer den Anhang")
+    create.add_argument("--expire", choices=EXPIRE_VALUES, help="Ablauf (Default aus Config, sonst 1week)")
+    create.add_argument("--format", choices=FORMATTERS, help="Darstellung (Default plaintext)")
+    create.add_argument("--burn", action="store_true", help="burn-after-reading")
+    create.add_argument("--discussion", action="store_true", help="Kommentare erlauben")
+    create.add_argument("--password", help="zusaetzlicher Passwortschutz")
+    create.add_argument("--instance", help="Instanz aus der Config")
+    create.add_argument("--no-history", action="store_true", help="nicht in die lokale History schreiben")
+    create.add_argument("--json", action="store_true", help="vollstaendiges Ergebnis als JSON")
+    create.set_defaults(func=cmd_create)
+
+    read = sub.add_parser("read", help="Paste lesen und entschluesseln")
+    read.add_argument("url", help="Paste-URL inkl. #-Fragment, oder Paste-ID")
+    read.add_argument("--key", help="Base58-Schluessel, falls nicht im Fragment")
+    read.add_argument("--password", help="Passwort der Paste")
+    read.add_argument("--save-attachment", help="Anhang in diese Datei bzw. dieses Verzeichnis schreiben")
+    read.add_argument("--instance", help="Instanz aus der Config (bei nackter Paste-ID)")
+    read.add_argument("--json", action="store_true", help="Ergebnis samt Metadaten als JSON")
+    read.set_defaults(func=cmd_read)
+
+    delete = sub.add_parser("delete", help="Paste loeschen")
+    delete.add_argument("url", help="Paste-URL oder Paste-ID")
+    delete.add_argument("--token", help="Delete-Token, falls nicht in der History")
+    delete.add_argument("--instance", help="Instanz aus der Config (bei nackter Paste-ID)")
+    delete.set_defaults(func=cmd_delete)
+
+    history = sub.add_parser("history", help="zuletzt angelegte Pastes auflisten")
+    history.add_argument("-n", "--number", type=int, default=HISTORY_LIMIT, help="wie viele Eintraege")
+    history.add_argument("--json", action="store_true", help="Ausgabe als JSON")
+    history.set_defaults(func=cmd_history)
+
+    return parser
+
+
+def main():
+    args = build_parser().parse_args()
+    cfg = load_config(args.config)
+
+    return args.func(args, cfg)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

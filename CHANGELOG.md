@@ -3,6 +3,42 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.45.0
+
+- **Neuer Skill `privatebin`** - teilt Text, Logausschnitte, Configs und ganze
+  Dateien als Ende-zu-Ende-verschluesselte Paste und gibt den Link zurueck.
+  Anlass: grosse oder sensible Inhalte landeten bisher als Klartext-Block im
+  Chat, im Ticket oder in einer Mail, wo sie dauerhaft liegen bleiben und sich
+  nicht zurueckholen lassen. Ein Paste-Link laeuft von selbst ab.
+- Vier Kommandos: `create` (Text aus `--text`/`--file`/stdin, Datei per
+  `--attach`), `read` (entschluesselt eigene wie fremde Paste-Links, holt
+  Anhaenge mit `--save-attachment`), `delete` und `history`.
+- Pro Aufruf steuerbar: `--expire`, `--burn`, `--password`, `--discussion`,
+  `--format` (plaintext/markdown/syntaxhighlighting), `--instance`.
+- Die Verschluesselung passiert **lokal** im Skill (PrivateBin-Format v2:
+  AES-256-GCM, PBKDF2-HMAC-SHA256, raw deflate, Base58-Schluessel im
+  URL-Fragment). Der Server bekommt nur Chiffrat zu sehen, der Schluessel
+  verlaesst den Rechner nie ueber HTTP. Einzige Nicht-stdlib-Abhaengigkeit ist
+  `cryptography`.
+- **Lokale History** (`~/.claude/privatebin-pastes.log`, Modus 0600, letzte 25
+  Eintraege): ohne sie gibt es das Delete-Token nur ein einziges Mal, in der
+  Antwort auf das Anlegen - eine Paste waere danach bis zum Ablauf
+  unwiderruflich. Sie haelt darum die volle URL samt Schluessel und das Token;
+  `--no-history` schaltet das fuer einzelne Pastes ab, `delete` raeumt den
+  Eintrag selbst weg.
+- Das Rate-Limit der Instanz (typisch 10 s zwischen zwei Pastes derselben IP)
+  wird einmal selbsttaetig abgewartet und der Versuch wiederholt, statt den
+  Aufrufer scheitern zu lassen.
+- Instanz-URL und optionale Basic-Auth-Zugangsdaten kommen aus
+  `~/.claude/privatebin.json` (Vorlage `privatebin.json.example`); mehrere
+  Instanzen sind moeglich, `read` waehlt sie anhand der uebergebenen URL.
+- **`google-analytics`, `google-search-console`, `privatebin`:** einheitlicher
+  Hinweis, wenn `cryptography` fehlt. Bisher stand dort pauschal
+  `pip install --user cryptography` - das geht auf FreeBSD am Port vorbei und
+  scheitert bei Homebrew-Python an der externally-managed-Sperre (PEP 668), also
+  genau auf den beiden Plattformen, auf denen die Skills laufen. Jetzt nennt die
+  Meldung den Weg der laufenden Plattform samt passender Python-Version.
+
 ### 1.44.13
 
 - **`imap`: neuer Befehl `append <datei.eml>`** - legt eine lokale `.eml` in

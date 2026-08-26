@@ -29,6 +29,25 @@ SCOPE = "https://www.googleapis.com/auth/webmasters.readonly"
 SCOPE_WRITE = "https://www.googleapis.com/auth/webmasters"
 
 
+def cryptography_hint():
+    # Der Weg zum Paket ist je Plattform ein anderer; ein pauschales
+    # "pip install --user" scheitert auf FreeBSD am Port und bei
+    # Homebrew-Python an der externally-managed-Sperre (PEP 668).
+
+    version = "py%d%d" % (sys.version_info.major, sys.version_info.minor)
+
+    if sys.platform.startswith("freebsd"):
+        return "  pkg install %s-cryptography" % version
+
+    if sys.platform == "darwin":
+        return ("  python3 -m pip install --user cryptography\n"
+                "  Bricht das mit 'externally-managed-environment' ab (Homebrew-Python),\n"
+                "  ein venv anlegen und das Script daraus aufrufen:\n"
+                "    python3 -m venv ~/.claude/venv ; ~/.claude/venv/bin/pip install cryptography")
+
+    return "  python3 -m pip install --user cryptography"
+
+
 def _find_sa_file():
     """Find service account JSON file (shared with GA4 skill)"""
     override = os.environ.get("GSC_SERVICE_ACCOUNT")
@@ -93,7 +112,8 @@ def _get_access_token(scope=None):
         private_key = serialization.load_pem_private_key(sa["private_key"].encode(), password=None)
         signature = private_key.sign(signing_input, padding.PKCS1v15(), hashes.SHA256())
     except ImportError:
-        print("Error: cryptography package required. Install with: python3 -m pip install --user cryptography", file=sys.stderr)
+        print("Fehlt: python-Modul 'cryptography' (RSA-Signatur fuer den JWT).\n"
+              + cryptography_hint(), file=sys.stderr)
         sys.exit(1)
 
     jwt = f"{header}.{payload}.{_b64url(signature)}"

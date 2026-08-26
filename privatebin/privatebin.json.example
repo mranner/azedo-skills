@@ -1,0 +1,22 @@
+{
+  "default_instance": "office",
+
+  "instances": {
+    "office": {
+      "url": "https://example.org/privatebin/",
+      "user": "",
+      "password": ""
+    }
+  },
+
+  "defaults": {
+    "expire": "1week",
+    "formatter": "plaintext",
+    "burn": false,
+    "discussion": false
+  },
+
+  "sizelimit": 10000000,
+  "history": "~/.claude/privatebin-pastes.log",
+  "history_limit": 25
+}

@@ -203,7 +203,7 @@ Google Analytics 4 Datenabfrage via Service Account. Python-Script (stdlib only,
 - Datenaufbewahrung anzeigen und setzen (GA4-Default sind 2 Monate)
 - Tab-separierte oder JSON-Ausgabe
 
-**Voraussetzungen:** Python >= 3.11, Package `cryptography` (fuer JWT-Signierung)
+**Voraussetzungen:** Python >= 3.11, Package `cryptography` (fuer JWT-Signierung; Installation plattformabhaengig, das Script nennt den passenden Weg)
 
 **Setup:** Service Account JSON unter `~/.config/ga4-service-account.json`. Service Account in den GA4-Properties hinterlegen: als Betrachter fuer die lesenden Subcommands, als **Bearbeiter** fuer die schreibenden. Dann:
 
@@ -223,7 +223,7 @@ Google Search Console (GSC) Datenabfrage via Service Account. Python-Script (std
 - Sitemaps: eingereichte Sitemaps + submitted/indexed URL-Zahlen (`sitemaps`); einreichen (`submit-sitemap`) und entfernen (`delete-sitemap`) mit y/N-Abfrage bzw. `--yes`
 - Tab-separierte oder JSON-Ausgabe
 
-**Voraussetzungen:** Python >= 3.11, Package `cryptography` (fuer JWT-Signierung)
+**Voraussetzungen:** Python >= 3.11, Package `cryptography` (fuer JWT-Signierung; Installation plattformabhaengig, das Script nennt den passenden Weg)
 
 **Setup:** Service Account JSON unter `~/.config/ga4-service-account.json` (derselbe SA wie GA4, oder Pfad via `GSC_SERVICE_ACCOUNT`). Service Account als Nutzer in der GSC-Property hinterlegen, Search Console API im GCP-Projekt aktivieren. Dann:
 
@@ -505,6 +505,21 @@ Credentials in `.env`: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` (Auffindung wie 
 
 **Trigger:** `/telegram` oder natuerliche Sprache wie "schick mir das per Telegram", "Alert nach Telegram", "Post-Update-Status per Telegram melden".
 
+### privatebin
+
+PrivateBin-Anbindung — teilt Text, Logausschnitte, Configs und ganze Dateien als Ende-zu-Ende-verschluesselte Paste und gibt den Link zurueck. Die Verschluesselung passiert lokal im Skill (Format v2: AES-256-GCM, PBKDF2-HMAC-SHA256, raw deflate); der Base58-Schluessel steht nur im URL-Fragment und erreicht den Server nie:
+
+- create: Inhalt aus `--text`/`--file`/STDIN, Datei per `--attach` (`--name` benennt um), `--expire` (5min…never), `--burn`, `--password`, `--discussion`, `--format` (plaintext/markdown/syntaxhighlighting), `--json`. Ausgabe ist genau eine Zeile: die fertige URL
+- read: entschluesselt eine Paste-URL samt `#`-Fragment — auch von fremden Instanzen; `--save-attachment` schreibt den Anhang, `--password` fuer geschuetzte Pastes
+- delete: nimmt eine Paste zurueck, Token aus der History oder per `--token`
+- history: die letzten 25 geteilten Links (`~/.claude/privatebin-pastes.log`, Modus 0600, enthaelt Schluessel und Delete-Tokens; `--no-history` schaltet das Mitschreiben ab)
+
+Instanz-URL und optionale Basic-Auth-Zugangsdaten in `~/.claude/privatebin.json` (Vorlage `privatebin/privatebin.json.example`), mehrere Instanzen moeglich.
+
+**Voraussetzungen:** Python >= 3.9 und `cryptography` (AES-256-GCM gibt es in der stdlib nicht). FreeBSD: `pkg install py3XY-cryptography` passend zur laufenden Python-Version; macOS: `python3 -m pip install --user cryptography`, bei Homebrew-Python stattdessen ein venv (`python3 -m venv ~/.claude/venv`). Fehlt das Modul, nennt das Script den passenden Weg.
+
+**Trigger:** `/privatebin` oder natuerliche Sprache wie "teil das per PrivateBin", "mach einen Paste draus", "schick mir das als Link", "gib mir den Inhalt von dieser Paste-URL".
+
 ### pushover
 
 Pushover-Anbindung (outbound-only) — Push-Notifications aufs Handy (iOS/Android/Desktop). Python-Script (stdlib only, keine pip-Dependencies), lauffaehig auf macOS + FreeBSD, **kein Server-Prozess** — jeder Aufruf ist ein einzelner HTTPS-Call an `api.pushover.net` und laeuft auch aus cron:
@@ -524,31 +539,38 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.44.13
+### 1.45.0
 
-- **`imap`: neuer Befehl `append <datei.eml>`** - legt eine lokale `.eml` in
-  einen Ordner, Default die Sonderrolle `sent`. Das ist der fehlende Gegenpart
-  zum Versand: `swaks` spricht SMTP und sonst nichts, es gibt **keine** Kopie in
-  "Gesendet". Die einzige Spur war bisher die Bcc-Kopie im Posteingang - wer die
-  Mail spaeter sucht, sucht im falschen Ordner und findet nichts.
-- Abgelegt wird **die Datei, die versendet wurde**, nicht ein zweiter Bau: bei
-  jedem Lauf entstehen Message-ID und `Date` neu, ein Nachbau waere eine andere
-  Mail.
-- **Wiederholbar:** liegt dieselbe Message-ID schon im Zielordner, schreibt
-  `append` nichts und meldet `duplicate: true`. Ein zwischen Versand und Ablage
-  abgebrochener Lauf laesst sich also einfach wiederholen, ohne einen zweiten
-  Eintrag zu erzeugen (`--allow-duplicate` hebt das auf).
-- Default-Flag ist `\Seen` - eine selbst versendete Mail ist nicht ungelesen und
-  soll im Ordner nicht wie eingegangene Post aussehen. Weiter: `--flags`,
-  `--date`, `--dry-run`, und ein Vorab-Check auf `From`/`To`, damit nicht die
-  Body-Datei statt der fertigen `.eml` im Postfach landet. Der Zielordner wird
-  nicht angelegt.
-- `Account.append()` nennt jetzt die vergebene UID (APPENDUID, RFC 4315) im
-  Ergebnis - der einzige Beleg, unter dem sich die Kopie spaeter wiederfindet.
-  Das gilt auch fuer die kontouebergreifenden Kopien, die dieselbe Methode nutzen.
-- **`swaks`, `mail-as-me`:** die Ablage nach dem Versand steht jetzt als Schritt
-  im Ablauf, mit dem Hinweis, sie **nach** dem erfolgreichen Versand zu machen -
-  eine Kopie in "Gesendet" zu einer abgewiesenen Mail ist eine Falschaussage im
-  Postfach, und zwar die unauffaelligste Sorte.
-- **`swaks`:** der Beispiel-`smtp_url` im Kommentarblock von `build_mail.py`
-  trug eine echte Adresse und ist jetzt ein Platzhalter.
+- **Neuer Skill `privatebin`** - teilt Text, Logausschnitte, Configs und ganze
+  Dateien als Ende-zu-Ende-verschluesselte Paste und gibt den Link zurueck.
+  Anlass: grosse oder sensible Inhalte landeten bisher als Klartext-Block im
+  Chat, im Ticket oder in einer Mail, wo sie dauerhaft liegen bleiben und sich
+  nicht zurueckholen lassen. Ein Paste-Link laeuft von selbst ab.
+- Vier Kommandos: `create` (Text aus `--text`/`--file`/stdin, Datei per
+  `--attach`), `read` (entschluesselt eigene wie fremde Paste-Links, holt
+  Anhaenge mit `--save-attachment`), `delete` und `history`.
+- Pro Aufruf steuerbar: `--expire`, `--burn`, `--password`, `--discussion`,
+  `--format` (plaintext/markdown/syntaxhighlighting), `--instance`.
+- Die Verschluesselung passiert **lokal** im Skill (PrivateBin-Format v2:
+  AES-256-GCM, PBKDF2-HMAC-SHA256, raw deflate, Base58-Schluessel im
+  URL-Fragment). Der Server bekommt nur Chiffrat zu sehen, der Schluessel
+  verlaesst den Rechner nie ueber HTTP. Einzige Nicht-stdlib-Abhaengigkeit ist
+  `cryptography`.
+- **Lokale History** (`~/.claude/privatebin-pastes.log`, Modus 0600, letzte 25
+  Eintraege): ohne sie gibt es das Delete-Token nur ein einziges Mal, in der
+  Antwort auf das Anlegen - eine Paste waere danach bis zum Ablauf
+  unwiderruflich. Sie haelt darum die volle URL samt Schluessel und das Token;
+  `--no-history` schaltet das fuer einzelne Pastes ab, `delete` raeumt den
+  Eintrag selbst weg.
+- Das Rate-Limit der Instanz (typisch 10 s zwischen zwei Pastes derselben IP)
+  wird einmal selbsttaetig abgewartet und der Versuch wiederholt, statt den
+  Aufrufer scheitern zu lassen.
+- Instanz-URL und optionale Basic-Auth-Zugangsdaten kommen aus
+  `~/.claude/privatebin.json` (Vorlage `privatebin.json.example`); mehrere
+  Instanzen sind moeglich, `read` waehlt sie anhand der uebergebenen URL.
+- **`google-analytics`, `google-search-console`, `privatebin`:** einheitlicher
+  Hinweis, wenn `cryptography` fehlt. Bisher stand dort pauschal
+  `pip install --user cryptography` - das geht auf FreeBSD am Port vorbei und
+  scheitert bei Homebrew-Python an der externally-managed-Sperre (PEP 668), also
+  genau auf den beiden Plattformen, auf denen die Skills laufen. Jetzt nennt die
+  Meldung den Weg der laufenden Plattform samt passender Python-Version.

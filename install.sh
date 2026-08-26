@@ -11,7 +11,7 @@ SETTINGS="$HOME/.claude/settings.json"
 
 # Symlinks anlegen
 mkdir -p "$SKILLS_DIR"
-for skill in einfache-sprache envato google-analytics google-search-console handoff humanizer-de image-optimize imap jira kanboard kimai lit mail-as-me mainwp md2pdf php-formatting pushover ripgrep swaks swos tcsh telegram wetter wiki wp-cli wp-nf wp-pys wp-sync-dev; do
+for skill in einfache-sprache envato google-analytics google-search-console handoff humanizer-de image-optimize imap jira kanboard kimai lit mail-as-me mainwp md2pdf php-formatting privatebin pushover ripgrep swaks swos tcsh telegram wetter wiki wp-cli wp-nf wp-pys wp-sync-dev; do
     if [ -d "$REPO_DIR/$skill" ]; then
         target="$SKILLS_DIR/$skill"
         want="$REPO_DIR/$skill"
@@ -146,6 +146,14 @@ else:
 # Config-Dateien ausserhalb des Repos: nur melden, nie vorbelegen. Eine mit
 # Platzhaltern gefuellte swaks.json wuerde Mail an example.org zustellen statt
 # hoerbar zu scheitern.
+
+if [ ! -f "$HOME/.claude/privatebin.json" ]; then
+    echo ""
+    echo "HINWEIS: $HOME/.claude/privatebin.json fehlt — der privatebin-Skill"
+    echo "kennt sonst keine Instanz-URL und bricht ab:"
+    echo "  cp \"$REPO_DIR/privatebin/privatebin.json.example\" \"$HOME/.claude/privatebin.json\""
+    echo "  \$EDITOR \"$HOME/.claude/privatebin.json\""
+fi
 
 if [ ! -f "$HOME/.claude/swaks.json" ]; then
     echo ""
