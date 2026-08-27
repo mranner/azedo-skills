@@ -3,6 +3,30 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.46.0
+
+- **Neuer Skill `wie-bitte`** - erklaert die zuletzt gegebene Antwort noch einmal,
+  in Einfacher Sprache. Anlass: eine Antwort, die nicht angekommen ist, wird auf
+  Nachfrage meist nur laenger, nicht verstaendlicher - dieselben Fachbegriffe,
+  dieselbe Satzform, ein Absatz mehr.
+- Reiner Referenz-Skill (nur SKILL.md, kein Script). Fester Aufbau in drei
+  Teilen: ein Satz Kontext, die Aussage, die Folge fuer den Nutzer; hoechstens
+  acht Saetze.
+- Sprachregeln auf Stufe B1 des Skills `einfache-sprache` (Satzlaenge,
+  Nominalstil, Passiv), aber **ohne** dessen Messapparat: keine Kennwerte, keine
+  Linter, keine Befundliste. Bei Texten unter ~10 Saetzen sind die Kennwerte
+  laut `einfache-sprache` ohnehin nicht belastbar.
+- Fachbegriffe bleiben stehen und bekommen einen Halbsatz Erklaerung, statt
+  ersetzt zu werden - sonst laesst sich spaeter nicht mehr danach fragen oder
+  suchen.
+- `disable-model-invocation: true`: nur ueber `/wie-bitte`. Ohne das griffe der
+  Skill bei Saetzen wie "das versteht kein Mensch", die zu `einfache-sprache`
+  gehoeren.
+- Gilt immer der **letzten eigenen Antwort**, nie einem mitgeschickten Text; ein
+  Argument benennt nur die Stelle, die nicht getragen hat.
+- Angelehnt an `wait-what` aus `mattpocock/skills` (MIT), siehe
+  `wie-bitte/LICENSE` und den Abschnitt "Herkunft & Lizenz" in der SKILL.md.
+
 ### 1.45.0
 
 - **Neuer Skill `privatebin`** - teilt Text, Logausschnitte, Configs und ganze

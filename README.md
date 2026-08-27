@@ -489,6 +489,20 @@ Fasst die aktuelle Konversation in ein Uebergabedokument zusammen, damit ein neu
 
 **Trigger:** `/handoff` oder natuerliche Sprache wie "erstell eine Uebergabe", "fass die Session fuer den naechsten Agent zusammen".
 
+### wie-bitte
+
+Erklaert die zuletzt gegebene Antwort noch einmal, in Einfacher Sprache. Fuer den Moment, in dem eine Antwort nicht angekommen ist - auf Nachfrage wird sie sonst meist nur laenger, nicht verstaendlicher. Reiner Referenz-Skill (nur SKILL.md, kein Script). Angelehnt an `wait-what` aus [mattpocock/skills](https://github.com/mattpocock/skills/tree/main/skills/productivity/wait-what) (MIT):
+
+- Fester Aufbau: ein Satz Kontext, die Aussage, die Folge fuer den Nutzer - hoechstens acht Saetze
+- Sprachregeln auf Stufe `B1` von `einfache-sprache`, aber ohne dessen Messapparat (keine Kennwerte, keine Linter, keine Befundliste)
+- Fachbegriffe bleiben stehen und bekommen einen Halbsatz Erklaerung, statt ersetzt zu werden
+- Gilt immer der **letzten eigenen Antwort**, nie einem mitgeschickten Text; ein Argument benennt nur die Stelle, die nicht getragen hat
+- `disable-model-invocation: true` - nur ueber `/wie-bitte`, sonst kollidiert der Trigger mit `einfache-sprache`
+
+**Lizenz:** MIT (c) 2026 Matt Pocock. Siehe `wie-bitte/LICENSE`. azedo-Anpassungen (Deutsch, B1 statt ASD-STE100, kein Repo-Anker, fester Dreiteiler, Abgrenzung zu `einfache-sprache`) in der SKILL.md unter „Herkunft & Lizenz" dokumentiert.
+
+**Trigger:** nur `/wie-bitte`.
+
 ### telegram
 
 Telegram-Bot-Anbindung (outbound-first). Python-Script (stdlib only, keine pip-Dependencies), lauffaehig auf macOS + FreeBSD, **kein Server-Prozess** — jeder Aufruf ist ein einzelner HTTPS-Call an `api.telegram.org` und laeuft auch aus cron:
@@ -539,38 +553,21 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.45.0
+### 1.46.0
 
-- **Neuer Skill `privatebin`** - teilt Text, Logausschnitte, Configs und ganze
-  Dateien als Ende-zu-Ende-verschluesselte Paste und gibt den Link zurueck.
-  Anlass: grosse oder sensible Inhalte landeten bisher als Klartext-Block im
-  Chat, im Ticket oder in einer Mail, wo sie dauerhaft liegen bleiben und sich
-  nicht zurueckholen lassen. Ein Paste-Link laeuft von selbst ab.
-- Vier Kommandos: `create` (Text aus `--text`/`--file`/stdin, Datei per
-  `--attach`), `read` (entschluesselt eigene wie fremde Paste-Links, holt
-  Anhaenge mit `--save-attachment`), `delete` und `history`.
-- Pro Aufruf steuerbar: `--expire`, `--burn`, `--password`, `--discussion`,
-  `--format` (plaintext/markdown/syntaxhighlighting), `--instance`.
-- Die Verschluesselung passiert **lokal** im Skill (PrivateBin-Format v2:
-  AES-256-GCM, PBKDF2-HMAC-SHA256, raw deflate, Base58-Schluessel im
-  URL-Fragment). Der Server bekommt nur Chiffrat zu sehen, der Schluessel
-  verlaesst den Rechner nie ueber HTTP. Einzige Nicht-stdlib-Abhaengigkeit ist
-  `cryptography`.
-- **Lokale History** (`~/.claude/privatebin-pastes.log`, Modus 0600, letzte 25
-  Eintraege): ohne sie gibt es das Delete-Token nur ein einziges Mal, in der
-  Antwort auf das Anlegen - eine Paste waere danach bis zum Ablauf
-  unwiderruflich. Sie haelt darum die volle URL samt Schluessel und das Token;
-  `--no-history` schaltet das fuer einzelne Pastes ab, `delete` raeumt den
-  Eintrag selbst weg.
-- Das Rate-Limit der Instanz (typisch 10 s zwischen zwei Pastes derselben IP)
-  wird einmal selbsttaetig abgewartet und der Versuch wiederholt, statt den
-  Aufrufer scheitern zu lassen.
-- Instanz-URL und optionale Basic-Auth-Zugangsdaten kommen aus
-  `~/.claude/privatebin.json` (Vorlage `privatebin.json.example`); mehrere
-  Instanzen sind moeglich, `read` waehlt sie anhand der uebergebenen URL.
-- **`google-analytics`, `google-search-console`, `privatebin`:** einheitlicher
-  Hinweis, wenn `cryptography` fehlt. Bisher stand dort pauschal
-  `pip install --user cryptography` - das geht auf FreeBSD am Port vorbei und
-  scheitert bei Homebrew-Python an der externally-managed-Sperre (PEP 668), also
-  genau auf den beiden Plattformen, auf denen die Skills laufen. Jetzt nennt die
-  Meldung den Weg der laufenden Plattform samt passender Python-Version.
+- **Neuer Skill `wie-bitte`** - erklaert die zuletzt gegebene Antwort noch einmal,
+  in Einfacher Sprache. Anlass: eine Antwort, die nicht angekommen ist, wird auf
+  Nachfrage meist nur laenger, nicht verstaendlicher - dieselben Fachbegriffe,
+  dieselbe Satzform, ein Absatz mehr.
+- Reiner Referenz-Skill (nur SKILL.md, kein Script). Fester Aufbau in drei
+  Teilen: ein Satz Kontext, die Aussage, die Folge fuer den Nutzer; hoechstens
+  acht Saetze.
+- Sprachregeln auf Stufe B1 des Skills `einfache-sprache`, aber **ohne** dessen
+  Messapparat: keine Kennwerte, keine Linter, keine Befundliste.
+- Fachbegriffe bleiben stehen und bekommen einen Halbsatz Erklaerung, statt
+  ersetzt zu werden - sonst laesst sich spaeter nicht mehr danach fragen.
+- `disable-model-invocation: true`: nur ueber `/wie-bitte`. Ohne das griffe der
+  Skill bei Saetzen wie "das versteht kein Mensch", die zu `einfache-sprache`
+  gehoeren.
+- Angelehnt an `wait-what` aus `mattpocock/skills` (MIT), siehe
+  `wie-bitte/LICENSE` und den Abschnitt "Herkunft & Lizenz" in der SKILL.md.
