@@ -553,53 +553,33 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.47.0
+### 1.48.0
 
-- **Skill-Descriptions auf ihre Aufgabe zurückgeschnitten.** Die Description ist
-  der einzige Text, der dauerhaft im Kontext steht - sie entscheidet nur, *ob*
-  ein Skill geladen wird. Alles, was erst *danach* gebraucht wird, gehört in den
-  Body. Aus zwölf Descriptions sind deshalb Implementierungsdetails
-  (Krypto-Verfahren, API-Hostnames, Kernbefehle, stdlib-only, unterstützte
-  Betriebssysteme), Config-Pfade und mehrfach umformulierte Trigger-Sätze
-  entfernt worden: `imap`, `jira`, `wiki`, `privatebin`, `pushover`, `telegram`,
-  `mail-as-me`, `swaks`, `google-search-console`, `einfache-sprache`, `lit`,
-  `image-optimize`. Summe über alle Skills 15.527 -> 12.449 Bytes, rund 770
-  Token weniger pro Request.
-- **Verwechselbare Paare grenzen sich jetzt gegenseitig ab.** Wo zwei Skills
-  dieselben Wörter benutzten, nennt jede Description den Nachbarn beim Namen:
-  `pushover` (nur ausgehend) gegen `telegram` (kann auf eine Antwort warten),
-  `mail-as-me` (formulieren, immer zuerst) gegen `swaks` (versenden),
-  `google-search-console` (Weg zur Website) gegen `google-analytics` (Verhalten
-  auf der Website), `wp-cli` (Basis) gegen die Spezial-Skills daneben. Auslöser
-  war die Beobachtung, dass eine Mail direkt in `swaks` getextet den Stil des
-  Empfängers spiegelt - genau das, was die Engine-Regel in `mail-as-me`
-  verhindern soll.
-- **`swos` und `ripgrep` haben erstmals Frontmatter.** Beide hatten keinen
-  YAML-Block; Name und Beschreibung wurden aus der ersten Überschrift
-  abgeleitet, steuerbar war daran nichts. `swos` lädt sich jetzt nur bei
-  eindeutiger SwOS-Identität von selbst (SwOS, SwOS-Lite, CSS106/326/610,
-  RB260) und ausdrücklich *nicht* bei den mehrdeutigen Nachbarbegriffen
-  MikroTik, Switch, VLAN, PoE - die meinen genauso oft RouterOS.
-- **`ripgrep`: neuer Abschnitt „Verfügbarkeit prüfen".** `rg` gehört auf FreeBSD
-  nicht zum Basissystem. Der Skill prüft jetzt erst `which rg`, fragt auf
-  Systemen ohne `rg` nach, bevor ein Paket nachinstalliert wird, und weicht bis
-  dahin auf `grep` aus - mit einer Übersetzungstabelle für die gängigen
-  Optionen. Bisher stand dort nur „use it instead of grep", was auf einem Host
-  ohne `rg` ins Leere lief.
-- **Die `trigger:`-Arrays sind aufgelöst.** Vier Skills (`wp-cli`, `wp-nf`,
-  `wp-pys`, `tcsh`) führten im Frontmatter eine Liste von Auslöse-Phrasen.
-  Claude Code liest das Feld nicht - es ist kein Teil der Spezifikation, die
-  Phrasen kamen also nirgends an. Sichtbar wurde der Schaden an `wp-cli`: 129
-  Bytes Description, während 16 brauchbare Phrasen im toten Feld lagen. Die
-  verwertbaren sind in die jeweilige Description gewandert, die Arrays sind
-  weg. `wp-cli` und `wp-pys` sind dadurch bewusst *länger* geworden - dafür
-  greifen sie überhaupt.
-- **Kunden-Projekt-Keys aus dem Arbeitsbaum entfernt.** In `jira/` und
-  `kanboard/` standen echte Jira-Projekt-Keys und Vorgangs-IDs in Beispielen,
-  Hilfetexten und der Beispiel-Config - 49 Stellen in sieben Dateien, entgegen
-  der eigenen Regel für dieses öffentliche Repo. Ersetzt durch sprechende
-  Platzhalter (PROJ für die DC-Instanz, OPS/SUPPORT/WEB für die Cloud-Instanz),
-  sodass das Instanz-Routing im Beispiel erkennbar bleibt. Zwei
-  Changelog-Sätze, die eine Vorgangs-ID als Beleg trugen, sind umformuliert
-  statt ersetzt. **Die Historie bleibt öffentlich einsehbar** - das hier
-  verhindert nur, dass es weiter wächst.
+- **Die fünf größten SKILL.md sind aufgeteilt (Progressive Disclosure).** Eine
+  SKILL.md wird beim Auslösen vollständig geladen - bei `imap`, `swaks`, `wiki`,
+  `kanboard` und `tcsh` waren das zusammen 130 KB, obwohl der weitaus größte Teil
+  reiner Nachschlagestoff ist: Subcommand-Referenzen, Optionslisten,
+  Syntaxtabellen. Dieser Teil liegt jetzt in `references/`-Dateien daneben und
+  wird nur gelesen, wenn er gebraucht wird. Zusammen 129.695 -> 63.405 Bytes,
+  rund 16.600 Token, die bei einem gewöhnlichen Aufruf nicht mehr anfallen
+  (wiki -73 %, kanboard -54 %, imap -52 %, tcsh -44 %, swaks -35 %).
+- **Die Trennlinie ist Entscheidungsstoff gegen Nachschlagestoff.** Im Hauptteil
+  bleibt, was gelesen werden muss, *bevor* gehandelt wird: bei `swaks` die
+  vollständige Pflichtprüfung nach dem Versand, bei `imap` Batch- und
+  Triage-Ablauf samt Regeldatei, bei `wiki` die Ziel-Auflösung und die
+  Schreibregeln, bei `tcsh` Entscheidungsmatrix, Quoting-Regeln und die bekannten
+  Fallen. Ausgelagert ist, was man erst zum Formulieren des konkreten Aufrufs
+  braucht. `swaks` fällt deshalb am wenigsten ab - dort *ist* die Prüfregel die
+  Substanz.
+- **`kanboard`: die Sicherheitsregeln stehen jetzt gebündelt im Hauptteil.**
+  Vorher verteilten sie sich auf die Blöcke der einzelnen Subcommands - also
+  genau dorthin, was nach der Auslagerung nicht mehr zwingend gelesen wird.
+  Betroffen sind die drei, bei denen ein Fehlgriff wehtut: `close-task` gegen
+  `move-task --column erledigt`, die `--force`-Semantik von `remove-task` und
+  `remove-project --force`.
+- Verifiziert: keine einzige Textzeile und keine Überschrift ist beim Umbau
+  verlorengegangen, alle 48 kanboard-Subcommands bleiben dokumentiert. Bei `tcsh`
+  sind die Abschnitte neu durchnummeriert (vorher blieben nach der Auslagerung
+  die Nummern 1, 5, 6 stehen); in `wiki/SKILL.md` zeigt ein Verweis auf die
+  Remote-Wikis jetzt auf die ausgelagerte Datei statt auf einen Anker, den es
+  nicht mehr gibt.

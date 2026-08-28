@@ -1,0 +1,102 @@
+# swaks - Versandweg, Kontakte, Signatur
+
+Woher die Zugangsdaten kommen, Kontaktaufloesung, Signatur, Encoding.
+
+## Versandweg und Authentifizierung
+
+**Nicht `--server` von Hand setzen.** Den Versandweg löst `build_mail.py` auf und
+gibt ihn als `SWAKS_OPT_*`-Variablen aus; `swaks` liest diese Umgebungsvariablen
+selbst. Das Passwort steht damit in der Prozessumgebung und nicht in der
+Kommandozeile, wo jedes `ps` es mitliest.
+
+```bash
+ENV=$(python3 ~/.claude/skills/swaks/build_mail.py --swaks-env) \
+  && test -n "$ENV" \
+  && eval "$ENV"
+```
+
+Danach braucht `swaks` weder `--server` noch `--port` noch Auth-Optionen. Welcher
+Weg dabei herauskommt, zeigt `--show-config` (Passwort maskiert):
+
+```bash
+python3 ~/.claude/skills/swaks/build_mail.py --show-config
+```
+
+### Woher die Zugangsdaten kommen
+
+Aus der **muttrc** — derselben Datei, aus der auch der `imap`-Skill liest. Es gibt
+bewusst **keine** zweite Credential-Datei:
+
+```
+set smtp_url  = "smtp://<user>@mail.example.at:587/"
+set smtp_pass = "..."
+```
+
+`smtp://` bedeutet STARTTLS (Default-Port 587), `smtps://` implizites TLS
+(Default-Port 465). Ein Port in der URL gewinnt. Das Passwort wird in dieser
+Reihenfolge gesucht: in der URL selbst, dann `set smtp_pass`, dann das
+`imap_pass` desselben Hosts aus dem `account-hook` — in der Praxis ist das
+dasselbe Konto. Backticks funktionieren wie bei mutt, ein Keystore statt
+Klartext ist also möglich:
+
+```
+set smtp_pass = `pass show mail/example`
+```
+
+Nennt `smtp_url` einen Benutzer, findet sich aber **kein** Passwort, bricht
+`build_mail.py` ab, statt unauthentifiziert zu senden.
+
+### Fallback ohne muttrc
+
+Fehlt die muttrc oder steht dort kein `smtp_url`, bleibt es beim bisherigen
+Verhalten: `server` aus `swaks.json`, Port 25, ohne Auth und ohne TLS.
+
+Das trägt nur, solange die **Quell-IP im Relay privilegiert** ist
+(`mynetworks`). Läuft der Skill von einer dynamischen Leitung aus, nimmt der
+Relay zwar Mail an azedo-interne Adressen an, weist externe Empfänger aber mit
+`454 4.7.1 Relay access denied` ab. Der Fehler fällt im Alltag nicht auf, weil
+die interne Post weiter durchgeht — er trifft genau die Mails nach draußen.
+Deshalb ist die muttrc-Variante der Normalfall und der Fallback die Ausnahme.
+
+## Kontakte
+
+Bekannte Empfänger sind in `.claude/swaks-contacts.tsv` im Arbeitsverzeichnis hinterlegt (TSV: `kurzname<TAB>email`, eine Zeile pro Kontakt).
+
+**Lookup:** `grep -i <name> .claude/swaks-contacts.tsv` — liefert direkt die Zeile mit der E-Mail-Adresse (zweites Feld).
+
+Wenn der User einen Namen statt einer E-Mail-Adresse nennt (z.B. "schick das an Karin"), zuerst per grep nachschlagen. Nur wenn kein Treffer: nachfragen.
+
+Neue Kontakte nach dem Versand ergänzen:
+
+```bash
+printf '%s\t%s\n' "kurzname" "email@adresse" >> .claude/swaks-contacts.tsv
+```
+
+## Signatur
+
+Zwei Signaturdateien, **automatisch aufgelöst** von `build_mail.py` – ohne `--sig-*-file` musst du nichts angeben:
+
+- **Standard (global):** `~/.claude/swaks-signature.txt` / `~/.claude/swaks-signature.html`
+- **Projektlokaler Override (Vorrang):** `.claude/swaks-signature.txt` / `.html` im Arbeitsverzeichnis, falls vorhanden
+
+Auflösungsreihenfolge je Datei: projektlokal `.claude/` **vor** global `~/.claude/`; existiert keine, wird schlicht keine Signatur angehängt (kein Fehler). Explizite `--sig-text-file`/`--sig-html-file` überschreiben die Auto-Auflösung – ein **explizit** angegebener Pfad muss existieren (sonst Abbruch).
+
+Beim Standardversand (Multipart, siehe unten) hängt `build_mail.py` beide an – Text-Signatur mit Leerzeile Abstand, HTML-Signatur als Block. Bei reinem Text-Body nur die `.txt`-Signatur.
+
+**Wichtig – die globale Signatur ist die persönliche des Nutzers** (Name und Firmenwortlaut stehen in der Signaturdatei, nicht hier). Geht die Mail unter der eigenen Adresse des Nutzers raus ("in seinem Namen") → **immer** die globale Signatur dranlassen, Auto-Auflösung genügt. Das ist **kein** Ausschlussgrund. `--no-sig` hier nur, wenn der Nutzer das **ausdrücklich** sagt.
+
+Die Signatur wird **nicht** angehängt wenn:
+
+- Der User explizit "ohne Signatur" / "no sig" sagt → `--no-sig` an `build_mail.py` übergeben (schaltet auch die Standard-Signatur ab)
+- Die Mail im Namen einer **dritten** Person verfasst wird – **weder der Nutzer noch Claude**, sondern ein anderer `--from` → dann keine Standard-Signatur, ggf. deren eigene per `--sig-*-file`. Der Wechsel vom Default-Absender (`from` aus der Config) auf die eigene Adresse des Nutzers ist **kein** solcher Fall (s.o.).
+
+## Encoding
+
+Immer UTF-8 Header mitgeben, damit Umlaute korrekt ankommen:
+
+```
+--header "Content-Type: text/plain; charset=utf-8" \
+--header "Content-Transfer-Encoding: 8bit"
+```
+
+Für HTML-Mails stattdessen `text/html; charset=utf-8` (siehe Abschnitt HTML-Body).

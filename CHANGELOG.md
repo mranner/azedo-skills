@@ -3,6 +3,37 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.48.0
+
+- **Die fünf größten SKILL.md sind aufgeteilt (Progressive Disclosure).** Eine
+  SKILL.md wird beim Auslösen vollständig geladen - bei `imap`, `swaks`, `wiki`,
+  `kanboard` und `tcsh` waren das zusammen 130 KB, obwohl der weitaus größte Teil
+  reiner Nachschlagestoff ist: Subcommand-Referenzen, Optionslisten,
+  Syntaxtabellen. Dieser Teil liegt jetzt in `references/`-Dateien daneben und
+  wird nur gelesen, wenn er gebraucht wird. Zusammen 129.695 -> 63.405 Bytes,
+  rund 16.600 Token, die bei einem gewöhnlichen Aufruf nicht mehr anfallen
+  (wiki -73 %, kanboard -54 %, imap -52 %, tcsh -44 %, swaks -35 %).
+- **Die Trennlinie ist Entscheidungsstoff gegen Nachschlagestoff.** Im Hauptteil
+  bleibt, was gelesen werden muss, *bevor* gehandelt wird: bei `swaks` die
+  vollständige Pflichtprüfung nach dem Versand, bei `imap` Batch- und
+  Triage-Ablauf samt Regeldatei, bei `wiki` die Ziel-Auflösung und die
+  Schreibregeln, bei `tcsh` Entscheidungsmatrix, Quoting-Regeln und die bekannten
+  Fallen. Ausgelagert ist, was man erst zum Formulieren des konkreten Aufrufs
+  braucht. `swaks` fällt deshalb am wenigsten ab - dort *ist* die Prüfregel die
+  Substanz.
+- **`kanboard`: die Sicherheitsregeln stehen jetzt gebündelt im Hauptteil.**
+  Vorher verteilten sie sich auf die Blöcke der einzelnen Subcommands - also
+  genau dorthin, was nach der Auslagerung nicht mehr zwingend gelesen wird.
+  Betroffen sind die drei, bei denen ein Fehlgriff wehtut: `close-task` gegen
+  `move-task --column erledigt`, die `--force`-Semantik von `remove-task` und
+  `remove-project --force`.
+- Verifiziert: keine einzige Textzeile und keine Überschrift ist beim Umbau
+  verlorengegangen, alle 48 kanboard-Subcommands bleiben dokumentiert. Bei `tcsh`
+  sind die Abschnitte neu durchnummeriert (vorher blieben nach der Auslagerung
+  die Nummern 1, 5, 6 stehen); in `wiki/SKILL.md` zeigt ein Verweis auf die
+  Remote-Wikis jetzt auf die ausgelagerte Datei statt auf einen Anker, den es
+  nicht mehr gibt.
+
 ### 1.47.0
 
 - **Skill-Descriptions auf ihre Aufgabe zurückgeschnitten.** Die Description ist
