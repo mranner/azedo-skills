@@ -1,14 +1,12 @@
 ---
 name: lit
 description: >
-  Wandelt Dokumente mit dem lokalen CLI `lit` (liteparse) in Markdown, Text oder
-  strukturiertes JSON um: PDF und Bilder direkt, Office-Formate (DOCX, XLSX, PPTX)
-  über LibreOffice. Schnell, ohne Cloud und ohne ML-Modelle, mit optionalem
-  Tesseract-OCR für Scans. Nutze diesen Skill, wenn der User eine Datei nach
-  Markdown umwandeln will — "mach aus dem PDF eine MD-Datei", "wandle die Datei
-  in Markdown um", "PDF nach Markdown", "konvertier das Dokument zu MD" — oder
-  wenn er lit bzw. liteparse ausdrücklich nennt. Enthält auch die Installation
-  auf FreeBSD, Linux und macOS. Trigger: /lit.
+  Wandelt Dokumente in Markdown, Text oder strukturiertes JSON um: PDF und
+  Bilder direkt, Office-Formate (DOCX, XLSX, PPTX) über einen
+  Zwischenschritt, Scans per OCR. Läuft lokal, ohne Cloud.
+  Auch bei "mach aus dem PDF eine MD-Datei", "wandle die Datei in Markdown
+  um", "PDF nach Markdown", oder wenn lit bzw. liteparse genannt wird.
+  Trigger: /lit.
 ---
 
 # lit — Dokumente nach Markdown

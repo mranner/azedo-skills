@@ -1,23 +1,13 @@
 ---
 name: wp-cli
-description: "WordPress-Administration via WP-CLI in FreeBSD-Jails: Datenbank, Code-Ausfuehrung, Plugins, Themes, Users, Options, Cache, Cron"
-trigger:
-  - "wp-cli"
-  - "wp cli"
-  - "WordPress CLI"
-  - "wp db"
-  - "wp eval"
-  - "wp plugin"
-  - "wp theme"
-  - "wp user"
-  - "wp option"
-  - "wp search-replace"
-  - "exportiere die Datenbank"
-  - "loesche den Cache"
-  - "installierte Plugins"
-  - "WordPress Version"
-  - "Datenbank exportieren"
-  - "search replace"
+description: >
+  WordPress-Administration per WP-CLI in FreeBSD-Jails: Datenbank exportieren
+  und importieren, PHP-Code ausführen (wp eval), Plugins, Themes, Users,
+  Options, Cache und Cron verwalten, search-replace. Der Basis-Skill für
+  WP-CLI-Aufrufe - für Ninja Forms, PixelYourSite oder ein Security-Audit
+  gibt es eigene Skills. Auch bei "exportiere die Datenbank", "lösche den
+  Cache", "welche Plugins sind installiert", "welche WordPress-Version".
+  Trigger: /wp-cli.
 ---
 
 # wp-cli — WordPress-Administration via CLI

@@ -4,14 +4,14 @@
     "dc": {
       "host": "https://jira.example.com",
       "token": "<PERSONAL_ACCESS_TOKEN>",
-      "projects": ["CORTAB"]
+      "projects": ["PROJ"]
     },
     "cloud": {
       "host": "https://example.atlassian.net",
       "type": "cloud",
       "email": "<ATLASSIAN_ACCOUNT_EMAIL>",
       "token": "<CLOUD_API_TOKEN>",
-      "projects": ["SADM", "ITSD", "CSW"]
+      "projects": ["OPS", "SUPPORT", "WEB"]
     }
   }
 }

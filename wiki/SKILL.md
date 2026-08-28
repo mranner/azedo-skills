@@ -1,21 +1,12 @@
 ---
 name: wiki
 description: >
-  LLM Wiki: Strukturierte Wissensbasis, mehrere Wikis (Server-Infra + Projekt-Doku).
-  Verwaltet Wiki-Entities mit YAML-Frontmatter, Cross-Referencing und
-  grep-basierter Discovery. Jedes Wiki hat sein eigenes Entity-Modell
-  (Infra: Server/Service/Access/Site/Procedure; Projekt-Wikis abweichend).
-  Nutze diesen Skill wenn der User Wissen ins Wiki eintragen, abfragen,
-  kompilieren, validieren oder aufgeblaehte Artikel entflechten will
-  (audit findet lange/historienlastige Artikel, refactor baut eine Entity um).
-  Auch aktiv verwenden wenn der User sagt "trag das ins Wiki ein",
-  "wiki aktualisieren", "was steht im Wiki zu X", o.ae. -- bei
-  "gibt es relevante Erkenntnisse fuers Wiki" bzw. "aktualisiere das Wiki"
-  ist `harvest` gemeint: Kandidaten filtern und vorlegen, erst nach
-  Freigabe schreiben.
-  Kann Wikis eines anderen Hosts read-only per SSH abfragen (Config
-  .claude/wiki-remotes.json) — nutze das, wenn der User ein Wiki abfragt,
-  das auf einem anderen Server liegt (z.B. "frag das azedo-Wiki von hier aus ab").
+  LLM Wiki: strukturierte Wissensbasis über mehrere Wikis (Server-Infra und
+  Projekt-Doku), Entities mit YAML-Frontmatter und grep-basierter Discovery.
+  Wissen abfragen, eintragen, kompilieren, validieren, aufgeblähte Artikel
+  entflechten; Wikis auf anderen Hosts read-only per SSH abfragen.
+  Auch bei "trag das ins Wiki ein", "was steht im Wiki zu X", "wiki
+  aktualisieren", "gibt es relevante Erkenntnisse fürs Wiki".
   Trigger: /wiki.
 ---
 

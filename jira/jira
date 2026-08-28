@@ -64,7 +64,7 @@ def list_instances():
 
 
 def _project_of_key(key):
-    """CORTAB-1760 -> CORTAB"""
+    """PROJ-1760 -> PROJ"""
     if key and "-" in key:
         return key.split("-", 1)[0].upper()
     return None
@@ -899,7 +899,7 @@ def build_parser():
 
     sp = sub.add_parser("search", help="Issues per JQL suchen")
     add_instance(sp)
-    sp.add_argument("jql", help="JQL-Query, z.B. 'project = CORTAB AND status != Closed'")
+    sp.add_argument("jql", help="JQL-Query, z.B. 'project = PROJ AND status != Closed'")
     sp.add_argument("--max", type=int, default=20, help="maxResults (Default 20)")
     sp.add_argument("--start", type=int, default=0, help="startAt (DC-Paginierung)")
     sp.add_argument("--token", help="nextPageToken (Cloud-Paginierung)")
@@ -909,7 +909,7 @@ def build_parser():
 
     sp = sub.add_parser("issue", help="einzelnes Issue anzeigen")
     add_instance(sp)
-    sp.add_argument("key", help="Issue-Key, z.B. CORTAB-1762")
+    sp.add_argument("key", help="Issue-Key, z.B. PROJ-1762")
     sp.add_argument("--fields", default=DEFAULT_FIELDS + ",description,reporter")
     sp.add_argument("--json", action="store_true", help="rohes JSON ausgeben")
     sp.set_defaults(func=cmd_issue)
@@ -984,7 +984,7 @@ def build_parser():
 
     sp = sub.add_parser("subtask", help="Unteraufgabe anlegen (schreibend)")
     add_instance(sp)
-    sp.add_argument("parent", help="Parent-Issue-Key, z.B. SADM-69")
+    sp.add_argument("parent", help="Parent-Issue-Key, z.B. OPS-69")
     sp.add_argument("--title", required=True, help="Titel der Unteraufgabe")
     sp.add_argument(
         "--owner", help="Assignee: 'me' / accountId (Cloud) / Username (DC)"

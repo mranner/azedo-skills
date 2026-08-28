@@ -1,13 +1,11 @@
 ---
 name: image-optimize
 description: >
-  Optimiert Bilder fuer Web-Verwendung: Dateigroesse reduzieren (optipng, jpegoptim),
-  Aufloesung anpassen (GraphicsMagick), Format umwandeln (PNG/WebP nach JPEG inkl.
-  Alpha-Flattening), Dateinamen SEO-freundlich umbenennen.
-  Nutze diesen Skill wenn der User Bilder optimieren, verkleinern, komprimieren,
-  in ein anderes Format umwandeln oder fuer eine Website aufbereiten will.
-  Auch aktiv verwenden wenn der User sagt "Bilder fuer Web optimieren",
-  "Bilder komprimieren", "PNG nach JPG umwandeln", "Dateinamen anpassen", o.ae.
+  Bereitet Bilder für den Web-Einsatz auf: Dateigröße reduzieren, Auflösung
+  anpassen, Format umwandeln (PNG/WebP nach JPEG inklusive Alpha-Flattening),
+  Dateinamen SEO-freundlich umbenennen.
+  Auch bei "Bilder für Web optimieren", "Bilder komprimieren", "PNG nach JPG
+  umwandeln", "Dateinamen anpassen".
   Trigger: /image-optimize.
 ---
 

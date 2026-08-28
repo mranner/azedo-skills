@@ -1,17 +1,12 @@
 ---
 name: einfache-sprache
 description: >
-  Deutsche Texte in Einfache Sprache bringen und auf Verstaendlichkeit pruefen:
-  messende Lesbarkeitsanalyse (Wiener Sachtextformel, LIX, Flesch) plus
-  Regel-Linter fuer Satzbau, Nominalstil, Passiv, Amtsdeutsch und Struktur,
-  ausgerichtet an DIN 8581-1 und DIN ISO 24495-1 (Stufen Plain/Einfach/Einfach+).
-  Nutze diesen Skill wenn der User einen deutschen Text vereinfachen,
-  verstaendlicher machen, in Einfache Sprache uebertragen oder auf
-  Verstaendlichkeit pruefen will.
-  Auch aktiv verwenden wenn der User sagt "schreib das einfacher",
-  "in Einfacher Sprache", "das versteht kein Mensch", "Amtsdeutsch aufloesen",
-  "Lesbarkeit pruefen", "barrierefrei formulieren", o.ae.
-  Nicht fuer Leichte Sprache (A1, DIN SPEC 33429) - siehe Abgrenzung.
+  Deutsche Texte in Einfache Sprache bringen und auf Verständlichkeit prüfen:
+  Lesbarkeit messen und Satzbau, Nominalstil, Passiv und Amtsdeutsch
+  aufdecken, in drei Stufen. Nicht zuständig für Leichte Sprache (A1); geht
+  es darum, dass ein Text nach KI klingt, ist humanizer-de gemeint.
+  Auch bei "schreib das einfacher", "in Einfacher Sprache", "das versteht
+  kein Mensch", "Amtsdeutsch auflösen", "Lesbarkeit prüfen".
   Trigger: /einfache-sprache.
 allowed-tools: [Read, Write, Edit, Grep, Glob, Bash]
 metadata:

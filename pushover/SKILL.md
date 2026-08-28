@@ -1,19 +1,13 @@
 ---
 name: pushover
 description: >
-  Pushover-Anbindung (outbound-only): sendet Push-Notifications von Claude Code,
-  Loops und cron-Jobs via api.pushover.net an iOS/Android/Desktop. Kernbefehl
-  send plus Vorlagen (Alert/Recovery/Digest), Prioritaeten -2..1, Sounds,
-  anklickbarer Zusatz-Link, HTML/Monospace-Formatierung, TTL und Bildanhang
-  (<=5 MB). stdlib-only Python, lauffaehig auf macOS + FreeBSD, kein
-  Server-Prozess. Benannte Empfaenger ueber ein Verzeichnis (Adressbuch), z.B.
-  `--user kollege` statt Roh-Key; Default ist der Alias 'me'. Nutze diesen Skill
-  wenn eine Meldung als Handy-Push raus soll ("push mir eine Nachricht", "push
-  kollege eine Nachricht", "schick mir das per Pushover", "Push aufs Handy",
-  "Alert nach Pushover", "melde den Post-Update-Status per Pushover"). Credentials
-  in .env (PUSHOVER_TOKEN), Empfaenger in ~/.pushover-recipients. Trigger:
-  /pushover (Slash) sowie Natuerlichsprache mit "push ..." ("push mir/kollege
-  eine Nachricht").
+  Pushover: sendet Push-Benachrichtigungen aufs Handy (iOS/Android/Desktop),
+  aus Claude Code, Loops und cron-Jobs. Nur ausgehend, keine Rückantwort -
+  soll auf eine Antwort gewartet werden, ist telegram gemeint. Prioritäten,
+  Sounds, Zusatz-Link, Bildanhang; Empfänger als benannte Aliase statt
+  Roh-Key. Auch bei "push mir eine Nachricht", "push <alias> eine Nachricht",
+  "Push aufs Handy", "Alert nach Pushover".
+  Trigger: /pushover, sowie natürlichsprachlich "push ...".
 ---
 
 # pushover -- Pushover-Notifications (outbound-only)

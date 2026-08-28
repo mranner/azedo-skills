@@ -1,27 +1,12 @@
 ---
 name: imap
 description: >
-  IMAP-Zugriff auf mehrere Konten fuer Posteingang-Triage: Mails auflisten und
-  zusammenfassen, in Ordner einsortieren, als Spam markieren, in den Papierkorb
-  verschieben sowie zwischen zwei Konten kopieren und verschieben. Anhaenge
-  lassen sich auflisten und herausschreiben, etwa um sie an einen Task oder ein
-  Ticket zu haengen. Fuer eine Antwort erzeugt `quote` den Zitatblock im
-  Thunderbird-Format samt Threading-Headern; `find` loest eine Message-ID zu
-  Konto, Ordner und UID auf. `append` legt eine lokale `.eml` in einen Ordner --
-  die Ablage der versendeten Mail in "Gesendet", die `swaks` selbst nicht
-  vornimmt. Zugangsdaten
-  kommen aus der muttrc (`account-hook`), es gibt keine zweite Credential-Datei.
-  Gelesen wird mit BODY.PEEK, der Ungelesen-Status bleibt dabei unangetastet.
-  Schreibende Aktionen laufen erst nach ausdruecklicher Freigabe durch den
-  Nutzer; bei der Triage gebuendelt ueber `batch`. stdlib-only Python, kein
-  Server-Prozess, lauffaehig auf FreeBSD + macOS. Nutze diesen Skill wenn der
-  User seinen Posteingang durchgehen, Mails zusammengefasst haben, aufraeumen,
-  Spam aussortieren oder Mails zwischen Konten bewegen will. Auch aktiv
-  verwenden bei "geh meine Inbox durch", "was ist heute reingekommen", "raeum
-  den Posteingang auf", "gibt es was Wichtiges in der Mail", "verschieb das ins
-  Archiv", "hol den Anhang aus der Mail", "zitier die Mail fuer meine Antwort",
-  "leg die versendete Mail in Gesendet ab",
-  "finde die Mail mit dieser Message-ID".
+  IMAP-Zugriff auf mehrere Konten: Posteingang durchgehen und zusammenfassen,
+  Mails einsortieren, als Spam markieren, löschen, zwischen Konten kopieren
+  oder verschieben, Anhänge herausschreiben, Zitatblock für eine Antwort
+  erzeugen, eine Message-ID auflösen, eine versendete .eml in "Gesendet"
+  ablegen. Auch bei "geh meine Inbox durch", "was ist heute reingekommen",
+  "räum den Posteingang auf", "hol den Anhang aus der Mail".
   Trigger: /imap.
 ---
 

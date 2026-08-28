@@ -1,19 +1,11 @@
 ---
 name: wp-pys
 description: >
-  PixelYourSite Pro Event-Verwaltung in WordPress-(Multi-)Sites per WP-CLI.
-  Events auslesen, Pixel-Ziele aktivieren, Trigger aendern, Events klonen —
-  reproduzierbar statt ueber das Admin-UI.
-trigger:
-  - "wp-pys"
-  - "pys"
-  - "PixelYourSite"
-  - "PYS Event"
-  - "GA4 Event"
-  - "Tracking Event"
-  - "pys_event"
-  - "CSS Click Event"
-  - "Ninja Form Event"
+  PixelYourSite Pro in WordPress-(Multi-)Sites per WP-CLI: Events auslesen,
+  Pixel-Ziele aktivieren, Trigger ändern, Events klonen - reproduzierbar
+  statt über das Admin-UI. Auch bei "PixelYourSite", "PYS-Event", "GA4-Event
+  anlegen", "Tracking-Event", "CSS-Click-Event".
+  Trigger: /wp-pys.
 ---
 
 # wp-pys — PixelYourSite Pro Event-Verwaltung

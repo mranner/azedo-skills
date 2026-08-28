@@ -118,7 +118,7 @@ Jira über die REST API — sowohl selbst-gehostetes **Data Center/Server** (`/r
 
 **Voraussetzungen:** Python ≥ 3.11, DC: Personal Access Token; Cloud: API-Token von id.atlassian.com + Account-E-Mail. Config `~/.claude/jira.json` (Vorlage: `jira/jira.json.example`), alternativ `JIRA_CONFIG=`.
 
-**Trigger:** `/jira` oder natürliche Sprache wie "schau in Jira", "welchen Status hat CORTAB-…", "kommentier das Ticket".
+**Trigger:** `/jira` oder natürliche Sprache wie "schau in Jira", "welchen Status hat PROJ-…", "kommentier das Ticket".
 
 ### imap
 
@@ -553,16 +553,53 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.46.1
+### 1.47.0
 
-- `imap quote` zerlegt den `References`-Header jetzt auch an Kommas. Nach
-  RFC 5322 ist das Feld eine reine Folge von Message-IDs mit Whitespace
-  dazwischen; manche Mailclients setzen trotzdem Kommas. Das bisherige
-  `.split()` liess `<a>,<b>` als ein Token stehen, und das Komma wanderte
-  unbemerkt in den `References`-Header der Antwort.
-- Folge des Fehlers war nicht sichtbar: der Versand quittiert normal, erst beim
-  Empfaenger haengt die Antwort nicht mehr am Thread. Aufgefallen beim Antworten
-  auf eine Mail von einem Mobilclient, dessen Header ein Komma enthielt.
-- `SKILL.md` weist `references` und `reply.references` nun ausdruecklich als
-  normalisiert aus - der Wert kann unveraendert in den Header, ohne dass die
-  aufrufende Seite ihn noch einmal saeubern muss.
+- **Skill-Descriptions auf ihre Aufgabe zurückgeschnitten.** Die Description ist
+  der einzige Text, der dauerhaft im Kontext steht - sie entscheidet nur, *ob*
+  ein Skill geladen wird. Alles, was erst *danach* gebraucht wird, gehört in den
+  Body. Aus zwölf Descriptions sind deshalb Implementierungsdetails
+  (Krypto-Verfahren, API-Hostnames, Kernbefehle, stdlib-only, unterstützte
+  Betriebssysteme), Config-Pfade und mehrfach umformulierte Trigger-Sätze
+  entfernt worden: `imap`, `jira`, `wiki`, `privatebin`, `pushover`, `telegram`,
+  `mail-as-me`, `swaks`, `google-search-console`, `einfache-sprache`, `lit`,
+  `image-optimize`. Summe über alle Skills 15.527 -> 12.449 Bytes, rund 770
+  Token weniger pro Request.
+- **Verwechselbare Paare grenzen sich jetzt gegenseitig ab.** Wo zwei Skills
+  dieselben Wörter benutzten, nennt jede Description den Nachbarn beim Namen:
+  `pushover` (nur ausgehend) gegen `telegram` (kann auf eine Antwort warten),
+  `mail-as-me` (formulieren, immer zuerst) gegen `swaks` (versenden),
+  `google-search-console` (Weg zur Website) gegen `google-analytics` (Verhalten
+  auf der Website), `wp-cli` (Basis) gegen die Spezial-Skills daneben. Auslöser
+  war die Beobachtung, dass eine Mail direkt in `swaks` getextet den Stil des
+  Empfängers spiegelt - genau das, was die Engine-Regel in `mail-as-me`
+  verhindern soll.
+- **`swos` und `ripgrep` haben erstmals Frontmatter.** Beide hatten keinen
+  YAML-Block; Name und Beschreibung wurden aus der ersten Überschrift
+  abgeleitet, steuerbar war daran nichts. `swos` lädt sich jetzt nur bei
+  eindeutiger SwOS-Identität von selbst (SwOS, SwOS-Lite, CSS106/326/610,
+  RB260) und ausdrücklich *nicht* bei den mehrdeutigen Nachbarbegriffen
+  MikroTik, Switch, VLAN, PoE - die meinen genauso oft RouterOS.
+- **`ripgrep`: neuer Abschnitt „Verfügbarkeit prüfen".** `rg` gehört auf FreeBSD
+  nicht zum Basissystem. Der Skill prüft jetzt erst `which rg`, fragt auf
+  Systemen ohne `rg` nach, bevor ein Paket nachinstalliert wird, und weicht bis
+  dahin auf `grep` aus - mit einer Übersetzungstabelle für die gängigen
+  Optionen. Bisher stand dort nur „use it instead of grep", was auf einem Host
+  ohne `rg` ins Leere lief.
+- **Die `trigger:`-Arrays sind aufgelöst.** Vier Skills (`wp-cli`, `wp-nf`,
+  `wp-pys`, `tcsh`) führten im Frontmatter eine Liste von Auslöse-Phrasen.
+  Claude Code liest das Feld nicht - es ist kein Teil der Spezifikation, die
+  Phrasen kamen also nirgends an. Sichtbar wurde der Schaden an `wp-cli`: 129
+  Bytes Description, während 16 brauchbare Phrasen im toten Feld lagen. Die
+  verwertbaren sind in die jeweilige Description gewandert, die Arrays sind
+  weg. `wp-cli` und `wp-pys` sind dadurch bewusst *länger* geworden - dafür
+  greifen sie überhaupt.
+- **Kunden-Projekt-Keys aus dem Arbeitsbaum entfernt.** In `jira/` und
+  `kanboard/` standen echte Jira-Projekt-Keys und Vorgangs-IDs in Beispielen,
+  Hilfetexten und der Beispiel-Config - 49 Stellen in sieben Dateien, entgegen
+  der eigenen Regel für dieses öffentliche Repo. Ersetzt durch sprechende
+  Platzhalter (PROJ für die DC-Instanz, OPS/SUPPORT/WEB für die Cloud-Instanz),
+  sodass das Instanz-Routing im Beispiel erkennbar bleibt. Zwei
+  Changelog-Sätze, die eine Vorgangs-ID als Beleg trugen, sind umformuliert
+  statt ersetzt. **Die Historie bleibt öffentlich einsehbar** - das hier
+  verhindert nur, dass es weiter wächst.

@@ -3,6 +3,57 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.47.0
+
+- **Skill-Descriptions auf ihre Aufgabe zurückgeschnitten.** Die Description ist
+  der einzige Text, der dauerhaft im Kontext steht - sie entscheidet nur, *ob*
+  ein Skill geladen wird. Alles, was erst *danach* gebraucht wird, gehört in den
+  Body. Aus zwölf Descriptions sind deshalb Implementierungsdetails
+  (Krypto-Verfahren, API-Hostnames, Kernbefehle, stdlib-only, unterstützte
+  Betriebssysteme), Config-Pfade und mehrfach umformulierte Trigger-Sätze
+  entfernt worden: `imap`, `jira`, `wiki`, `privatebin`, `pushover`, `telegram`,
+  `mail-as-me`, `swaks`, `google-search-console`, `einfache-sprache`, `lit`,
+  `image-optimize`. Summe über alle Skills 15.527 -> 12.449 Bytes, rund 770
+  Token weniger pro Request.
+- **Verwechselbare Paare grenzen sich jetzt gegenseitig ab.** Wo zwei Skills
+  dieselben Wörter benutzten, nennt jede Description den Nachbarn beim Namen:
+  `pushover` (nur ausgehend) gegen `telegram` (kann auf eine Antwort warten),
+  `mail-as-me` (formulieren, immer zuerst) gegen `swaks` (versenden),
+  `google-search-console` (Weg zur Website) gegen `google-analytics` (Verhalten
+  auf der Website), `wp-cli` (Basis) gegen die Spezial-Skills daneben. Auslöser
+  war die Beobachtung, dass eine Mail direkt in `swaks` getextet den Stil des
+  Empfängers spiegelt - genau das, was die Engine-Regel in `mail-as-me`
+  verhindern soll.
+- **`swos` und `ripgrep` haben erstmals Frontmatter.** Beide hatten keinen
+  YAML-Block; Name und Beschreibung wurden aus der ersten Überschrift
+  abgeleitet, steuerbar war daran nichts. `swos` lädt sich jetzt nur bei
+  eindeutiger SwOS-Identität von selbst (SwOS, SwOS-Lite, CSS106/326/610,
+  RB260) und ausdrücklich *nicht* bei den mehrdeutigen Nachbarbegriffen
+  MikroTik, Switch, VLAN, PoE - die meinen genauso oft RouterOS.
+- **`ripgrep`: neuer Abschnitt „Verfügbarkeit prüfen".** `rg` gehört auf FreeBSD
+  nicht zum Basissystem. Der Skill prüft jetzt erst `which rg`, fragt auf
+  Systemen ohne `rg` nach, bevor ein Paket nachinstalliert wird, und weicht bis
+  dahin auf `grep` aus - mit einer Übersetzungstabelle für die gängigen
+  Optionen. Bisher stand dort nur „use it instead of grep", was auf einem Host
+  ohne `rg` ins Leere lief.
+- **Die `trigger:`-Arrays sind aufgelöst.** Vier Skills (`wp-cli`, `wp-nf`,
+  `wp-pys`, `tcsh`) führten im Frontmatter eine Liste von Auslöse-Phrasen.
+  Claude Code liest das Feld nicht - es ist kein Teil der Spezifikation, die
+  Phrasen kamen also nirgends an. Sichtbar wurde der Schaden an `wp-cli`: 129
+  Bytes Description, während 16 brauchbare Phrasen im toten Feld lagen. Die
+  verwertbaren sind in die jeweilige Description gewandert, die Arrays sind
+  weg. `wp-cli` und `wp-pys` sind dadurch bewusst *länger* geworden - dafür
+  greifen sie überhaupt.
+- **Kunden-Projekt-Keys aus dem Arbeitsbaum entfernt.** In `jira/` und
+  `kanboard/` standen echte Jira-Projekt-Keys und Vorgangs-IDs in Beispielen,
+  Hilfetexten und der Beispiel-Config - 49 Stellen in sieben Dateien, entgegen
+  der eigenen Regel für dieses öffentliche Repo. Ersetzt durch sprechende
+  Platzhalter (PROJ für die DC-Instanz, OPS/SUPPORT/WEB für die Cloud-Instanz),
+  sodass das Instanz-Routing im Beispiel erkennbar bleibt. Zwei
+  Changelog-Sätze, die eine Vorgangs-ID als Beleg trugen, sind umformuliert
+  statt ersetzt. **Die Historie bleibt öffentlich einsehbar** - das hier
+  verhindert nur, dass es weiter wächst.
+
 ### 1.46.1
 
 - `imap quote` zerlegt den `References`-Header jetzt auch an Kommas. Nach
@@ -1186,9 +1237,9 @@ Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version 
 
 ### 1.34.3
 
-- **`jira`: Kommentare bearbeiten, @-Mentions im Body, Nutzersuche (CR4444).** Aufgefallen an
-  ITSD-2000: eine Mention musste ueber ein Ad-hoc-Skript direkt gegen die REST API gesetzt werden,
-  weil der Skill weder bestehende Kommentare aendern noch Erwaehnungen erzeugen konnte.
+- **`jira`: Kommentare bearbeiten, @-Mentions im Body, Nutzersuche (CR4444).** Aufgefallen an einem
+  Ticket, in dem eine Mention ueber ein Ad-hoc-Skript direkt gegen die REST API gesetzt werden
+  musste, weil der Skill weder bestehende Kommentare aendern noch Erwaehnungen erzeugen konnte.
   - **`comment-edit <ISSUE> --id <commentId> --body ...`** ueberschreibt einen bestehenden
     Kommentar (`PUT issue/{key}/comment/{id}`, Cloud ADF / DC Plaintext, `--body -` liest stdin).
     Damit die id ohne `--json` auffindbar ist, steht sie jetzt in der Kopfzeile von `comments`:
@@ -1295,7 +1346,7 @@ Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version 
 ### 1.33.0
 
 - **`kanboard`: CR<->Jira-Verknuepfung ueber `jira:<KEY>`-Tag.** Analog zum bestehenden
-  `kimai:<shortcut>` merkt ein Tag `jira:<KEY>` (z.B. `jira:SADM-100`) das zum CR gehoerende
+  `kimai:<shortcut>` merkt ein Tag `jira:<KEY>` (z.B. `jira:OPS-100`) das zum CR gehoerende
   Jira-Issue; `cr` hebt es als eigenes Feld `jira` heraus, sodass der `jira`-Skill ohne erneute
   Key-Angabe darauf arbeiten kann. Neuer Subcommand `set-jira <task_id> --key <KEY>` (ersetzt einen
   vorhandenen `jira:*`-Tag, normiert auf Grossschreibung). Bewusst **kein** Commit-Prefix — der CR
@@ -1334,7 +1385,7 @@ Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version 
       stilles Ueberschreiben).
   - Live gegen eine Cloud-Instanz verifiziert: Login, Projekt-Discovery, Suche mit Routing,
     Issue-/Kommentar-Anzeige inkl. Umlaute/Emojis/Mentions, Transition-Dry-Run. **Schreib-Pfad
-    komplett live bestaetigt** am Test-Ticket SADM-100: Kommentar (ADF, mehrzeilig), `assign` (alle
+    komplett live bestaetigt** an einem eigens angelegten Test-Ticket: Kommentar (ADF, mehrzeilig), `assign` (alle
     Varianten), `describe`, `subtask` (inkl. `--owner`), `attach`, `attachments` und `download`
     (Inhalt byte-identisch verifiziert). Nur `transition` mit `--yes` bislang nur als Dry-Run.
 
@@ -1369,7 +1420,7 @@ Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version 
     `transition` (schreibend; `transition` mit Dry-run-Guard, echt erst mit `--yes`).
   - Config `~/.claude/jira.json` (bewusst **ausserhalb** der Git-Repos — `~/.claude` ist kein Repo,
     der Token landet nie in Git) mit benannten Instanzen und **Projekt-Routing**: der Issue-Key
-    (`CORTAB-1000` → `CORTAB`) bzw. `project = X` in der JQL waehlt die Instanz, `--instance`
+    (`PROJ-1000` → `PROJ`) bzw. `project = X` in der JQL waehlt die Instanz, `--instance`
     ueberschreibt, sonst greift `default`. stdlib-only, keine pip-Abhaengigkeiten.
   - Hinweis: eine der DC-Instanzen liegt hinter einem SSO-Portal mit MFA → PAT-Zugriff von
     aussen (noch) blockiert; Klaerung mit dem Betreiber laeuft (CR4435).

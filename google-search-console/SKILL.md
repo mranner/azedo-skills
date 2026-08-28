@@ -1,15 +1,12 @@
 ---
 name: google-search-console
 description: >
-  Google Search Console (GSC): Sites/Properties, Search-Analytics
-  (Impressionen, Klicks, CTR, Position nach Query/Seite/Land/Gerät),
-  URL-Inspection (Index-Status) und Sitemaps abfragen. Nutze diesen Skill wenn
-  der User GSC-Daten auswerten, organische Suchleistung analysieren, den
-  Google-Index-Status einer URL prüfen oder Sitemaps kontrollieren will. Auch
-  aktiv verwenden wenn der User sagt "wie ranken wir", "organische Klicks",
-  "Impressionen in der Google-Suche", "ist die Seite indexiert", "Search
-  Console", "GSC Report", o.ae. Kann zusaetzlich Sitemaps einreichen und
-  entfernen (submit-sitemap/delete-sitemap, schreibend).
+  Google Search Console: organische Suchleistung bei Google - Impressionen,
+  Klicks, CTR und Position nach Suchbegriff, Seite, Land und Gerät; dazu
+  Index-Status einer URL prüfen und Sitemaps abfragen, einreichen oder
+  entfernen. Für das Verhalten der Besucher auf der Website selbst ist
+  google-analytics zuständig. Auch bei "wie ranken wir", "organische Klicks",
+  "ist die Seite indexiert", "Search Console".
   Trigger: /google-search-console, /gsc.
 ---
 

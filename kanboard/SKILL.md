@@ -493,14 +493,14 @@ regelt der Abschnitt [Kimai-Prefixing](#kimai-prefixing).
 #### Jira-Verknuepfung: `jira:<KEY>`-Tag
 
 Ein Tag der Form `jira:<KEY>` verknuepft den Task mit einem **Jira-Issue** (z.B.
-`jira:SADM-69`, `jira:CORTAB-1762`). `cr` hebt ihn als eigenes Feld `jira` heraus —
+`jira:OPS-69`, `jira:PROJ-1762`). `cr` hebt ihn als eigenes Feld `jira` heraus —
 damit steht der Jira-Bezug direkt im CR-Kontext und der `jira`-Skill kann auf dem
 Issue arbeiten (`issue`/`comment`/`transition`/`attach` …), ohne dass der Key erneut
 genannt werden muss. Analog zu `kimai:` und ohne Kollision mit dem CR-Commit-Prefix.
 
 ```bash
 # Jira-Issue am Task hinterlegen (ersetzt einen bereits vorhandenen jira:*-Tag)
-python3 "$SKILL_DIR/kanboard" set-jira <task_id> --key SADM-69
+python3 "$SKILL_DIR/kanboard" set-jira <task_id> --key OPS-69
 ```
 
 Genau **ein** Jira-Key pro Task: `set-jira` entfernt einen evtl. schon vorhandenen

@@ -1,19 +1,14 @@
 ---
 name: privatebin
 description: >
-  PrivateBin-Anbindung: teilt Text, Logausschnitte, Configs und ganze Dateien als
-  Ende-zu-Ende-verschluesselte Paste und gibt den Link zurueck. Legt Pastes an
-  (create), liest und entschluesselt fremde wie eigene Paste-Links (read), loescht
-  sie wieder (delete) und fuehrt eine kurze lokale History der zuletzt geteilten
-  Links samt Delete-Token (history). Ablauf, burn-after-reading, Passwortschutz,
-  Markdown/Syntax-Highlighting und Dateianhaenge sind pro Aufruf steuerbar. Die
-  Verschluesselung laeuft lokal (AES-256-GCM, PBKDF2, PrivateBin-Format v2), der
-  Schluessel steht nur im URL-Fragment und erreicht den Server nie. Nutze diesen
-  Skill wenn etwas per Link geteilt werden soll, statt es in Chat, Ticket oder Mail
-  zu kleben -- "teil das per PrivateBin", "mach einen Paste draus", "schick mir das
-  als Link", "das Log als Paste", "Zugangsdaten sicher teilen", "gib mir den Inhalt
-  von dieser Paste-URL", "loesch die Paste wieder". Instanz-URL und Zugangsdaten in
-  ~/.claude/privatebin.json. Trigger: /privatebin.
+  PrivateBin: teilt Text, Logausschnitte, Configs und ganze Dateien als
+  Ende-zu-Ende-verschlüsselte Paste und gibt den Link zurück. Paste anlegen,
+  fremde wie eigene Paste-Links lesen und entschlüsseln, wieder löschen,
+  zuletzt geteilte Links auflisten. Ablauf, burn-after-reading, Passwortschutz
+  und Dateianhänge pro Aufruf steuerbar. Auch bei "teil das per PrivateBin",
+  "mach einen Paste draus", "schick mir das als Link", "Zugangsdaten sicher
+  teilen", "lösch die Paste wieder".
+  Trigger: /privatebin.
 ---
 
 # privatebin -- verschluesselte Pastes teilen

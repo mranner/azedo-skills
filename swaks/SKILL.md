@@ -1,15 +1,13 @@
 ---
 name: swaks
 description: >
-  Sends emails via swaks through a Postfix relay. Use this skill whenever
-  the user wants to send an email, forward a file, share documentation, or
-  deliver any content by mail — even if they just say "schick mir das",
-  "sende das per Mail", "mail me the result", or "send this to X".
-  Standardversand ist eine multipart/alternative-Mail (Text + HTML) via
-  build_mail.py; zusaetzlich moeglich: reiner Text-Body und Dateianhaenge (any type).
-  Empfaenger und Absender kommen als Defaults aus .claude/swaks.json; der
-  Versandweg (Submission-Port mit SMTP-Auth) aus der muttrc.
-  Trigger with /swaks.
+  Versendet E-Mails über swaks und einen Postfix-Relay: Text- und HTML-Mail
+  (multipart/alternative), reiner Text-Body, Dateianhänge jeder Art;
+  Empfänger und Absender als Defaults aus der Config. Zuständig für den
+  Versand, nicht für die Formulierung - soll die Mail nach dem Nutzer
+  klingen, vorher mail-as-me den Text schreiben lassen. Auch bei "schick mir
+  das", "sende das per Mail", "mail me the result", "send this to X".
+  Trigger: /swaks.
 ---
 
 # swaks – E-Mail versenden

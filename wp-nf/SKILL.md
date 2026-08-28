@@ -1,25 +1,13 @@
 ---
 name: wp-nf
 description: >
-  Ninja-Forms-Administration in WordPress-(Multi-)Sites per WP-CLI im FreeBSD-Jail.
-  Formulare auflisten, Felder + Settings auslesen, CSS-Klassen (element_class) fuer
-  Click-Tracking setzen, Formulare exportieren/importieren (Backup & Klonen) —
-  reproduzierbar statt ueber das Admin-UI. Kodiert das NF-Datenmodell und seine
-  Footguns (Meta-Tabelle vs. Form-Cache).
-trigger:
-  - "wp-nf"
-  - "Ninja Forms"
-  - "Ninja-Forms"
-  - "nf3"
-  - "nf3_fields"
-  - "nf3_field_meta"
-  - "element_class"
-  - "Ninja-Forms-Feld"
-  - "NF-Formular"
-  - "Ninja Form ID"
-  - "Formular exportieren"
-  - "Formular importieren"
-  - "nff"
+  Ninja Forms in WordPress-(Multi-)Sites per WP-CLI im FreeBSD-Jail:
+  Formulare auflisten, Felder und Settings auslesen, CSS-Klassen
+  (element_class) für Click-Tracking setzen, Formulare exportieren und
+  importieren (Backup, Klonen) - reproduzierbar statt über das Admin-UI;
+  kennt die Fallstricke von Meta-Tabelle gegen Form-Cache. Auch bei "Ninja
+  Forms", "NF-Formular", "nf3_fields", "Formular exportieren".
+  Trigger: /wp-nf.
 ---
 
 # wp-nf — Ninja-Forms-Administration via WP-CLI

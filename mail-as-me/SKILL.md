@@ -1,17 +1,13 @@
 ---
 name: mail-as-me
 description: >
-  Entwirft und ueberarbeitet E-Mails im persoenlichen Schreibstil des jeweiligen
-  Nutzers (Register, Anrede, Sign-off, Dialekt, Hedging), statt in generischem
-  KI-Deutsch. Nutze diesen Skill, wenn ein Mail-Entwurf "nach mir" klingen soll,
-  wenn eine Mail in meinem Stil verfasst/umgeschrieben werden soll, oder wenn ein
-  Nutzer sein Stilprofil einrichten will. Auch aktiv verwenden bei "schreib eine
-  Mail wie ich", "schreib das als Mail wie ich", "in meinem Stil", "klingt zu sehr
-  nach KI, mach es wie ich". Bei solchen Auftraegen IMMER zuerst diesen Skill
-  aufrufen — auch wenn die Mail danach gleich versendet wird; die Mail NICHT direkt
-  in swaks texten (sonst wird der Empfaenger gespiegelt, z.B. CH-Grussformel "Hoi").
-  Die universelle Logik lebt im Skill, das persoenliche Profil (Beispiel-Korpus +
-  Stilregeln) pro Person unter ~/.claude/mail-as-me/<profil>/.
+  Entwirft und überarbeitet E-Mails im persönlichen Schreibstil des Nutzers
+  (Register, Anrede, Sign-off, Dialekt, Hedging) statt in generischem
+  KI-Deutsch; richtet auch das Stilprofil ein. Auch bei "schreib eine Mail
+  wie ich", "in meinem Stil", "klingt zu sehr nach KI, mach es wie ich".
+  Soll eine Mail nach dem Nutzer klingen, immer zuerst hier den Text
+  erzeugen und erst danach mit swaks versenden - nie direkt in swaks texten,
+  sonst wird der Stil des Empfängers gespiegelt.
   Trigger: /mail-as-me.
 ---
 

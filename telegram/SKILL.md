@@ -1,16 +1,12 @@
 ---
 name: telegram
 description: >
-  Telegram-Bot-Anbindung (outbound): sendet Nachrichten von Claude Code,
-  Loops und cron-Jobs via api.telegram.org an einen Chat. Kernbefehl
-  sendMessage plus Vorlagen (Alert/Recovery/Digest). stdlib-only Python,
-  lauffaehig auf macOS + FreeBSD, kein Server-Prozess. Kann per Long-Poll auch
-  auf eine Antwort/Anweisung warten (wait/ask), plus Dauer-Empfang als Scaffold.
-  Nutze diesen Skill wenn eine Meldung per Telegram raus soll ("schick mir das
-  per Telegram", "Alert nach Telegram", "Post-Update-Status per Telegram melden")
-  ODER wenn Claude Code auf eine Telegram-Antwort warten soll ("frag mich per
-  Telegram", "warte auf meine Telegram-Anweisung"). Credentials in .env
-  (TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID). Trigger: /telegram.
+  Telegram-Bot: sendet Nachrichten in einen Chat, aus Claude Code, Loops und
+  cron-Jobs - und kann als einziger der Melde-Skills auf eine Antwort warten
+  (Long-Poll), etwa um unterwegs eine Freigabe einzuholen. Auch bei "schick
+  mir das per Telegram", "Alert nach Telegram", "frag mich per Telegram",
+  "warte auf meine Telegram-Anweisung".
+  Trigger: /telegram.
 ---
 
 # telegram -- Telegram-Bot (outbound-first)

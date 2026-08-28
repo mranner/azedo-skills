@@ -1,3 +1,18 @@
+---
+name: ripgrep
+description: >
+  Ripgrep (rg): schnelle, zeilenorientierte Regex-Suche über Dateien und
+  Verzeichnisse, 10-100x schneller als grep, respektiert .gitignore.
+  Nutze diesen Skill, wenn nach Textmustern in einer Codebase, in Logs oder
+  in großen Dateien gesucht wird, statt Dateien vollständig einzulesen -
+  auch bei "such nach X", "wo steht X", "alle Vorkommen von X", "welche
+  Dateien enthalten X".
+  rg ist nicht überall vorhanden: Verfügbarkeit prüfen (which rg) und auf
+  Systemen ohne rg zuerst fragen, ob das Paket nachinstalliert werden soll
+  (FreeBSD: pkg install ripgrep, Linux: Distributionspaket); bis dahin auf
+  grep ausweichen, nicht stillschweigend scheitern.
+  Trigger: /ripgrep.
+---
 # Ripgrep (rg) - Fast Text Search Tool
 
 ## Overview
@@ -5,6 +20,58 @@
 Ripgrep is a line-oriented search tool that recursively searches directories for regex patterns. It's "10-100x faster than grep" and respects `.gitignore` by default. Use it instead of grep, find, or manually reading large files.
 
 **Core principle:** When you need to find text in files, use ripgrep. Don't read entire files into context when you can search them.
+
+Auf fremden Hosts ist `rg` nicht gesetzt - vorher [Verfügbarkeit prüfen](#verfügbarkeit-prüfen).
+
+## Verfügbarkeit prüfen
+
+`rg` gehört auf FreeBSD nicht zum Basissystem und ist längst nicht auf jedem
+Server installiert. Vor dem ersten Aufruf auf einem System deshalb prüfen -
+lokal wie remote:
+
+```sh
+which rg
+```
+
+Auf einem Remote-Host über die übliche Aufrufform, in der Jail entsprechend
+mit `iocage exec`:
+
+```sh
+sudo ssh -C root@<host> "which rg"
+```
+
+**Ist `rg` vorhanden:** normal verwenden.
+
+**Fehlt `rg`:** nicht stillschweigend scheitern und nicht ungefragt
+installieren. Stattdessen dem Nutzer sagen, dass der Host kein `rg` hat, und
+fragen, ob nachinstalliert werden soll:
+
+- FreeBSD: `pkg install ripgrep`
+- Debian/Ubuntu: `apt install ripgrep`
+- RHEL/Alma/Rocky: `dnf install ripgrep`
+
+Bis zur Freigabe auf `grep` ausweichen. Für einen einzelnen Suchlauf ist das
+meist die bessere Wahl, als ein Paket auf einem Produktivsystem
+nachzuziehen - eine Installation lohnt erst, wenn auf dem Host öfter gesucht
+wird.
+
+**Übersetzung der gängigen Optionen nach `grep`**, wenn ausgewichen wird:
+
+| ripgrep | grep |
+|---|---|
+| `rg "muster" pfad` | `grep -rn "muster" pfad` |
+| `rg -i` | `grep -i` |
+| `rg -w` | `grep -w` |
+| `rg -F` | `grep -F` |
+| `rg -C 3` | `grep -C 3` |
+| `rg -l` | `grep -rl` |
+| `rg -c` | `grep -c` |
+| `rg -v` | `grep -v` |
+| `rg -t py` | `grep -r --include='*.py'` |
+
+Kein `grep`-Äquivalent haben die `.gitignore`-Beachtung, `-U`
+(Multiline) und `--json`; dort muss die Suche anders zugeschnitten oder das
+Paket installiert werden.
 
 ## When to Use
 

@@ -1152,7 +1152,7 @@ def cmd_cr(args):
         # Tags. Zwei Praefix-Tags werden als eigene Felder herausgehoben, damit ihr
         # Kontext direkt im CR steht: 'kimai:<shortcut>' -> Feld 'kimai' (Zeiterfassungs-
         # Shortcut aus .claude/kimai-shortcuts.json) und 'jira:<KEY>' -> Feld 'jira'
-        # (verknuepftes Jira-Issue, z.B. SADM-69 / CORTAB-1762 fuer den jira-Skill).
+        # (verknuepftes Jira-Issue, z.B. OPS-69 / PROJ-1762 fuer den jira-Skill).
         # getTaskTags liefert {tag_id: name}.
         tags_map = rpc_try("getTaskTags", {"task_id": task_id})
         tag_names = sorted(tags_map.values()) if isinstance(tags_map, dict) else []
@@ -1507,7 +1507,7 @@ def main():
     # set-jira (verknuepftes Jira-Issue als 'jira:<KEY>'-Tag; ersetzt vorhandenen)
     p = sub.add_parser("set-jira")
     p.add_argument("task_id")
-    p.add_argument("--key", required=True, help="Jira-Issue-Key, z.B. SADM-69 / CORTAB-1762")
+    p.add_argument("--key", required=True, help="Jira-Issue-Key, z.B. OPS-69 / PROJ-1762")
     p.set_defaults(func=cmd_set_jira)
 
     # create-project
