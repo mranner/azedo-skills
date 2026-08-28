@@ -503,6 +503,19 @@ Erklaert die zuletzt gegebene Antwort noch einmal, in Einfacher Sprache. Fuer de
 
 **Trigger:** nur `/wie-bitte`.
 
+### whoami
+
+Gibt aus, welche Claude-Session hier laeuft - Name, Arbeitsverzeichnis, PID - und vor allem die **bridge-Session-ID**, die einzige stabile Adresse, unter der die Session von einer anderen Maschine aus per `SendMessage` erreichbar ist:
+
+- Anzeigenamen taugen nicht als Adresse: sie werden bridge-seitig vergeben und aendern sich im Betrieb; der Name, unter dem sich eine Session selbst kennt, ist von aussen gar nicht adressierbar. Refs aus `ListAgents` gelten nur innerhalb einer Auflistung
+- Die eigene Session wird ueber den **Prozessbaum** ab der eigenen PID aufgeloest, nicht ueber "die zuletzt geaenderte Datei" - das bleibt auch bei mehreren gleichzeitig laufenden Sessions richtig
+- `--id` gibt nur `bridge:session_...` aus, zum Kopieren; `--json` haengt den rohen Datensatz an
+- Ist die Session nicht gebridgt, sagt das Script das ausdruecklich, statt eine leere Adresse zu liefern
+
+Die ID einer **fremden** Session kann der Skill nicht ermitteln - deren Datei liegt auf deren Maschine. Dort `/whoami` aufrufen und die Adresse herueberreichen.
+
+**Trigger:** `/whoami`, oder Fragen wie "welche Session bist du", "wie ist deine Session-ID", "wie erreiche ich dich von der anderen Maschine".
+
 ### telegram
 
 Telegram-Bot-Anbindung (outbound-first). Python-Script (stdlib only, keine pip-Dependencies), lauffaehig auf macOS + FreeBSD, **kein Server-Prozess** — jeder Aufruf ist ein einzelner HTTPS-Call an `api.telegram.org` und laeuft auch aus cron:
@@ -553,17 +566,30 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.48.1
+### 1.49.0
 
-- **`allowed-tools` für die sieben Referenz-Skills.** `tcsh`, `wp-cli`, `wp-nf`,
-  `wp-pys`, `php-formatting`, `handoff` und `wie-bitte` bringen kein eigenes
-  Script mit - sie sind Anleitungen. Sie deklarieren jetzt, was sie tatsächlich
-  anfassen: meist nur `Bash`, bei `php-formatting` nur Lesen und Bearbeiten,
-  bei `wie-bitte` gar nichts. Das schützt nicht gegen Absicht - ein Skill mit
-  `Bash` kann ohnehin alles -, verhindert aber, dass ein Nachschlage-Skill
-  nebenbei Dateien schreibt, und macht im Frontmatter sichtbar, womit man es zu
-  tun hat.
-- Bei den Skills mit eigenem Script bleibt das Feld bewusst leer: sie brauchen
-  `Bash`, um ihr Script zu starten, und damit wäre die Einschränkung ohne
-  Wirkung. `einfache-sprache` und `humanizer-de` behalten die Listen ihres
-  Upstreams.
+- **Neuer Skill `whoami`** - gibt aus, welche Claude-Session hier läuft, und vor
+  allem ihre **bridge-Session-ID**. Die ist die einzige stabile Adresse, unter der
+  eine Session von einer anderen Maschine aus per `SendMessage` erreichbar ist,
+  taucht aber weder in der `ListAgents`-Ausgabe noch in der `SendMessage`-Doku als
+  Adressform auf. Anlass: beim Austausch zwischen zwei Sessions auf verschiedenen
+  Maschinen ließ sich die Gegenstelle nicht sauber adressieren - der Anzeigenamen
+  hatte sich innerhalb einer Stunde geändert, der Name, unter dem sich die Session
+  selbst kannte, war von außen unbekannt, und die Ref aus der Auflistung galt nur
+  dort. Am Ende wurde die einzige idle Zeile auf Verdacht angeschrieben; es hat
+  funktioniert, war aber Glück und kein Verfahren.
+- Die eigene Session wird über den **Prozessbaum** ab der eigenen PID aufgelöst,
+  nicht über "die zuletzt geänderte Datei in `~/.claude/sessions/`". Bei mehreren
+  gleichzeitig laufenden Sessions erwischt eine solche Heuristik gelegentlich die
+  falsche - der Prozessbaum kann das nicht.
+- `--id` gibt nur `bridge:session_...` aus (zum Kopieren), `--json` hängt den rohen
+  Datensatz an. Ist die Session nicht gebridgt, sagt das Script das ausdrücklich,
+  statt eine leere Adresse zu liefern. Die ID einer *fremden* Session kann der Skill
+  nicht ermitteln, und benennt das - deren Datei liegt auf deren Maschine.
+- **Versionszeilen vervollständigt.** `privatebin/privatebin` trug als einziges
+  eigenes Skript keine, jetzt `# version 1.45.0` (sein Einführungsrelease).
+  `mail-as-me/extract.py` benutzte `__version__ = "1.29.0"` statt der Kommentarform
+  der übrigen Skripte; nirgends im Code referenziert, deshalb auf die einheitliche
+  Form gebracht. Damit tragen alle 25 eigenen Skripte die Version, in der sie
+  zuletzt angefasst wurden. Die sieben vendorisierten `humanizer-de`-Skripte bleiben
+  bewusst ohne - dort gehört die azedo-Repo-Version nicht hinein.

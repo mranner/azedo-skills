@@ -1,0 +1,100 @@
+#!/usr/bin/env python3
+
+# whoami - die eigene Claude-Session identifizieren.
+#
+# Die bridge-Session-ID ist die einzige stabile Adresse einer Session: Anzeigenamen
+# werden bridge-seitig vergeben und aendern sich im Betrieb, Refs aus ListAgents
+# gelten nur innerhalb einer Auflistung. SendMessage nimmt die ID direkt als
+# "bridge:session_...".
+# version 1.49.0
+#
+# stdlib only, keine pip-Abhaengigkeiten. Laeuft auf FreeBSD, Linux und macOS.
+
+import argparse
+import json
+import os
+import subprocess
+import sys
+
+SESSION_DIR = os.path.expanduser("~/.claude/sessions")
+
+
+def ppid_of(pid):
+    """Eltern-PID ueber ps - portabel auf FreeBSD, Linux und macOS."""
+    try:
+        out = subprocess.run(["ps", "-o", "ppid=", "-p", str(pid)],
+                             capture_output=True, text=True, timeout=5)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    value = out.stdout.strip()
+    return int(value) if value.isdigit() else None
+
+
+def own_session():
+    """Eigene Session ueber den Prozessbaum ab der eigenen PID auffinden.
+
+    Der Weg ueber den Prozessbaum ist der Grund, warum das verlaesslich ist: bei
+    mehreren gleichzeitig laufenden Sessions gibt es keine Heuristik ueber "die
+    neueste Datei", die nicht gelegentlich die falsche erwischt.
+    """
+    pid = os.getpid()
+    for _ in range(40):
+        path = os.path.join(SESSION_DIR, f"{pid}.json")
+        if os.path.exists(path):
+            try:
+                with open(path, encoding="utf-8") as fh:
+                    return json.load(fh)
+            except (OSError, ValueError):
+                pass
+        parent = ppid_of(pid)
+        if not parent or parent == pid or parent <= 1:
+            return None
+        pid = parent
+    return None
+
+
+def main():
+    p = argparse.ArgumentParser(
+        description="Die eigene Claude-Session und ihre bridge-Session-ID ausgeben")
+    p.add_argument("--id", action="store_true",
+                   help="nur die Adresse 'bridge:session_...' ausgeben, zum Kopieren")
+    p.add_argument("--json", action="store_true", help="vollstaendiger Datensatz als JSON")
+    args = p.parse_args()
+
+    data = own_session()
+    if not data:
+        print("Eigene Session nicht gefunden - im Prozessbaum liegt keine Datei unter "
+              f"{SESSION_DIR}. Laeuft das ausserhalb einer Claude-Code-Session?",
+              file=sys.stderr)
+        sys.exit(1)
+
+    bridge = data.get("bridgeSessionId")
+    address = f"bridge:{bridge}" if bridge else None
+
+    if args.id:
+        if not address:
+            print("Diese Session ist nicht gebridgt - keine Adresse vorhanden.",
+                  file=sys.stderr)
+            sys.exit(2)
+        print(address)
+        return
+
+    result = {
+        "name": data.get("name"),
+        "cwd": data.get("cwd"),
+        "pid": data.get("pid"),
+        "session_id": data.get("sessionId"),
+        "bridge_session_id": bridge,
+        "address": address,
+    }
+    if args.json:
+        result["raw"] = data
+    if not bridge:
+        result["hinweis"] = ("Diese Session ist nicht gebridgt (Feld bridgeSessionId "
+                             "fehlt) und von aussen nicht adressierbar. Remote Control "
+                             "aktivieren, dann erneut aufrufen.")
+    print(json.dumps(result, indent=2, ensure_ascii=False))
+
+
+if __name__ == "__main__":
+    main()

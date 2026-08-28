@@ -3,6 +3,34 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.49.0
+
+- **Neuer Skill `whoami`** - gibt aus, welche Claude-Session hier läuft, und vor
+  allem ihre **bridge-Session-ID**. Die ist die einzige stabile Adresse, unter der
+  eine Session von einer anderen Maschine aus per `SendMessage` erreichbar ist,
+  taucht aber weder in der `ListAgents`-Ausgabe noch in der `SendMessage`-Doku als
+  Adressform auf. Anlass: beim Austausch zwischen zwei Sessions auf verschiedenen
+  Maschinen ließ sich die Gegenstelle nicht sauber adressieren - der Anzeigenamen
+  hatte sich innerhalb einer Stunde geändert, der Name, unter dem sich die Session
+  selbst kannte, war von außen unbekannt, und die Ref aus der Auflistung galt nur
+  dort. Am Ende wurde die einzige idle Zeile auf Verdacht angeschrieben; es hat
+  funktioniert, war aber Glück und kein Verfahren.
+- Die eigene Session wird über den **Prozessbaum** ab der eigenen PID aufgelöst,
+  nicht über "die zuletzt geänderte Datei in `~/.claude/sessions/`". Bei mehreren
+  gleichzeitig laufenden Sessions erwischt eine solche Heuristik gelegentlich die
+  falsche - der Prozessbaum kann das nicht.
+- `--id` gibt nur `bridge:session_...` aus (zum Kopieren), `--json` hängt den rohen
+  Datensatz an. Ist die Session nicht gebridgt, sagt das Script das ausdrücklich,
+  statt eine leere Adresse zu liefern. Die ID einer *fremden* Session kann der Skill
+  nicht ermitteln, und benennt das - deren Datei liegt auf deren Maschine.
+- **Versionszeilen vervollständigt.** `privatebin/privatebin` trug als einziges
+  eigenes Skript keine, jetzt `# version 1.45.0` (sein Einführungsrelease).
+  `mail-as-me/extract.py` benutzte `__version__ = "1.29.0"` statt der Kommentarform
+  der übrigen Skripte; nirgends im Code referenziert, deshalb auf die einheitliche
+  Form gebracht. Damit tragen alle 25 eigenen Skripte die Version, in der sie
+  zuletzt angefasst wurden. Die sieben vendorisierten `humanizer-de`-Skripte bleiben
+  bewusst ohne - dort gehört die azedo-Repo-Version nicht hinein.
+
 ### 1.48.1
 
 - **`allowed-tools` für die sieben Referenz-Skills.** `tcsh`, `wp-cli`, `wp-nf`,

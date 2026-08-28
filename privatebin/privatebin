@@ -5,6 +5,7 @@
 # Die Verschluesselung passiert hier lokal (PrivateBin-Format v2: AES-256-GCM,
 # PBKDF2-HMAC-SHA256, raw deflate). Der Server sieht nur Chiffrat; der Schluessel
 # steht Base58-kodiert im URL-Fragment und verlaesst den Rechner nie ueber HTTP.
+# version 1.45.0
 
 import argparse
 import base64
