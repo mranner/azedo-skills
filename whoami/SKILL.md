@@ -4,11 +4,9 @@ description: >
   Gibt aus, welche Claude-Session hier läuft: Name, Arbeitsverzeichnis und vor
   allem die bridge-Session-ID - die einzige stabile Adresse, unter der diese
   Session von einer anderen Maschine aus per SendMessage erreichbar ist.
-  Nutze diesen Skill, wenn jemand wissen will, welche Session das hier ist oder
-  wie man sie anspricht. Auch bei "welche Session bist du", "wie ist deine
-  Session-ID", "wie erreiche ich dich von der anderen Maschine", "gib mir deine
-  Adresse".
-  Trigger: /whoami.
+  NUR auf ausdrücklichen Aufruf von /whoami laden. Nicht von selbst laden, auch
+  nicht bei Fragen nach Session, Session-ID, Adresse oder Erreichbarkeit.
+  Trigger: ausschließlich /whoami.
 allowed-tools: [Bash]
 ---
 

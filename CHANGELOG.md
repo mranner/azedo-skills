@@ -3,6 +3,15 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.49.1
+
+- **`whoami` wird nur noch auf ausdrücklichen Aufruf geladen.** Die Beschreibung
+  nannte bisher Beispielsätze wie "welche Session bist du" oder "gib mir deine
+  Adresse" und lud den Skill damit auch ungefragt. Das ist hier unerwünscht: der
+  Skill beantwortet eine Frage, die man stellt, wenn man sie stellen will. Die
+  Beispielsätze sind raus, stattdessen steht ausdrücklich drin, dass nur `/whoami`
+  triggert.
+
 ### 1.49.0
 
 - **Neuer Skill `whoami`** - gibt aus, welche Claude-Session hier läuft, und vor
