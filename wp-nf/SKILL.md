@@ -8,6 +8,7 @@ description: >
   kennt die Fallstricke von Meta-Tabelle gegen Form-Cache. Auch bei "Ninja
   Forms", "NF-Formular", "nf3_fields", "Formular exportieren".
   Trigger: /wp-nf.
+allowed-tools: [Bash, Read, Write]
 ---
 
 # wp-nf — Ninja-Forms-Administration via WP-CLI

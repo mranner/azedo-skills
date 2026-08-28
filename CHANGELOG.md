@@ -3,6 +3,21 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.48.1
+
+- **`allowed-tools` für die sieben Referenz-Skills.** `tcsh`, `wp-cli`, `wp-nf`,
+  `wp-pys`, `php-formatting`, `handoff` und `wie-bitte` bringen kein eigenes
+  Script mit - sie sind Anleitungen. Sie deklarieren jetzt, was sie tatsächlich
+  anfassen: meist nur `Bash`, bei `php-formatting` nur Lesen und Bearbeiten,
+  bei `wie-bitte` gar nichts. Das schützt nicht gegen Absicht - ein Skill mit
+  `Bash` kann ohnehin alles -, verhindert aber, dass ein Nachschlage-Skill
+  nebenbei Dateien schreibt, und macht im Frontmatter sichtbar, womit man es zu
+  tun hat.
+- Bei den Skills mit eigenem Script bleibt das Feld bewusst leer: sie brauchen
+  `Bash`, um ihr Script zu starten, und damit wäre die Einschränkung ohne
+  Wirkung. `einfache-sprache` und `humanizer-de` behalten die Listen ihres
+  Upstreams.
+
 ### 1.48.0
 
 - **Die fünf größten SKILL.md sind aufgeteilt (Progressive Disclosure).** Eine

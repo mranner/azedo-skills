@@ -8,6 +8,7 @@ description: >
   Wende diesen Skill IMMER automatisch an, wenn du Befehle via SSH auf FreeBSD-Servern
   ausfuehrst — auch ohne expliziten Aufruf.
   Trigger: /tcsh, SSH-Befehle auf FreeBSD, Remote-Administration.
+allowed-tools: [Bash]
 ---
 
 # tcsh — Remote-Administration auf FreeBSD

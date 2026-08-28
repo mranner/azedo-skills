@@ -1,6 +1,7 @@
 ---
 name: handoff
 description: Fasst die aktuelle Konversation in ein Übergabedokument zusammen, damit ein neuer Agent nahtlos weiterarbeiten kann. Trigger: /handoff.
+allowed-tools: [Bash, Read, Write]
 argument-hint: "Fokus/Slug der nächsten Session (optional)"
 ---
 

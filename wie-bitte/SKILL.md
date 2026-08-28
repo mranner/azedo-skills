@@ -1,6 +1,7 @@
 ---
 name: wie-bitte
 description: "Stopp - die letzte Antwort ist nicht angekommen. Sie wird noch einmal erklärt, in Einfacher Sprache. Trigger: /wie-bitte."
+allowed-tools: []
 disable-model-invocation: true
 metadata:
   display_name: Wie bitte?

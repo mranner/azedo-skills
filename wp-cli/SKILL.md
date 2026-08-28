@@ -8,6 +8,7 @@ description: >
   gibt es eigene Skills. Auch bei "exportiere die Datenbank", "lösche den
   Cache", "welche Plugins sind installiert", "welche WordPress-Version".
   Trigger: /wp-cli.
+allowed-tools: [Bash]
 ---
 
 # wp-cli — WordPress-Administration via CLI

@@ -6,6 +6,7 @@ description: >
   statt über das Admin-UI. Auch bei "PixelYourSite", "PYS-Event", "GA4-Event
   anlegen", "Tracking-Event", "CSS-Click-Event".
   Trigger: /wp-pys.
+allowed-tools: [Bash]
 ---
 
 # wp-pys — PixelYourSite Pro Event-Verwaltung

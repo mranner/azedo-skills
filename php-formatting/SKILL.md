@@ -6,6 +6,7 @@ description: >
   auch ohne expliziten Aufruf. Der User kann den Skill auch manuell ausloesen mit
   /php-formatting oder "formatiere den PHP Code".
   Trigger: /php-formatting, jede PHP-Datei die erstellt oder bearbeitet wird.
+allowed-tools: [Read, Edit, Write]
 ---
 
 # php-formatting – PHP Code-Stil
