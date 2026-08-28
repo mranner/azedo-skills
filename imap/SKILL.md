@@ -340,6 +340,13 @@ stehen die Kopfdaten der Originalmail und ein fertiges `reply`-Objekt:
 (RFC 5322 3.6.4). Ohne diese beiden Header haengt die Antwort im Mailclient des
 Empfaengers nicht am Thread, sondern startet einen neuen.
 
+Beide `references`-Felder sind **normalisiert**: Kommas zwischen den
+Message-IDs werden wie Whitespace behandelt und verschwinden. Nach RFC 5322
+gehoert dort keines hin, manche Clients setzen aber trotzdem welche -- und ein
+Komma, das in den `References`-Header der Antwort durchrutscht, zerreisst den
+Thread beim Empfaenger, ohne dass beim Versand etwas auffaellt. Der Wert aus
+`reply.references` kann also unveraendert in den Header.
+
 Message-IDs werden bewusst **nicht** RFC-2047-dekodiert -- sie sind Adressen,
 keine anzeigbaren Texte. Die uebrigen Kopffelder sind dekodiert und entfaltet,
 ein langer Betreff steht also ohne Zeilenumbruch in einem Feld.

@@ -553,21 +553,16 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.46.0
+### 1.46.1
 
-- **Neuer Skill `wie-bitte`** - erklaert die zuletzt gegebene Antwort noch einmal,
-  in Einfacher Sprache. Anlass: eine Antwort, die nicht angekommen ist, wird auf
-  Nachfrage meist nur laenger, nicht verstaendlicher - dieselben Fachbegriffe,
-  dieselbe Satzform, ein Absatz mehr.
-- Reiner Referenz-Skill (nur SKILL.md, kein Script). Fester Aufbau in drei
-  Teilen: ein Satz Kontext, die Aussage, die Folge fuer den Nutzer; hoechstens
-  acht Saetze.
-- Sprachregeln auf Stufe B1 des Skills `einfache-sprache`, aber **ohne** dessen
-  Messapparat: keine Kennwerte, keine Linter, keine Befundliste.
-- Fachbegriffe bleiben stehen und bekommen einen Halbsatz Erklaerung, statt
-  ersetzt zu werden - sonst laesst sich spaeter nicht mehr danach fragen.
-- `disable-model-invocation: true`: nur ueber `/wie-bitte`. Ohne das griffe der
-  Skill bei Saetzen wie "das versteht kein Mensch", die zu `einfache-sprache`
-  gehoeren.
-- Angelehnt an `wait-what` aus `mattpocock/skills` (MIT), siehe
-  `wie-bitte/LICENSE` und den Abschnitt "Herkunft & Lizenz" in der SKILL.md.
+- `imap quote` zerlegt den `References`-Header jetzt auch an Kommas. Nach
+  RFC 5322 ist das Feld eine reine Folge von Message-IDs mit Whitespace
+  dazwischen; manche Mailclients setzen trotzdem Kommas. Das bisherige
+  `.split()` liess `<a>,<b>` als ein Token stehen, und das Komma wanderte
+  unbemerkt in den `References`-Header der Antwort.
+- Folge des Fehlers war nicht sichtbar: der Versand quittiert normal, erst beim
+  Empfaenger haengt die Antwort nicht mehr am Thread. Aufgefallen beim Antworten
+  auf eine Mail von einem Mobilclient, dessen Header ein Komma enthielt.
+- `SKILL.md` weist `references` und `reply.references` nun ausdruecklich als
+  normalisiert aus - der Wert kann unveraendert in den Header, ohne dass die
+  aufrufende Seite ihn noch einmal saeubern muss.

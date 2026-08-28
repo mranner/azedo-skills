@@ -3,6 +3,20 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.46.1
+
+- `imap quote` zerlegt den `References`-Header jetzt auch an Kommas. Nach
+  RFC 5322 ist das Feld eine reine Folge von Message-IDs mit Whitespace
+  dazwischen; manche Mailclients setzen trotzdem Kommas. Das bisherige
+  `.split()` liess `<a>,<b>` als ein Token stehen, und das Komma wanderte
+  unbemerkt in den `References`-Header der Antwort.
+- Folge des Fehlers war nicht sichtbar: der Versand quittiert normal, erst beim
+  Empfaenger haengt die Antwort nicht mehr am Thread. Aufgefallen beim Antworten
+  auf eine Mail von einem Mobilclient, dessen Header ein Komma enthielt.
+- `SKILL.md` weist `references` und `reply.references` nun ausdruecklich als
+  normalisiert aus - der Wert kann unveraendert in den Header, ohne dass die
+  aufrufende Seite ihn noch einmal saeubern muss.
+
 ### 1.46.0
 
 - **Neuer Skill `wie-bitte`** - erklaert die zuletzt gegebene Antwort noch einmal,

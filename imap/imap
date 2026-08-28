@@ -3,7 +3,7 @@
 # IMAP-Helper fuer Posteingang-Triage
 # Liest Zugangsdaten aus muttrc, arbeitet gegen mehrere Konten.
 # stdlib only, keine pip-Abhaengigkeiten. Lauffaehig auf macOS + FreeBSD.
-# version 1.42.4
+# version 1.46.1
 
 import argparse
 import email
@@ -1377,7 +1377,14 @@ def cmd_quote(args, accounts):
     # schicken und im Zweifel veraendern
 
     message_id = unfold_header(msg.get("Message-ID"))
-    references = [r for r in unfold_header(msg.get("References")).split() if r]
+
+    # References ist laut RFC 5322 eine reine Folge von Message-IDs, getrennt
+    # durch Whitespace. Manche Clients setzen trotzdem Kommas dazwischen; ein
+    # blosses .split() laesst dann "<a>,<b>" als ein Token stehen und das Komma
+    # wandert unbemerkt in den Header der Antwort. Kommas deshalb wie Whitespace
+    # behandeln - der Thread bricht sonst ohne jede Fehlermeldung.
+
+    references = [r for r in re.split(r"[\s,]+", unfold_header(msg.get("References"))) if r]
 
     # References der Antwort: Kette der Originalmail plus deren Message-ID
     # (RFC 5322 3.6.4) - damit haengt die Antwort im richtigen Thread
