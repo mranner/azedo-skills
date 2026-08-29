@@ -41,7 +41,7 @@ Quelle ins Wiki aufnehmen. Kopiert die Originaldatei unveraendert nach `raw/`.
 ```
 
 Nur fuer **lokale** Wikis. Ist `<name>` ein Remote (siehe
-[Remote-Wikis](#remote-wikis-read-only)), abbrechen: Remote ist read-only, neue
+[Remote-Wikis](remote-wikis.md#remote-wikis-read-only)), abbrechen: Remote ist read-only, neue
 Erkenntnisse manuell auf dem Zielhost einpflegen.
 
 Workflow:
@@ -63,7 +63,7 @@ Ohne Argument: alle noch nicht kompilierten Quellen in `raw/` verarbeiten.
 Mit Argument: nur die angegebene Quelle.
 
 Nur fuer **lokale** Wikis. Ist `<name>` ein Remote (siehe
-[Remote-Wikis](#remote-wikis-read-only)), abbrechen: Remote ist read-only.
+[Remote-Wikis](remote-wikis.md#remote-wikis-read-only)), abbrechen: Remote ist read-only.
 
 Workflow:
 1. Quelle lesen und Entity-Typen identifizieren — erlaubte Typen laut
@@ -78,12 +78,12 @@ Workflow:
 5. Backlink-Audit: bestehende Artikel durchsuchen, die den neuen Entity erwaehnen sollten
 6. Eintrag in `log.md`: `COMPILE: <quelle> → <entity1>, <entity2>, ...`
 
-**Vor Schritt 2 gelten die [Schreibregeln](#schreibregeln)** - Aufnahmefilter
+**Vor Schritt 2 gelten die [Schreibregeln](../SKILL.md#schreibregeln)** - Aufnahmefilter
 (gehört es überhaupt hinein), Dichtegebot und „aktualisieren heisst ersetzen".
 
-Detaillierte Compile-Regeln (Cross-Referencing, Compile-Checkliste): @references/compilation-guide.md
+Detaillierte Compile-Regeln (Cross-Referencing, Compile-Checkliste): @compilation-guide.md
 
-Entity-Templates (Infra-Modell; fuer Projekt-Wikis gilt deren `<WIKI_ROOT>/CLAUDE.md`): @references/frontmatter-schemas.md
+Entity-Templates (Infra-Modell; fuer Projekt-Wikis gilt deren `<WIKI_ROOT>/CLAUDE.md`): @frontmatter-schemas.md
 
 ### harvest
 
@@ -105,7 +105,7 @@ Workflow:
 1. `<WIKI_ROOT>/CLAUDE.md` und `index.md` lesen (Entity-Modell und Bestand).
 2. Kandidaten sammeln: jede Erkenntnis der Sitzung, die nicht offensichtlich
    schon dokumentiert ist.
-3. **Jeden Kandidaten durch den [Aufnahmefilter](#aufnahmefilter-gehört-das-überhaupt-hinein)
+3. **Jeden Kandidaten durch den [Aufnahmefilter](../SKILL.md#aufnahmefilter-gehört-das-überhaupt-hinein)
    schicken.** Wer durchfällt, wird verworfen - aber **mit Grund und sichtbar**,
    nicht stillschweigend.
 4. Für die verbleibenden das Ziel bestimmen: greppen, ob es schon irgendwo steht
@@ -132,7 +132,7 @@ Die verworfene Liste ist kein Beiwerk, sondern der Zweck: sie macht den Filter
 überprüfbar. Ohne sie ist nicht erkennbar, ob etwas geprüft und aussortiert oder
 schlicht übersehen wurde.
 
-Für die Einträge selbst gelten die [Schreibregeln](#schreibregeln) - vor allem
+Für die Einträge selbst gelten die [Schreibregeln](../SKILL.md#schreibregeln) - vor allem
 das Dichtegebot. Eine Erkenntnis, die in der Vorlage einen Satz braucht, wird im
 Artikel nicht zu einem Absatz.
 
@@ -156,7 +156,7 @@ Workflow:
 
 Bei einem **Remote-Wiki** dieselben Schritte, aber `index.md` und Entities per SSH
 lesen statt lokal (`ssh <host> "cat/grep …"`, siehe
-[Remote-Wikis](#remote-wikis-read-only)). Schritt 6 (Speichern) entfaellt — Remote
+[Remote-Wikis](remote-wikis.md#remote-wikis-read-only)). Schritt 6 (Speichern) entfaellt — Remote
 ist read-only.
 
 ### lint
@@ -169,12 +169,12 @@ Wiki auf strukturelle Probleme pruefen.
 
 Fuehrt `python3 "$SKILL_DIR/scripts/lint-wiki.py" <WIKI_ROOT>` aus (z.B.
 `wiki/azedo/`, `wiki/cris/` — jeweils relativ zum Projekt-Root; welches Wiki ohne
-Praefix gemeint ist, klaert Schritt 1 unter [Ziel-Wiki bestimmen](#ziel-wiki-bestimmen)).
+Praefix gemeint ist, klaert Schritt 1 unter [Ziel-Wiki bestimmen](../SKILL.md#ziel-wiki-bestimmen)).
 
 Das erlaubte Entity-Modell (Typen + Pflichtfelder) liest der Linter aus
 `<WIKI_ROOT>/wiki-schema.json`; fehlt die Datei, gilt das Infra-Default.
 
-Remote-Pointer `[[<remote>:<slug>]]` (siehe [Remote-Wikis](#remote-wikis-read-only))
+Remote-Pointer `[[<remote>:<slug>]]` (siehe [Remote-Wikis](remote-wikis.md#remote-wikis-read-only))
 gelten als gueltig, wenn `<remote>` in `.claude/wiki-remotes.json` steht — sonst als
 toter Link. Mit `--check-remotes` verifiziert der Linter die Remote-Ziele per SSH.
 

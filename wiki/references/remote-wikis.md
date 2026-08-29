@@ -56,7 +56,7 @@ wird **lokal** aus den gelesenen Inhalten synthetisiert.
 Schreibende Subcommands (`ingest`, `compile`, `init`) sind fuer Remote-Wikis **nicht**
 erlaubt — mit klarem Hinweis abbrechen, nichts remote schreiben. Neue Erkenntnisse
 fuer ein Remote-Wiki werden nicht remote geschrieben, sondern mit `<remote>:handoff`
-(siehe [handoff](#handoff)) als lokale Note erzeugt und **manuell auf dem Zielhost**
+(siehe [handoff](pflege.md#handoff)) als lokale Note erzeugt und **manuell auf dem Zielhost**
 eingepflegt (dort lokal `ingest`/`compile`/`lint`). Read-only ist damit *by
 construction*, nicht per Konvention.
 

@@ -186,7 +186,7 @@ python3 "$SKILL_DIR/kanboard" set-kimai <task_id> --shortcut acme-it-support
 
 Genau **ein** Kimai-Shortcut pro Task: `set-kimai` entfernt einen evtl. schon
 vorhandenen `kimai:*`-Tag, bevor der neue gesetzt wird. Wann der Tag gesetzt wird,
-regelt der Abschnitt [Kimai-Prefixing](#kimai-prefixing).
+regelt der Abschnitt [Kimai-Prefixing](../SKILL.md#kimai-prefixing).
 
 #### Jira-Verknuepfung: `jira:<KEY>`-Tag
 

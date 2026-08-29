@@ -105,7 +105,7 @@ Rat, sondern als Ersetzung, die man freigeben oder ablehnen kann:
 
 Die Grenze nach unten: gekürzt wird der **Weg zur Aussage**, nie die Aussage.
 Bleiben müssen Behauptung, Folge und Beleg (das
-[Dichtegebot](#dichtegebot-behauptung-folge-beleg)) - ein Artikel, aus dem man
+[Dichtegebot](../SKILL.md#dichtegebot-behauptung-folge-beleg)) - ein Artikel, aus dem man
 den Prüfbefehl herausgekürzt hat, ist nicht dichter, sondern unbrauchbar.
 
 **Was dieser Durchgang nicht leistet:** er räumt keinen `LANG`-Befund ab.
@@ -148,7 +148,7 @@ Zeigt:
 - Offene Lint-Probleme (falls vorhanden)
 
 Bei einem **Remote-Wiki** die Quellen per SSH lesen (`ssh <host> "cat/grep …"`, siehe
-[Remote-Wikis](#remote-wikis-read-only)); Lint entfaellt (laeuft nur auf lokaler
+[Remote-Wikis](remote-wikis.md#remote-wikis-read-only)); Lint entfaellt (laeuft nur auf lokaler
 Kopie).
 
 ### handoff
@@ -166,7 +166,7 @@ lokales Wiki direkt `ingest`/`compile` nutzen.
 
 Workflow:
 1. Ziel-Wiki per SSH lesen (Baustein-1-Read, siehe
-   [Remote-Wikis](#remote-wikis-read-only)): `wiki-schema.json` (Pflichtfelder +
+   [Remote-Wikis](remote-wikis.md#remote-wikis-read-only)): `wiki-schema.json` (Pflichtfelder +
    erlaubte Typen) und `index.md`. Damit kennst du die exakte Zielform **und** ob die
    Entity schon existiert.
 2. Entity-Slug + Typ bestimmen. Existiert der Slug remote (via `index.md` bzw.

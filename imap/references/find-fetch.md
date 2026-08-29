@@ -76,6 +76,6 @@ Normalfall, kein Grund die uebrigen nicht zu holen.
 
 `BODY.PEEK` gilt unveraendert: auch ein Stapelabruf setzt `\Seen` nicht.
 
-Typische Faelle: Korpus-Aufbau fuer [mail-as-me](../mail-as-me/SKILL.md),
+Typische Faelle: Korpus-Aufbau fuer [mail-as-me](../../mail-as-me/SKILL.md),
 Header-Analysen ueber mehrere Mails (Zustellwege, SPF/DKIM), einen Thread am
 Stueck lesen, Export vor einer Migration.

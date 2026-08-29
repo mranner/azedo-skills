@@ -566,14 +566,17 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.49.2
+### 1.49.3
 
-- **`wiki`: `query` und `harvest` waren als Script-Aufruf dokumentiert.** Die
-  Uebersicht in `SKILL.md` zeigte `python3 "$SKILL_DIR/scripts/wiki" query …` -
-  diese Datei gibt es nicht, im Skill liegen nur `lint-wiki.py` und
-  `audit-wiki.py`. Beide Subcommands fuehrt das Modell selbst aus. Wer dem
-  Codeblock folgte, bekam `can't open file … : No such file or directory` und
-  damit einen Fehler an der Stelle, an der der Skill eigentlich seinen
-  haeufigsten Fall erklaert. Jetzt steht dort die Slash-Form plus der
-  ausdrueckliche Hinweis, dass es fuer `query`/`harvest` kein Script gibt und
-  der Ablauf in `references/subcommands.md` steht.
+- **Die Aufteilung in `references/` hat Querverweise gebrochen.** Beim Verschieben
+  in 1.48.0 sind Anker und relative Pfade stehen geblieben, wo sie standen. Zehn
+  Verweise zeigten auf Abschnitte, die inzwischen in einer anderen Datei liegen
+  (`#remote-wikis-read-only`, `#schreibregeln`, `#aufnahmefilter…`,
+  `#ziel-wiki-bestimmen`, `#dichtegebot…`, `#handoff`), und die beiden `@`-Zeiger
+  auf `compilation-guide.md` und `frontmatter-schemas.md` lösten aus
+  `references/` heraus auf `references/references/…` auf - damit waren die zwei
+  Dateien praktisch unauffindbar. Jetzt tragen alle Verweise den Dateinamen
+  (`remote-wikis.md#…`, `../SKILL.md#…`). Dieselbe Stelle in `kanboard`
+  (`task-inhalte.md` auf `#kimai-prefixing`) und der Verweis von
+  `imap/references/find-fetch.md` auf den `mail-as-me`-Skill (`../` statt
+  `../../`) sind mitkorrigiert.

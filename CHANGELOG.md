@@ -3,6 +3,21 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.49.3
+
+- **Die Aufteilung in `references/` hat Querverweise gebrochen.** Beim Verschieben
+  in 1.48.0 sind Anker und relative Pfade stehen geblieben, wo sie standen. Zehn
+  Verweise zeigten auf Abschnitte, die inzwischen in einer anderen Datei liegen
+  (`#remote-wikis-read-only`, `#schreibregeln`, `#aufnahmefilter…`,
+  `#ziel-wiki-bestimmen`, `#dichtegebot…`, `#handoff`), und die beiden `@`-Zeiger
+  auf `compilation-guide.md` und `frontmatter-schemas.md` lösten aus
+  `references/` heraus auf `references/references/…` auf - damit waren die zwei
+  Dateien praktisch unauffindbar. Jetzt tragen alle Verweise den Dateinamen
+  (`remote-wikis.md#…`, `../SKILL.md#…`). Dieselbe Stelle in `kanboard`
+  (`task-inhalte.md` auf `#kimai-prefixing`) und der Verweis von
+  `imap/references/find-fetch.md` auf den `mail-as-me`-Skill (`../` statt
+  `../../`) sind mitkorrigiert.
+
 ### 1.49.2
 
 - **`wiki`: `query` und `harvest` waren als Script-Aufruf dokumentiert.** Die
