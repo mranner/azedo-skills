@@ -3,6 +3,18 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.49.2
+
+- **`wiki`: `query` und `harvest` waren als Script-Aufruf dokumentiert.** Die
+  Uebersicht in `SKILL.md` zeigte `python3 "$SKILL_DIR/scripts/wiki" query …` -
+  diese Datei gibt es nicht, im Skill liegen nur `lint-wiki.py` und
+  `audit-wiki.py`. Beide Subcommands fuehrt das Modell selbst aus. Wer dem
+  Codeblock folgte, bekam `can't open file … : No such file or directory` und
+  damit einen Fehler an der Stelle, an der der Skill eigentlich seinen
+  haeufigsten Fall erklaert. Jetzt steht dort die Slash-Form plus der
+  ausdrueckliche Hinweis, dass es fuer `query`/`harvest` kein Script gibt und
+  der Ablauf in `references/subcommands.md` steht.
+
 ### 1.49.1
 
 - **`whoami` wird nur noch auf ausdrücklichen Aufruf geladen.** Die Beschreibung

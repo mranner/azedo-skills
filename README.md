@@ -566,12 +566,14 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.49.1
+### 1.49.2
 
-- **`whoami` wird nur noch auf ausdrücklichen Aufruf geladen.** Die Beschreibung
-  nannte bisher Beispielsätze wie "welche Session bist du" oder "gib mir deine
-  Adresse" und lud den Skill damit auch ungefragt. Das ist hier unerwünscht: der
-  Skill beantwortet eine Frage, die man stellt, wenn man sie stellen will. Die
-  Beispielsätze sind raus, stattdessen steht ausdrücklich drin, dass nur `/whoami`
-  triggert.
-
+- **`wiki`: `query` und `harvest` waren als Script-Aufruf dokumentiert.** Die
+  Uebersicht in `SKILL.md` zeigte `python3 "$SKILL_DIR/scripts/wiki" query …` -
+  diese Datei gibt es nicht, im Skill liegen nur `lint-wiki.py` und
+  `audit-wiki.py`. Beide Subcommands fuehrt das Modell selbst aus. Wer dem
+  Codeblock folgte, bekam `can't open file … : No such file or directory` und
+  damit einen Fehler an der Stelle, an der der Skill eigentlich seinen
+  haeufigsten Fall erklaert. Jetzt steht dort die Slash-Form plus der
+  ausdrueckliche Hinweis, dass es fuer `query`/`harvest` kein Script gibt und
+  der Ablauf in `references/subcommands.md` steht.

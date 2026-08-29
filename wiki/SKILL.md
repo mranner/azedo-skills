@@ -67,10 +67,16 @@ wikiuebergreifend.
 Haeufigster Fall ist `query` (nachschlagen) und `harvest` (Erkenntnisse aufnehmen -
 Kandidaten filtern, vorlegen, erst nach Freigabe schreiben):
 
-```bash
-python3 "$SKILL_DIR/scripts/wiki" query "<suchbegriff>"
-python3 "$SKILL_DIR/scripts/wiki" harvest
 ```
+/wiki query <frage>
+/wiki harvest [thema]
+```
+
+Beide fuehrt das Modell selbst aus, es gibt dafuer **kein Script**: `query` liest
+`index.md`, greppt Frontmatter und folgt Backlinks; `harvest` sammelt Kandidaten,
+schickt sie durch den Aufnahmefilter und legt sie vor. Der Ablauf steht in
+`references/subcommands.md`. Ein Script gibt es nur fuer `lint` und `audit`
+(`scripts/lint-wiki.py`, `scripts/audit-wiki.py`).
 
 Vollstaendige Referenz daneben, bei Bedarf lesen:
 
