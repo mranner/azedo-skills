@@ -3,6 +3,16 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.49.4
+
+- **README: Abschnitt „Skills umbauen".** Die beiden Fehlerarten aus 1.49.2 und
+  1.49.3 waren beide Folge desselben Umbaus (1.48.0) und beide still - kein
+  Fehler beim Laden, der Verweis lief erst im Einsatz ins Leere. Der Abschnitt
+  hält fest, was nach einer Aufteilung in `references/` zu prüfen ist: Anker auf
+  Dateiform umstellen, relative Pfade um eine Ebene korrigieren, Beispiele beim
+  Verdichten übernehmen statt neu formulieren. Dazu die vier Verweisarten für
+  den Nachlauf und die erwartbaren Fehlalarme.
+
 ### 1.49.3
 
 - **Die Aufteilung in `references/` hat Querverweise gebrochen.** Beim Verschieben

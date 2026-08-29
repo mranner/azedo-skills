@@ -38,6 +38,27 @@ Update nicht verfuegbar.
 Alle Skript-Shebangs verwenden `#!/usr/bin/env python3` (minor-version-
 unabhaengig); ein neuer Skill sollte das ebenso halten.
 
+## Skills umbauen
+
+Wird eine grosse `SKILL.md` in `references/` aufgeteilt, brechen relative
+Verweise still - kein Fehler beim Laden, das Modell folgt dem Verweis erst im
+Einsatz ins Leere:
+
+- **Anker** wie `[Abschnitt](#schreibregeln)` zeigen weiter auf die eigene
+  Datei, obwohl der Abschnitt jetzt in einer anderen liegt. Nach dem Verschieben
+  auf die Dateiform umstellen: `remote-wikis.md#…`, `../SKILL.md#…`.
+- **Relative Pfade** gewinnen oder verlieren eine Ebene: `@references/x.md` wird
+  aus `references/` heraus zu `@x.md`, `../anderer-skill/SKILL.md` zu
+  `../../anderer-skill/SKILL.md`.
+- **Beispiele beim Verdichten nicht neu formulieren**, sondern übernehmen oder
+  weglassen. In 1.48.0 entstand so ein Aufrufbeispiel
+  (`python3 "$SKILL_DIR/scripts/wiki" query …`) für ein Script, das es nie gab.
+
+Nach jedem Umbau alle `*.md` gegen die vier Verweisarten prüfen: Datei-Links,
+Anker, `@`-Includes und `$SKILL_DIR/`-Pfade. Platzhalter in Beispielen
+(`[Link](url)`, `@/pfad/zu/datei.md`) und zur Laufzeit angelegte Verzeichnisse
+(`$SKILL_DIR/.tmp/`) sind dabei erwartbare Fehlalarme.
+
 ## Skills
 
 ### kanboard
@@ -566,17 +587,12 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.49.3
+### 1.49.4
 
-- **Die Aufteilung in `references/` hat Querverweise gebrochen.** Beim Verschieben
-  in 1.48.0 sind Anker und relative Pfade stehen geblieben, wo sie standen. Zehn
-  Verweise zeigten auf Abschnitte, die inzwischen in einer anderen Datei liegen
-  (`#remote-wikis-read-only`, `#schreibregeln`, `#aufnahmefilter…`,
-  `#ziel-wiki-bestimmen`, `#dichtegebot…`, `#handoff`), und die beiden `@`-Zeiger
-  auf `compilation-guide.md` und `frontmatter-schemas.md` lösten aus
-  `references/` heraus auf `references/references/…` auf - damit waren die zwei
-  Dateien praktisch unauffindbar. Jetzt tragen alle Verweise den Dateinamen
-  (`remote-wikis.md#…`, `../SKILL.md#…`). Dieselbe Stelle in `kanboard`
-  (`task-inhalte.md` auf `#kimai-prefixing`) und der Verweis von
-  `imap/references/find-fetch.md` auf den `mail-as-me`-Skill (`../` statt
-  `../../`) sind mitkorrigiert.
+- **README: Abschnitt „Skills umbauen".** Die beiden Fehlerarten aus 1.49.2 und
+  1.49.3 waren beide Folge desselben Umbaus (1.48.0) und beide still - kein
+  Fehler beim Laden, der Verweis lief erst im Einsatz ins Leere. Der Abschnitt
+  hält fest, was nach einer Aufteilung in `references/` zu prüfen ist: Anker auf
+  Dateiform umstellen, relative Pfade um eine Ebene korrigieren, Beispiele beim
+  Verdichten übernehmen statt neu formulieren. Dazu die vier Verweisarten für
+  den Nachlauf und die erwartbaren Fehlalarme.
