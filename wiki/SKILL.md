@@ -15,6 +15,25 @@ description: >
 Verwaltet strukturierte Wiki-Entities in mehreren Wikis (IT-Infrastruktur- und
 Projekt-Dokumentation).
 
+Zwei Pfade sind auseinanderzuhalten und werden im Folgenden konsequent
+unterschieden:
+
+| Platzhalter | Was | Woher |
+|---|---|---|
+| `$SKILL_DIR` | Base Directory dieses Skills (dort wo diese SKILL.md liegt) | ueblicherweise unter `~/.claude/skills/wiki` -- der Skill ist **global** installiert, nicht im Projekt |
+| `<WIKI_ROOT>` | die Wiki-**Daten** | projekt-relativ, siehe [Ziel-Wiki bestimmen](#ziel-wiki-bestimmen) |
+
+Die Scripts des Skills werden immer ueber `$SKILL_DIR` aufgerufen, das Wiki
+selbst immer projekt-relativ:
+
+```
+python3 "$SKILL_DIR/scripts/lint-wiki.py" <WIKI_ROOT>
+```
+
+Ein Aufruf als `.claude/skills/wiki/scripts/…` (projekt-relativ) scheitert mit
+`No such file or directory` -- und sieht damit aus wie ein fehlendes Script,
+nicht wie ein falscher Pfad.
+
 ## Ziel-Wiki bestimmen
 
 Alle Subcommands nehmen optional einen Wiki-Namen als Praefix an:
@@ -43,7 +62,9 @@ Vor jeder Operation:
    (dem Arbeitsverzeichnis, in dem der Skill laeuft; dort liegen die Wikis unter
    `wiki/`). Analog zur Projekt-`CLAUDE.md`, die das Wiki als `wiki/azedo/…`
    referenziert. Kein absoluter Home-Pfad — so bleibt der Skill portabel
-   (Mac, andere Mitarbeiter, anderer Checkout-Ort).
+   (Mac, andere Mitarbeiter, anderer Checkout-Ort). Das gilt den **Wiki-Daten**;
+   die Scripts des Skills liegen ausserhalb des Projekts und werden ueber
+   `$SKILL_DIR` angesprochen (siehe oben).
 3. Ziel aufloesen — in dieser Reihenfolge:
    a. `WIKI_ROOT` existiert lokal → **lokales Wiki** (wie gehabt, weiter mit Schritt 4).
    b. Lokal nicht vorhanden, aber `<name>` steht in `.claude/wiki-remotes.json`
@@ -75,8 +96,9 @@ Kandidaten filtern, vorlegen, erst nach Freigabe schreiben):
 Beide fuehrt das Modell selbst aus, es gibt dafuer **kein Script**: `query` liest
 `index.md`, greppt Frontmatter und folgt Backlinks; `harvest` sammelt Kandidaten,
 schickt sie durch den Aufnahmefilter und legt sie vor. Der Ablauf steht in
-`references/subcommands.md`. Ein Script gibt es nur fuer `lint` und `audit`
-(`scripts/lint-wiki.py`, `scripts/audit-wiki.py`).
+`references/subcommands.md`. Ein Script gibt es nur fuer `lint` und `audit`:
+`python3 "$SKILL_DIR/scripts/lint-wiki.py" <WIKI_ROOT>` und
+`python3 "$SKILL_DIR/scripts/audit-wiki.py" <WIKI_ROOT>`.
 
 Vollstaendige Referenz daneben, bei Bedarf lesen:
 

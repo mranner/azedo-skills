@@ -587,12 +587,21 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.49.4
+### 1.49.5
 
-- **README: Abschnitt „Skills umbauen".** Die beiden Fehlerarten aus 1.49.2 und
-  1.49.3 waren beide Folge desselben Umbaus (1.48.0) und beide still - kein
-  Fehler beim Laden, der Verweis lief erst im Einsatz ins Leere. Der Abschnitt
-  hält fest, was nach einer Aufteilung in `references/` zu prüfen ist: Anker auf
-  Dateiform umstellen, relative Pfade um eine Ebene korrigieren, Beispiele beim
-  Verdichten übernehmen statt neu formulieren. Dazu die vier Verweisarten für
-  den Nachlauf und die erwartbaren Fehlalarme.
+- **`wiki`: die Scripts waren nur ueber einen Pfad erreichbar, den die SKILL.md
+  nie nannte.** Die `references/` riefen `lint-wiki.py` und `audit-wiki.py`
+  bereits korrekt als `python3 "$SKILL_DIR/scripts/…"` auf, die SKILL.md selbst
+  fuehrte `$SKILL_DIR` aber nirgends ein und nannte die beiden Scripts als
+  nackte relative Pfade. Wer nur die SKILL.md gelesen hatte, loeste sie
+  projekt-relativ auf (`.claude/skills/wiki/scripts/…`) und bekam
+  `No such file or directory` -- was wie ein fehlendes Script aussieht, nicht
+  wie ein falscher Pfad. `wiki` war der einzige Skill mit Scripts und **null**
+  `$SKILL_DIR`-Erwaehnungen; die uebrigen 18 fuehren die Variable oben ein.
+  Jetzt steht auch hier eine Tabelle, die `$SKILL_DIR` (Skill, global
+  installiert) von `<WIKI_ROOT>` (Daten, projekt-relativ) trennt, samt der
+  Fehlermeldung, an der man den verwechselten Pfad erkennt.
+- **Verschaerft wurde die Verwechslung durch den WIKI_ROOT-Absatz**, der
+  „**relativ zum Projekt-Root** … kein absoluter Home-Pfad" einschaerft. Das
+  gilt den Wiki-Daten, liest sich aber wie eine Regel fuer den ganzen Skill --
+  der Absatz sagt jetzt dazu, dass die Scripts ausserhalb des Projekts liegen.
