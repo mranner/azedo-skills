@@ -343,6 +343,38 @@ python3 "$SKILL_DIR/mainwp" run mainwp/add-client-v1 --param name=Kundenname --p
 python3 "$SKILL_DIR/mainwp" run mainwp/update-site-v1 --param site_id_or_domain=169 --param client_id=2 --confirm
 ```
 
+### Site aus dem Dashboard entfernen
+
+Wird ein Auftritt stillgelegt oder abgebaut, gehoert die Site aus dem Dashboard
+heraus -- sonst steht sie dort dauerhaft als nicht erreichbar und faellt in jeder
+Auswertung als vermeintliche Luecke auf.
+
+```bash
+# ID bestaetigen -- das ist hier die Vorabkontrolle, nicht der Dry-Run
+python3 "$SKILL_DIR/mainwp" run mainwp/list-sites-v1 --param search=<name>
+
+python3 "$SKILL_DIR/mainwp" run mainwp/delete-site-v1 \
+  --param site_id_or_domain=<id> --confirm
+```
+
+Entfernt wird nur der Eintrag im Dashboard; die Site selbst und ihr
+`mainwp-child`-Plugin bleiben unveraendert.
+
+**Die API-eigene Vorschau ist bei dieser Ability nicht erreichbar.** Das Schema
+kennt zwar `dry_run`, aber beide Wege dorthin sind versperrt:
+
+| Aufruf | Ergebnis |
+|---|---|
+| `--param dry_run=true` (ohne `--confirm`) | Das Script blockt vorher: `'mainwp/delete-site-v1' is a destructive operation.` |
+| `--param dry_run=true --confirm` | `400 mainwp_invalid_input: Cannot specify both dry_run and confirm.` |
+| `--param dry_run=true --dry-run` | zeigt nur den **Request**, ruft die API nicht auf |
+
+`--dry-run` am Wrapper und `dry_run` im Schema sind zwei verschiedene Dinge, und
+die allgemeine Regel „vor destruktiven Operationen zuerst `--dry-run`" laeuft
+hier ins Leere. Ersatz ist die Kontrolle vorab: ID per `list-sites-v1` bestaetigen,
+dann loeschen. Dieselbe Sperre gilt fuer jede Ability, die `dry_run` im Schema
+fuehrt und zugleich als destruktiv markiert ist.
+
 ## API-Architektur
 
 MainWP hat **zwei separate APIs** mit unterschiedlicher Authentifizierung:
@@ -361,7 +393,9 @@ den Defaults. `--param` gehoert an den Wrapper.
 
 ## Sicherheitshinweise
 
-- Vor destruktiven Operationen IMMER zuerst `--dry-run` verwenden.
+- Vor destruktiven Operationen IMMER zuerst `--dry-run` verwenden. Ausnahme:
+  Abilities, die `dry_run` im Schema fuehren **und** destruktiv sind -- dort ist
+  keine Vorschau erreichbar, siehe „Site aus dem Dashboard entfernen".
 - Updates: Zuerst `info` pruefen, dann `--dry-run`, dann `--confirm`.
 - Batch-Updates: Ergebnis abwarten, Job-Status pruefen.
 - Nie mehrere destruktive Operationen blind hintereinander ausfuehren.

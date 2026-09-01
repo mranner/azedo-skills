@@ -587,21 +587,22 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.49.5
+### 1.49.6
 
-- **`wiki`: die Scripts waren nur ueber einen Pfad erreichbar, den die SKILL.md
-  nie nannte.** Die `references/` riefen `lint-wiki.py` und `audit-wiki.py`
-  bereits korrekt als `python3 "$SKILL_DIR/scripts/…"` auf, die SKILL.md selbst
-  fuehrte `$SKILL_DIR` aber nirgends ein und nannte die beiden Scripts als
-  nackte relative Pfade. Wer nur die SKILL.md gelesen hatte, loeste sie
-  projekt-relativ auf (`.claude/skills/wiki/scripts/…`) und bekam
-  `No such file or directory` -- was wie ein fehlendes Script aussieht, nicht
-  wie ein falscher Pfad. `wiki` war der einzige Skill mit Scripts und **null**
-  `$SKILL_DIR`-Erwaehnungen; die uebrigen 18 fuehren die Variable oben ein.
-  Jetzt steht auch hier eine Tabelle, die `$SKILL_DIR` (Skill, global
-  installiert) von `<WIKI_ROOT>` (Daten, projekt-relativ) trennt, samt der
-  Fehlermeldung, an der man den verwechselten Pfad erkennt.
-- **Verschaerft wurde die Verwechslung durch den WIKI_ROOT-Absatz**, der
-  „**relativ zum Projekt-Root** … kein absoluter Home-Pfad" einschaerft. Das
-  gilt den Wiki-Daten, liest sich aber wie eine Regel fuer den ganzen Skill --
-  der Absatz sagt jetzt dazu, dass die Scripts ausserhalb des Projekts liegen.
+- **`mainwp`: bei `delete-site-v1` gibt es keinen Dry-Run, obwohl das Schema
+  einen fuehrt.** Die Sicherheitsregel des Skills verlangt vor destruktiven
+  Operationen zuerst `--dry-run` -- genau dort ist sie nicht erfuellbar. Alle
+  drei Wege enden ohne Vorschau: ohne `--confirm` blockt das Script die als
+  destruktiv markierte Ability vorab, mit `--confirm` antwortet die API
+  `400 mainwp_invalid_input: Cannot specify both dry_run and confirm`, und
+  `--dry-run` am Wrapper zeigt nur den Request, ohne die API aufzurufen. Wer die
+  Regel woertlich befolgt, dreht sich zwischen zwei Fehlermeldungen im Kreis und
+  haelt am Ende die eigene Aufrufform fuer falsch. Der neue Abschnitt „Site aus
+  dem Dashboard entfernen" nennt stattdessen die Vorabkontrolle, die hier den
+  Dry-Run ersetzt: ID per `list-sites-v1 --param search=` bestaetigen, dann
+  loeschen. Die Sicherheitsregel traegt die Ausnahme jetzt selbst, weil
+  `--dry-run` (Wrapper) und `dry_run` (Schema) zwei verschiedene Dinge sind.
+- Ausserdem festgehalten, dass `delete-site-v1` nur den Dashboard-Eintrag
+  entfernt und die Site samt `mainwp-child` unangetastet laesst -- was beim
+  Stilllegen eines Auftritts der gewuenschte Umfang ist, beim Abbau aber nur
+  ein Schritt von mehreren.

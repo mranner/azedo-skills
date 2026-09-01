@@ -3,6 +3,26 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.49.6
+
+- **`mainwp`: bei `delete-site-v1` gibt es keinen Dry-Run, obwohl das Schema
+  einen fuehrt.** Die Sicherheitsregel des Skills verlangt vor destruktiven
+  Operationen zuerst `--dry-run` -- genau dort ist sie nicht erfuellbar. Alle
+  drei Wege enden ohne Vorschau: ohne `--confirm` blockt das Script die als
+  destruktiv markierte Ability vorab, mit `--confirm` antwortet die API
+  `400 mainwp_invalid_input: Cannot specify both dry_run and confirm`, und
+  `--dry-run` am Wrapper zeigt nur den Request, ohne die API aufzurufen. Wer die
+  Regel woertlich befolgt, dreht sich zwischen zwei Fehlermeldungen im Kreis und
+  haelt am Ende die eigene Aufrufform fuer falsch. Der neue Abschnitt „Site aus
+  dem Dashboard entfernen" nennt stattdessen die Vorabkontrolle, die hier den
+  Dry-Run ersetzt: ID per `list-sites-v1 --param search=` bestaetigen, dann
+  loeschen. Die Sicherheitsregel traegt die Ausnahme jetzt selbst, weil
+  `--dry-run` (Wrapper) und `dry_run` (Schema) zwei verschiedene Dinge sind.
+- Ausserdem festgehalten, dass `delete-site-v1` nur den Dashboard-Eintrag
+  entfernt und die Site samt `mainwp-child` unangetastet laesst -- was beim
+  Stilllegen eines Auftritts der gewuenschte Umfang ist, beim Abbau aber nur
+  ein Schritt von mehreren.
+
 ### 1.49.5
 
 - **`wiki`: die Scripts waren nur ueber einen Pfad erreichbar, den die SKILL.md
