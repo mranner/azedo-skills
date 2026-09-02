@@ -2,7 +2,7 @@
 
 # Kimai REST API helper
 # stdlib only, no pip dependencies
-# version 1.44.10
+# version 1.49.7
 
 import argparse
 import json
@@ -294,13 +294,35 @@ def cmd_get_timesheet(args):
 
 
 def cmd_create_timesheet(args):
+    # Same quarter-hour grid as `log`, enforced here rather than left to the
+    # caller: a start on an odd minute is inherited by every entry that anchors
+    # on this one's end. --end moves by the same delta so the duration survives
+    # the snap. --no-snap books the raw times.
+    begin_dt = parse_kimai_dt(args.begin)
+    snapped = ceil_quarter(begin_dt)
+    end_str = args.end
+    if not args.no_snap and snapped != begin_dt:
+        delta = snapped - begin_dt
+        if end_str:
+            end_str = (parse_kimai_dt(end_str) + delta).strftime("%Y-%m-%dT%H:%M:%S")
+        print(
+            f"Note: --begin {begin_dt.strftime('%H:%M')} snapped to "
+            f"{snapped.strftime('%H:%M')} (quarter-hour grid)"
+            + (f", --end to {parse_kimai_dt(end_str).strftime('%H:%M')}" if end_str else "")
+            + ". Pass --no-snap to book raw times.",
+            file=sys.stderr,
+        )
+        begin_str = snapped.strftime("%Y-%m-%dT%H:%M:%S")
+    else:
+        begin_str = args.begin
+
     data = {
-        "begin": args.begin,
+        "begin": begin_str,
         "project": int(args.project),
         "activity": int(args.activity),
     }
-    if args.end:
-        data["end"] = args.end
+    if end_str:
+        data["end"] = end_str
     if args.description:
         data["description"] = args.description
     if args.user:
@@ -1222,6 +1244,8 @@ def main():
     p = sub.add_parser("create-timesheet")
     p.add_argument("--begin", required=True, help="Start time (ISO datetime)")
     p.add_argument("--end", help="End time (ISO datetime, omit to start timer)")
+    p.add_argument("--no-snap", action="store_true",
+                   help="Book --begin/--end as given, without the quarter-hour grid")
     p.add_argument("--project", required=True, help="Project ID")
     p.add_argument("--activity", required=True, help="Activity ID")
     p.add_argument("--description", help="Description text")

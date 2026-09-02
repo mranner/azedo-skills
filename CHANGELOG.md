@@ -3,6 +3,28 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.49.7
+
+- **`kimai`: das Viertelstunden-Raster galt nur fuer `log`, `create-timesheet`
+  buchte die uebergebenen Rohzeiten.** Die Regel stand ausschliesslich in der
+  SKILL.md, und zwar erst in deren zweiter Haelfte - wer bis zur
+  Subcommand-Referenz las, bekam sie nicht zu sehen und buchte etwa 07:49-08:19
+  statt 08:00-08:30. Das Script rundet `--begin` jetzt selbst auf und verschiebt
+  ein gesetztes `--end` um dieselbe Differenz, sodass die Dauer erhalten bleibt;
+  die Verschiebung geht auf stderr, still passiert sie nie. Wichtig ist das
+  Aufrunden, weil der Anker der naechsten Buchung das Ende der vorherigen ist -
+  ein einziger krummer Eintrag versetzt sonst den Rest des Tages.
+- `--no-snap` bucht die Rohzeiten unveraendert, fuer den Fall, dass eine krumme
+  Zeit die richtige ist.
+- **Ausserdem umgebaut, weil die Regel vorher an der falschen Stelle stand:** Der
+  Befehlskatalog liegt jetzt in `references/timesheets.md`, `references/stammdaten.md`
+  und `references/import-hours.md`; die SKILL.md fuehrt stattdessen einen Abschnitt
+  „Zeitregeln" **vor** der Befehlsreferenz. Anker, Viertelstunden-Raster und
+  Overlap-Guard standen bis dahin doppelt - einmal beim `log`-Subcommand, einmal unter
+  „Hinweise" - und waren schon auseinandergelaufen. Jetzt eine Fassung, und sie steht
+  dort, wo sie gelesen wird, bevor der erste Befehl abgesetzt ist. Die SKILL.md schrumpft
+  damit von 313 auf 175 Zeilen (Progressive Disclosure, wie beim `kanboard`-Skill).
+
 ### 1.49.6
 
 - **`mainwp`: bei `delete-site-v1` gibt es keinen Dry-Run, obwohl das Schema
