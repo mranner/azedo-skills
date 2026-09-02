@@ -3,6 +3,19 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.49.8
+
+- **`kanboard`: vierte Sicherheitsregel - zustandsaendernde Subcommands einzeln
+  absetzen.** Aufgelaufen ist das an einer Befehlskette aus `add-comment`,
+  `move-task` und `close-task` in einem einzigen Shell-Aufruf: der Kommentar
+  scheiterte an einem falsch erinnerten Parameternamen, die beiden folgenden Aufrufe
+  liefen weiter, und der Task war geschlossen, bevor seine Begruendung darin stand.
+  Die bestehende Regel, `close-task` nur auf ausdruecklichen Wunsch auszufuehren,
+  setzt voraus, dass beim Schliessen stimmt, was vorher passiert sein sollte - eine
+  Kette, die ueber einen Fehlschlag hinweglaeuft, hebelt sie aus. Die Doku war
+  korrekt, der Parametername stand richtig in der Referenz; gefehlt hat die Regel,
+  vor dem Schliessen ueberhaupt hinzusehen.
+
 ### 1.49.7
 
 - **`kimai`: das Viertelstunden-Raster galt nur fuer `log`, `create-timesheet`

@@ -587,24 +587,11 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.49.7
+### 1.49.8
 
-- **`kimai`: das Viertelstunden-Raster galt nur fuer `log`, `create-timesheet`
-  buchte die uebergebenen Rohzeiten.** Die Regel stand ausschliesslich in der
-  SKILL.md, und zwar erst in deren zweiter Haelfte - wer bis zur
-  Subcommand-Referenz las, bekam sie nicht zu sehen und buchte etwa 07:49-08:19
-  statt 08:00-08:30. Das Script rundet `--begin` jetzt selbst auf und verschiebt
-  ein gesetztes `--end` um dieselbe Differenz, sodass die Dauer erhalten bleibt;
-  die Verschiebung geht auf stderr, still passiert sie nie. Wichtig ist das
-  Aufrunden, weil der Anker der naechsten Buchung das Ende der vorherigen ist -
-  ein einziger krummer Eintrag versetzt sonst den Rest des Tages.
-- `--no-snap` bucht die Rohzeiten unveraendert, fuer den Fall, dass eine krumme
-  Zeit die richtige ist.
-- **Ausserdem umgebaut, weil die Regel vorher an der falschen Stelle stand:** Der
-  Befehlskatalog liegt jetzt in `references/timesheets.md`, `references/stammdaten.md`
-  und `references/import-hours.md`; die SKILL.md fuehrt stattdessen einen Abschnitt
-  „Zeitregeln" **vor** der Befehlsreferenz. Anker, Viertelstunden-Raster und
-  Overlap-Guard standen bis dahin doppelt - einmal beim `log`-Subcommand, einmal unter
-  „Hinweise" - und waren schon auseinandergelaufen. Jetzt eine Fassung, und sie steht
-  dort, wo sie gelesen wird, bevor der erste Befehl abgesetzt ist. Die SKILL.md schrumpft
-  damit von 313 auf 175 Zeilen (Progressive Disclosure, wie beim `kanboard`-Skill).
+- **`kanboard`: vierte Sicherheitsregel - zustandsaendernde Subcommands einzeln
+  absetzen.** `move-task`, `close-task`, `remove-task` und `remove-project` gehoeren
+  nicht mit weiteren Subcommands in eine Shell-Befehlskette: schlaegt ein
+  vorangehender Aufruf fehl, laeuft die Kette weiter und der Task wird trotzdem
+  geschlossen - ohne den Kommentar, der die Begruendung tragen sollte.
+

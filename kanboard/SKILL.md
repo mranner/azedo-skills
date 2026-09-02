@@ -130,7 +130,7 @@ python3 "$SKILL_DIR/kanboard" my-tasks
 
 ## Sicherheitsregeln
 
-Diese drei Regeln gelten unabhaengig davon, welche Referenzdatei gelesen wurde:
+Diese vier Regeln gelten unabhaengig davon, welche Referenzdatei gelesen wurde:
 
 - **"Task erledigen" heisst `move-task --column erledigt`.** Tasks werden im
   Regelfall nur in der Spalte "erledigt" geschlossen. `close-task` nur
@@ -143,6 +143,14 @@ Diese drei Regeln gelten unabhaengig davon, welche Referenzdatei gelesen wurde:
   wird **nie** geloescht, nur weil er fertig ist.
 - **`remove-project --force` loescht die enthaltenen Tasks mit.** Ohne `--force`
   bricht es ab, solange Tasks im Projekt liegen.
+- **Zustandsaendernde Aufrufe einzeln absetzen.** `move-task`, `close-task`,
+  `remove-task` und `remove-project` gehoeren nicht mit weiteren Subcommands in eine
+  Shell-Befehlskette. Schlaegt ein vorangehender Aufruf fehl - ein falsch erinnerter
+  Parametername genuegt -, laeuft die Kette weiter und der Task wird trotzdem
+  geschlossen: die Begruendung, die der Kommentar davor tragen sollte, fehlt dann im
+  Task. Das Ergebnis eines Aufrufs pruefen, bevor der naechste folgt; die
+  Rueckfrage-Regel zu `close-task` traegt nur, wenn beim Schliessen auch stimmt, was
+  vorher passiert sein sollte.
 
 ## Workflow
 
