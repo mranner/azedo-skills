@@ -3,6 +3,19 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.49.10
+
+- **`handoff` auf den aktuellen Upstream-Stand nachgezogen** (`386d4ff` -> `6654f6b`).
+  Inhaltlich betrifft das eine Zeile: der Abschnitt „Empfohlene Skills" benennt jetzt,
+  fuer welche Skills der naechste Agent **das Skill-Tool aufrufen** soll, statt sie nur
+  vage zu „verwenden" - die schaerfere Formulierung sagt dem Nachfolger, was er
+  konkret tun soll. Fixes oder neue Faehigkeiten gab es upstream nicht.
+- **`agents/openai.yaml` bewusst ausgelassen.** Der Upstream legt sie als
+  Codex-Metadaten an, sie setzt aber `allow_implicit_invocation: false` - dieselbe
+  Einschraenkung, die das Entfernen von `disable-model-invocation` beim Vendorisieren
+  aufgehoben hat. Wer sie beim naechsten Sync mitnimmt, dreht die Anpassung
+  unbemerkt zurueck; im Herkunftsblock steht deshalb, dass die Datei fehlt und warum.
+
 ### 1.49.9
 
 - **`handoff`: die `description` im Frontmatter brach strikte YAML-Parser ab.** Sie

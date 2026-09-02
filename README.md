@@ -587,10 +587,9 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.49.9
+### 1.49.10
 
-- **`handoff`: die `description` im Frontmatter brach strikte YAML-Parser ab** - ein
-  unquotierter Plain-Scalar mit `Trigger: /handoff.` darin. Jetzt Block-Scalar
-  (`description: >`) wie in den uebrigen Skills. Claude Code parst tolerant, andere
-  Harnesses ueberspringen den Skill still und fallen auf eine alte Kopie zurueck.
-- Konvention in `CLAUDE.md` festgehalten.
+- **`handoff` auf den aktuellen Upstream-Stand nachgezogen** (`386d4ff` -> `6654f6b`):
+  „Empfohlene Skills" benennt jetzt, fuer welche Skills der naechste Agent das
+  Skill-Tool aufrufen soll. `agents/openai.yaml` bewusst ausgelassen - sie setzt
+  `allow_implicit_invocation: false` und wuerde eine azedo-Anpassung zurueckdrehen.

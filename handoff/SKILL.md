@@ -9,7 +9,7 @@ argument-hint: "Fokus/Slug der nächsten Session (optional)"
 
 Erstelle ein Übergabedokument auf Deutsch, das die aktuelle Konversation zusammenfasst, damit ein neuer Agent die Arbeit fortsetzen kann. Wohin es gehört, entscheidet der Abschnitt „Ablageort bestimmen" — je nach Lage der Task, ein bestehendes Dokument oder eine neue Datei im Projektverzeichnis.
 
-Füge einen Abschnitt „Empfohlene Skills" hinzu, der Skills vorschlägt, die der nächste Agent verwenden sollte.
+Füge einen Abschnitt „Empfohlene Skills" hinzu, der benennt, für welche Skills der nächste Agent das Skill-Tool aufrufen sollte.
 
 Dupliziere keine Inhalte, die bereits in anderen Artefakten erfasst sind (PRDs, Pläne, ADRs, Issues, Commits, Diffs). Verweise stattdessen per Pfad oder URL darauf.
 
@@ -81,7 +81,7 @@ Liegt der Handoff **im Handoff-Feld eines Tasks** statt als Datei (der Normalfal
 
 ## Herkunft & Lizenz
 
-Vendorisierter, angepasster Fork von [`mattpocock/skills`](https://github.com/mattpocock/skills/tree/main/skills/productivity/handoff) (Skill-Pfad `skills/productivity/handoff`), Stand Commit `386d4ff719a7c420ad1454232d0436b01f1b8c17`. Lizenz: MIT © 2026 Matt Pocock (siehe `LICENSE`).
+Vendorisierter, angepasster Fork von [`mattpocock/skills`](https://github.com/mattpocock/skills/tree/main/skills/productivity/handoff) (Skill-Pfad `skills/productivity/handoff`), Stand Commit `6654f6b60cd9d5be8b54c6fafe44346dabeb3b76`. Lizenz: MIT © 2026 Matt Pocock (siehe `LICENSE`).
 
 azedo-Anpassungen gegenüber dem Upstream:
 
@@ -91,5 +91,6 @@ azedo-Anpassungen gegenüber dem Upstream:
 - Abschnitt „Einlesen eines bestehenden Handoff-Dokuments" (Rekapitulieren, Rückfragen, nie eigenständig handeln) ergänzt
 - Abschnitt „Ablageort bestimmen" ergänzt: bei aktivem Kanboard-CR geht der Handoff in das Handoff-Feld des Tasks (TaskHandoff-Plugin + kanboard-Skill); trifft ein aktiver CR auf ein vorhandenes lokales Dokument, entscheidet der Benutzer zwischen Fortschreiben und Migrieren; ohne CR wird ein vorhandenes Dokument fortgeschrieben, sonst eine neue Datei angelegt
 - Frontmatter-Feld `disable-model-invocation: true` entfernt; `Trigger: /handoff.` in der `description` ergänzt
+- `agents/openai.yaml` (Upstream `697d4ce`) **nicht** übernommen: die Datei setzt `allow_implicit_invocation: false` und holte damit die Einschränkung zurück, die das Entfernen von `disable-model-invocation` gerade aufgehoben hat
 
 Updates aus dem Upstream werden bei Bedarf **manuell** abgeglichen (kein Auto-Sync).
