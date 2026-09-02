@@ -7,15 +7,21 @@ entwickelt und gepusht; die Arbeitsrechner holen den Stand per `git pull`.
 
 **Alles hier ist öffentlich lesbar — auch jede frühere Fassung über die
 Commit-Historie.** Ein nachträglich entfernter Wert bleibt abrufbar; Löschen im
-Arbeitsbaum ist kein Zurücknehmen. Deshalb gehören folgende Dinge **nie** in
-Skill-Dateien, Scripts, Beispiele, Kommentare, README oder Changelog:
+Arbeitsbaum ist kein Zurücknehmen.
+
+Der Prüfmaßstab sind **Kunden- und Mitarbeiterdaten**. Der eigene Firmenname und
+generische Funktionsadressen wie `claude@azedo.at` sind unkritisch und brauchen keine
+Bereinigung - wer sie ersetzt, ändert Text ohne Gewinn. Folgendes gehört dagegen **nie**
+in Skill-Dateien, Scripts, Beispiele, Kommentare, README oder Changelog:
 
 - **Kunden** — Namen, Domains, Hostnames, Projekt-/Ticket-Keys, wwwuser, Jail-Namen,
   Pfade, Details zu deren Sicherheitsarchitektur (SSO, MFA-Produkt, Zugangswege)
-- **Personen** — Klarnamen, Login-Namen, E-Mail-Adressen, accountIds, Aliase; eigene
-  wie fremde. Auch Vornamen in Beispieltexten
-- **Eigene Infrastruktur** — Hostnames, Jail- und Pfadstruktur, interne IPs,
-  Whitelists, welcher Host welchen Dienst trägt
+- **Personen** — Klarnamen, Login-Namen, personenbezogene E-Mail-Adressen, accountIds,
+  Aliase; eigene wie fremde. Auch Vornamen in Beispieltexten. Rollenadressen ohne
+  Personenbezug sind davon nicht betroffen
+- **Eigene Infrastruktur** — konkrete Hostnames, Jail- und Pfadstruktur, interne IPs,
+  Whitelists, welcher Host welchen Dienst trägt. Nicht gemeint ist der Firmenname als
+  solcher
 - **Credentials jeder Art** — Tokens, API-Keys, Passwörter, Pushover-User-Keys,
   Backup-Dateien mit eingebetteten Geheimnissen (z.B. SwOS-`.swb`)
 - **Konkrete Vorgangs-IDs** — Issue-Nummern, Kommentar-/Attachment-IDs
@@ -38,9 +44,16 @@ eine der genutzten Instanzen läuft auf Cloud" statt des Kundennamens).
 Vor jedem Push prüfen — die Muster, die in der Praxis durchgerutscht sind:
 
 ```bash
-rg -n -o '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}' -g '!.git' | grep -v example
-rg -n 'azedo|\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b' -g '!.git'
+git diff --stat @{u}..    # nur die eigenen Aenderungen pruefen, nicht die Historie
+rg -n -o '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}' -g '!.git' | grep -Ev 'example|@azedo\.at'
+rg -n '\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b' -g '!.git'
+rg -n -f ~/.claude/kundendomains.txt -g '!.git'    # Liste liegt ausserhalb des Repos
 ```
+
+Die Kundendomains stehen bewusst **nicht** hier - eine Liste im Repo waere selbst das
+Leck, das sie verhindern soll. Ohne die Datei entfaellt der dritte Lauf; dann die
+geaenderten Zeilen von Hand durchsehen. Gegriffen wird der eigene Diff: die Historie
+laesst sich ohnehin nicht mehr bereinigen, und ihre Treffer verdecken sonst die neuen.
 
 ## Release-Workflow
 
