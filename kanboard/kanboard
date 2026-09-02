@@ -2,7 +2,7 @@
 
 # Kanboard JSON-RPC 2.0 API helper
 # stdlib only, no pip dependencies
-# version 1.37.2
+# version 1.49.11
 
 import argparse
 import base64
@@ -313,7 +313,17 @@ def cmd_move_task(args):
 
     project_id = int(task["project_id"])
     if args.project:
-        project_id = resolve_project(args.project)
+        target_project_id = resolve_project(args.project)
+
+        # Liegt der Task noch im Ausgangsprojekt, verweigert Kanboard
+        # moveTaskPosition mit einem fremden project_id und liefert nur false.
+        # Der Projektwechsel gehoert zu move-project, also dorthin delegieren.
+
+        if target_project_id != project_id:
+            cmd_move_project(args)
+            return
+
+        project_id = target_project_id
 
     column_id = resolve_column(project_id, args.column)
     if args.swimlane:

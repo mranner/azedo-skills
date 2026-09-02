@@ -587,9 +587,9 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.49.10
+### 1.49.11
 
-- **`handoff` auf den aktuellen Upstream-Stand nachgezogen** (`386d4ff` -> `6654f6b`):
-  „Empfohlene Skills" benennt jetzt, fuer welche Skills der naechste Agent das
-  Skill-Tool aufrufen soll. `agents/openai.yaml` bewusst ausgelassen - sie setzt
-  `allow_implicit_invocation: false` und wuerde eine azedo-Anpassung zurueckdrehen.
+- **`kanboard move-task` mit fremdem `--project` scheitert nicht mehr still**: der
+  Aufruf wird intern an `move-project` delegiert, statt mit `{"success": false}`
+  und Exit-Code 0 zu enden. `SKILL.md` und `references/tasks.md` halten die
+  Abgrenzung `move-task` (Spalte) vs. `move-project` (Projekt) jetzt fest.

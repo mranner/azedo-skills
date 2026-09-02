@@ -3,6 +3,22 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.49.11
+
+- **`kanboard move-task` mit fremdem `--project` scheitert nicht mehr still.**
+  Kanboard fuehrt `moveTaskPosition` nicht ueber Projektgrenzen hinweg aus und
+  antwortet nur mit `false`; das Script gab daraufhin `{"success": false}` mit
+  Exit-Code 0 aus, ohne zu sagen, was fehlt. Weicht das aufgeloeste `--project`
+  vom Projekt des Tasks ab, delegiert `cmd_move_task()` jetzt an
+  `cmd_move_project()` - der Weg, der `moveTaskToProject` und das anschliessende
+  Setzen von Spalte/Swimlane samt Offen/Geschlossen-Status bereits korrekt macht.
+  Aufgefallen beim Verschieben eines Tasks von Corris nach CRIS: zwei stille
+  Fehlversuche, bevor `move-project` half.
+- **Abgrenzung in der Doku nachgetragen.** `SKILL.md` fuehrt `move-project` jetzt
+  bei den haeufigsten Aufrufen und sagt, dass `move-task` die Spalte innerhalb des
+  Projekts wechselt; `references/tasks.md` beschreibt die neue Umleitung und dass
+  die Ausgabe dann die von `move-project` ist.
+
 ### 1.49.10
 
 - **`handoff` auf den aktuellen Upstream-Stand nachgezogen** (`386d4ff` -> `6654f6b`).

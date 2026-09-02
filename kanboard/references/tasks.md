@@ -46,6 +46,11 @@ danach optional Spalte/Swimlane im Zielprojekt. Ohne `--column` landet der Task 
 der von Kanboard gewaehlten Standardspalte; ohne `--swimlane` in der ersten
 aktiven Swimlane des Zielprojekts.
 
+Nennt `move-task` ein `--project`, das vom Projekt des Tasks abweicht, delegiert es
+seit 1.49.11 intern an `move-project` — Kanboard wies `moveTaskPosition` in dem Fall
+mit einem blossen `false` ab, ohne zu sagen warum. Die Ausgabe ist dann die von
+`move-project` (mit `project_id`, ggf. `reclosed`).
+
 **Status-Erhaltung:** `moveTaskToProject` oeffnet geschlossene Tasks automatisch
 wieder (is_active 0 → 1). `move-project` faengt das ab und schliesst einen zuvor
 geschlossenen Task nach dem Move wieder (Feld `reclosed: true` in der Ausgabe) —

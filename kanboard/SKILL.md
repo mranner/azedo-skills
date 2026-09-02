@@ -121,12 +121,20 @@ python3 "$SKILL_DIR/kanboard" get-task <task_id>
 # Task erledigen -- Spalte wechseln, NICHT close-task (siehe Sicherheitsregeln)
 python3 "$SKILL_DIR/kanboard" move-task <task_id> --column erledigt
 
+# Task in ein anderes Projekt verschieben
+python3 "$SKILL_DIR/kanboard" move-project <task_id> --project <name|id> [--column <name>]
+
 # irgendwo suchen (Titel + Beschreibung + Kommentare)
 python3 "$SKILL_DIR/kanboard" search "<stichwort>" --all --in description,comment
 
 # eigene offene Tasks ueber alle Projekte
 python3 "$SKILL_DIR/kanboard" my-tasks
 ```
+
+`move-task` wechselt die **Spalte innerhalb** des Projekts, `move-project` das
+**Projekt**. Ein `move-task --project <fremdes Projekt>` wird intern an
+`move-project` weitergereicht, weil Kanboard den Positionswechsel ueber
+Projektgrenzen hinweg nicht ausfuehrt.
 
 ## Sicherheitsregeln
 
