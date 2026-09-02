@@ -3,6 +3,21 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.49.9
+
+- **`handoff`: die `description` im Frontmatter brach strikte YAML-Parser ab.** Sie
+  stand als unquotierter Plain-Scalar da und enthaelt `Trigger: /handoff.` - ein
+  Doppelpunkt mit folgendem Leerzeichen mitten im Wert, den ein strikter Parser als
+  verschachtelten Mapping-Key liest (`Nested mappings are not allowed in compact
+  mappings`). Claude Code parst tolerant und zeigte nichts; ein anderes Harness, das
+  dieselben Skills ueber `~/.agents/skills/` einbindet, uebersprang den Skill still
+  und fiel auf eine aeltere Kopie zurueck - der Fehler faellt also erst dort auf, wo
+  niemand ihn sucht. Jetzt Block-Scalar (`description: >`) wie in den uebrigen 30
+  Skills; `handoff` war als vendorisierter Fork der einzige Ausreisser. Ein Lauf ueber
+  alle SKILL.md bestaetigt: kein weiterer Skill betroffen.
+- Konvention in `CLAUDE.md` unter „Neuer Skill" festgehalten, damit der naechste Fork
+  nicht dieselbe Stelle trifft.
+
 ### 1.49.8
 
 - **`kanboard`: vierte Sicherheitsregel - zustandsaendernde Subcommands einzeln

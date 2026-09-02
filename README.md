@@ -587,11 +587,10 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.49.8
+### 1.49.9
 
-- **`kanboard`: vierte Sicherheitsregel - zustandsaendernde Subcommands einzeln
-  absetzen.** `move-task`, `close-task`, `remove-task` und `remove-project` gehoeren
-  nicht mit weiteren Subcommands in eine Shell-Befehlskette: schlaegt ein
-  vorangehender Aufruf fehl, laeuft die Kette weiter und der Task wird trotzdem
-  geschlossen - ohne den Kommentar, der die Begruendung tragen sollte.
-
+- **`handoff`: die `description` im Frontmatter brach strikte YAML-Parser ab** - ein
+  unquotierter Plain-Scalar mit `Trigger: /handoff.` darin. Jetzt Block-Scalar
+  (`description: >`) wie in den uebrigen Skills. Claude Code parst tolerant, andere
+  Harnesses ueberspringen den Skill still und fallen auf eine alte Kopie zurueck.
+- Konvention in `CLAUDE.md` festgehalten.

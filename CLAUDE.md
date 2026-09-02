@@ -69,6 +69,20 @@ Beispiel: `CR4426: swos - poe-voltage (poe.b i03) + gemeinsame Write-Basis (1.26
 
 ## Neuer Skill
 
+Die `description` im Frontmatter gehoert als Block-Scalar notiert:
+
+```yaml
+description: >
+  Was der Skill tut. Trigger: /beispiel.
+```
+
+Unquotiert bricht sie in jedem strikten YAML-Parser ab, sobald ein Doppelpunkt mit
+folgendem Leerzeichen im Text steht - und das tut er in jedem `Trigger: /name.`.
+Claude Code parst tolerant und zeigt den Fehler nicht; andere Harnesses, die
+dieselben Skills ueber `~/.agents/skills/` einbinden, ueberspringen den Skill
+stattdessen still und fallen auf eine alte Kopie zurueck. Der Fehler faellt damit
+erst dort auf, wo niemand ihn sucht.
+
 Beim Anlegen eines neuen Skills **`install.sh` mitpflegen**: die Skill-Liste dort ist
 hartcodiert. Fehlt der Name, bekommt eine frische Installation keinen Symlink und der
 Skill existiert für den Konsumenten nicht — auf einer Maschine, die ihn schon per
