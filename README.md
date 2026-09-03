@@ -608,6 +608,12 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
+### 1.51.2
+
+- **`sec-audit-transcripts`/`whoami`: redundanten Trigger-Text aus der Description
+  entfernt** - `disable-model-invocation: true` setzt bereits durchsetzend um, was
+  der Text nur beschrieb.
+
 ### 1.51.1
 
 - **`sec-audit-transcripts apply` akzeptiert jetzt auch Mustertreffer**: bisher

@@ -3,6 +3,14 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.51.2
+
+- **`sec-audit-transcripts`/`whoami`: redundanten Trigger-Text aus der Description
+  entfernt.** `disable-model-invocation: true` im Frontmatter setzt bereits
+  durchsetzend um, was der Text ("NUR auf ausdruecklichen Aufruf laden ...")
+  nur beschrieb - das Flag entfernt den Skill komplett aus dem Kontext des
+  Modells, die Description wird bei gesetztem Flag gar nicht erst geladen.
+
 ### 1.51.1
 
 - **`sec-audit-transcripts apply` akzeptiert jetzt auch Mustertreffer.** Bisher

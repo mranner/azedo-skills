@@ -4,9 +4,6 @@ description: >
   Gibt aus, welche Claude-Session hier läuft: Name, Arbeitsverzeichnis und vor
   allem die bridge-Session-ID - die einzige stabile Adresse, unter der diese
   Session von einer anderen Maschine aus per SendMessage erreichbar ist.
-  NUR auf ausdrücklichen Aufruf von /whoami laden. Nicht von selbst laden, auch
-  nicht bei Fragen nach Session, Session-ID, Adresse oder Erreichbarkeit.
-  Trigger: ausschließlich /whoami.
 allowed-tools: [Bash]
 disable-model-invocation: true
 ---
