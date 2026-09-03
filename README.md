@@ -210,7 +210,7 @@ Envato Market API (ThemeForest, CodeCanyon). Unterstützt:
 ENVATO_TOKEN=dein-personal-token
 ```
 
-**Trigger:** `/envato` oder natürliche Sprache wie "lade das Theme herunter", "zeig meine Envato-Käufe".
+**Trigger:** ausschließlich `/envato` (`disable-model-invocation: true`).
 
 ### google-analytics
 
@@ -363,7 +363,7 @@ Synchronisiert WordPress-Plugins und -Themes zwischen Produktions-Installationen
 - Permissions: DEV immer `www:<gruppe>` 775/664, Prod an bestehender Installation orientieren
 - Aufraeumen von macOS-Artefakten (._*, .DS*)
 
-**Trigger:** `/wp-sync-dev` oder natuerliche Sprache wie "sync plugin", "plugin von prod holen", "theme auf dev kopieren".
+**Trigger:** ausschließlich `/wp-sync-dev` (`disable-model-invocation: true`).
 
 ### mainwp
 
@@ -551,7 +551,7 @@ Credentials in `.env`: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` (Auffindung wie 
 
 **Voraussetzungen:** Python >= 3.11, Bot-Token von BotFather. FreeBSD: `pkg install python311 ca_root_nss`.
 
-**Trigger:** `/telegram` oder natuerliche Sprache wie "schick mir das per Telegram", "Alert nach Telegram", "Post-Update-Status per Telegram melden".
+**Trigger:** ausschließlich `/telegram` (`disable-model-invocation: true`).
 
 ### privatebin
 
@@ -607,6 +607,11 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 ## Changelog
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
+
+### 1.51.3
+
+- **`wp-sync-dev`/`telegram`/`envato`: `disable-model-invocation: true` gesetzt**,
+  nur noch per explizitem Slash-Kommando ladbar.
 
 ### 1.51.2
 

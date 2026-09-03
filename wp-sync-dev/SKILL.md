@@ -4,8 +4,8 @@ description: >
   Synchronisiert WordPress-Plugins und -Themes zwischen Produktions-Installationen
   (in FreeBSD-Jails) und der DEV-Umgebung via rsync.
   Bidirektional: Prod → DEV und DEV → Prod.
-  Trigger: /wp-sync-dev, "sync plugin", "plugin von prod holen", "theme auf dev kopieren",
-  "plugin auf prod deployen"
+  Trigger: /wp-sync-dev.
+disable-model-invocation: true
 ---
 
 # wp-sync-dev – WordPress Plugin/Theme Sync

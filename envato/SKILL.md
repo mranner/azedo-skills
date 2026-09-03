@@ -2,10 +2,9 @@
 name: envato
 description: >
   Envato Market (ThemeForest, CodeCanyon): Kaeufe auflisten, Items
-  herunterladen, Kaufdetails anzeigen. Nutze diesen Skill wenn der User
-  ein Theme oder Plugin von ThemeForest/CodeCanyon herunterladen, Kaeufe
-  durchsuchen oder Kaufdetails abrufen will.
+  herunterladen, Kaufdetails anzeigen.
   Trigger: /envato.
+disable-model-invocation: true
 ---
 
 # envato -- Envato Market (ThemeForest, CodeCanyon)

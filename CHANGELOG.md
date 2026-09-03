@@ -3,6 +3,13 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.51.3
+
+- **`wp-sync-dev`/`telegram`/`envato`: `disable-model-invocation: true` gesetzt**,
+  Natursprache-Trigger-Beispiele aus der Description entfernt. Alle drei
+  lassen sich ab jetzt nur noch per explizitem `/wp-sync-dev`, `/telegram`
+  bzw. `/envato` laden, nicht mehr ueber die Description vom Modell selbst.
+
 ### 1.51.2
 
 - **`sec-audit-transcripts`/`whoami`: redundanten Trigger-Text aus der Description

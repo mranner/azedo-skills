@@ -3,10 +3,9 @@ name: telegram
 description: >
   Telegram-Bot: sendet Nachrichten in einen Chat, aus Claude Code, Loops und
   cron-Jobs - und kann als einziger der Melde-Skills auf eine Antwort warten
-  (Long-Poll), etwa um unterwegs eine Freigabe einzuholen. Auch bei "schick
-  mir das per Telegram", "Alert nach Telegram", "frag mich per Telegram",
-  "warte auf meine Telegram-Anweisung".
+  (Long-Poll), etwa um unterwegs eine Freigabe einzuholen.
   Trigger: /telegram.
+disable-model-invocation: true
 ---
 
 # telegram -- Telegram-Bot (outbound-first)
