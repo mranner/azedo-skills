@@ -587,9 +587,12 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.49.11
+### 1.49.12
 
-- **`kanboard move-task` mit fremdem `--project` scheitert nicht mehr still**: der
-  Aufruf wird intern an `move-project` delegiert, statt mit `{"success": false}`
-  und Exit-Code 0 zu enden. `SKILL.md` und `references/tasks.md` halten die
-  Abgrenzung `move-task` (Spalte) vs. `move-project` (Projekt) jetzt fest.
+- **`wiki`: Vollstaendigkeit als Gegengewicht zu den Kuerzungsregeln**: der neue
+  Unterabschnitt „Kuerzen heisst Woerter streichen, nicht Sachverhalte" haelt
+  fest, dass Bedingung, Sonderfall und Folge vollstaendig im Artikel stehen,
+  sobald der Aufnahmefilter den Sachverhalt durchgelassen hat.
+- **Interne Personennamen in den Aufnahmefilter**: neben Kundendaten sind auch
+  Namen einzelner Mitarbeiter (Kanboard-/CRIS-Usernamen) nicht aufzunehmen, wo
+  eine Rolle oder eine Datensatz-ID den Beleg genauso traegt.

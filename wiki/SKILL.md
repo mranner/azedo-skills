@@ -131,8 +131,10 @@ Vier Fragen, **alle** müssen mit Ja beantwortet sein:
    von hier verlinken - nicht zweitschreiben.
 
 Grundsätzlich **nicht** aufgenommen: transiente Fehler (Build, Netz,
-Paketquelle), persönliche Vorlieben und Arbeitsweisen, Kundendaten, und der
-Vorgang selbst statt seines Ergebnisses - der steht im Ticket.
+Paketquelle), persönliche Vorlieben und Arbeitsweisen, Kundendaten, Namen
+einzelner Mitarbeiter (auch Kanboard- oder CRIS-Usernamen) dort, wo eine Rolle
+oder eine Datensatz-ID den Beleg genauso trägt, und der Vorgang selbst statt
+seines Ergebnisses - der steht im Ticket.
 
 Im Zweifel **fragen statt aufnehmen**. Ein zu voller Artikel kostet jeden
 späteren Leser Zeit; eine fehlende Erkenntnis kostet einmal eine Rückfrage.
@@ -160,6 +162,15 @@ Dicht:    "Z gilt, nicht X. Folge: <Konsequenz>.
 - **Kein Datum in einer Überschrift.** Wer „Umbau 2026-08-15" oder „Stand
   <Datum>" als Überschrift braucht, schreibt gerade ein Logbuch statt eines
   Artikels. Ein Datum im Fliesstext („seit 2026-08-15") ist in Ordnung.
+
+### Kürzen heisst Wörter streichen, nicht Sachverhalte
+
+Knapp ist der Artikel in der Formulierung, nicht im Inhalt: Bedingung, Sonderfall
+und Folge gehören vollständig hinein. Wer eine davon weglässt, macht den Artikel
+nicht dichter, sondern falsch - und die Lücke ist dem Leser nicht anzusehen.
+
+Der Aufnahmefilter entscheidet, **ob** ein Sachverhalt in den Artikel kommt.
+Ist er drin, steht er ganz da.
 
 ### Aktualisieren heisst ersetzen
 

@@ -1,0 +1,5 @@
+{
+  "extra_sources": ["~/projekt/.env"],
+  "extra_targets": ["~/eigene-ablage"],
+  "extra_perm_files": ["~/projekt/.env"]
+}

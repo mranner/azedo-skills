@@ -3,6 +3,20 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.49.12
+
+- **`wiki`: Vollstaendigkeit als Gegengewicht zu den Kuerzungsregeln.** Die
+  Schreibregeln zogen alle in eine Richtung - filtern, kuerzen, ersetzen -, und
+  ein Artikel, der nur das halbe Verfahren beschreibt, verstiess gegen keine
+  davon. Der neue Unterabschnitt „Kuerzen heisst Woerter streichen, nicht
+  Sachverhalte" haelt fest, dass Bedingung, Sonderfall und Folge vollstaendig
+  hineingehoeren, sobald der Aufnahmefilter den Sachverhalt durchgelassen hat.
+- **Interne Personennamen in den Aufnahmefilter.** Die Liste „Grundsaetzlich
+  nicht aufgenommen" nannte Kundendaten, aber nicht die Kanboard-/CRIS-Usernamen
+  von Kolleginnen und Kollegen. Aufgefallen beim Anlegen von
+  `wiki/cris/wiki/modules/verwarnungen-penaltycard.md`: zwei Innendienst-Usernamen
+  standen als Beleg im Body, obwohl die Kartennummern denselben Zweck erfuellen.
+
 ### 1.49.11
 
 - **`kanboard move-task` mit fremdem `--project` scheitert nicht mehr still.**

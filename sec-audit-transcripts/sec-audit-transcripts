@@ -1,0 +1,820 @@
+#!/usr/bin/env python3
+"""sec-audit-transcripts - sucht Geheimnisse in den Ablagen von Claude Code.
+
+Reine Erkennung plus zwei getrennte Wege der Bereinigung:
+
+  * Kategorie A (fix-perms)  - idempotent, laeuft in der Session
+  * Kategorie C (apply)      - loescht, laeuft NUR bei beendetem Claude Code
+
+Der Report nennt nie einen Geheimniswert - nur Label, Fundstelle und einen
+HMAC-Kurzhash. Ein Report im Klartext waere die naechste Leckage.
+"""
+
+import argparse
+import hashlib
+import hmac
+import json
+import os
+import re
+import subprocess
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+from urllib.parse import urlsplit
+
+VERSION = '1.50.0'
+
+HOME = Path.home()
+STATE_DIR = HOME / '.claude/sec-audit-transcripts'
+STATE_FILE = STATE_DIR / 'state.json'
+SALT_FILE = STATE_DIR / 'salt'
+CONFIG_FILE = HOME / '.claude/sec-audit-transcripts.json'
+
+# Untergrenzen gestaffelt nach Quelle: ein ausdrueckliches Passwortfeld ist auch
+# mit 6 Zeichen ein Geheimnis, ein generischer .env-Wert darunter meist nicht.
+
+MIN_EXPLICIT = 4
+MIN_GENERIC = 8
+SHORT = 12
+
+TRIVIAL = {'true', 'false', 'yes', 'no', 'none', 'null', 'localhost', 'changeme'}
+
+DEFAULT_SOURCES = [
+    '~/.muttrc',
+    '~/.env',
+    '~/.claude/*.json',
+    '~/.ssh/id_*',
+]
+
+DEFAULT_TARGETS = [
+    '~/.claude/projects',
+    '~/.claude/history.jsonl',
+    '~/.claude/file-history',
+    '~/.claude/shell-snapshots',
+    '~/.claude/paste-cache',
+    '~/.claude/session-env',
+    '~/.claude/sessions',
+    '~/.claude/plans',
+    '~/.claude/backups',
+    '~/.claude/cache',
+    '~/.claude/feedback',
+    '~/.claude/todos',
+    '/tmp/claude-*',
+]
+
+# Mustersuche fuer Fremdgeheimnisse - findet, was in keiner lokalen Quelle steht,
+# und produziert dafuer Fehlalarme. Getrennt ausgewiesen, eigener Exit-Code.
+
+PATTERNS = [
+    ('anthropic-key', re.compile(r'sk-ant-[A-Za-z0-9_\-]{20,}')),
+    ('openai-key', re.compile(r'sk-[A-Za-z0-9]{32,}')),
+    ('github-pat', re.compile(r'gh[pousr]_[A-Za-z0-9]{30,}')),
+    ('aws-access-key', re.compile(r'AKIA[0-9A-Z]{16}')),
+    ('slack-token', re.compile(r'xox[abposr]-[A-Za-z0-9-]{10,}')),
+    ('google-api-key', re.compile(r'AIza[0-9A-Za-z_\-]{35}')),
+    ('private-key-block', re.compile(r'-----BEGIN [A-Z ]*PRIVATE KEY-----')),
+    ('jwt', re.compile(r'eyJ[A-Za-z0-9_\-]{10,}\.eyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}')),
+    ('assignment', re.compile(
+        r'(?i)(?:password|passwd|secret|api[_\-]?key|token)["\']?\s*[:=]\s*["\']([^"\'\s]{8,})')),
+]
+
+# Muster, die in den Ablagen massenhaft und harmlos vorkommen - sonst besteht der
+# Report aus Konfigurationsbeispielen und niemand liest ihn.
+
+PATTERN_NOISE = re.compile(
+    r'(?i)(<[a-z_-]+>|\byour[_\-]|\bexample\b|\bplaceholder\b|\bredacted\b|'
+    r'\bdummy\b|\bxxx+\b|\*{3,}|\bchangeme\b|\benv\.|\bos\.environ\b)')
+
+
+def now():
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+
+
+def rel(p):
+    s = str(p)
+    h = str(HOME)
+    return '~' + s[len(h):] if s.startswith(h) else s
+
+
+def load_config():
+    if not CONFIG_FILE.exists():
+        return {}
+    try:
+        return json.loads(CONFIG_FILE.read_text())
+    except Exception as exc:
+        die('Config %s ist kein gueltiges JSON: %s' % (rel(CONFIG_FILE), exc))
+
+
+def die(msg):
+    print('FEHLER: %s' % msg, file=sys.stderr)
+    sys.exit(3)
+
+
+def expand(patterns):
+    out = []
+    for pat in patterns:
+        p = pat.replace('~', str(HOME), 1) if pat.startswith('~') else pat
+        if any(c in p for c in '*?['):
+            base = Path(p)
+            out.extend(sorted(Path('/').glob(str(base.relative_to('/')))))
+        else:
+            out.append(Path(p))
+    return out
+
+
+# ---------------------------------------------------------------- Quellen
+
+class Secrets:
+    """Haelt die bekannten Geheimniswerte - nur im Speicher, nie auf Platte."""
+
+    def __init__(self):
+        self.items = {}
+        self.errors = []
+
+    def add(self, label, value, explicit=False):
+        v = (value or '').strip().strip('"\'')
+        floor = MIN_EXPLICIT if explicit else MIN_GENERIC
+
+        # Variablenreferenzen sind keine Werte, und Platzhalter suchen wir nicht.
+
+        if len(v) < floor or v.lower() in TRIVIAL or v.startswith('$'):
+            return
+        e = self.items.setdefault(v, {'labels': set(), 'explicit': False})
+        e['labels'].add(label)
+        e['explicit'] = e['explicit'] or explicit
+
+    def add_url(self, label, value):
+
+        # smtp_url/imap_url tragen das Passwort in der Userinfo - beides aufnehmen:
+        # die URL als Ganzes und das Passwort einzeln.
+
+        v = (value or '').strip().strip('"\'')
+        try:
+            pw = urlsplit(v).password
+        except ValueError:
+            pw = None
+        if pw:
+            self.add(label + ':password', pw, explicit=True)
+            self.add(label, v, explicit=True)
+
+    def load(self, paths):
+        for p in paths:
+            if not p.is_file():
+                continue
+            try:
+                if p.suffix == '.json':
+                    self._load_json(p)
+                elif p.name.startswith('id_') and not p.name.endswith('.pub'):
+                    self._load_key(p)
+                elif p.name.endswith('rc'):
+                    self._load_rc(p)
+                else:
+                    self._load_env(p)
+            except Exception as exc:
+                self.errors.append('%s: %s' % (rel(p), exc))
+
+    def _load_rc(self, p):
+        for line in p.read_text(errors='replace').splitlines():
+            m = re.match(r'\s*set\s+([a-zA-Z_]+)\s*=\s*(.+)', line)
+            if not m:
+                continue
+            key, val = m.group(1), m.group(2)
+            if key.endswith('_url'):
+                self.add_url('%s:%s' % (rel(p), key), val)
+            elif re.search(r'pass|secret', key, re.I):
+                self.add('%s:%s' % (rel(p), key), val, explicit=True)
+
+    def _load_env(self, p):
+        for line in p.read_text(errors='replace').splitlines():
+            m = re.match(r'\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)', line)
+            if not m:
+                continue
+            key, val = m.group(1), m.group(2)
+            if re.search(r'PASS|SECRET', key, re.I):
+                self.add('%s:%s' % (rel(p), key), val, explicit=True)
+            elif re.search(r'TOKEN|KEY|API', key, re.I):
+                self.add('%s:%s' % (rel(p), key), val)
+
+    def _load_json(self, p):
+        data = json.loads(p.read_text())
+
+        def walk(o, path=''):
+            if isinstance(o, dict):
+                for k, v in o.items():
+                    walk(v, ('%s.%s' % (path, k)) if path else k)
+            elif isinstance(o, list):
+                for v in o:
+                    walk(v, path)
+            elif isinstance(o, str):
+
+                # Nur der letzte Pfadabschnitt zaehlt: sonst erbt jeder Wert unter
+                # einem Schluessel wie "dailyModelTokens" dessen "token" und die
+                # Datumsangaben darunter landen im Suchsatz.
+
+                leaf = path.rsplit('.', 1)[-1]
+                if re.search(r'pass|secret', leaf, re.I):
+                    self.add('%s:%s' % (p.name, path), o, explicit=True)
+                elif re.search(r'token|key|api', leaf, re.I):
+                    self.add('%s:%s' % (p.name, path), o)
+
+        walk(data)
+
+    def _load_key(self, p):
+        body = ''.join(l.strip() for l in p.read_text(errors='replace').splitlines()
+                       if 'PRIVATE KEY' not in l)
+        if len(body) > 40:
+            self.add(rel(p), body[:60], explicit=True)
+
+
+# ---------------------------------------------------------------- Zustand
+
+def salt():
+
+    # HMAC statt nacktem Hash: ein plain sha256 eines kurzen Passworts waere per
+    # Wortliste rueckrechenbar - die Zustandsdatei selbst waere dann das Ziel.
+
+    if not SALT_FILE.exists():
+        STATE_DIR.mkdir(parents=True, exist_ok=True)
+        STATE_DIR.chmod(0o700)
+        SALT_FILE.write_bytes(os.urandom(32))
+        SALT_FILE.chmod(0o600)
+    return SALT_FILE.read_bytes()
+
+
+def secret_id(value, key):
+    return 'hmac:' + hmac.new(key, value.encode(), hashlib.sha256).hexdigest()[:8]
+
+
+def fingerprint(where, locator, sid):
+    return hashlib.sha256(('%s|%s|%s' % (where, locator, sid)).encode()).hexdigest()[:12]
+
+
+def load_state():
+    if not STATE_FILE.exists():
+        return {'version': 1, 'acked': {}}
+    try:
+        return json.loads(STATE_FILE.read_text())
+    except Exception as exc:
+        die('Zustandsdatei %s unlesbar: %s' % (rel(STATE_FILE), exc))
+
+
+def save_state(state):
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+    STATE_DIR.chmod(0o700)
+    tmp = STATE_FILE.with_suffix('.tmp')
+    tmp.write_text(json.dumps(state, indent=2, ensure_ascii=False) + '\n')
+    tmp.chmod(0o600)
+    tmp.replace(STATE_FILE)
+
+
+# ---------------------------------------------------------------- Scan
+
+def walk_files(targets):
+    for t in targets:
+        if t.is_file():
+            yield t
+        elif t.is_dir():
+            for root, _, names in os.walk(t):
+                for n in names:
+                    yield Path(root) / n
+
+
+def iso(ts):
+    if isinstance(ts, str):
+        return ts
+    if isinstance(ts, (int, float)):
+        return datetime.fromtimestamp(ts / 1000, timezone.utc).isoformat(timespec='seconds')
+    return None
+
+
+def describe(line, needle):
+
+    # Rolle kommt aus dem Content-Block, nicht aus message.role: ein tool_result
+    # steckt in einer user-Zeile und waere sonst als "user" ausgewiesen.
+
+    out = {'event_type': None, 'role': None, 'tool': None, 'timestamp': None, 'uuid': None}
+    try:
+        o = json.loads(line)
+    except Exception:
+        return out
+    if not isinstance(o, dict):
+        return out
+    out['event_type'] = o.get('type')
+    out['timestamp'] = iso(o.get('timestamp'))
+    out['uuid'] = o.get('uuid')
+    msg = o.get('message')
+    if isinstance(msg, dict):
+        out['role'] = msg.get('role')
+        content = msg.get('content')
+        if isinstance(content, list):
+            for b in content:
+                if isinstance(b, dict) and needle in json.dumps(b, ensure_ascii=False):
+                    out['role'] = b.get('type') or out['role']
+                    out['tool'] = b.get('name')
+    elif 'display' in o:
+        out['event_type'] = 'prompt-history'
+        out['role'] = 'user'
+    return out
+
+
+def mask(value):
+    v = value.strip()
+    if len(v) <= 4:
+        return '***'
+    return v[:2] + '***' + v[-1]
+
+
+def window(line, value, width=36):
+    """Umfeld eines Treffers, mit dem Wert selbst geschwaerzt.
+
+    Ohne Umfeld laesst sich ein kurzer Treffer nicht bewerten: 18-mal dieselbe
+    Zeichenfolge kann ein echtes Leck sein oder ein zufaelliges Wort. Der Wert
+    wird in jedem Vorkommen ersetzt, auch wenn er im Fenster mehrfach steht.
+    """
+    i = line.find(value)
+    if i < 0:
+        return None
+    start = max(0, i - width)
+    end = min(len(line), i + len(value) + width)
+    snippet = line[start:end].replace(value, '[***]')
+    snippet = re.sub(r'\s+', ' ', snippet).strip()
+    return ('…' if start else '') + snippet + ('…' if end < len(line) else '')
+
+
+def scan(secrets, targets, key, with_patterns=True, with_context=False):
+    findings = []
+    seen = set()
+    errors = list(secrets.errors)
+    scanned = 0
+
+    def keep(f):
+
+        # Derselbe Wert kann in einer Zeile mehrfach stehen - der Fingerprint ist
+        # dann identisch und die Fundstelle stuende doppelt im Report.
+
+        if f['fingerprint'] in seen:
+            return
+        seen.add(f['fingerprint'])
+        findings.append(f)
+
+    for f in walk_files(targets):
+
+        # Tote Symlinks gibt es in den Scratchpads massenhaft - sie als Fehler zu
+        # melden faerbt jeden Lauf rot und verdeckt die echten Lesefehler.
+
+        if not f.is_file():
+            continue
+        try:
+            data = f.read_text(errors='replace')
+        except Exception as exc:
+            errors.append('%s: %s' % (rel(f), exc))
+            continue
+        scanned += 1
+
+        # Erst grob ueber die ganze Datei, damit der teure Zeilendurchlauf nur
+        # dort laeuft, wo ueberhaupt etwas zu finden ist.
+
+        present = [(v, e) for v, e in secrets.items.items() if v in data]
+        patterned = with_patterns and any(rx.search(data) for _, rx in PATTERNS)
+        if not present and not patterned:
+            continue
+
+        where = rel(f)
+        is_jsonl = f.suffix == '.jsonl'
+        for n, line in enumerate(data.splitlines(), 1):
+            ctx = None
+            for v, e in present:
+                if v not in line:
+                    continue
+                if ctx is None:
+                    ctx = describe(line, v) if is_jsonl else {}
+
+                # Ein kurzer Wert kommt auch zufaellig mitten in einem Wort vor.
+                # Steht er nicht an einer Wortgrenze, ist er kaum je der Fund.
+
+                bounded = re.search(
+                    r'(?<![A-Za-z0-9])%s(?![A-Za-z0-9])' % re.escape(v), line) is not None
+                keep(_finding(
+                    'known', v, e, None, where, n, ctx, key,
+                    source=','.join(sorted(e['labels'])), bounded=bounded,
+                    context=window(line, v) if with_context else None))
+            if not patterned:
+                continue
+            for rule, rx in PATTERNS:
+                for m in rx.finditer(line):
+                    hit = m.group(1) if m.groups() else m.group(0)
+                    if PATTERN_NOISE.search(hit) or any(hit == v for v, _ in present):
+                        continue
+                    if ctx is None:
+                        ctx = describe(line, hit) if is_jsonl else {}
+                    keep(_finding(
+                        'pattern', hit, None, rule, where, n, ctx, key,
+                        context=mask(hit)))
+
+    return findings, scanned, errors
+
+
+def _finding(kind, value, entry, rule, where, line, ctx, key, source=None, context=None,
+             bounded=True):
+    ctx = ctx or {}
+    sid = secret_id(value, key)
+    locator = 'uuid:' + ctx['uuid'] if ctx.get('uuid') else 'line:%d' % line
+    if len(value) >= SHORT:
+        conf = 'hoch'
+    elif bounded:
+        conf = 'mittel'
+    else:
+        conf = 'niedrig'
+    return {
+        'fingerprint': fingerprint(where, locator, sid),
+        'kind': kind,
+        'secret_id': sid,
+        'source': source,
+        'rule': rule,
+        'confidence': conf,
+        'file': where,
+        'line': line,
+        'locator': locator,
+        'timestamp': ctx.get('timestamp'),
+        'event_type': ctx.get('event_type'),
+        'role': ctx.get('role'),
+        'tool': ctx.get('tool'),
+        'context': context,
+    }
+
+
+def collect(cfg, with_patterns=True, with_context=False):
+    secrets = Secrets()
+    secrets.load(expand(DEFAULT_SOURCES + cfg.get('extra_sources', [])))
+    targets = expand(DEFAULT_TARGETS + cfg.get('extra_targets', []))
+    key = salt()
+    findings, scanned, errors = scan(secrets, targets, key, with_patterns, with_context)
+    return secrets, findings, scanned, errors, key
+
+
+# ---------------------------------------------------------------- Bereinigung
+
+def claude_running():
+    """Laeuft Claude Code? Zwei unabhaengige Wege, und der erste ist der wichtige.
+
+    `pgrep -f claude` allein genuegt nicht: FreeBSD schliesst die eigenen
+    Vorfahren aus der Trefferliste aus - und genau ein Vorfahr ist Claude Code,
+    wenn der Aufruf aus einer Session kommt. Der Guard haette also ausgerechnet
+    im gefaehrlichsten Fall Entwarnung gegeben. `-a` hebt den Ausschluss auf
+    (unter Linux bewirkt es nur, dass die Kommandozeile mitgedruckt wird).
+    """
+    if os.environ.get('CLAUDECODE') or os.environ.get('CLAUDE_CODE_SESSION_ID'):
+        return ['self:' + os.environ.get('CLAUDE_PID', '?')]
+    try:
+        out = subprocess.run(['pgrep', '-a', '-f', 'claude'], capture_output=True, text=True)
+    except FileNotFoundError:
+        return None
+    pids = []
+    for line in out.stdout.splitlines():
+        tok = line.split()[0] if line.split() else ''
+        if not tok.isdigit() or int(tok) == os.getpid():
+            continue
+        if 'sec-audit-transcripts' in line:
+            continue
+        pids.append(tok)
+    return pids
+
+
+def category(path):
+
+    # Was zu einer Session gehoert, wird als ganze Datei verworfen; eine editierte
+    # Session bricht --resume still, eine geloeschte ist sichtbar weg.
+
+    p = str(path)
+    if '/.claude/projects/' in p:
+        return 'session'
+    if p.endswith('/.claude/history.jsonl'):
+        return 'history'
+    if '/.claude/file-history/' in p:
+        return 'file'
+    return 'file'
+
+
+def cmd_apply(args, cfg):
+    pids = claude_running()
+    if pids and not args.force:
+        die('Claude Code laeuft noch (PID %s). Erst beenden - eine laufende Session '
+            'schreibt ihre Datei fort und macht die Bereinigung zunichte.'
+            % ','.join(pids))
+
+    secrets, findings, _, errors, key = collect(cfg, with_patterns=False)
+    wanted = set(args.fingerprint)
+    hits = [f for f in findings if f['fingerprint'] in wanted]
+    missing = wanted - {f['fingerprint'] for f in hits}
+    for fp in sorted(missing):
+        print('uebersprungen %s - Fundstelle existiert nicht mehr' % fp)
+    if not hits:
+        return 0
+
+    by_file = {}
+    for f in hits:
+        by_file.setdefault(f['file'], []).append(f)
+
+    for where, lst in sorted(by_file.items()):
+        path = Path(where.replace('~', str(HOME), 1))
+        kind = category(path)
+        if kind == 'history':
+            print('%s: %d Zeile(n) entfernen' % (where, len(lst)))
+        else:
+            print('%s: Datei loeschen (%d Fundstelle(n))' % (where, len(lst)))
+
+    if not args.yes:
+        try:
+            answer = input('Ausfuehren? [j/N] ').strip().lower()
+        except EOFError:
+            answer = ''
+        if answer not in ('j', 'ja', 'y', 'yes'):
+            print('abgebrochen')
+            return 0
+
+    state = load_state()
+    done = 0
+    for where, lst in sorted(by_file.items()):
+        path = Path(where.replace('~', str(HOME), 1))
+        if not path.exists():
+            continue
+        if category(path) == 'history':
+            keep = []
+            drop = 0
+            for line in path.read_text(errors='replace').splitlines(keepends=True):
+                if any(v in line for v in secrets.items):
+                    drop += 1
+                    continue
+                keep.append(line)
+            tmp = path.with_suffix('.tmp')
+            tmp.write_text(''.join(keep))
+            tmp.chmod(0o600)
+            tmp.replace(path)
+            print('%s: %d Zeile(n) entfernt' % (where, drop))
+        else:
+            path.unlink()
+            print('%s: geloescht' % where)
+        for f in lst:
+            state['acked'][f['fingerprint']] = {
+                'at': now(), 'action': 'removed', 'secret_id': f['secret_id'],
+                'file': where, 'note': args.note or '',
+            }
+            done += 1
+    save_state(state)
+
+    print('\n%d Fundstelle(n) bereinigt.' % done)
+    print('Hinweis: Snapshots und Backups halten die geloeschten Dateien weiter vor. '
+          'Was wirklich exponiert war, gehoert rotiert - Loeschen ist kein Zuruecknehmen.')
+    if errors:
+        for e in errors:
+            print('FEHLER %s' % e, file=sys.stderr)
+        return 3
+    return 0
+
+
+def write_cleanup_script(findings):
+    # Ein Treffer mit Confidence "niedrig" steht mitten in einem Wort und ist
+    # meist Zufall - dafuer wird keine Session geloescht.
+
+    removable = [f for f in findings if f['kind'] == 'known' and f['confidence'] != 'niedrig']
+    if not removable:
+        return None
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+    STATE_DIR.chmod(0o700)
+    stamp = datetime.now().strftime('%Y%m%d-%H%M')
+    out = STATE_DIR / ('cleanup-%s.sh' % stamp)
+    self_path = Path(__file__).resolve()
+
+    # Das Script traegt nur Fingerprints, nie einen Wert - es bleibt als Datei
+    # liegen und waere sonst selbst das naechste Leck.
+
+    lines = [
+        '#!/bin/sh',
+        '# Erzeugt von sec-audit-transcripts am %s' % now(),
+        '# NACH dem Beenden von Claude Code aus der Shell aufrufen.',
+        '',
+        'set -e',
+        '',
+        '# -a hebt den Ausschluss der eigenen Vorfahren auf (FreeBSD), sonst bleibt',
+        '# ausgerechnet die aufrufende Session unsichtbar.',
+        '',
+        'if [ -n "$CLAUDECODE" ] || pgrep -a -f claude >/dev/null 2>&1; then',
+        '        echo "Claude Code laeuft noch - erst beenden." >&2',
+        '        exit 1',
+        'fi',
+        '',
+        'exec %s apply \\' % self_path,
+    ]
+    fps = sorted({f['fingerprint'] for f in removable})
+    for fp in fps[:-1]:
+        lines.append('        --fingerprint %s \\' % fp)
+    lines.append('        --fingerprint %s' % fps[-1])
+    lines.append('')
+    out.write_text('\n'.join(lines))
+    out.chmod(0o700)
+    return out
+
+
+# ---------------------------------------------------------------- Rechte
+
+PERM_TARGETS = [
+    ('~/.claude', 0o700),
+    ('~/.claude/sec-audit-transcripts', 0o700),
+    ('~/.env', 0o600),
+    ('~/.muttrc', 0o600),
+]
+
+
+def cmd_fix_perms(args, cfg):
+    changed = []
+    for pat, want in PERM_TARGETS + [(p, 0o600) for p in cfg.get('extra_perm_files', [])]:
+        for p in expand([pat]):
+            if not p.exists():
+                continue
+            have = p.stat().st_mode & 0o777
+            if have == want:
+                continue
+            changed.append((rel(p), have, want))
+            if not args.dry_run:
+                p.chmod(want)
+    if not changed:
+        print('Rechte sind bereits eng.')
+        return 0
+    for where, have, want in changed:
+        print('%s %s %04o -> %04o' % ('wuerde' if args.dry_run else 'gesetzt', where, have, want))
+    return 0
+
+
+# ---------------------------------------------------------------- Ausgabe
+
+def report(findings, scanned, errors, state, show_acked, limit=None):
+    acked = state.get('acked', {})
+    new = [f for f in findings if f['fingerprint'] not in acked]
+    hidden = len(findings) - len(new)
+    shown = findings if show_acked else new
+
+    print('%d Dateien gescannt, %d Fundstellen (%d neu, %d abgehakt).\n'
+          % (scanned, len(findings), len(new), hidden))
+
+    for kind, title in (('known', 'BEKANNTE GEHEIMNISSE'), ('pattern', 'MUSTERTREFFER')):
+        group = [f for f in shown if f['kind'] == kind]
+        if not group:
+            continue
+        print('== %s (%d) ==\n' % (title, len(group)))
+        buckets = {}
+        for f in group:
+            buckets.setdefault(f['source'] or f['rule'], []).append(f)
+        for label, lst in sorted(buckets.items()):
+            print('%s  (%s, %d)' % (label, lst[0]['secret_id'], len(lst)))
+
+            # Ein ungekuerzter Mustertreffer-Block ist hunderte Zeilen lang und
+            # wird nicht gelesen; der vollstaendige Stand steht in --json.
+
+            shown_here = lst if limit is None else lst[:limit]
+            for f in shown_here:
+                ctx = ' '.join(x for x in (f['event_type'], f['role'], f['tool']) if x)
+                extra = (' ' + f['context']) if f['context'] else ''
+                print('   %-12s %-6s %s:%d  %s  %s%s'
+                      % (f['fingerprint'], f['confidence'], f['file'], f['line'],
+                         f['timestamp'] or '-', ctx or '-', extra))
+            if limit is not None and len(lst) > limit:
+                print('   ... %d weitere (--limit 0 oder --json zeigt alle)' % (len(lst) - limit))
+            print()
+
+    if not shown:
+        print('Nichts Neues.')
+    for e in errors:
+        print('FEHLER %s' % e, file=sys.stderr)
+    return new
+
+
+def cmd_scan(args, cfg):
+    secrets, findings, scanned, errors, key = collect(
+        cfg, with_patterns=not args.no_patterns, with_context=args.context)
+    state = load_state()
+
+    if args.json:
+        acked = state.get('acked', {})
+        json.dump({'scanned': scanned,
+                   'findings': [f for f in findings
+                                if args.all or f['fingerprint'] not in acked],
+                   'errors': errors}, sys.stdout, indent=2, ensure_ascii=False)
+        print()
+        new = [f for f in findings if f['fingerprint'] not in acked]
+    else:
+        new = report(findings, scanned, errors, state, args.all,
+                     limit=None if args.limit == 0 else args.limit)
+
+    if args.emit_cleanup:
+        script = write_cleanup_script([f for f in new if f['kind'] == 'known'])
+        if script:
+            print('\nBereinigungs-Script: %s' % rel(script))
+            print('Nach dem Beenden von Claude Code aus der Shell aufrufen.')
+        else:
+            print('\nKein Bereinigungs-Script noetig.')
+
+    if errors:
+        return 3
+    if any(f['kind'] == 'known' for f in new):
+        return 1
+    if new:
+        return 2
+    return 0
+
+
+def cmd_sources(args, cfg):
+    secrets = Secrets()
+    secrets.load(expand(DEFAULT_SOURCES + cfg.get('extra_sources', [])))
+    key = salt()
+    print('%d Geheimniswerte geladen:\n' % len(secrets.items))
+    for v, e in sorted(secrets.items.items(), key=lambda x: sorted(x[1]['labels'])):
+        print('   %-52s len=%-4d %-9s %s'
+              % (','.join(sorted(e['labels'])), len(v),
+                 'explizit' if e['explicit'] else 'generisch', secret_id(v, key)))
+    for e in secrets.errors:
+        print('FEHLER %s' % e, file=sys.stderr)
+    return 3 if secrets.errors else 0
+
+
+def cmd_ack(args, cfg):
+    state = load_state()
+    for fp in args.fingerprint:
+        state['acked'][fp] = {'at': now(), 'action': 'acked', 'note': args.note or ''}
+        print('abgehakt %s' % fp)
+    save_state(state)
+    return 0
+
+
+def cmd_unack(args, cfg):
+    state = load_state()
+    for fp in args.fingerprint:
+        if state['acked'].pop(fp, None):
+            print('wieder offen %s' % fp)
+        else:
+            print('unbekannt %s' % fp)
+    save_state(state)
+    return 0
+
+
+def cmd_list(args, cfg):
+    state = load_state()
+    acked = state.get('acked', {})
+    if not acked:
+        print('Nichts abgehakt.')
+        return 0
+    for fp, e in sorted(acked.items(), key=lambda x: x[1].get('at', '')):
+        print('%-12s %-8s %-20s %s %s' % (fp, e.get('action', '-'), e.get('at', '-'),
+                                          e.get('file', ''), e.get('note', '')))
+    return 0
+
+
+def main():
+    ap = argparse.ArgumentParser(prog='sec-audit-transcripts', description=__doc__.splitlines()[0])
+    ap.add_argument('--version', action='version', version=VERSION)
+    sub = ap.add_subparsers(dest='cmd')
+
+    p = sub.add_parser('scan', help='Ablagen pruefen (Default)')
+    p.add_argument('--json', action='store_true')
+    p.add_argument('--all', action='store_true', help='auch abgehakte Fundstellen zeigen')
+    p.add_argument('--no-patterns', action='store_true', help='nur bekannte Geheimnisse')
+    p.add_argument('--limit', type=int, default=10,
+                   help='Fundstellen je Gruppe im Textreport (0 = alle, Default 10)')
+    p.add_argument('--context', action='store_true',
+                   help='maskiertes Umfeld je Fundstelle zeigen (Wert bleibt geschwaerzt)')
+    p.add_argument('--emit-cleanup', action='store_true', help='Bereinigungs-Script schreiben')
+    p.set_defaults(func=cmd_scan)
+
+    p = sub.add_parser('sources', help='geladene Quellen zeigen (ohne Werte)')
+    p.set_defaults(func=cmd_sources)
+
+    p = sub.add_parser('apply', help='Fundstellen loeschen - nur bei beendetem Claude Code')
+    p.add_argument('--fingerprint', action='append', required=True)
+    p.add_argument('--yes', '-y', action='store_true')
+    p.add_argument('--force', action='store_true', help='auch bei laufendem Claude Code')
+    p.add_argument('--note')
+    p.set_defaults(func=cmd_apply)
+
+    p = sub.add_parser('fix-perms', help='Rechte der Ablagen und Quellen eng setzen')
+    p.add_argument('--dry-run', action='store_true')
+    p.set_defaults(func=cmd_fix_perms)
+
+    p = sub.add_parser('ack', help='Fundstelle als gesehen abhaken')
+    p.add_argument('fingerprint', nargs='+')
+    p.add_argument('--note')
+    p.set_defaults(func=cmd_ack)
+
+    p = sub.add_parser('unack', help='Abhaken zuruecknehmen')
+    p.add_argument('fingerprint', nargs='+')
+    p.set_defaults(func=cmd_unack)
+
+    p = sub.add_parser('list', help='abgehakte Fundstellen')
+    p.set_defaults(func=cmd_list)
+
+    args = ap.parse_args()
+    if not args.cmd:
+        args = ap.parse_args(['scan'])
+    return args.func(args, load_config())
+
+
+if __name__ == '__main__':
+    sys.exit(main())
