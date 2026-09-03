@@ -3,6 +3,28 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.50.0
+
+- **Neuer Skill `sec-audit-transcripts`.** Sucht bekannte Geheimniswerte aus den
+  lokalen Quellen (`~/.muttrc`, `~/.env`, `~/.claude/*.json`, `~/.ssh/id_*`) in
+  allen Ablagen von Claude Code und meldet nur Fundstelle, Rolle und einen
+  HMAC-Kurzhash - nie den Wert. Geprueft wird nicht nur
+  `~/.claude/projects/**/*.jsonl`, sondern auch `history.jsonl` (haeufigster
+  Fundort, weil Zugangsdaten beim Einrichten getippt werden), `file-history/`,
+  `shell-snapshots`, `paste-cache`, `session-env`, `sessions`, `plans`,
+  `backups`, `cache`, `feedback`, `todos` und `/tmp/claude-*`. Subcommands
+  `scan/sources/fix-perms/ack/unack/list/apply`, Exit-Codes 0/1/2/3 fuer den
+  unbeaufsichtigten Lauf, Zustandsdatei mit Fingerprints gegen die ewige
+  Wiedervorlage.
+- **Der Guard gegen den Lauf bei offener Session hielt sich selbst fuer die
+  Session.** `pgrep -a -f claude` fand nicht nur Claude Code, sondern auch die
+  aufrufende `sh` - das Bereinigungs-Script liegt unter `~/.claude/…` und trug
+  das Wort damit im eigenen Pfad. Auf FreeBSD bedeutet `-a` „Vorfahren nicht
+  ausschliessen" (nicht wie unter Linux „Kommandozeile mitdrucken"), und ein
+  Vorfahr ist die eigene Shell. Der Klammer-Trick `[c]laude` half hier nicht,
+  weil das Wort nicht im Muster steht, sondern im Pfad. Gesucht wird jetzt nach
+  `libexec/claude`, dem Pfad der echten Binary.
+
 ### 1.49.12
 
 - **`wiki`: Vollstaendigkeit als Gegengewicht zu den Kuerzungsregeln.** Die

@@ -568,6 +568,27 @@ Instanz-URL und optionale Basic-Auth-Zugangsdaten in `~/.claude/privatebin.json`
 
 **Trigger:** `/privatebin` oder natuerliche Sprache wie "teil das per PrivateBin", "mach einen Paste draus", "schick mir das als Link", "gib mir den Inhalt von dieser Paste-URL".
 
+### sec-audit-transcripts
+
+Sucht Geheimnisse in den Ablagen von Claude Code und meldet sie — reine Erkennung, keine automatische Bereinigung. Python-Script (stdlib only), zwei Wege der Suche:
+
+- **Known-secret matching** (praezise, keine Fehlalarme): liest die lokalen Quellen (`~/.muttrc`, `~/.env`, `~/.claude/*.json`, `~/.ssh/id_*`) und sucht deren *Werte*. Die Werte bleiben im Speicher und kommen nie in den Report.
+- **Mustersuche** (fuer Fremdgeheimnisse, mit Fehlalarmen, per `--no-patterns` abschaltbar): `sk-ant-`, `ghp_`, `AKIA`, `xox…`, JWTs, `BEGIN … PRIVATE KEY`, Zuweisungen an `password`/`secret`/`token`. Getrennt ausgewiesen, eigener Exit-Code.
+
+Geprueft wird nicht nur `~/.claude/projects/**/*.jsonl`, sondern auch `history.jsonl` (haeufigster Fundort, weil Zugangsdaten beim Einrichten getippt werden), `file-history/` (Klartext-Kopien editierter Dateien), `shell-snapshots`, `paste-cache`, `session-env`, `sessions`, `plans`, `backups`, `cache`, `feedback`, `todos` und `/tmp/claude-*`.
+
+- scan: Bericht mit Label, Datei, Zeile, Zeitstempel, Rolle und HMAC-Kurzhash — **nie der Wert**; `--context` zeigt hoechstens maskiertes Umfeld
+- sources: welche Quellen gelesen wurden und wie viele Werte daraus stammen
+- fix-perms: setzt die Rechte der Ablagen und Quellen zurecht (idempotent, laeuft in der Session)
+- ack/unack/list: Fundstellen als gesehen abhaken, damit der naechste Lauf nicht ewig denselben Altfund meldet
+- apply / `--emit-cleanup`: loescht Session-Transkripte ganz und einzelne Zeilen aus `history.jsonl` — **nur bei beendetem Claude Code**, ein editiertes Transkript bricht `--resume`
+
+Exit-Codes 0 (sauber), 1 (bestaetigte Funde), 2 (nur Mustertreffer), 3 (Fehler) — damit taugt der Lauf als cron mit Meldung ab 1.
+
+**Voraussetzungen:** Python >= 3.11. Zustandsdatei und Salt unter `~/.claude/sec-audit-transcripts/`.
+
+**Trigger:** `/sec-audit-transcripts`.
+
 ### pushover
 
 Pushover-Anbindung (outbound-only) — Push-Notifications aufs Handy (iOS/Android/Desktop). Python-Script (stdlib only, keine pip-Dependencies), lauffaehig auf macOS + FreeBSD, **kein Server-Prozess** — jeder Aufruf ist ein einzelner HTTPS-Call an `api.pushover.net` und laeuft auch aus cron:
@@ -587,12 +608,11 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.49.12
+### 1.50.0
 
-- **`wiki`: Vollstaendigkeit als Gegengewicht zu den Kuerzungsregeln**: der neue
-  Unterabschnitt „Kuerzen heisst Woerter streichen, nicht Sachverhalte" haelt
-  fest, dass Bedingung, Sonderfall und Folge vollstaendig im Artikel stehen,
-  sobald der Aufnahmefilter den Sachverhalt durchgelassen hat.
-- **Interne Personennamen in den Aufnahmefilter**: neben Kundendaten sind auch
-  Namen einzelner Mitarbeiter (Kanboard-/CRIS-Usernamen) nicht aufzunehmen, wo
-  eine Rolle oder eine Datensatz-ID den Beleg genauso traegt.
+- **Neuer Skill `sec-audit-transcripts`**: sucht bekannte Geheimniswerte in allen
+  Ablagen von Claude Code und meldet nur Fundstelle und HMAC-Kurzhash, nie den
+  Wert. Reine Erkennung; was mit einem Fund geschieht, entscheidet der Mensch.
+- **Guard gegen den Lauf bei offener Session korrigiert**: `pgrep -a -f claude`
+  traf die aufrufende `sh` mit, weil das Bereinigungs-Script unter `~/.claude/`
+  liegt. Gesucht wird jetzt nach `libexec/claude`.

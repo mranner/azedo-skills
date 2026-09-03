@@ -462,11 +462,18 @@ def claude_running():
     wenn der Aufruf aus einer Session kommt. Der Guard haette also ausgerechnet
     im gefaehrlichsten Fall Entwarnung gegeben. `-a` hebt den Ausschluss auf
     (unter Linux bewirkt es nur, dass die Kommandozeile mitgedruckt wird).
+
+    Gesucht wird nach `libexec/claude`, nicht nach `claude`: mit `-a` sind auch
+    die eigenen Vorfahren im Trefferraum, und das Bereinigungs-Script liegt
+    unter `~/.claude/…` - die aufrufende `sh` trug damit `claude` in ihrer
+    Kommandozeile und hielt sich selbst fuer eine laufende Session. Der
+    Klammer-Trick `[c]laude` hilft dagegen nicht, weil das Wort nicht im Muster
+    steht, sondern im Pfad.
     """
     if os.environ.get('CLAUDECODE') or os.environ.get('CLAUDE_CODE_SESSION_ID'):
         return ['self:' + os.environ.get('CLAUDE_PID', '?')]
     try:
-        out = subprocess.run(['pgrep', '-a', '-f', 'claude'], capture_output=True, text=True)
+        out = subprocess.run(['pgrep', '-a', '-f', 'libexec/claude'], capture_output=True, text=True)
     except FileNotFoundError:
         return None
     pids = []
@@ -596,9 +603,11 @@ def write_cleanup_script(findings):
         'set -e',
         '',
         '# -a hebt den Ausschluss der eigenen Vorfahren auf (FreeBSD), sonst bleibt',
-        '# ausgerechnet die aufrufende Session unsichtbar.',
+        '# ausgerechnet die aufrufende Session unsichtbar. Gesucht wird nach',
+        '# libexec/claude, weil dieses Script selbst unter ~/.claude/ liegt und',
+        '# das Muster claude sonst auf die eigene sh passt.',
         '',
-        'if [ -n "$CLAUDECODE" ] || pgrep -a -f claude >/dev/null 2>&1; then',
+        'if [ -n "$CLAUDECODE" ] || pgrep -a -f libexec/claude >/dev/null 2>&1; then',
         '        echo "Claude Code laeuft noch - erst beenden." >&2',
         '        exit 1',
         'fi',
