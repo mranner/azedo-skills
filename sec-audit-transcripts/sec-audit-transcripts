@@ -22,7 +22,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlsplit
 
-VERSION = '1.50.1'
+VERSION = '1.51.0'
 
 HOME = Path.home()
 STATE_DIR = HOME / '.claude/sec-audit-transcripts'
@@ -636,22 +636,54 @@ PERM_TARGETS = [
 
 def cmd_fix_perms(args, cfg):
     changed = []
+    errors = []
+
+    def apply(p, want):
+        try:
+            have = p.stat().st_mode & 0o777
+        except OSError:
+            return
+        if have == want:
+            return
+        changed.append((rel(p), have, want))
+        if not args.dry_run:
+            try:
+                p.chmod(want)
+            except OSError as exc:
+                changed.pop()
+                errors.append('%s: %s' % (rel(p), exc))
+
     for pat, want in PERM_TARGETS + [(p, 0o600) for p in cfg.get('extra_perm_files', [])]:
         for p in expand([pat]):
-            if not p.exists():
-                continue
-            have = p.stat().st_mode & 0o777
-            if have == want:
-                continue
-            changed.append((rel(p), have, want))
-            if not args.dry_run:
-                p.chmod(want)
-    if not changed:
+            if p.exists():
+                apply(p, want)
+
+    # Dieselben Ablagen, die `scan` durchsucht, bekommen rekursiv enge Rechte -
+    # Verzeichnisse 0700, Dateien 0600. `fix-perms` fasste bisher nur die vier
+    # PERM_TARGETS an; die 141 world-/gruppenlesbaren Dateien unter
+    # projects/**/tool-results/ (CR4589) waren damit nie erreichbar.
+
+    for t in expand(DEFAULT_TARGETS + cfg.get('extra_targets', [])):
+        if not t.exists():
+            continue
+        if t.is_file():
+            apply(t, 0o600)
+            continue
+        apply(t, 0o700)
+        for root, dirs, files in os.walk(t):
+            for d in dirs:
+                apply(Path(root) / d, 0o700)
+            for n in files:
+                apply(Path(root) / n, 0o600)
+
+    if not changed and not errors:
         print('Rechte sind bereits eng.')
         return 0
     for where, have, want in changed:
         print('%s %s %04o -> %04o' % ('wuerde' if args.dry_run else 'gesetzt', where, have, want))
-    return 0
+    for msg in errors:
+        print('FEHLER: %s' % msg, file=sys.stderr)
+    return 3 if errors else 0
 
 
 # ---------------------------------------------------------------- Ausgabe

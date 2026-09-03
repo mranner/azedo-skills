@@ -3,6 +3,22 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.51.0
+
+- **`sec-audit-transcripts fix-perms` deckt jetzt die Scan-Ziele ab.** Bisher
+  fasste `fix-perms` nur vier feste Pfade an (`~/.claude`, `~/.env`,
+  `~/.muttrc`, `sec-audit-transcripts/`), waehrend `scan` 13 Ablagen
+  durchsucht - `projects/`, `file-history/`, `paste-cache`, `/tmp/claude-*` und
+  mehr blieben unangetastet. Neu: rekursiver Durchlauf ueber dieselben
+  `DEFAULT_TARGETS`, Verzeichnisse auf 0700, Dateien auf 0600. Gefunden bei
+  CR4589 - `tool-results/bs9gj3kf0.txt` mit einem Zertifikats-Private-Key war
+  `0644` world-readable, 141 Dateien betroffen.
+- **`fix-perms` bricht nicht mehr bei `PermissionError` ab.** Dateien, die
+  einem anderen User gehoeren (z.B. root-Artefakte fremder Jail-Sessions unter
+  `/tmp/claude-*`), werden jetzt als Fehler gesammelt und am Ende gemeldet
+  (Exit-Code 3) statt den Lauf mittendrin abzubrechen und bereits behobene
+  Aenderungen unvermerkt zu lassen.
+
 ### 1.50.1
 
 - **`sec-audit-transcripts`: nur noch auf ausdruecklichen Aufruf**. Die

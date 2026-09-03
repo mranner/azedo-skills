@@ -145,9 +145,10 @@ Damit taugt `scan` als cron-Job, der ab Code 1 eine Push-Meldung ausloest.
 ## Bereinigung -- drei Kategorien
 
 **A -- sofort, in der Session.** Idempotent und ungefaehrlich: `fix-perms` setzt
-`~/.claude` auf 0700 und die Credential-Quellen auf 0600. Eine umask von `0022`
-laesst neue Dateien sonst auf 644 landen; geschuetzt sind sie dann nur noch
-durch das Elternverzeichnis.
+`~/.claude` auf 0700, die Credential-Quellen auf 0600, und rekursiv dieselben
+Ablagen, die `scan` durchsucht (Verzeichnisse 0700, Dateien 0600). Eine umask
+von `0022` laesst neue Dateien sonst auf 644 landen; geschuetzt sind sie dann
+nur noch durch das Elternverzeichnis.
 
 **B -- Vorschlag, der Mensch entscheidet.** Alles, was ausserhalb der Maschine
 wirkt oder nicht umkehrbar ist: ein Token rotieren, eine ganze Session

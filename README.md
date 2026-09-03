@@ -608,6 +608,14 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
+### 1.51.0
+
+- **`sec-audit-transcripts fix-perms` deckt jetzt die Scan-Ziele ab**: bisher
+  fasste `fix-perms` nur vier feste Pfade an, jetzt rekursiv dieselben 13
+  Ablagen wie `scan` (`projects/`, `file-history/`, `/tmp/claude-*` u.a.).
+  Bricht bei `PermissionError` (fremde Dateien) nicht mehr ab, sondern
+  sammelt und meldet die Fehler am Ende (Exit-Code 3).
+
 ### 1.50.1
 
 - **`sec-audit-transcripts`: nur noch auf ausdruecklichen Aufruf**. Die
