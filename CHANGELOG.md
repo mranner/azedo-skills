@@ -3,7 +3,7 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
-### 1.52.0
+### 1.51.1
 
 - **`sec-audit-transcripts apply` akzeptiert jetzt auch Mustertreffer.** Bisher
   scannte `apply --fingerprint` nur mit `with_patterns=False` - ein per

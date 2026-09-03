@@ -608,7 +608,7 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.52.0
+### 1.51.1
 
 - **`sec-audit-transcripts apply` akzeptiert jetzt auch Mustertreffer**: bisher
   fand `apply --fingerprint` nur known-secret-Funde, ein von Hand bestaetigtes

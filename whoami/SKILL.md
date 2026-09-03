@@ -8,6 +8,7 @@ description: >
   nicht bei Fragen nach Session, Session-ID, Adresse oder Erreichbarkeit.
   Trigger: ausschließlich /whoami.
 allowed-tools: [Bash]
+disable-model-invocation: true
 ---
 
 # whoami -- die eigene Session identifizieren

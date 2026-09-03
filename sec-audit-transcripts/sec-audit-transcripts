@@ -22,7 +22,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlsplit
 
-VERSION = '1.52.0'
+VERSION = '1.51.1'
 
 HOME = Path.home()
 STATE_DIR = HOME / '.claude/sec-audit-transcripts'

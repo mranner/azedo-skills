@@ -12,6 +12,7 @@ description: >
   Fragen wie "steht ein Passwort im Transkript" oder "Credential-Leck in der
   Session" - dort auf den expliziten Aufruf warten. Trigger: ausschliesslich
   /sec-audit-transcripts.
+disable-model-invocation: true
 ---
 
 # sec-audit-transcripts -- Geheimnisse in den Claude-Code-Ablagen finden
