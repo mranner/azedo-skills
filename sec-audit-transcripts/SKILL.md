@@ -175,6 +175,17 @@ Guard also ausgerechnet im gefaehrlichsten Fall Entwarnung gegeben. Es ist ein d
 prueft, ob die Fundstelle ueberhaupt noch existiert. Ein zwischenzeitlich
 geaenderter Stand faellt damit auf, statt blind geloescht zu werden.
 
+`scan --emit-cleanup` erzeugt das Script nur fuer **known-secret**-Funde -- ein
+Mustertreffer braucht immer die menschliche Bewertung aus Kategorie B zuerst
+(zu viele Fehlalarme fuer Automatik). Ist ein Mustertreffer nach dieser
+Bewertung ein echtes Geheimnis, nimmt `apply --fingerprint <fp> [<fp> ...]`
+seinen Fingerprint trotzdem entgegen -- der manuelle Aufruf pruefte zuvor nur
+known-secret-Fingerprints, seit CR4589 (bestaetigtes DB-Passwort in einem
+`sed`-Rotationsbefehl, kein registrierter known-secret) auch Mustertreffer.
+Die Sicherheitsschranke bleibt dieselbe: geloescht wird ausschliesslich, was
+per Fingerprint ausdruecklich benannt ist, nie ein automatischer Massenlauf
+ueber alle neuen Mustertreffer.
+
 `apply` entfernt in `history.jsonl` einzelne Zeilen (dort haengt kein `--resume`
 dran) und loescht sonst die **ganze Datei**. Eine editierte Session bricht
 `--resume` still, eine geloeschte ist sichtbar weg. Erledigte Fundstellen landen

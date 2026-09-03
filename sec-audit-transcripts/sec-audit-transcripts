@@ -22,7 +22,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlsplit
 
-VERSION = '1.51.0'
+VERSION = '1.52.0'
 
 HOME = Path.home()
 STATE_DIR = HOME / '.claude/sec-audit-transcripts'
@@ -509,7 +509,14 @@ def cmd_apply(args, cfg):
             'schreibt ihre Datei fort und macht die Bereinigung zunichte.'
             % ','.join(pids))
 
-    secrets, findings, _, errors, key = collect(cfg, with_patterns=False)
+    # with_patterns=True, obwohl apply frueher nur known-secret-Funde kannte:
+    # ein Mustertreffer (z.B. ein per Handarbeit bestaetigtes DB-Passwort aus
+    # der Mustersuche) hat sonst gar keine Chance, seinen Fingerprint hier
+    # wiederzufinden - der Fingerprint entsteht ja erst beim erneuten Scan.
+    # Sicherheitsnetz bleibt dasselbe wie bei known-secret-Funden: geloescht
+    # wird nur, was per --fingerprint ausdruecklich benannt ist.
+
+    secrets, findings, _, errors, key = collect(cfg, with_patterns=True)
     wanted = set(args.fingerprint)
     hits = [f for f in findings if f['fingerprint'] in wanted]
     missing = wanted - {f['fingerprint'] for f in hits}

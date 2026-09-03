@@ -3,6 +3,20 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.52.0
+
+- **`sec-audit-transcripts apply` akzeptiert jetzt auch Mustertreffer.** Bisher
+  scannte `apply --fingerprint` nur mit `with_patterns=False` - ein per
+  Mustersuche gefundenes, von Hand bestaetigtes Geheimnis (z.B. ein
+  DB-Passwort in einem `sed`-Rotationsbefehl, nie als known-secret
+  registriert) hatte dadurch nie eine Chance, seinen Fingerprint
+  wiederzufinden. `scan --emit-cleanup` bleibt bewusst known-secret-only -
+  ein Mustertreffer durchlaeuft immer erst die menschliche Bewertung
+  (Kategorie B), automatisch geloescht wird kein Mustertreffer. Gefunden bei
+  CR4589 bei der Pruefung der 48 bis dahin ungeprueften Mustertreffer -
+  darunter zwei echte DB-Passwoerter (wwwseiersberg, corrisdwh) und ein
+  Netzwerk-Passwort (swpoemusik).
+
 ### 1.51.0
 
 - **`sec-audit-transcripts fix-perms` deckt jetzt die Scan-Ziele ab.** Bisher
