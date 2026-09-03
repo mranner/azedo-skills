@@ -7,9 +7,11 @@ description: >
   bekannte Token-Muster fremder Anbieter. Meldet nur Fundstelle und
   HMAC-Kurzhash, nie den Wert. Setzt Datei- und Verzeichnisrechte eng, haekelt
   bewertete Funde ab und erzeugt fuer Loeschungen ein Shell-Script, das nach dem
-  Beenden von Claude Code aus der Shell laeuft. Auch bei "steht ein Passwort im
-  Transkript", "Transkripte auf Geheimnisse pruefen", "Credential-Leck in der
-  Session". Trigger: /sec-audit-transcripts.
+  Beenden von Claude Code aus der Shell laeuft. NUR auf ausdruecklichen Aufruf
+  von /sec-audit-transcripts laden. Nicht von selbst laden, auch nicht bei
+  Fragen wie "steht ein Passwort im Transkript" oder "Credential-Leck in der
+  Session" - dort auf den expliziten Aufruf warten. Trigger: ausschliesslich
+  /sec-audit-transcripts.
 ---
 
 # sec-audit-transcripts -- Geheimnisse in den Claude-Code-Ablagen finden

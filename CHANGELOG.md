@@ -3,6 +3,13 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.50.1
+
+- **`sec-audit-transcripts`: nur noch auf ausdruecklichen Aufruf**. Die
+  Description lud den Skill bislang auch bei Fragen wie "steht ein Passwort im
+  Transkript" von selbst - er lauscht jetzt ausschliesslich auf
+  `/sec-audit-transcripts`, analog zu `whoami`.
+
 ### 1.50.0
 
 - **Neuer Skill `sec-audit-transcripts`.** Sucht bekannte Geheimniswerte aus den

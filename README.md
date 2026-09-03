@@ -608,6 +608,13 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
+### 1.50.1
+
+- **`sec-audit-transcripts`: nur noch auf ausdruecklichen Aufruf**. Die
+  Description lud den Skill bislang auch bei Fragen wie "steht ein Passwort im
+  Transkript" von selbst - er lauscht jetzt ausschliesslich auf
+  `/sec-audit-transcripts`, analog zu `whoami`.
+
 ### 1.50.0
 
 - **Neuer Skill `sec-audit-transcripts`**: sucht bekannte Geheimniswerte in allen
