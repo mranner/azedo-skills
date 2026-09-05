@@ -27,8 +27,9 @@ Gemessen wird je Artikel:
   Eine access-Entity mit 90 Zeilen ist auffällig, eine procedure mit 90 nicht.
   Untergrenzen je Typ verhindern Fehlalarme in einem jungen Wiki.
 - **HISTORIE** — Dichte von Datumsangaben, „Session", CR-Nummern und Wörtern wie
-  „inzwischen"/„früher" im Fliesstext. Der Abschnitt `## Quellen` ist ausgenommen:
-  dort ist die Datierung Konvention und kein Ballast.
+  „inzwischen"/„früher", über den ganzen Artikel gerechnet.
+- **LOGBUCH** — datierte Aufzählungspunkte unter `## Quellen`, ab dem dritten.
+  Dorthin gehört die Rohquelle, nicht die Chronologie der eigenen Sessions.
 - **PROZEDURAL** — Codeblöcke und FALSCH/RICHTIG-Rezepte in einer server-,
   service-, access- oder site-Entity. Das gehört in eine procedure.
 - **DOMINANT** — ein Abschnitt frisst den Grossteil der Datei. Gemeldet nur,
@@ -72,7 +73,8 @@ Ablauf:
    |---|---|---|
    | `BLEIBT` | beschreibt den Ist-Zustand des Systems | unverändert |
    | `→ PROCEDURE` | operative Anleitung | in bestehende Procedure X oder neue anlegen |
-   | `HISTORIE` | Zustand, der nicht mehr gilt | streichen, einzeilig unter `## Quellen` |
+   | `HISTORIE` | Zustand, der nicht mehr gilt | streichen, git hält die Fassung |
+   | `LOGBUCH` | Chronologie der eigenen Arbeit | streichen, Beleg bleibt nur als Nebensatz im Fachteil |
    | `DUPLIKAT` | steht schon in Artikel Y | streichen, Wikilink setzen |
    | `→ TASK` | offene Aufgabe, keine Doku | ins Ticketsystem, aus dem Wiki raus |
 
@@ -101,7 +103,7 @@ Rat, sondern als Ersetzung, die man freigeben oder ablehnen kann:
 | **Fremdcode als Beweis** | zitierter Codeblock aus einem fremden Projekt, der nur belegt, was ein Satz sagt | Satz statt Block. Eigener Code, der den Fehler *zeigt*, bleibt |
 | **Erzählrahmen vor dem Inhalt** | „X ist darauf vorbereitet:", „Wer … testet, braucht …:", „Praktischer Nebeneffekt:" | Rahmen streichen, Inhalt direkt |
 | **Duplikat im selben Artikel** | derselbe Hinweis an zwei Stellen, einmal als Randnotiz, einmal am Ort der Handlung | am Ort der Handlung behalten, Randnotiz streichen |
-| **Quellen als Nacherzählung** | ein Vorfall über mehrere `## Quellen`-Einträge mit Verlauf, Uhrzeiten und Zwischenständen | ein Eintrag: was war, was es brach, woran datiert |
+| **Quellen als Session-Liste** | Aufzählung „Session &lt;Datum&gt;: &lt;was ich tat&gt;" unter `## Quellen` | streichen; was fachlich trägt, steht schon oben, der Rest ist Arbeitsprotokoll |
 
 Die Grenze nach unten: gekürzt wird der **Weg zur Aussage**, nie die Aussage.
 Bleiben müssen Behauptung, Folge und Beleg (das
@@ -120,9 +122,10 @@ zeitlose Begründung und **bleibt** — er sieht nur aus wie Historie. Gestriche
 wird ein beschriebener Zustand, den es so nicht mehr gibt. Im Zweifel: der
 Vorschlag markiert den Abschnitt als unklar und fragt, statt ihn einzuordnen.
 
-Ersatzlos gelöscht wird nur, was der aktuelle Stand **widerlegt**. Alles andere
-wandert einzeilig unter `## Quellen` oder nach `log.md`. Das Argument fürs
-Streichen ist nie „ist alt", sondern dass git die Fassung ohnehin vorhält.
+Ein überholter Zustand wird gelöscht, nicht umgelagert - `## Quellen` nimmt nur
+echte Rohquellen auf (Datei unter `raw/`, externes Dokument, Ticket) und ist
+sonst wegzulassen. Das Argument fürs Streichen ist nie „ist alt", sondern dass
+git die Fassung ohnehin vorhält.
 
 **Arbeitslisten sind keine Dokumentation.** Aufzählungen der Form „X steht noch
 aus", „bei Gelegenheit auch für Y" beschreiben nicht den Server, sondern die

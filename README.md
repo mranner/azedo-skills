@@ -608,10 +608,11 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.51.3
+### 1.52.0
 
-- **`wp-sync-dev`/`telegram`/`envato`: `disable-model-invocation: true` gesetzt**,
-  nur noch per explizitem Slash-Kommando ladbar.
+- **`wiki`: `## Quellen` ist keine Ablage mehr.** Optional statt Pflicht, nur
+  echte Rohquellen; `audit-wiki.py` meldet Session-Listen als neues Signal
+  `LOGBUCH`, `HISTORIE` rechnet ueber den ganzen Artikel.
 
 ### 1.51.2
 

@@ -3,6 +3,23 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.52.0
+
+- **`wiki`: `## Quellen` ist keine Ablage mehr.** Der Abschnitt war Pflicht und
+  gleichzeitig von der Historie-Messung ausgenommen - Skill und Wiki-CLAUDE.md
+  leiteten Herleitung und ueberholte Zustaende dorthin, das Audit sah den Haufen
+  nicht. Ergebnis waren Session-Listen ("Session 2026-07-05: ...") in 186 von 254
+  Artikeln des azedo-Wikis, also Arbeitsprotokolle, die der Aufnahmefilter
+  eigentlich ausschliesst.
+  - `audit-wiki.py`: neues Signal `LOGBUCH` (datierte Aufzaehlungspunkte unter
+    `## Quellen`, ab dem dritten); `HISTORIE` rechnet jetzt ueber den ganzen
+    Artikel statt nur ueber den Fliesstext.
+  - `SKILL.md`: Herleitung wird gestrichen statt nach `## Quellen` verlagert;
+    ein Beleg bleibt als Nebensatz im Fachabsatz.
+  - `pflege.md`: `HISTORIE` wird gestrichen statt umgelagert, neue Kategorie
+    `LOGBUCH`, Muster "Quellen als Session-Liste".
+  - `frontmatter-schemas.md`: `## Quellen` optional, nur echte Rohquellen.
+
 ### 1.51.3
 
 - **`wp-sync-dev`/`telegram`/`envato`: `disable-model-invocation: true` gesetzt**,

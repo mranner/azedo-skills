@@ -156,8 +156,15 @@ Dicht:    "Z gilt, nicht X. Folge: <Konsequenz>.
 - **Registermarker streichen.** „Aufgefallen ist…", „Sichtbar wurde…", „Der
   Ablauf lässt sich… ablesen", „Ausschlaggebend war…", „Zunächst… erst dann…"
   leiten alle eine Erzählung ein. Wo einer steht, gehört der Absatz gekürzt.
-- **Messwerte und Herleitung nach `## Quellen`.** Im Artikel steht das Ergebnis,
-  ein Satz. Die 7-Tage-Messung, die Fallzahlen und der Irrweg stehen unten.
+- **Herleitung wird gestrichen, nicht verlagert.** Im Artikel steht das
+  Ergebnis, ein Satz; der Irrweg dorthin gar nicht. Ein Messwert bleibt nur,
+  wenn er die Aussage traegt - dann im Fachabsatz, mit Host und Datum im
+  Nebensatz („verifiziert 2026-07-28 auf [[fry-azedo-at]]").
+- **`## Quellen` ist keine Ablage.** Der Abschnitt ist optional und nimmt nur
+  echte Rohquellen auf: die Datei unter `raw/`, ein externes Dokument, ein
+  Ticket. Gibt es keine, entfaellt er. Eine Liste der eigenen Sessions
+  („Session 2026-07-05: …") ist ein Arbeitsprotokoll und faellt unter den
+  Aufnahmefilter - wann etwas aufgeschrieben wurde, haelt git.
 - **Aufzählung wird Liste oder Tabelle**, nicht Absatz.
 - **Kein Datum in einer Überschrift.** Wer „Umbau 2026-08-15" oder „Stand
   <Datum>" als Überschrift braucht, schreibt gerade ein Logbuch statt eines

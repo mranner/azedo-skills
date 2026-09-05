@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # stdlib only, no pip dependencies
-# version 1.44.9
+# version 1.52.0
 
 """
 audit-wiki.py — misst Aufblähung und überholte Historie in LLM-Wikis.
@@ -14,8 +14,10 @@ einem Aufrufproblem (2).
 Gemessen wird je Artikel:
 - Zeilen relativ zum p90 des eigenen Entity-Typs (eine access-Entity mit 90
   Zeilen ist auffällig, eine procedure mit 90 Zeilen ist normal)
-- Historie-Dichte: Datumsangaben, "Session", CR-Nummern im Fliesstext.
-  Der Abschnitt "## Quellen" ist ausgenommen — dort ist die Datierung Konvention
+- Historie-Dichte: Datumsangaben, "Session", CR-Nummern — im ganzen Artikel,
+  "## Quellen" eingeschlossen
+- Logbuch: datierte Aufzaehlungspunkte unter "## Quellen". Dort gehoert die
+  Rohquelle hin, nicht die Chronologie der eigenen Sessions
 - typfremder Inhalt: Codeblöcke und FALSCH/RICHTIG-Rezepte in server-, service-,
   access- oder site-Entities (gehört in eine procedure)
 - dominanter Abschnitt: ein Kapitel frisst den Grossteil der Datei — nur
@@ -71,6 +73,11 @@ HISTORY_PATTERN = re.compile(
 RECIPE_PATTERN = re.compile(r"^#\s*(FALSCH|RICHTIG|WIRKUNGSLOS|GEFÄHRLICH|GEFAEHRLICH)\b", re.M)
 QUELLEN_PATTERN = re.compile(r"^##+\s+Quellen\s*$", re.M | re.I)
 
+# Aufzaehlungspunkt unter "## Quellen", der ein Datum oder eine CR-Nummer traegt.
+# Genau die Form, in der sich Session-Protokolle ansammeln:
+#   "- Session 2026-07-05: Double-Hop giwe → mail-giwe-at"
+LOGBUCH_PATTERN = re.compile(r"^\s*[-*]\s+.*(?:\b\d{4}-\d{2}-\d{2}\b|\bCR\d{3,5}\b)", re.M)
+
 # Woerter, die in fast jeder Ueberschrift stehen und deshalb keine Aussage ueber
 # das Thema treffen — beim Abgleich Ueberschrift <-> Procedure-Slug ignoriert.
 STOPWORDS = {
@@ -112,8 +119,8 @@ def parse_type(text):
 def split_quellen(text):
     """Trennt den Artikel in Fliesstext und den Abschnitt '## Quellen'.
 
-    Datierte Belege unter Quellen sind Konvention und zaehlen nicht als
-    Historie-Ballast — sie sind genau der Ort, an den Historie gehoert.
+    Die Historie-Dichte wird ueber den ganzen Artikel gerechnet; die Trennung
+    dient allein dazu, den Quellen-Block fuer das Logbuch-Signal zu finden.
     """
     m = QUELLEN_PATTERN.search(text)
     if not m:
@@ -160,7 +167,6 @@ def collect(wiki_root):
         text = path.read_text(encoding="utf-8", errors="replace")
         body, quellen = split_quellen(text)
         lines = text.count("\n") + 1
-        body_lines = max(body.count("\n"), 1)
 
         headings = HEADING_PATTERN.findall(text)
         sections = section_sizes(text)
@@ -171,9 +177,10 @@ def collect(wiki_root):
             "slug": path.stem,
             "type": parse_type(text) or "unbekannt",
             "lines": lines,
-            "hist_hits": len(HISTORY_PATTERN.findall(body)),
-            "hist_per_100": len(HISTORY_PATTERN.findall(body)) * 100.0 / body_lines,
-            "oldest_date": min(DATE_PATTERN.findall(body), default=None),
+            "hist_hits": len(HISTORY_PATTERN.findall(text)),
+            "hist_per_100": len(HISTORY_PATTERN.findall(text)) * 100.0 / lines,
+            "oldest_date": min(DATE_PATTERN.findall(text), default=None),
+            "logbuch_hits": len(LOGBUCH_PATTERN.findall(quellen)),
             "fences": len(FENCE_PATTERN.findall(text)) // 2,
             "recipes": len(RECIPE_PATTERN.findall(text)),
             "h3": sum(1 for h in headings if len(h[0]) == 3),
@@ -181,13 +188,12 @@ def collect(wiki_root):
             "big_section": biggest[1],
             "big_share": biggest[2] / lines if lines else 0,
             "sections": sections,
-            "has_quellen": bool(quellen),
         })
     return articles
 
 
 def score(article, p90_by_type):
-    """Punkte 0..100 aus fuenf Einzelsignalen plus die Befundliste.
+    """Punkte 0..100 aus sechs Einzelsignalen plus die Befundliste.
 
     Die Gewichte sind bewusst grob — die Rangfolge soll stimmen, die absolute
     Zahl bedeutet nichts. Entschieden wird an den Rohwerten in der Ausgabe.
@@ -226,6 +232,18 @@ def score(article, p90_by_type):
             + ")"
         )
     points += hist_pts
+
+    # Logbuch: datierte Aufzaehlung unter "## Quellen". Eigenes Signal statt Teil
+    # von HISTORIE, weil die Behandlung eine andere ist — HISTORIE meint einen
+    # Zustand im Fliesstext, der nicht mehr gilt, LOGBUCH eine Chronologie der
+    # eigenen Arbeit, die nie in den Artikel gehoert hat. Ein einzelner datierter
+    # Beleg ist kein Logbuch, deshalb erst ab dem dritten Eintrag.
+    log_hits = article["logbuch_hits"]
+    points += 20 * clamp(log_hits / 8.0)
+    if log_hits >= 3:
+        findings.append(
+            f"LOGBUCH ({log_hits} datierte Einträge unter '## Quellen')"
+        )
 
     # Typfremdes: Kommandofolgen in erzaehlenden Entities
     if typ in NARRATIVE_TYPES:
@@ -338,7 +356,7 @@ def audit(wiki_root, type_filter=None, path_filter=None, top=10, show_all=False,
                 for k in (
                     "rel_path", "slug", "type", "lines", "baseline", "ratio", "score",
                     "hist_hits", "hist_per_100", "oldest_date", "fences", "recipes",
-                    "h3", "deep", "big_section", "big_share", "findings", "has_quellen",
+                    "h3", "deep", "big_section", "big_share", "findings", "logbuch_hits",
                 )
             }
             for a in shown
@@ -371,8 +389,6 @@ def audit(wiki_root, type_filter=None, path_filter=None, top=10, show_all=False,
         print(f"{rank}. [{a['score']:>5.1f}] {a['rel_path']}   ({a['type']}, {a['lines']} Zeilen)")
         for f in a["findings"]:
             print(f"     • {f}")
-        if not a["has_quellen"]:
-            print("     • ohne '## Quellen' — Belege stehen vermutlich im Fliesstext")
         targets = suggest_targets(a, procedures, token_df)
         if targets:
             print("     Verschiebeziele (Wortüberlappung, ungeprüft):")
