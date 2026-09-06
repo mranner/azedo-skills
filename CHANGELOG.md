@@ -3,7 +3,7 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
-### 1.52.0
+### 1.51.6
 
 - **`wiki`: Zerlegen ist jetzt ein eigener Refactor-Weg.** `refactor` kannte fuer
   einen zu langen Artikel nur Verschieben in eine Procedure und Kuerzen auf
