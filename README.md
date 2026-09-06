@@ -616,6 +616,10 @@ Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle 
   damit von keiner Bash-Freigabe erreichbar; nebenbei verlaesst das
   SMTP-Passwort den Prozess nicht mehr.
 
+- **`swaks`: `--verify` nennt den nur in der Gross-/Kleinschreibung
+  abweichenden Marker beim Namen**, und der Hinweis zu `--subject` trennt
+  `build_mail.py` (Pflicht) von `swaks` (kennt die Option nicht).
+
 ### 1.51.6
 
 - **`wiki`: Zerlegen ist jetzt ein eigener Refactor-Weg.** `audit-wiki.py` meldet

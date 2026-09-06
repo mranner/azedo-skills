@@ -470,15 +470,29 @@ def verify_eml(path, expect_sha256=None, expect_marker=None):
 
     if expect_marker:
         marker = normalize(expect_marker)
+        haystack = normalize(text)
 
-        if marker and marker not in normalize(text):
-            errors.append(
-                f"Marker nicht im Text-Part gefunden: {expect_marker!r}. Die "
-                ".eml enthaelt nicht den freigegebenen Entwurf. (Ein grep auf "
-                "die rohe .eml genuegt hier nicht — der Body ist "
-                "quoted-printable kodiert.)")
+        if marker and marker not in haystack:
 
-        report["marker_ok"] = not any("Marker nicht" in e for e in errors)
+            # Ein Marker, der nur in der Gross-/Kleinschreibung abweicht, ist
+            # ein Tippfehler im Marker und nicht die falsche Mail. Ohne diesen
+            # Hinweis fuehrt die Diagnose ueber das Dekodieren des Text-Parts.
+
+            if marker.lower() in haystack.lower():
+                errors.append(
+                    f"Marker nur mit abweichender Gross-/Kleinschreibung "
+                    f"gefunden: {expect_marker!r}. Der Text-Part ist also sehr "
+                    "wahrscheinlich der richtige — den Marker pruefen, nicht "
+                    "die Mail, und den Aufruf mit der Schreibweise aus dem "
+                    "Entwurf wiederholen.")
+            else:
+                errors.append(
+                    f"Marker nicht im Text-Part gefunden: {expect_marker!r}. Die "
+                    ".eml enthaelt nicht den freigegebenen Entwurf. (Ein grep auf "
+                    "die rohe .eml genuegt hier nicht — der Body ist "
+                    "quoted-printable kodiert.)")
+
+        report["marker_ok"] = not any("Marker " in e for e in errors)
 
     return report, errors
 

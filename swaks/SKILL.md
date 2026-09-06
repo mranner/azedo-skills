@@ -183,6 +183,11 @@ den Befund dem Nutzer nennen. Geprüft wird:
 | Text- und HTML-Part nicht identisch | dieselbe Datei an `--text-file` und `--html-file` |
 | `--expect-marker` im **dekodierten** Text-Part | die `.eml` trägt nicht den freigegebenen Entwurf |
 
+Weicht der Marker **nur in der Groß-/Kleinschreibung** ab, sagt die Meldung das
+ausdrücklich („Marker nur mit abweichender Groß-/Kleinschreibung gefunden") —
+dann ist der Marker falsch getippt und nicht die Mail falsch. Der Befund bleibt
+trotzdem Exit `1`: erst den Marker korrigieren, dann erneut prüfen.
+
 Zum Marker: ein wörtliches Stück aus dem Entwurf, das in keiner anderen Mail
 vorkommt — ein halber Satz genügt. **Ein `grep` auf die rohe `.eml` genügt
 dafür nicht**: der Body ist quoted-printable kodiert, Umlaute stehen dort als
@@ -325,7 +330,7 @@ Die vollstaendige Optionsreferenz liegt daneben und wird bei Bedarf gelesen:
 
 ## Hinweise
 
-- `--subject` existiert in dieser swaks-Version nicht → immer `--header "Subject: ..."` verwenden.
+- **`--subject` gilt für `build_mail.py`, nicht für `swaks`.** Der Helper verlangt `--subject` **zwingend** (ohne bricht der Bau mit Exit 2 ab); `swaks` selbst kennt die Option in dieser Version **nicht** — wird dort ein Betreff gebraucht (nur bei den einfachen Sonderfällen ohne Helper), geht das über `--header "Subject: ..."`. Beim Regelweg über `build_mail.py` steht der Betreff ohnehin schon in der gebauten `.eml` und gehört nicht ein zweites Mal an `swaks`.
 - MX-Routing ist nicht verfügbar (Net::DNS fehlt). Ohne geladenen Versandweg nimmt swaks deshalb **stillschweigend `localhost:25`** — kein Fehler, aber der falsche Weg. `--send` lädt den Weg selbst; beim Aufruf von Hand immer erst `eval "$ENV"`.
 - Erfolg erkennbar an: `250 2.0.0 Ok: queued as <ID>` **bei Exit-Code 0 und ohne `<**`/`<~*`-Zeile**. Alle drei prüfen — bei mehreren Empfängern ist ein einzelner Reject sonst unsichtbar.
 - Zum Ausprobieren einer Route ohne Zustellung: `--quit-after RCPT` — die Verbindung endet vor `DATA`, es geht nichts raus.

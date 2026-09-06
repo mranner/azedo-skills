@@ -24,6 +24,16 @@ Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version 
     den Befehlsanfang). Die Pruefkette von Hand bleibt als Alternative
     dokumentiert.
 
+- **`swaks`: `--verify` unterscheidet den vertippten Marker von der falschen
+  Mail.** Weicht `--expect-marker` nur in der Gross-/Kleinschreibung ab, sagt
+  die Meldung das jetzt ausdruecklich, statt nur "nicht gefunden" zu melden -
+  die Diagnose lief bisher ueber das Dekodieren des Text-Parts. Der Befund
+  bleibt Exit `1`, die Blockade also bestehen.
+- **`swaks`: Der Hinweis zu `--subject` war auf den falschen Befehl bezogen.**
+  Er galt dem `swaks`-Aufruf, wurde aber auf `build_mail.py` gelesen, wo
+  `--subject` umgekehrt Pflicht ist - der Bau brach mit Exit 2 ab. SKILL.md
+  benennt jetzt beide Seiten.
+
 ### 1.51.6
 
 - **`wiki`: Zerlegen ist jetzt ein eigener Refactor-Weg.** `refactor` kannte fuer
