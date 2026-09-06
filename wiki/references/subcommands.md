@@ -180,7 +180,10 @@ toter Link. Mit `--check-remotes` verifiziert der Linter die Remote-Ziele per SS
 
 Prueft:
 - **Orphaned pages**: Artikel ohne eingehende Links
-- **Dead links**: Wikilinks zu nicht-existierenden Artikeln
+- **Dead links**: Wikilinks zu nicht-existierenden Artikeln - in den Artikeln als
+  Fehler, in `log.md` und `index.md` als Warnung (beide liegen ausserhalb von
+  `wiki/` und zaehlen nur als Quelle, nicht als Ziel; `log.md` ist historisch,
+  ein alter Eintrag darf auf einen aufgeloesten Artikel zeigen)
 - **Missing frontmatter**: Fehlende Pflichtfelder laut Wiki-Schema (Infra: type, kunde, date, status; Projekt-Wikis abweichend)
 - **Missing index entries**: Artikel die nicht in index.md gelistet sind
 - **Naming violations**: Dateinamen die nicht der Konvention entsprechen

@@ -374,6 +374,23 @@ def lint_wiki(wiki_root, check_remotes=False):
                 continue
             errors.append(f"{articles[slug]['rel_path']}: Toter Wikilink [[{target}]] — Ziel existiert nicht")
 
+    # Tote Links in log.md und index.md. Beide liegen eine Ebene ueber wiki/ und
+    # sind damit nicht in der Sammlung oben — sie stehen aber voller Wikilinks.
+    # Als Quelle zaehlen sie, als Ziel nicht: sonst meldeten sie sich selbst als
+    # verwaiste Seite und als nicht im Index gelistet. Warnung statt Fehler, weil
+    # log.md historisch ist — ein alter Eintrag darf auf einen seither
+    # aufgeloesten Artikel zeigen, ohne dass der Lauf fehlschlaegt.
+    for extra_file in (wiki_root / "log.md", index_file):
+        if not extra_file.exists():
+            continue
+        for target in sorted(set(find_wikilinks(extra_file.read_text(encoding="utf-8")))):
+            if target in all_slugs:
+                continue
+            rp = parse_remote_target(target)
+            if rp and rp[0] in remotes:
+                continue
+            warnings.append(f"{extra_file.name}: Toter Wikilink [[{target}]] — Ziel existiert nicht")
+
     # Optional: Remote-Pointer-Ziele per SSH verifizieren
     if check_remotes and remote_pointers:
         for src, rname, tslug in remote_pointers:

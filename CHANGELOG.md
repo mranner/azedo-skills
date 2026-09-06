@@ -3,6 +3,17 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.52.5
+
+- **`wiki`: Der Linter sieht jetzt auch `log.md` und `index.md`.** Beide liegen
+  eine Ebene ueber `wiki/` und fielen damit aus `rglob("*.md")` - ihre Wikilinks
+  wurden nie geprueft. Aufgefallen an einem erfundenen `[[wiki-schema-und-regeln]]`
+  in `log.md`, das ein vollstaendiger Lauf als "Keine Probleme gefunden" quittierte.
+  Tote Links dort laufen als **Warnung**, nicht als Fehler: `log.md` ist
+  historisch, ein Eintrag von damals darf auf einen seither aufgeloesten Artikel
+  zeigen. Als Ziel zaehlen beide Dateien weiterhin nicht, sonst meldeten sie sich
+  selbst als verwaiste Seite (CR4614).
+
 ### 1.52.4
 
 - **`wiki`: `log.md` wird von oben beschrieben.** Die Richtung stand nirgends,

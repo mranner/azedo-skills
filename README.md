@@ -612,6 +612,12 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
+### 1.52.5
+
+- **`wiki`: Der Linter prueft die Wikilinks in `log.md` und `index.md`** - bisher
+  fielen beide aus dem Suchpfad und blieben ungeprueft. Tote Links dort sind
+  Warnungen, weil `log.md` historisch ist.
+
 ### 1.52.4
 
 - **`wiki`: `log.md` wird von oben beschrieben** - neuer Eintrag an den Anfang
