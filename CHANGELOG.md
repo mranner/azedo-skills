@@ -3,6 +3,17 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.53.1
+
+- **`wiki`: Testscript fuer die Praefix-Aufloesung des Linters.**
+  `scripts/test-lint-wiki.py` baut ein Wegwerf-Projekt mit zwei Nachbar-Wikis,
+  einem Verzeichnis ohne `wiki/`-Unterordner und einer `wiki-remotes.json` und
+  prueft die sieben Faelle, die 1.53.0 auseinanderhaelt - darunter der, bei dem
+  ein Praefix lokal **und** als Remote bekannt ist und die lokale, strengere
+  Pruefung gewinnen muss. Gegen die Fassung vor 1.53.0 laufend schlaegt es in
+  genau drei Faellen fehl; ein Test, der auch ohne die Aenderung gruen ist,
+  belegt nichts (CR4616).
+
 ### 1.53.0
 
 - **`wiki`: Wikilinks auf lokale Nachbar-Wikis lösen jetzt auf.** Ein
