@@ -3,6 +3,15 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.53.0
+
+- **`kanboard`: `add-comment` liest den Text auch aus einer Datei.** Bisher gab
+  es nur `--text`, laengere Kommentare mussten als `--text "$(cat datei.md)"`
+  durch die Shell - mit dem ueblichen Risiko, dass Backticks, `$` und
+  Anfuehrungszeichen unterwegs ausgewertet werden. `--file <pfad>` ergaenzt das
+  Gegenstueck, analog zu `set-handoff`; `--text` und `--file` schliessen
+  einander aus, eines von beiden ist noetig (CR4614).
+
 ### 1.52.0
 
 - **`swaks`: Der Versand hat einen eigenen Befehl.** Die vorgeschriebene

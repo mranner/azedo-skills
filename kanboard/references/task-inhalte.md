@@ -19,9 +19,15 @@ python3 "$SKILL_DIR/kanboard" get-comments <task_id>
 
 ```bash
 python3 "$SKILL_DIR/kanboard" add-comment <task_id> --text "<text>" [--user <username>]
+python3 "$SKILL_DIR/kanboard" add-comment <task_id> --file <pfad> [--user <username>]
 ```
 
 Ohne `--user` wird der `default_user` aus `instance.json` verwendet (gesetzt via `setup --default-user`).
+
+`--text` und `--file` schliessen einander aus, eines von beiden ist noetig. Bei
+laengeren Kommentaren (Tabellen, Codebloecke, mehrere Absaetze) `--file` nehmen:
+`--text "$(cat datei.md)"` schickt den Inhalt durch die Shell, wo Backticks, `$`
+und Anfuehrungszeichen ausgewertet werden.
 
 ### Kommentar aendern
 

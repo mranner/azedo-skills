@@ -2,7 +2,7 @@
 
 # Kanboard JSON-RPC 2.0 API helper
 # stdlib only, no pip dependencies
-# version 1.49.11
+# version 1.53.0
 
 import argparse
 import base64
@@ -863,11 +863,21 @@ def cmd_add_comment(args):
             print("Error: no --user given and no default_user in instance.json (run: setup --default-user <username>)", file=sys.stderr)
             sys.exit(1)
 
+    if args.file:
+        filepath = os.path.abspath(args.file)
+        if not os.path.exists(filepath):
+            print(f"Error: file '{filepath}' not found", file=sys.stderr)
+            sys.exit(1)
+        with open(filepath, "r", encoding="utf-8") as f:
+            content = f.read()
+    else:
+        content = args.text
+
     user_id = resolve_user(username)
     result = rpc_call("createComment", {
         "task_id": int(args.task_id),
         "user_id": user_id,
-        "content": args.text
+        "content": content
     })
     output({"comment_id": result})
 
@@ -1405,7 +1415,9 @@ def main():
     # add-comment
     p = sub.add_parser("add-comment")
     p.add_argument("task_id")
-    p.add_argument("--text", required=True)
+    g = p.add_mutually_exclusive_group(required=True)
+    g.add_argument("--text", help="Kommentartext direkt uebergeben")
+    g.add_argument("--file", help="Kommentartext aus Datei lesen")
     p.add_argument("--user")
     p.set_defaults(func=cmd_add_comment)
 

@@ -612,6 +612,14 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
+### 1.53.0
+
+- **`kanboard`: `add-comment --file <pfad>`** liest den Kommentartext aus einer
+  Datei, analog zu `set-handoff`. Laengere Kommentare mussten bisher als
+  `--text "$(cat datei.md)"` durch die Shell, wo Backticks, `$` und
+  Anfuehrungszeichen ausgewertet werden. `--text` und `--file` schliessen
+  einander aus.
+
 ### 1.52.0
 
 - **`swaks`: Der Versand hat einen eigenen Befehl.** `build_mail.py --send <eml>`
