@@ -608,7 +608,7 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.52.0
+### 1.51.4
 
 - **`wiki`: `## Quellen` ist keine Ablage mehr.** Optional statt Pflicht, nur
   echte Rohquellen; `audit-wiki.py` meldet Session-Listen als neues Signal
