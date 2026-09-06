@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # stdlib only, no pip dependencies
-# version 1.51.4
+# version 1.51.5
 
 """
 audit-wiki.py — misst Aufblähung und überholte Historie in LLM-Wikis.
@@ -76,7 +76,15 @@ QUELLEN_PATTERN = re.compile(r"^##+\s+Quellen\s*$", re.M | re.I)
 # Aufzaehlungspunkt unter "## Quellen", der ein Datum oder eine CR-Nummer traegt.
 # Genau die Form, in der sich Session-Protokolle ansammeln:
 #   "- Session 2026-07-05: Double-Hop giwe → mail-giwe-at"
-LOGBUCH_PATTERN = re.compile(r"^\s*[-*]\s+.*(?:\b\d{4}-\d{2}-\d{2}\b|\bCR\d{3,5}\b)", re.M)
+BULLET_PATTERN = re.compile(r"^\s*[-*]\s+.*$", re.M)
+LOGBUCH_MARK_PATTERN = re.compile(r"\b\d{4}-\d{2}-\d{2}\b|\bCR\d{3,5}\b")
+
+# Ein Logbuch-Eintrag traegt sein Datum im Fliesstext, eine Rohquelle im
+# Dateinamen ("raw/articles/session-2026-07-08-....md"). Code-Spans und Pfade
+# deshalb ausblenden, bevor gezaehlt wird - sonst meldet gerade der aufgeraeumte
+# Abschnitt, der nur noch Rohquellen listet, ein Logbuch.
+CODE_SPAN_PATTERN = re.compile(r"`[^`]*`")
+PATH_PATTERN = re.compile(r"\S*/\S*")
 
 # Woerter, die in fast jeder Ueberschrift stehen und deshalb keine Aussage ueber
 # das Thema treffen — beim Abgleich Ueberschrift <-> Procedure-Slug ignoriert.
@@ -114,6 +122,21 @@ def parse_type(text):
         if line.startswith("type:"):
             return line.split(":", 1)[1].strip().strip("\"'")
     return None
+
+
+def count_logbuch(quellen):
+    """Zaehlt datierte Aufzaehlungspunkte unter "## Quellen".
+
+    Datumsangaben in Code-Spans und Pfaden zaehlen nicht mit: sie gehoeren zu
+    einer Rohquelle, nicht zu einer Chronologie.
+    """
+    hits = 0
+    for line in BULLET_PATTERN.findall(quellen):
+        masked = PATH_PATTERN.sub(" ", CODE_SPAN_PATTERN.sub(" ", line))
+        if LOGBUCH_MARK_PATTERN.search(masked):
+            hits += 1
+
+    return hits
 
 
 def split_quellen(text):
@@ -180,7 +203,7 @@ def collect(wiki_root):
             "hist_hits": len(HISTORY_PATTERN.findall(text)),
             "hist_per_100": len(HISTORY_PATTERN.findall(text)) * 100.0 / lines,
             "oldest_date": min(DATE_PATTERN.findall(text), default=None),
-            "logbuch_hits": len(LOGBUCH_PATTERN.findall(quellen)),
+            "logbuch_hits": count_logbuch(quellen),
             "fences": len(FENCE_PATTERN.findall(text)) // 2,
             "recipes": len(RECIPE_PATTERN.findall(text)),
             "h3": sum(1 for h in headings if len(h[0]) == 3),

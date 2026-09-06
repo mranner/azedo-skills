@@ -608,6 +608,13 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
+### 1.51.5
+
+- **`wiki`: `LOGBUCH` schlaegt nicht mehr bei Datum im Dateinamen an.**
+  `audit-wiki.py` blendet Datumsangaben in Code-Spans und Pfaden aus, bevor es
+  die datierten Eintraege unter `## Quellen` zaehlt - Rohquellen wie
+  `raw/articles/session-2026-07-08-x.md` loesten bisher das Signal aus.
+
 ### 1.51.4
 
 - **`wiki`: `## Quellen` ist keine Ablage mehr.** Optional statt Pflicht, nur

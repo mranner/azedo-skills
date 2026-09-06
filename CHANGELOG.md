@@ -3,6 +3,16 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.51.5
+
+- **`wiki`: `LOGBUCH` schlaegt nicht mehr bei Datum im Dateinamen an.** Unter
+  `## Quellen` zaehlte jeder `raw/`-Pfad mit Datum im Namen als datierter
+  Eintrag - also genau die Rohquellen, die der Abschnitt aufnehmen soll. Ein
+  aufgeraeumter Artikel blieb dadurch dauerhaft im Audit, ohne dass sich etwas
+  daran haette abstellen lassen.
+  - `audit-wiki.py`: Datumsangaben in Code-Spans und Pfaden werden vor dem
+    Zaehlen ausgeblendet; ein Logbuch-Eintrag traegt sein Datum im Fliesstext.
+
 ### 1.51.4
 
 - **`wiki`: `## Quellen` ist keine Ablage mehr.** Der Abschnitt war Pflicht und
