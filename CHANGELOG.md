@@ -3,6 +3,16 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.52.4
+
+- **`wiki`: `log.md` wird von oben beschrieben.** Die Richtung stand nirgends,
+  also wurde an beiden Enden geschrieben - im azedo-Wiki entstanden so von Juli
+  bis September zwei Journale in einer Datei: 19 Tage nur im oberen Lauf, 9 nur
+  im unteren, sieben Tage in beiden mit verschiedenen Eintraegen. Wer nur ein
+  Ende las, sah die halbe Historie. `references/compilation-guide.md` legt jetzt
+  fest: neuer Eintrag an den Anfang des heutigen Tagesabschnitts, neuer Tag ganz
+  nach oben (CR4614).
+
 ### 1.52.3
 
 - **`tcsh`: `&&` und `||` gehoeren nicht auf die `sh -c`-Liste.** Der Skill

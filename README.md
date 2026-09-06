@@ -612,6 +612,12 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
+### 1.52.4
+
+- **`wiki`: `log.md` wird von oben beschrieben** - neuer Eintrag an den Anfang
+  des heutigen Tagesabschnitts, neuer Tag ganz nach oben. Ohne diese Festlegung
+  waren im azedo-Wiki zwei parallele Journale in einer Datei entstanden.
+
 ### 1.52.3
 
 - **`tcsh`: `&&` / `||` brauchen kein `sh -c`.** Bedingtes Chaining stand

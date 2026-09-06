@@ -94,6 +94,16 @@ Nach jedem Compile-Lauf:
 
 ## Einträge in `log.md`
 
+**Neueste zuerst.** Ein neuer Eintrag kommt an den Anfang des heutigen
+Tagesabschnitts, ein neuer Tag ganz nach oben unter den Dateikopf. Bestehende
+Einträge bleiben, wie sie sind.
+
+Die Richtung ist keine Geschmacksfrage: im azedo-Wiki wurde von Juli bis
+September an beiden Enden geschrieben, weil sie nirgends festgelegt war. Es
+entstanden zwei Journale in einer Datei - 19 Tage nur im oberen Lauf, 9 nur im
+unteren, sieben Tage in beiden mit **verschiedenen** Einträgen. Wer nur ein Ende
+las, sah die halbe Historie. Zusammengeführt am 2026-09-06.
+
 Für `log.md` gelten die [Schreibregeln der SKILL.md](../SKILL.md#schreibregeln)
 genauso wie für Artikel - insbesondere das Dichtegebot. Ein Eintrag beantwortet
 drei Fragen und hört dann auf:
