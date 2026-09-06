@@ -620,6 +620,9 @@ Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle 
 - **`wiki`: `scripts/test-lint-wiki.py`** - prüft die Präfix-Auflösung des
   Linters (lokales Nachbar-Wiki, Remote, unbekanntes Präfix) gegen ein
   Wegwerf-Projekt. Aufruf ohne Argumente, Exit 0 = alles erfüllt.
+- **`wiki`: Doku zur Präfix-Auflösung** - `remote-wikis.md` deckt jetzt Nachbar-Wiki
+  und Remote gemeinsam ab, `subcommands.md` (`lint`, `query`) und `SKILL.md` ziehen
+  nach.
 
 ### 1.52.5
 

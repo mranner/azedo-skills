@@ -154,6 +154,11 @@ Workflow:
 5. Antwort mit Wikilink-Zitaten formulieren (`[[entity-slug]]`)
 6. Optional: Antwort als Query-Output in `wiki/queries/` speichern
 
+Ein Präfix-Pointer `[[<präfix>:<slug>]]` in einem gefundenen Artikel darf in Schritt 4
+mitgelesen werden: zeigt er auf ein Nachbar-Wiki unter `wiki/`, ist das eine ganz
+normale lokale Datei (`wiki/<präfix>/wiki/**/<slug>.md`); zeigt er auf ein Remote-Wiki,
+per SSH (siehe [Hints](remote-wikis.md#auf-entities-anderer-wikis-verweisen-hints)).
+
 Bei einem **Remote-Wiki** dieselben Schritte, aber `index.md` und Entities per SSH
 lesen statt lokal (`ssh <host> "cat/grep …"`, siehe
 [Remote-Wikis](remote-wikis.md#remote-wikis-read-only)). Schritt 6 (Speichern) entfaellt — Remote
@@ -174,9 +179,12 @@ Praefix gemeint ist, klaert Schritt 1 unter [Ziel-Wiki bestimmen](../SKILL.md#zi
 Das erlaubte Entity-Modell (Typen + Pflichtfelder) liest der Linter aus
 `<WIKI_ROOT>/wiki-schema.json`; fehlt die Datei, gilt das Infra-Default.
 
-Remote-Pointer `[[<remote>:<slug>]]` (siehe [Remote-Wikis](remote-wikis.md#remote-wikis-read-only))
-gelten als gueltig, wenn `<remote>` in `.claude/wiki-remotes.json` steht — sonst als
-toter Link. Mit `--check-remotes` verifiziert der Linter die Remote-Ziele per SSH.
+Präfix-Pointer `[[<präfix>:<slug>]]` (siehe
+[Hints](remote-wikis.md#auf-entities-anderer-wikis-verweisen-hints)) löst der Linter
+erst gegen die Nachbar-Wikis unter `wiki/` auf - dort wird das Ziel direkt geprüft,
+ein fehlender Slug ist ein Fehler - und danach gegen `.claude/wiki-remotes.json`;
+Remote-Ziele gelten ungeprüft als gültig, `--check-remotes` verifiziert sie per SSH.
+Unbekanntes Präfix bleibt ein toter Link.
 
 Prueft:
 - **Orphaned pages**: Artikel ohne eingehende Links

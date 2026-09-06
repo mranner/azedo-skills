@@ -22,6 +22,13 @@ Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version 
   strengere Prüfung gewinnen muss. Gegen die Fassung davor laufend schlägt es in
   genau drei Fällen fehl; ein Test, der auch ohne die Änderung grün ist, belegt
   nichts (CR4616).
+- **`wiki`: Doku zur Präfix-Auflösung nachgezogen.** `references/remote-wikis.md`
+  beschrieb den Verweis über die Wiki-Grenze nur als Remote-Fall; der Abschnitt
+  heißt jetzt „Auf Entities anderer Wikis verweisen" und führt die drei Stufen
+  auf, inklusive der Frage, wer bei doppelt bekanntem Präfix gewinnt. Dazu die
+  `lint`- und `query`-Abschnitte in `references/subcommands.md` und der Satz zum
+  wikiübergreifenden Cross-Referencing in `SKILL.md`, der bis 1.52.5 nur
+  eingeschränkt stimmte (CR4616).
 
 ### 1.52.5
 

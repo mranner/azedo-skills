@@ -81,7 +81,9 @@ Vor jeder Operation:
 
 Im Folgenden steht `<WIKI_ROOT>` fuer den in Schritt 2 ermittelten Pfad.
 Die Sicherheitsregeln (keine Secrets) und das Cross-Referencing gelten
-wikiuebergreifend.
+wikiuebergreifend: ein `[[<präfix>:<slug>]]` zeigt in derselben Schreibweise auf ein
+Nachbar-Wiki unter `wiki/` wie auf ein Remote-Wiki - siehe
+[Hints](references/remote-wikis.md#auf-entities-anderer-wikis-verweisen-hints).
 
 ## Subcommands
 
@@ -106,7 +108,7 @@ Vollstaendige Referenz daneben, bei Bedarf lesen:
 |---|---|
 | `references/subcommands.md` | `init`, `ingest`, `compile`, `harvest`, `query`, `lint` |
 | `references/pflege.md` | `audit` (aufgeblaehte Artikel finden), `refactor` (Entity umbauen, verdichten statt verschieben), `status`, `handoff` |
-| `references/remote-wikis.md` | Wikis anderer Hosts read-only per SSH abfragen, Konfiguration, Hints auf Remote-Entities |
+| `references/remote-wikis.md` | Wikis anderer Hosts read-only per SSH abfragen, Konfiguration, Hints auf Entities anderer Wikis (Nachbar-Wiki wie Remote) |
 
 ## Schreibregeln
 
