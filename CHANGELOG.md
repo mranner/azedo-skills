@@ -3,6 +3,25 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.52.0
+
+- **`wiki`: Zerlegen ist jetzt ein eigener Refactor-Weg.** `refactor` kannte fuer
+  einen zu langen Artikel nur Verschieben in eine Procedure und Kuerzen auf
+  Satzebene - ein Sammelbecken, das mehrere Gegenstaende unter einem Namen
+  fuehrt, kam als "bleibt lang, ist Substanz" heraus. Die Entflechtung von
+  `freebsd-shell-pitfalls` (811 -> 241 Zeilen, vier neue Procedures) lief
+  deshalb ausserhalb des Skill-Ablaufs.
+  - `audit-wiki.py`: neues Signal `MEHRTHEMIG` (viele gleichrangige H2-Themen,
+    wenig Unterbau, nur bei ohnehin zu langem Artikel). Kalibriert am
+    azedo-Wiki im Stand vor der Entflechtung: von 190 Artikeln traf es genau
+    `freebsd-shell-pitfalls`. Schrittnummern ("## 6. Datenbank") zaehlen nicht
+    als Thema, sonst meldet jede nummerierte Checkliste. JSON zusaetzlich mit
+    `h2_share` und `topic_titles`.
+  - `pflege.md`: neue Kategorie `-> EIGENER ARTIKEL` mit Drei-Fragen-Kriterium
+    und Abgrenzung zu `-> PROCEDURE`, Abschnitt "Zerlegen statt kuerzen" mit
+    den Schritten beim Teilen (eingehende Verweise umhaengen, Verweisliste im
+    Rumpf, Umbenennen, nicht mit dem Verdichten mischen).
+
 ### 1.51.5
 
 - **`wiki`: `LOGBUCH` schlaegt nicht mehr bei Datum im Dateinamen an.** Unter

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # stdlib only, no pip dependencies
-# version 1.51.5
+# version 1.52.0
 
 """
 audit-wiki.py — misst Aufblähung und überholte Historie in LLM-Wikis.
@@ -22,6 +22,9 @@ Gemessen wird je Artikel:
   access- oder site-Entities (gehört in eine procedure)
 - dominanter Abschnitt: ein Kapitel frisst den Grossteil der Datei — nur
   gemeldet, wenn zusaetzlich Umfang oder Historie auffaellt
+- Sammelbecken: viele gleichrangige H2-Themen ohne Unterbau in einem zu langen
+  Artikel — Hinweis darauf, dass hier mehrere Gegenstaende unter einem Namen
+  stehen und nicht ein Gegenstand zu ausfuehrlich beschrieben ist
 - Strukturtiefe: Anzahl H3 und Verschachtelung ab H4 (Punkte nur mit Befund)
 
 Zusätzlich schlägt das Script je auffälligem Artikel bestehende Procedures als
@@ -72,6 +75,12 @@ HISTORY_PATTERN = re.compile(
 )
 RECIPE_PATTERN = re.compile(r"^#\s*(FALSCH|RICHTIG|WIRKUNGSLOS|GEFÄHRLICH|GEFAEHRLICH)\b", re.M)
 QUELLEN_PATTERN = re.compile(r"^##+\s+Quellen\s*$", re.M | re.I)
+
+# Ueberschriften, die einen Schritt in einem Ablauf nummerieren ("## 6. Datenbank
+# und DB-User", "## Schritt 2: ..."). Sie sehen wie eigenstaendige Themen aus,
+# sind aber Teile einer Reihenfolge und deshalb kein Zerlegungskandidat.
+STEP_TITLE_PATTERN = re.compile(r"^\s*(?:\d+[.)]|Schritt\s+\d+)", re.I)
+GENERIC_TITLES = re.compile(r"^\s*(Quellen|Hinweise?|Verwandte\s|Siehe\s)", re.I)
 
 # Aufzaehlungspunkt unter "## Quellen", der ein Datum oder eine CR-Nummer traegt.
 # Genau die Form, in der sich Session-Protokolle ansammeln:
@@ -177,6 +186,28 @@ def tokenize(text):
     return {w for w in words if len(w) > 3 and w not in STOPWORDS}
 
 
+def collect_topics(sections):
+    """Gleichrangige H2-Themen und die Flachheit der Gliederung.
+
+    Ein Sammelbecken erkennt man nicht an der Groesse einzelner Abschnitte —
+    freebsd-shell-pitfalls hatte mit 811 Zeilen keinen H2 ueber 66 Zeilen —,
+    sondern an der Bauform: viele H2 nebeneinander, jeder mit eigenem Gewicht,
+    kaum Unterbau. Ein Artikel ueber *einen* Gegenstand baut stattdessen
+    Hierarchie: wenige H2, die Substanz in H3 darunter.
+
+    Zurueck kommen die Themen-H2 (>= 15 Zeilen, keine Schritt- oder
+    Verwaltungsueberschrift) und der H2-Anteil an allen H2/H3.
+    """
+    h2 = [(t, n) for lvl, t, n in sections if lvl == 2]
+    h3 = [s for s in sections if s[0] == 3]
+    topics = [
+        (t, n) for t, n in h2
+        if n >= 15 and not STEP_TITLE_PATTERN.match(t) and not GENERIC_TITLES.match(t)
+    ]
+    share = len(h2) / (len(h2) + len(h3)) if (h2 or h3) else 0.0
+    return topics, share
+
+
 def collect(wiki_root):
     """Liest alle Artikel unter <wiki-root>/wiki/ ein und misst sie."""
     root = Path(wiki_root)
@@ -194,6 +225,7 @@ def collect(wiki_root):
         headings = HEADING_PATTERN.findall(text)
         sections = section_sizes(text)
         biggest = max(sections, key=lambda s: s[2]) if sections else (0, "", 0)
+        topics, h2_share = collect_topics(sections)
 
         articles.append({
             "rel_path": str(path.relative_to(root)),
@@ -210,13 +242,15 @@ def collect(wiki_root):
             "deep": sum(1 for h in headings if len(h[0]) >= 4),
             "big_section": biggest[1],
             "big_share": biggest[2] / lines if lines else 0,
+            "topics": topics,
+            "h2_share": h2_share,
             "sections": sections,
         })
     return articles
 
 
 def score(article, p90_by_type):
-    """Punkte 0..100 aus sechs Einzelsignalen plus die Befundliste.
+    """Punkte aus sieben Einzelsignalen plus die Befundliste.
 
     Die Gewichte sind bewusst grob — die Rangfolge soll stimmen, die absolute
     Zahl bedeutet nichts. Entschieden wird an den Rohwerten in der Ausgabe.
@@ -291,6 +325,22 @@ def score(article, p90_by_type):
             findings.append(
                 f"DOMINANT (\"{article['big_section']}\" = {article['big_share']*100:.0f}% der Datei)"
             )
+
+    # Sammelbecken: viele gleichrangige H2-Themen, wenig Unterbau — und der
+    # Artikel ist ohnehin zu lang. Dann steht die Frage nicht "was kuerzen",
+    # sondern "sind das ueberhaupt ein Gegenstand". Wie DOMINANT ohne den
+    # zweiten Grund nicht gemeldet: eine flache Gliederung allein ist die
+    # Bauform kurzer Artikel und kein Mangel. Kalibriert am azedo-Wiki im Stand
+    # vor der Entflechtung vom 2026-08-20: von 190 Artikeln traf die Bedingung
+    # genau freebsd-shell-pitfalls (811 Zeilen, fuenf Themen, in vier eigene
+    # Procedures zerlegt) und sonst keinen.
+    topics = article["topics"]
+    if is_long and len(topics) >= 8 and article["h2_share"] >= 0.6:
+        findings.append(
+            f"MEHRTHEMIG ({len(topics)} gleichrangige H2-Themen, "
+            f"{article['h2_share']*100:.0f}% der Gliederung auf H2-Ebene)"
+        )
+        points += 15 * clamp((len(topics) - 6) / 10.0)
 
     # Struktur: viele H3 oder Verschachtelung ab H4. Punkte nur mit Befund — sonst
     # verschiebt das Signal die Rangfolge, ohne in der Ausgabe zu erscheinen.
@@ -372,7 +422,10 @@ def audit(wiki_root, type_filter=None, path_filter=None, top=10, show_all=False,
     shown = flagged if show_all else flagged[:top]
 
     if as_json:
-        rounded = {"baseline": 0, "ratio": 2, "hist_per_100": 1, "big_share": 3}
+        rounded = {"baseline": 0, "ratio": 2, "hist_per_100": 1, "big_share": 3,
+                   "h2_share": 2}
+        for a in shown:
+            a["topic_titles"] = [t for t, _ in a["topics"]]
         payload = [
             {
                 k: (round(a[k], rounded[k]) if k in rounded else a[k])
@@ -380,6 +433,7 @@ def audit(wiki_root, type_filter=None, path_filter=None, top=10, show_all=False,
                     "rel_path", "slug", "type", "lines", "baseline", "ratio", "score",
                     "hist_hits", "hist_per_100", "oldest_date", "fences", "recipes",
                     "h3", "deep", "big_section", "big_share", "findings", "logbuch_hits",
+                    "h2_share", "topic_titles",
                 )
             }
             for a in shown

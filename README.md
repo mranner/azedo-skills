@@ -608,6 +608,14 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
+### 1.52.0
+
+- **`wiki`: Zerlegen ist jetzt ein eigener Refactor-Weg.** `audit-wiki.py` meldet
+  Sammelbecken als neues Signal `MEHRTHEMIG`, `refactor` kennt die Kategorie
+  `-> EIGENER ARTIKEL` samt Kriterium und Ablauf beim Teilen (Verweise
+  umhaengen, Verweisliste im Rumpf). Bisher gab es nur Verschieben in eine
+  Procedure und Kuerzen auf Satzebene.
+
 ### 1.51.5
 
 - **`wiki`: `LOGBUCH` schlaegt nicht mehr bei Datum im Dateinamen an.**
