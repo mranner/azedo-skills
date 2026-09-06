@@ -612,17 +612,14 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.53.1
-
-- **`wiki`: `scripts/test-lint-wiki.py`** - prueft die Praefix-Aufloesung des
-  Linters (lokales Nachbar-Wiki, Remote, unbekanntes Praefix) gegen ein
-  Wegwerf-Projekt. Aufruf ohne Argumente, Exit 0 = alles erfuellt.
-
-### 1.53.0
+### 1.52.6
 
 - **`wiki`: Wikilinks auf lokale Nachbar-Wikis** - `[[<präfix>:<slug>]]` löst
   jetzt auch gegen Geschwister-Wikis unter `wiki/` auf, nicht nur gegen die
   Remotes aus `wiki-remotes.json`. Das lokale Ziel wird direkt geprüft.
+- **`wiki`: `scripts/test-lint-wiki.py`** - prüft die Präfix-Auflösung des
+  Linters (lokales Nachbar-Wiki, Remote, unbekanntes Präfix) gegen ein
+  Wegwerf-Projekt. Aufruf ohne Argumente, Exit 0 = alles erfüllt.
 
 ### 1.52.5
 

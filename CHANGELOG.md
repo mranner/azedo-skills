@@ -3,18 +3,7 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
-### 1.53.1
-
-- **`wiki`: Testscript fuer die Praefix-Aufloesung des Linters.**
-  `scripts/test-lint-wiki.py` baut ein Wegwerf-Projekt mit zwei Nachbar-Wikis,
-  einem Verzeichnis ohne `wiki/`-Unterordner und einer `wiki-remotes.json` und
-  prueft die sieben Faelle, die 1.53.0 auseinanderhaelt - darunter der, bei dem
-  ein Praefix lokal **und** als Remote bekannt ist und die lokale, strengere
-  Pruefung gewinnen muss. Gegen die Fassung vor 1.53.0 laufend schlaegt es in
-  genau drei Faellen fehl; ein Test, der auch ohne die Aenderung gruen ist,
-  belegt nichts (CR4616).
-
-### 1.53.0
+### 1.52.6
 
 - **`wiki`: Wikilinks auf lokale Nachbar-Wikis lösen jetzt auf.** Ein
   `[[<präfix>:<slug>]]` galt nur dann als gültig, wenn `<präfix>` in
@@ -25,6 +14,14 @@ Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version 
   Ziel greifbar da, ein fehlender Slug ist also ein Fehler und keine
   Nachsicht-Regel. Aufgefallen in einem Projekt mit einem Wiki je Schulfach, wo
   der Verweis vom einen Fach aufs andere als toter Link gemeldet wurde (CR4616).
+- **`wiki`: Testscript für die Präfix-Auflösung des Linters.**
+  `scripts/test-lint-wiki.py` baut ein Wegwerf-Projekt mit zwei Nachbar-Wikis,
+  einem Verzeichnis ohne `wiki/`-Unterordner und einer `wiki-remotes.json` und
+  prüft die sieben Fälle, die der Punkt darüber auseinanderhält - darunter der,
+  bei dem ein Präfix lokal **und** als Remote bekannt ist und die lokale,
+  strengere Prüfung gewinnen muss. Gegen die Fassung davor laufend schlägt es in
+  genau drei Fällen fehl; ein Test, der auch ohne die Änderung grün ist, belegt
+  nichts (CR4616).
 
 ### 1.52.5
 
