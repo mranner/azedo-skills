@@ -71,11 +71,40 @@ Deshalb ist die muttrc-Variante der Normalfall und der Fallback die Ausnahme.
 
 ## Kontakte
 
-Bekannte Empfänger sind in `.claude/swaks-contacts.tsv` im Arbeitsverzeichnis hinterlegt (TSV: `kurzname<TAB>email`, eine Zeile pro Kontakt).
+### Antwort auf einen Thread: `imap contacts`
 
-**Lookup:** `grep -i <name> .claude/swaks-contacts.tsv` — liefert direkt die Zeile mit der E-Mail-Adresse (zweites Feld).
+**Der Regelweg**, sobald auf eine bestehende Mail geantwortet wird. Der Befehl
+folgt der `References`-Kette und sammelt `From`, `Reply-To`, `To` und `Cc`
+**aller** Mails des Threads ein — über alle konfigurierten Konten hinweg:
 
-Wenn der User einen Namen statt einer E-Mail-Adresse nennt (z.B. "schick das an Karin"), zuerst per grep nachschlagen. Nur wenn kein Treffer: nachfragen.
+```bash
+python3 ~/.claude/skills/imap/imap contacts <uid> -a <konto> [-f <ordner>]
+```
+
+Das ist kein Komfort, sondern der Unterschied zwischen vollständig und fast
+vollständig: eine Adresse aus dem Verteiler steht oft nur in einer einzigen
+älteren Mail, und die eigenen Antworten liegen im „Gesendet" eines anderen
+Kontos. Von Hand ist das ein Abklappern der Kette mit je einem Aufruf pro Mail
+(CR4613). Die eigene Adresse steht mit in der Liste und gehört beim Envelope in
+der Regel heraus.
+
+Details: `references/contacts.md` im `imap`-Skill.
+
+### Neue Mail an einen Namen: `swaks-contacts.tsv`
+
+Für eine Mail **ohne** Vorgeschichte, wenn der User einen Namen statt einer
+Adresse nennt („schick das an Karin"). Die Datei liegt projektlokal unter
+`.claude/swaks-contacts.tsv` oder global unter `~/.claude/swaks-contacts.tsv`
+(TSV: `kurzname<TAB>email`, eine Zeile pro Kontakt) — sie ist **optional** und
+existiert nicht überall:
+
+```bash
+grep -i <name> .claude/swaks-contacts.tsv
+```
+
+Kein Treffer **oder keine Datei** heißt: nachfragen, nicht raten. Eine fehlende
+Datei ist kein Fehler und kein Grund, sie anzulegen — sie entsteht, wenn der
+erste Kontakt darin landet.
 
 Neue Kontakte nach dem Versand ergänzen:
 

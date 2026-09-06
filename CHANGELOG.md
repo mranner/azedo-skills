@@ -34,6 +34,26 @@ Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version 
   `--subject` umgekehrt Pflicht ist - der Bau brach mit Exit 2 ab. SKILL.md
   benennt jetzt beide Seiten.
 
+- **`imap`: `contacts` sammelt die Adressen eines ganzen Threads.** Der
+  Empfaengerkreis einer Antwort steht selten vollstaendig in der zuletzt
+  eingegangenen Mail - eine Adresse aus dem Verteiler taucht oft nur in einer
+  einzigen aelteren Nachricht auf, und die eigenen Antworten liegen im
+  "Gesendet" eines anderen Kontos. In CR4613 mussten fuenf Adressen deshalb von
+  Hand ueber die References-Kette rekonstruiert werden.
+  - `imap contacts <uid>` bzw. `-m <message-id>` folgt `References` und
+    `In-Reply-To`, wertet `From`, `Reply-To`, `To` und `Cc` aller gefundenen
+    Mails aus und gibt je Adresse Name, Rollen und Trefferzahl aus. `--json`
+    liefert zusaetzlich die gefundenen Mails und die offenen Message-IDs.
+  - Gesucht wird ueber **alle** konfigurierten Konten, nicht nur das der
+    Startmail; `-a`/`-f` grenzen wieder ein. Je Ordner geht ein SEARCH ueber
+    alle offenen IDs (OR-Kette) statt einer je ID.
+  - Nicht auffindbare IDs (die Kopien der Gegenseite) stehen als Warnung auf
+    stderr, der Exit-Code bleibt `0`. Neu: `references/contacts.md`.
+- **`swaks`: Die Kontaktaufloesung nennt beide Wege.** Bei einer Antwort
+  `imap contacts`, bei einer neuen Mail an einen Namen die - **optionale** -
+  `swaks-contacts.tsv`. Der Ablauf baute bisher auf einer Datei auf, die es
+  nicht ueberall gibt; ihr Fehlen ist jetzt ausdruecklich kein Fehler.
+
 ### 1.51.6
 
 - **`wiki`: Zerlegen ist jetzt ein eigener Refactor-Weg.** `refactor` kannte fuer

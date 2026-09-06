@@ -4,9 +4,10 @@ description: >
   IMAP-Zugriff auf mehrere Konten: Posteingang durchgehen und zusammenfassen,
   Mails einsortieren, als Spam markieren, löschen, zwischen Konten kopieren
   oder verschieben, Anhänge herausschreiben, Zitatblock für eine Antwort
-  erzeugen, eine Message-ID auflösen, eine versendete .eml in "Gesendet"
-  ablegen. Auch bei "geh meine Inbox durch", "was ist heute reingekommen",
-  "räum den Posteingang auf", "hol den Anhang aus der Mail".
+  erzeugen, die Adressen eines ganzen Threads sammeln, eine Message-ID
+  auflösen, eine versendete .eml in "Gesendet" ablegen. Auch bei "geh meine
+  Inbox durch", "was ist heute reingekommen", "räum den Posteingang auf",
+  "hol den Anhang aus der Mail", "wer war in dem Thread alles dabei".
   Trigger: /imap.
 ---
 
@@ -69,6 +70,7 @@ nicht in diesen Skill.
 | `read <uid> -a <konto>` | Textkoerper einer Mail |
 | `fetch --uids <liste> -a <konto>` | mehrere Mails mit **einem** Login |
 | `quote <uid> -a <konto>` | Zitatblock fuer eine Antwort (Text oder HTML) |
+| `contacts <uid> -a <konto>` | alle Adressen eines Threads sammeln (folgt der References-Kette) |
 | `read <uid> --headers` | alle Rohheader statt der Kopfzeilen-Auswahl |
 | `read <uid> --raw` | komplette unbearbeitete Nachricht (Header + Body) |
 | `attachments <uid> -a <konto>` | Anhaenge auflisten (Index, Name, Typ, Groesse) |
@@ -187,6 +189,7 @@ Vollstaendige Referenz daneben, bei Bedarf lesen:
 | Datei | Inhalt |
 |---|---|
 | `references/quote.md` | `quote` - Zitatblock fuer eine Antwort, `--message-id`, format=flowed, `--format html`, `--json` |
+| `references/contacts.md` | `contacts` - Adressen eines Threads sammeln, kontouebergreifende Suche, `--no-thread` |
 | `references/anhaenge.md` | Anhaenge auflisten und herausschreiben, Rezept fuer den Weg an einen Task |
 | `references/find-fetch.md` | `find` (Message-ID zu UID), `fetch` (Stapel Mails mit einem Login) |
 | `references/append-konten.md` | `append` (versendete Mail in "Gesendet"), kontouebergreifendes Kopieren und Verschieben |

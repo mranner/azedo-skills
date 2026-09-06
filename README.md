@@ -153,6 +153,9 @@ Posteingang-Triage über mehrere IMAP-Konten — das Gegenstück zu `swaks`. Unt
 - `quote` erzeugt den Zitatblock für eine Antwort im Thunderbird-Format (`--format text|html`,
   `--width`), löst vorher `format=flowed` auf und liefert per `--json` die Threading-Header
   (`In-Reply-To`, `References`) gleich mit
+- `contacts <uid>` sammelt alle Adressen eines Threads (`From`/`Reply-To`/`To`/`Cc` über die
+  `References`-Kette, kontoübergreifend, ein SEARCH je Ordner) — der Empfängerkreis einer Antwort
+  steht selten vollständig in der letzten Mail
 - `find -m <message-id>` löst eine Message-ID zu Konto, Ordner und UID auf (ohne Konto über alle
   Konten, INBOX zuerst); `quote -m` nimmt dieselbe Angabe direkt statt einer UID — UIDs sind
   ordner-lokal, ein fehlendes `--folder` zitiert sonst still die gleichnamige Mail der INBOX
@@ -179,7 +182,8 @@ Versendet E-Mails via `swaks` über einen Postfix-Relay. Unterstützt:
 - Plain-Text und HTML Body
 - Dateianhänge (beliebiger MIME-Type)
 - Mehrere Anhänge pro Mail
-- Kontakt-Shortcuts (`.claude/swaks-contacts.tsv` — Name-zu-Email-Lookup)
+- Kontakt-Shortcuts (`.claude/swaks-contacts.tsv` — Name-zu-Email-Lookup, optional); bei einer
+  Antwort liefert `imap contacts` den Empfängerkreis stattdessen aus dem Thread
 - Optionale Default-Signatur (`.claude/swaks-signature.txt`)
 - Versand-Defaults (`to`, `from`, `server`, `message_id_domain`) aus `.claude/swaks.json` — projektlokal vor global, Vorlage `swaks.json.example`
 - `--verify` prüft die fertige `.eml` vor dem Versand: Prüfsumme (`--expect-sha256`, gegen die
@@ -619,6 +623,11 @@ Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle 
 - **`swaks`: `--verify` nennt den nur in der Gross-/Kleinschreibung
   abweichenden Marker beim Namen**, und der Hinweis zu `--subject` trennt
   `build_mail.py` (Pflicht) von `swaks` (kennt die Option nicht).
+
+- **`imap`: `contacts` sammelt die Adressen eines ganzen Threads** ueber die
+  References-Kette und ueber alle Konten hinweg - der Empfaengerkreis einer
+  Antwort steht selten vollstaendig in der letzten Mail. Der swaks-Ablauf
+  verweist darauf; die `swaks-contacts.tsv` ist ausdruecklich optional.
 
 ### 1.51.6
 

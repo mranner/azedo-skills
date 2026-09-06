@@ -3,7 +3,7 @@
 # IMAP-Helper fuer Posteingang-Triage
 # Liest Zugangsdaten aus muttrc, arbeitet gegen mehrere Konten.
 # stdlib only, keine pip-Abhaengigkeiten. Lauffaehig auf macOS + FreeBSD.
-# version 1.46.1
+# version 1.52.0
 
 import argparse
 import email
@@ -396,6 +396,86 @@ class Account:
                 "size": find_int(meta, "RFC822.SIZE"),
                 "flags": flags,
                 "seen": any(f.lower() == "\\seen" for f in flags),
+            })
+        out.sort(key=lambda m: m["uid"])
+        return out
+
+    def scan_message_ids(self, message_ids, folder):
+        """Einen Ordner nach mehreren Message-IDs durchsuchen - ein SEARCH.
+
+        Der Einzelweg (scan_message_id je ID) laeuft bei einem Thread mit zehn
+        Vorgaengern in zehn SELECT/SEARCH-Paare je Ordner. IMAP-SEARCH nimmt
+        die Bedingungen stattdessen als OR-Kette in Praefixform entgegen:
+        'OR c1 OR c2 c3'. Fehler sind hier wie bei scan_message_id kein
+        Abbruchgrund - ein nicht waehlbarer Ordner ist beim Sweep normal."""
+        if not message_ids:
+            return {}
+
+        criteria = []
+
+        for mid in reversed(message_ids):
+            term = ["HEADER", "Message-ID", f'"{mid}"']
+            criteria = term if not criteria else ["OR"] + term + criteria
+
+        try:
+            typ, _ = self.conn.select(quote_mailbox(folder), readonly=True)
+            if typ != "OK":
+                return {}
+            self._selected = (folder, True)
+            typ, data = self.conn.uid("SEARCH", None, *criteria)
+            if typ != "OK" or not data or not data[0]:
+                return {}
+            uids = [int(u) for u in data[0].split()]
+            rows = self.fetch_envelopes(uids, folder)
+        except imaplib.IMAP4.error:
+            return {}
+        except ValueError:
+            return {}
+
+        # Server, die HEADER nur als Teilstring auswerten, liefern auch Mails,
+        # deren Message-ID die gesuchte enthaelt - deshalb der Gegencheck.
+
+        wanted = set(message_ids)
+
+        return {r["message_id"].strip(): r["uid"]
+                for r in rows if r["message_id"].strip() in wanted}
+
+    def address_headers(self, uids, folder="INBOX"):
+        """Adressheader zu bekannten UIDs - fuer die Kontaktauswertung.
+
+        fetch_envelopes() holt Cc nicht, weil die Uebersichtsliste es nicht
+        anzeigt. Fuer den Adressbestand eines Threads ist Cc aber genau die
+        Stelle, an der die uebrigen Beteiligten stehen."""
+        if not uids:
+            return []
+
+        self.select(folder, readonly=True)
+
+        typ, data = self.conn.uid(
+            "FETCH", ",".join(str(u) for u in uids),
+            "(BODY.PEEK[HEADER.FIELDS "
+            "(FROM TO CC REPLY-TO SUBJECT DATE MESSAGE-ID)])"
+        )
+        if typ != "OK":
+            die(f"[{self.alias}] FETCH HEADER fehlgeschlagen: {as_text(data)}")
+
+        out = []
+        for meta, header_bytes in walk_fetch(data):
+            uid = find_int(meta, "UID")
+            if uid is None:
+                continue
+            msg = email.message_from_bytes(header_bytes)
+            out.append({
+                "account": self.alias,
+                "folder": folder,
+                "uid": uid,
+                "message_id": hdr(msg, "Message-ID"),
+                "date": hdr(msg, "Date"),
+                "subject": flat(hdr(msg, "Subject")),
+                "from": flat(hdr(msg, "From")),
+                "reply_to": flat(hdr(msg, "Reply-To")),
+                "to": flat(hdr(msg, "To")),
+                "cc": flat(hdr(msg, "Cc")),
             })
         out.sort(key=lambda m: m["uid"])
         return out
@@ -1416,6 +1496,189 @@ def cmd_quote(args, accounts):
     })
 
 
+def thread_message_ids(msg):
+    """Message-IDs des Threads aus einer Mail: References, In-Reply-To und die
+    eigene. Reihenfolge bleibt die der Kette (aelteste zuerst), die eigene
+    kommt ans Ende - so liest sich die Ausgabe chronologisch."""
+    ids = []
+
+    for name in ("References", "In-Reply-To", "Message-ID"):
+        for token in re.split(r"[\s,]+", unfold_header(msg.get(name))):
+            if token and token not in ids:
+                ids.append(token)
+
+    return ids
+
+
+def collect_addresses(mail, contacts):
+    """Adressen einer Mail in den Bestand aufnehmen.
+
+    Ein Kontakt wird ueber die Adresse identifiziert, nicht ueber den
+    Anzeigenamen: derselbe Mensch steht in einem Thread mal als 'Max Muster',
+    mal als 'muster' und mal ohne Namen. Der erste nicht leere Name gewinnt,
+    die Rollen sammeln sich."""
+    for role in ("from", "reply_to", "to", "cc"):
+        for name, addr in email.utils.getaddresses([mail.get(role) or ""]):
+            addr = addr.strip()
+
+            if not addr or "@" not in addr:
+                continue
+
+            key = addr.lower()
+            entry = contacts.setdefault(key, {
+                "email": addr, "name": "", "roles": [], "mails": 0,
+                "message_ids": [],
+            })
+
+            if name.strip() and not entry["name"]:
+                entry["name"] = name.strip()
+
+            if role not in entry["roles"]:
+                entry["roles"].append(role)
+
+            if mail["message_id"] not in entry["message_ids"]:
+                entry["message_ids"].append(mail["message_id"])
+                entry["mails"] += 1
+
+
+def resolve_chain(a, pending, folders):
+    """Offene Message-IDs in den Ordnern eines Kontos aufloesen.
+
+    Liefert (weiterhin offen, gefundene Mails). Je Ordner ein SEARCH ueber
+    alle noch offenen IDs statt eines je ID - bei einem langen Thread ist das
+    der Unterschied zwischen ein paar Sekunden und einer Minute."""
+    found = []
+
+    for name in folders:
+        if not pending:
+            break
+
+        hits = a.scan_message_ids(pending, name)
+
+        if not hits:
+            continue
+
+        found.extend(a.address_headers(sorted(hits.values()), name))
+        pending = [m for m in pending if m not in hits]
+
+    return pending, found
+
+
+def cmd_contacts(args, accounts):
+    """Alle Adressen eines Threads einsammeln - Vorstufe einer Antwort.
+
+    Wer auf eine Mail antwortet, braucht den vollstaendigen Empfaengerkreis,
+    und der steht selten in der zuletzt eingegangenen Mail: eine Adresse aus
+    dem Verteiler taucht oft nur in einer einzigen aelteren Nachricht auf.
+    Von Hand ist das ein Abklappern der References-Kette mit je einem Aufruf
+    pro Mail (CR4613) - hier ist es einer, mit einem Login."""
+    if (args.uid is None) == (args.message_id is None):
+        die("genau eines von <uid> oder --message-id angeben")
+
+    folder = args.folder or "INBOX"
+
+    if args.message_id:
+
+        # UIDs sind ordner-lokal - der Ordner kommt aus dem Treffer, nicht aus
+        # dem Default INBOX (siehe quote)
+
+        hits = locate_message_id(accounts, normalize_message_id(args.message_id),
+                                 args.account, args.folder)
+        if not hits:
+            die(f"keine Mail mit Message-ID {normalize_message_id(args.message_id)} gefunden")
+        hit = hits[0]
+        acc = pick_account(accounts, hit["account"])
+        uid, folder = hit["uid"], hit["folder"]
+    else:
+        acc = pick_account(accounts, args.account)
+        uid = args.uid
+
+    contacts = {}
+    mails = []
+
+    with Account(acc) as a:
+        start = a.address_headers([uid], folder)
+
+        if not start:
+            die(f"[{a.alias}] uid {uid} nicht gefunden in {folder}")
+
+        start = start[0]
+
+        raw_start = a.peek_raw(uid, folder)
+        chain = thread_message_ids(email.message_from_bytes(raw_start))
+
+        # Die Startmail ist ueber ihre UID schon da; ihre eigene Message-ID
+        # steht trotzdem in der Kette und wuerde sonst ein zweites Mal gesucht.
+
+        pending = [] if args.no_thread else [
+            m for m in chain if m != start["message_id"].strip()]
+
+        folders = [folder] if args.folder else selectable_folders(a)
+        pending, rows = resolve_chain(a, pending, folders)
+        mails.extend(rows)
+
+    # Ein Thread liegt selten in einem einzigen Konto: die eigenen Antworten
+    # stehen im "Gesendet" des Kontos, mit dem geantwortet wurde. Genau daran
+    # scheiterte die Rekonstruktion in CR4613. Gepinnt der Nutzer Konto oder
+    # Ordner, bleibt es bei seiner Angabe.
+
+    if pending and not args.account and not args.folder:
+        others = [c for c in sorted(accounts.values(), key=lambda c: c["alias"])
+                  if c["alias"] != acc["alias"]]
+
+        for cfg in others:
+            with Account(cfg) as b:
+                pending, rows = resolve_chain(b, pending, selectable_folders(b))
+                mails.extend(rows)
+
+            if not pending:
+                break
+
+    missing = pending
+    mails.append(start)
+
+    for mail in mails:
+        collect_addresses(mail, contacts)
+
+    rows = sorted(contacts.values(),
+                  key=lambda c: (-c["mails"], c["email"].lower()))
+
+    if args.json:
+        out_json({
+            "account": acc["alias"],
+            "folder": folder,
+            "uid": uid,
+            "subject": start["subject"],
+            "mails": mails,
+            "missing": missing,
+            "contacts": rows,
+        })
+        return
+
+    print(f"{start['subject']}")
+    print(f"{len(rows)} Adressen aus {len(mails)} Mail(s) im Thread")
+    print()
+
+    for c in rows:
+        who = f"{c['name']} <{c['email']}>" if c["name"] else c["email"]
+        print(f"  {short(who, 58):<58} {','.join(c['roles']):<18} {c['mails']}x")
+
+    if missing:
+        print()
+
+        # stdout ist gepuffert, stderr nicht - ohne das Leeren stuende die
+        # Warnung vor der Liste, auf die sie sich bezieht.
+
+        sys.stdout.flush()
+
+        print(f"  {len(missing)} Mail(s) der Kette nicht auffindbar "
+              "(geloescht oder ausserhalb der konfigurierten Konten):",
+              file=sys.stderr)
+
+        for mid in missing:
+            print(f"    {mid}", file=sys.stderr)
+
+
 def format_message(msg, max_chars, with_headers=False, with_raw=False):
     """Aufbereitete Textausgabe einer Mail - von read und fetch genutzt."""
 
@@ -2027,6 +2290,21 @@ def build_parser():
                     metavar="ZEICHEN",
                     help="Zeilenlaenge inkl. Zitatzeichen, 0 = kein Umbruch")
     sp.set_defaults(func=cmd_quote)
+
+    sp = sub.add_parser("contacts", parents=[common],
+                        help="alle Adressen eines Threads sammeln (setzt \\Seen nicht)")
+    sp.add_argument("uid", type=int, nargs="?",
+                    help="UID im gewaehlten Ordner; alternativ --message-id")
+    sp.add_argument("--message-id", "-m",
+                    help="statt der UID; loest Konto, Ordner und UID selbst auf")
+    sp.add_argument("--account", "-a")
+    sp.add_argument("--folder", "-f",
+                    help="Default INBOX; mit Angabe wird die Kette nur in "
+                         "diesem Ordner gesucht, sonst in allen")
+    sp.add_argument("--no-thread", action="store_true",
+                    help="nur diese eine Mail auswerten, der References-Kette "
+                         "nicht folgen")
+    sp.set_defaults(func=cmd_contacts)
 
     sp = sub.add_parser("fetch", parents=[common],
                         help="mehrere Mails mit einem Login holen (setzt \\Seen nicht)")

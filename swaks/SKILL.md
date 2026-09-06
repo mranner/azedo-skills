@@ -316,7 +316,7 @@ Die vollstaendige Optionsreferenz liegt daneben und wird bei Bedarf gelesen:
 
 ## Ablauf
 
-1. **Empfänger auflösen:** Wenn ein Name statt E-Mail-Adresse genannt wird, `grep -i <name> .claude/swaks-contacts.tsv` ausführen. Bei Treffer: E-Mail aus zweitem Feld verwenden. Bei keinem Treffer: nachfragen.
+1. **Empfänger auflösen:** Bei einer **Antwort** `python3 ~/.claude/skills/imap/imap contacts <uid> -a <konto>` — sammelt die Adressen des ganzen Threads über die `References`-Kette und über alle Konten hinweg (die eigene Adresse gehört beim Envelope meist heraus). Bei einer **neuen Mail an einen Namen** `grep -i <name> .claude/swaks-contacts.tsv` (auch `~/.claude/`); die Datei ist optional. Kein Treffer, keine Datei oder ein unklarer Kreis: nachfragen, nicht raten.
 2. **Versandart wählen:** Default ist **Multipart (Text + HTML)** via `build_mail.py`. Nur reinen Text senden, wenn der User das will oder es rein um einen Dateiversand ohne formatierten Body geht.
 3. **Body erstellen:** Versand-Verzeichnis mit `mktemp -d` anlegen (kein fester Pfad, siehe „Arbeitsverzeichnis"), Text- und HTML-Body dort ablegen (ohne Signatur). HTML schlicht halten; liegt nur Text vor, `--html-file` weglassen statt die Textdatei doppelt anzugeben.
 4. **Signatur:** wird automatisch aufgelöst (global `~/.claude/swaks-signature.*`, projektlokal `.claude/` mit Vorrang) – nichts zu übergeben. Unter der eigenen Adresse des Nutzers **immer** dranlassen (globale Signatur = dessen persönliche). `--no-sig` nur bei explizitem "ohne Signatur" oder einem **dritten** Absender (weder der Nutzer noch Claude); für eine abweichende Signatur explizit `--sig-text-file`/`--sig-html-file`.
@@ -326,7 +326,7 @@ Die vollstaendige Optionsreferenz liegt daneben und wird bei Bedarf gelesen:
 8. **Senden:** `python3 $B --send $M/mail.eml --to … --from …` als **eigener Befehl** (nicht an die Prüfkette aus Schritt 7 hängen — sonst steht der Versand nicht am Befehlsanfang und ist von keiner Bash-Freigabe erreichbar). `--send` lädt den Versandweg selbst und prüft Exit-Code, `queued as` *und* die `^<.\*`-Zeile. Nur bei Exit `0` „versendet" melden, sonst den Fehlschlag mit Statuscode aus dem JSON nennen.
 9. **Ablegen:** nach erfolgreichem Versand die `.eml` mit `imap append $M/mail.eml -a <konto>` in „Gesendet" legen — swaks tut das nicht (siehe „Ablage").
 10. **Erfolgsmeldung:** Queue-ID, übertragene Datei mit sha256 und Größe, Envelope-Empfänger (inkl. Bcc) und die Fundstelle der Kopie nennen (siehe „Was in der Erfolgsmeldung stehen muss").
-11. **Kontakt ergänzen:** Wenn eine neue E-Mail-Adresse verwendet wurde, die noch nicht in `.claude/swaks-contacts.tsv` steht, per `printf` anhängen.
+11. **Kontakt ergänzen:** Wenn eine neue E-Mail-Adresse verwendet wurde, die noch nicht in `.claude/swaks-contacts.tsv` steht, per `printf` anhängen. Existiert die Datei nicht, entsteht sie dabei — nur für Adressen, die ohne Thread wieder gebraucht werden; Thread-Adressen liefert `imap contacts` jederzeit neu.
 
 ## Hinweise
 
