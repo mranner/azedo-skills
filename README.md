@@ -612,6 +612,12 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
+### 1.53.0
+
+- **`wiki`: Wikilinks auf lokale Nachbar-Wikis** - `[[<präfix>:<slug>]]` löst
+  jetzt auch gegen Geschwister-Wikis unter `wiki/` auf, nicht nur gegen die
+  Remotes aus `wiki-remotes.json`. Das lokale Ziel wird direkt geprüft.
+
 ### 1.52.5
 
 - **`wiki`: Der Linter prueft die Wikilinks in `log.md` und `index.md`** - bisher

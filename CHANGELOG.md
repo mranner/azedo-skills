@@ -3,6 +3,18 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.53.0
+
+- **`wiki`: Wikilinks auf lokale Nachbar-Wikis lösen jetzt auf.** Ein
+  `[[<präfix>:<slug>]]` galt nur dann als gültig, wenn `<präfix>` in
+  `.claude/wiki-remotes.json` stand - auf ein Wiki am anderen Server konnte man
+  verlinken, auf das im Nachbarordner nicht. Der Linter prüft das Präfix nun
+  zuerst gegen die Geschwister-Verzeichnisse unter `wiki/` und erst danach gegen
+  die Remotes. Der lokale Fall ist dabei streng: anders als bei Remotes liegt das
+  Ziel greifbar da, ein fehlender Slug ist also ein Fehler und keine
+  Nachsicht-Regel. Aufgefallen in einem Projekt mit einem Wiki je Schulfach, wo
+  der Verweis vom einen Fach aufs andere als toter Link gemeldet wurde (CR4616).
+
 ### 1.52.5
 
 - **`wiki`: Der Linter sieht jetzt auch `log.md` und `index.md`.** Beide liegen

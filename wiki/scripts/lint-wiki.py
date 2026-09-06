@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # stdlib only, no pip dependencies
-# version 1.52.5
+# version 1.53.0
 
 """
 lint-wiki.py — Strukturpruefung fuer LLM Wikis (Infra + Projekt-Doku).
@@ -14,11 +14,16 @@ Prueft:
 - Verwaiste Seiten (keine eingehenden Links)
 - Datumsangaben in Ueberschriften (Logbuch-Muster, siehe Schreibregeln)
 
-Remote-Pointer: Wikilinks der Form [[<remote>:<slug>]] verweisen auf ein Wiki
-auf einem anderen Host. Ist <remote> ein Key in <projekt-root>/.claude/
-wiki-remotes.json, gilt der Link als gueltig (kein toter Link) — das Ziel wird im
-Default NICHT geprueft (offline-sicher). Mit --check-remotes wird die Existenz per
-SSH (find) on demand verifiziert. Unbekanntes Praefix → weiterhin toter Link.
+Praefix-Pointer [[<praefix>:<slug>]] werden in dieser Reihenfolge aufgeloest:
+
+1. <praefix> ist ein Geschwister-Wiki unter <projekt-root>/wiki/<praefix>/ →
+   lokaler Cross-Wiki-Pointer. Das Ziel wird direkt im Dateisystem geprueft
+   (offline moeglich), fehlt es, ist der Link tot.
+2. <praefix> ist ein Key in <projekt-root>/.claude/wiki-remotes.json → Remote-
+   Pointer auf ein Wiki an einem anderen Host. Das Ziel wird im Default NICHT
+   geprueft (offline-sicher); mit --check-remotes wird die Existenz per SSH
+   (find) on demand verifiziert.
+3. sonst toter Link.
 
 Aufruf: python3 lint-wiki.py [--check-remotes] <wiki-root>
         z.B. python3 lint-wiki.py wiki/azedo/   (relativ zum Projekt-Root)
@@ -88,6 +93,31 @@ def load_remotes(wiki_root):
     return remotes
 
 
+def load_local_wikis(wiki_root):
+    """Findet Geschwister-Wikis unter <projekt-root>/wiki/<name>/.
+
+    Layout <projekt>/wiki/<name>/ — Geschwister sind also die uebrigen
+    Verzeichnisse in wiki_root.parent, die selbst ein wiki/-Unterverzeichnis
+    haben. Das eigene Wiki bleibt aussen vor (dafuer gibt es all_slugs).
+    Gibt {name: Path} zurueck.
+    """
+    local = {}
+    wiki_root = Path(wiki_root).resolve()
+    for d in sorted(wiki_root.parent.glob("*")):
+        if d == wiki_root or not (d / "wiki").is_dir():
+            continue
+        local[d.name] = d
+    return local
+
+
+def local_wiki_slugs(wiki_path, _cache={}):
+    """Slugs eines lokalen Wikis (Dateinamen ohne .md), gecacht pro Pfad."""
+    key = str(wiki_path)
+    if key not in _cache:
+        _cache[key] = {f.stem for f in (wiki_path / "wiki").rglob("*.md")}
+    return _cache[key]
+
+
 FILENAME_PATTERN = re.compile(r"^[a-z0-9][a-z0-9-]*\.md$")
 WIKILINK_PATTERN = re.compile(r"\[\[([^\]|]+?)(?:\|[^\]]+?)?\]\]")
 # Code-Bereiche, die von der Wikilink-Erkennung ausgenommen werden. Ein Regex
@@ -102,7 +132,7 @@ CODE_FENCE_PATTERN = re.compile(
 )
 # Inline-Code `...` bzw. ``...`` — die Backtick-Anzahl muss beidseitig passen.
 INLINE_CODE_PATTERN = re.compile(r"(?<!`)(`+)(?!`).+?(?<!`)\1(?!`)", re.S)
-# Remote-Pointer [[<remote>:<slug>]] — beide Teile in Slug-Schreibweise
+# Praefix-Pointer [[<praefix>:<slug>]] — beide Teile in Slug-Schreibweise
 REMOTE_TARGET_PATTERN = re.compile(r"^([a-z0-9-]+):([a-z0-9-]+)$")
 MIN_WIKILINKS = 3
 
@@ -282,7 +312,9 @@ def lint_wiki(wiki_root, check_remotes=False):
     # Entity-Modell pro Wiki laden (Config oder Infra-Default)
     required_fields, valid_types = load_schema(wiki_root)
 
-    # Bekannte Remote-Wikis (fuer [[<remote>:<slug>]]-Pointer)
+    # Bekannte Ziele fuer [[<praefix>:<slug>]]-Pointer: erst die lokalen
+    # Geschwister-Wikis, dann die Remotes.
+    local_wikis = load_local_wikis(wiki_root)
     remotes = load_remotes(wiki_root)
 
     errors = []
@@ -368,6 +400,12 @@ def lint_wiki(wiki_root, check_remotes=False):
             if target in all_slugs:
                 continue
             rp = parse_remote_target(target)
+            if rp and rp[0] in local_wikis:
+                # lokales Nachbar-Wiki — Ziel direkt im Dateisystem pruefbar
+                if rp[1] in local_wiki_slugs(local_wikis[rp[0]]):
+                    continue
+                errors.append(f"{articles[slug]['rel_path']}: Toter Wikilink [[{target}]] — Ziel existiert nicht im Wiki '{rp[0]}'")
+                continue
             if rp and rp[0] in remotes:
                 # gueltiger Remote-Pointer — kein toter Link (Default offline-sicher)
                 remote_pointers.append((slug, rp[0], rp[1]))
@@ -387,6 +425,11 @@ def lint_wiki(wiki_root, check_remotes=False):
             if target in all_slugs:
                 continue
             rp = parse_remote_target(target)
+            if rp and rp[0] in local_wikis:
+                if rp[1] in local_wiki_slugs(local_wikis[rp[0]]):
+                    continue
+                warnings.append(f"{extra_file.name}: Toter Wikilink [[{target}]] — Ziel existiert nicht im Wiki '{rp[0]}'")
+                continue
             if rp and rp[0] in remotes:
                 continue
             warnings.append(f"{extra_file.name}: Toter Wikilink [[{target}]] — Ziel existiert nicht")
