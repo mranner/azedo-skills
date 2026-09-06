@@ -61,7 +61,7 @@ Die folgenden Blöcke setzen **voraus, dass der Versandweg geladen ist** (siehe
 Versandweg und Authentifizierung):
 
 ```bash
-ENV=$(python3 ~/.claude/skills/swaks/build_mail.py --swaks-env) \
+ENV=$(python3 ~/.claude/skills/swaks/build_mail.py --swaks-env --reveal-password) \
   && test -n "$ENV" && eval "$ENV"
 ```
 

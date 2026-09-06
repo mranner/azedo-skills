@@ -17,17 +17,23 @@ python3 ~/.claude/skills/swaks/build_mail.py --send $M/mail.eml \
 
 `--swaks-env` bleibt für den Aufruf von Hand — es gibt dieselben Variablen als
 Exportzeilen aus, `swaks` liest sie dann selbst aus der Umgebung statt aus der
-Kommandozeile, wo jedes `ps` sie mitliest:
+Kommandozeile, wo jedes `ps` sie mitliest. Damit die Zeilen per `eval` taugen,
+braucht es `--reveal-password`:
 
 ```bash
-ENV=$(python3 ~/.claude/skills/swaks/build_mail.py --swaks-env) \
+ENV=$(python3 ~/.claude/skills/swaks/build_mail.py --swaks-env --reveal-password) \
   && test -n "$ENV" \
   && eval "$ENV"
 ```
 
-**Die Ausgabe von `--swaks-env` nie ungefiltert anzeigen** — sie enthält das
-Passwort im Klartext und landet sonst in Transcript und Shell-History. Zur
-Kontrolle des Weges ist `--show-config` da (Passwort maskiert):
+**Die Ausgabe nie ungefiltert anzeigen** — mit `--reveal-password` enthält sie
+das Passwort im Klartext und landet sonst in Transcript und Shell-History. Ohne
+das Flag ist das Passwort maskiert (`<gesetzt>`); diese Fassung ist eine
+Anzeige und kein `eval`-Input. Wird sie doch evaluiert, geht der Platzhalter
+als Passwort an den Relay und die Sitzung endet mit `535` — laut und folgenlos,
+es geht keine Mail raus.
+
+Zur Kontrolle des Weges ist `--show-config` da (Passwort ebenfalls maskiert):
 
 ```bash
 python3 ~/.claude/skills/swaks/build_mail.py --show-config

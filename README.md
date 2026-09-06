@@ -629,6 +629,10 @@ Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle 
   Antwort steht selten vollstaendig in der letzten Mail. Der swaks-Ablauf
   verweist darauf; die `swaks-contacts.tsv` ist ausdruecklich optional.
 
+- **`swaks`: `--swaks-env` maskiert das Passwort** (`<gesetzt>`), Klartext nur
+  mit `--reveal-password` - bisher stand das SMTP-Passwort beim Pruefen der
+  Route unmaskiert auf stdout.
+
 ### 1.51.6
 
 - **`wiki`: Zerlegen ist jetzt ein eigener Refactor-Weg.** `audit-wiki.py` meldet

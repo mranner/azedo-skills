@@ -274,11 +274,38 @@ def route_env_vars(route):
     return {"SWAKS_OPT_" + k: v for k, v in env.items()}
 
 
-def route_env(route):
+# Die Exportzeilen enthalten das SMTP-Passwort im Klartext. Ungefiltert
+# ausgegeben landet es in Transcript und Shell-History - in CR4613 genau so
+# passiert, weil ein Maskierungsversuch am sed-Muster scheiterte. Maskieren ist
+# deshalb der Default; den Klartext gibt es nur auf ausdrueckliche Anforderung.
+#
+# Die maskierte Fassung ist eine Anzeige, kein eval-Input: wird sie trotzdem
+# evaluiert, geht der Platzhalter als Passwort an den Relay und der weist die
+# Sitzung mit '535' ab. Laut und folgenlos - es geht keine Mail raus und kein
+# Passwort ueber die Leitung.
+
+MASKED = "<gesetzt>"
+
+ENV_HINWEIS = (
+    "# Anzeige mit maskiertem Passwort. Zum Versenden 'build_mail.py --send'\n"
+    "# verwenden; wird der Weg von Hand gebraucht, '--swaks-env "
+    "--reveal-password'.")
+
+
+def route_env(route, reveal=False):
     """Dieselben Variablen als Exportzeilen fuer `eval` in einer Shell."""
-    return "\n".join(
-        "export %s='%s'" % (k, v.replace("'", "'\\''"))
-        for k, v in route_env_vars(route).items())
+    env = route_env_vars(route)
+
+    if not reveal and env.get("SWAKS_OPT_auth_password"):
+        env["SWAKS_OPT_auth_password"] = MASKED
+
+    lines = ["export %s='%s'" % (k, v.replace("'", "'\\''"))
+             for k, v in env.items()]
+
+    if not reveal and route["auth_password"]:
+        lines.insert(0, ENV_HINWEIS)
+
+    return "\n".join(lines)
 
 
 # --- Versand ------------------------------------------------------------------
@@ -570,7 +597,8 @@ if "--send" in sys.argv[1:]:
     sys.exit(0)
 
 if "--swaks-env" in sys.argv[1:]:
-    print(route_env(resolve_route(config)))
+    print(route_env(resolve_route(config),
+                    reveal="--reveal-password" in sys.argv[1:]))
     sys.exit(0)
 
 if "--show-config" in sys.argv[1:]:
@@ -607,8 +635,13 @@ parser.add_argument("--send", metavar="EML",
                          "nicht — anders als bei --swaks-env.")
 parser.add_argument("--swaks-env", action="store_true",
                     help="Versandweg als SWAKS_OPT_*-Exportzeilen ausgeben und "
-                         "beenden. Per eval in die Shell holen, dann braucht "
-                         "swaks weder --server noch Auth-Optionen.")
+                         "beenden — Passwort maskiert. Fuer den Versand ist "
+                         "--send der Weg; diese Ausgabe dient der Kontrolle.")
+parser.add_argument("--reveal-password", action="store_true",
+                    help="Nur mit --swaks-env: das SMTP-Passwort im Klartext "
+                         "ausgeben, damit die Zeilen per eval taugen. Die "
+                         "Ausgabe nie ungefiltert anzeigen — sie landet sonst "
+                         "in Transcript und Shell-History.")
 parser.add_argument("--subject", required=True)
 parser.add_argument("--to", help="Empfaenger. Ohne Angabe gilt 'to' aus swaks.json.")
 parser.add_argument("--cc", help="Sichtbarer Cc:-Header (kommasepariert). Die Adressen zusaetzlich in den swaks-Envelope --to aufnehmen.")

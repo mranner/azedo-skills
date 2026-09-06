@@ -54,6 +54,16 @@ Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version 
   `swaks-contacts.tsv`. Der Ablauf baute bisher auf einer Datei auf, die es
   nicht ueberall gibt; ihr Fehlen ist jetzt ausdruecklich kein Fehler.
 
+- **`swaks`: `--swaks-env` maskiert das Passwort.** Es schrieb
+  `SWAKS_OPT_auth_password='...'` unmaskiert auf stdout - beim Pruefen der
+  Route landete das SMTP-Passwort damit in Transcript und Shell-History
+  (CR4613, ein Maskierungsversuch war zuvor am sed-Muster gescheitert).
+  - Default ist jetzt `<gesetzt>` wie bei `--show-config`, mit einem Hinweis
+    obendrauf. Den Klartext gibt es nur mit `--reveal-password`.
+  - Die maskierte Fassung ist eine Anzeige, kein `eval`-Input: wird sie doch
+    evaluiert, weist der Relay die Sitzung mit `535` ab - laut und folgenlos.
+  - Der Regelweg braucht sie ohnehin nicht mehr, der laeuft ueber `--send`.
+
 ### 1.51.6
 
 - **`wiki`: Zerlegen ist jetzt ein eigener Refactor-Weg.** `refactor` kannte fuer
