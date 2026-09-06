@@ -113,7 +113,7 @@ Kommentaren und Anhaengen kommt nur der Zaehler als Signal mit.
 
 ```bash
 # Task anlegen
-python3 "$SKILL_DIR/kanboard" create-task --project <name|id> --title "..." [--description "..."] [--column <name>] [--owner <username>]
+python3 "$SKILL_DIR/kanboard" create-task --project <name|id> --title "..." [--description "..." | --description-file <pfad>] [--column <name>] [--owner <username>]
 
 # Task anzeigen (inkl. column_title, swimlane_name, owner_username)
 python3 "$SKILL_DIR/kanboard" get-task <task_id>

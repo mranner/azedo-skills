@@ -612,13 +612,12 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.53.0
+### 1.52.1
 
-- **`kanboard`: `add-comment --file <pfad>`** liest den Kommentartext aus einer
-  Datei, analog zu `set-handoff`. Laengere Kommentare mussten bisher als
-  `--text "$(cat datei.md)"` durch die Shell, wo Backticks, `$` und
-  Anfuehrungszeichen ausgewertet werden. `--text` und `--file` schliessen
-  einander aus.
+- **`kanboard`: `add-comment --file` sowie `create-task`/`update-task`
+  `--description-file`** lesen den Freitext aus einer Datei, statt ihn als
+  `--text "$(cat datei.md)"` durch die Shell zu schicken, wo Backticks, `$` und
+  Anfuehrungszeichen ausgewertet werden.
 
 ### 1.52.0
 

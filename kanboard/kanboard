@@ -2,7 +2,7 @@
 
 # Kanboard JSON-RPC 2.0 API helper
 # stdlib only, no pip dependencies
-# version 1.53.0
+# version 1.52.1
 
 import argparse
 import base64
@@ -217,13 +217,25 @@ def output(data):
 
 # Subcommands
 
+def read_file_arg(path):
+    """Read a text file given on the command line, or exit with an error."""
+    filepath = os.path.abspath(path)
+    if not os.path.exists(filepath):
+        print(f"Error: file '{filepath}' not found", file=sys.stderr)
+        sys.exit(1)
+    with open(filepath, "r", encoding="utf-8") as f:
+        return f.read()
+
+
 def cmd_create_task(args):
     project_id = resolve_project(args.project)
     params = {
         "project_id": project_id,
         "title": args.title,
     }
-    if args.description:
+    if args.description_file:
+        params["description"] = read_file_arg(args.description_file)
+    elif args.description:
         params["description"] = args.description
     if args.column:
         params["column_id"] = resolve_column(project_id, args.column)
@@ -292,13 +304,15 @@ def cmd_update_task(args):
     params = {"id": int(args.task_id)}
     if args.title:
         params["title"] = args.title
-    if args.description:
+    if args.description_file:
+        params["description"] = read_file_arg(args.description_file)
+    elif args.description:
         params["description"] = args.description
     if args.owner:
         params["owner_id"] = resolve_user(args.owner)
 
     if len(params) == 1:
-        print("Error: nothing to update (specify --title, --description, or --owner)", file=sys.stderr)
+        print("Error: nothing to update (specify --title, --description/--description-file, or --owner)", file=sys.stderr)
         sys.exit(1)
 
     result = rpc_call("updateTask", params)
@@ -863,15 +877,7 @@ def cmd_add_comment(args):
             print("Error: no --user given and no default_user in instance.json (run: setup --default-user <username>)", file=sys.stderr)
             sys.exit(1)
 
-    if args.file:
-        filepath = os.path.abspath(args.file)
-        if not os.path.exists(filepath):
-            print(f"Error: file '{filepath}' not found", file=sys.stderr)
-            sys.exit(1)
-        with open(filepath, "r", encoding="utf-8") as f:
-            content = f.read()
-    else:
-        content = args.text
+    content = read_file_arg(args.file) if args.file else args.text
 
     user_id = resolve_user(username)
     result = rpc_call("createComment", {
@@ -1294,7 +1300,9 @@ def main():
     p = sub.add_parser("create-task")
     p.add_argument("--project", required=True)
     p.add_argument("--title", required=True)
-    p.add_argument("--description")
+    g = p.add_mutually_exclusive_group()
+    g.add_argument("--description", help="Beschreibung direkt uebergeben")
+    g.add_argument("--description-file", dest="description_file", help="Beschreibung aus Datei lesen")
     p.add_argument("--column")
     p.add_argument("--owner")
     p.add_argument("--swimlane")
@@ -1309,7 +1317,9 @@ def main():
     p = sub.add_parser("update-task")
     p.add_argument("task_id")
     p.add_argument("--title")
-    p.add_argument("--description")
+    g = p.add_mutually_exclusive_group()
+    g.add_argument("--description", help="Beschreibung direkt uebergeben")
+    g.add_argument("--description-file", dest="description_file", help="Beschreibung aus Datei lesen")
     p.add_argument("--owner")
     p.set_defaults(func=cmd_update_task)
 

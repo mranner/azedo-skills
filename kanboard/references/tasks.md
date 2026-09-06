@@ -8,9 +8,14 @@ Aufruf durchgehend `python3 "$SKILL_DIR/kanboard" <subcommand>`.
 ```bash
 python3 "$SKILL_DIR/kanboard" create-task \
   --project <name|id> --title "<titel>" \
-  [--description "<text>"] [--column <name>] \
+  [--description "<text>" | --description-file <pfad>] [--column <name>] \
   [--owner <username>] [--swimlane <name>]
 ```
+
+`--description` und `--description-file` schliessen einander aus. Bei laengeren
+Beschreibungen (Tabellen, Codebloecke, mehrere Absaetze) `--description-file`
+nehmen: `--description "$(cat datei.md)"` schickt den Inhalt durch die Shell, wo
+Backticks, `$` und Anfuehrungszeichen ausgewertet werden.
 
 Ohne `--owner` wird der Task dem `default_user` aus `instance.json` zugewiesen (wie
 bei `add-comment`). Ist dort kein `default_user` gesetzt, bleibt der Task unassigned.
@@ -25,8 +30,11 @@ python3 "$SKILL_DIR/kanboard" get-task <task_id>
 
 ```bash
 python3 "$SKILL_DIR/kanboard" update-task <task_id> \
-  [--title "<titel>"] [--description "<text>"] [--owner <username>]
+  [--title "<titel>"] [--description "<text>" | --description-file <pfad>] [--owner <username>]
 ```
+
+`--description-file` liest die neue Beschreibung aus einer Datei, sonst wie bei
+`create-task`.
 
 ### Task verschieben (Spalte aendern)
 
