@@ -612,6 +612,12 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
+### 1.52.2
+
+- **`wp-sync-dev`: `chown` laeuft per `iocage exec` im Jail**, `chmod`/`find`
+  weiter host-seitig. Host-seitiges `chown` scheitert am Web-User, den nur das
+  Jail kennt - das `chmod` daneben laeuft durch und verdeckt den Fehler.
+
 ### 1.52.1
 
 - **`kanboard`: `add-comment --file` sowie `create-task`/`update-task`

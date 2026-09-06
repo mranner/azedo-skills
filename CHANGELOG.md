@@ -3,6 +3,17 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.52.2
+
+- **`wp-sync-dev`: `chown` gehoert ins Jail, nicht auf den Jail-Host.** Schritt 3
+  zeigte fuer „Ziel Prod" eine Kette aus `chown` und `chmod` auf dem Jail-Host.
+  Bei iocage bricht das `chown` mit `chown: <wwwuser>: illegal user name` ab -
+  Web-User stehen nur in der Passwortdatenbank des Jails -, waehrend das `chmod`
+  durchlaeuft: korrekte Rechte auf Dateien, die noch dem Owner der Quelle
+  gehoeren. Die Anleitung trennt beides jetzt, mit dem Jail-Pfad fuer
+  `iocage exec` und dem Host-Pfad fuer `chmod`/`find`; ezjail bleibt ein Aufruf
+  (CR4614).
+
 ### 1.52.1
 
 - **`kanboard`: Freitext kommt wahlweise aus einer Datei.** Laengere Kommentare

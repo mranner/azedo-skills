@@ -109,10 +109,29 @@ sudo ssh -C root@localhost "cd <dev-pfad> && chown -R www:<dev-group> . && find 
 sudo ssh -C root@<jailer> "<jail-exec> ls -la <domain-pfad>/wp-content/plugins/ | head -5"
 ```
 
-Owner und Permissions der bestehenden Dateien uebernehmen. Typisch:
+Owner und Permissions der bestehenden Dateien uebernehmen. Bei **iocage** zerfaellt
+das in zwei Aufrufe, weil `chown` den Web-User braucht - und den kennt nur das Jail:
+
 ```sh
-sudo ssh -C root@<jailer> "cd <prod-pfad> && chown -R <wwwuser>:<group> . && find . -type d -exec chmod <dir-mode> {} \; && find . -type f -exec chmod <file-mode> {} \;"
+# chmod host-seitig, mit dem Pfad ueber /iocage/jails/...
+sudo ssh -C root@<jailer> "cd <prod-pfad> && find . -type d -exec chmod <dir-mode> {} \; && find . -type f -exec chmod <file-mode> {} \;"
+
+# chown im Jail, mit dem Pfad aus Jail-Sicht (ohne /iocage/jails/<jail>/root)
+sudo ssh -C root@<jailer> "iocage exec <jail> chown -R <wwwuser>:<group> <jail-pfad>"
 ```
+
+Bei **ezjail** liegen die Dateien ohnehin host-seitig unter `/www/home/...`; dort
+reicht ein Aufruf mit `chown` und `chmod` zusammen.
+
+> **Warum getrennt:** Web-User wie `wwwstory` stehen nur in der Passwortdatenbank
+> des Jails, nicht in der des Hosts - host-seitig bricht `chown` mit
+> `chown: wwwstory: illegal user name` ab. Tueckisch ist die Kombination: `chmod`
+> arbeitet mit Zahlen und laeuft durch. Wer beides in eine Kette setzt, hat danach
+> korrekte Rechte auf Dateien, die noch dem Owner der **Quelle** gehoeren - nach
+> einem rsync also einer fremden UID, und der Webserver-User kann seine eigenen
+> Dateien nicht mehr schreiben. Erkennungsmerkmal: `ls -l` zeigt auf dem Host die
+> nackte UID (`10173`) statt des Namens. Hintergrund:
+> Wiki-Procedure `jail-exec-pitfalls`, Abschnitt „Datei-Owner setzen".
 
 ### 4. Aufraeumen
 
@@ -128,6 +147,7 @@ Diesen find-Befehl im selben Kontext wie Schritt 3 ausfuehren (auf dem jeweilige
 - rsync immer von `<dev-host>` aus starten, nie vom Prod-Jail-Host zurueck
 - Bei ezjail liegen die Dateien direkt auf dem Host unter `/www/home/...`, kein Jail-Pfad-Prefix noetig
 - Bei iocage ist der Prefix `/iocage/jails/<jailname>/root/...`
+- `chown` auf Jail-Dateien immer per `iocage exec` im Jail, nie host-seitig (Schritt 3)
 - Fuer den rsync-Zugriff wird der Jail-Host-Pfad verwendet (nicht der Pfad innerhalb der Jail)
 - Nach einem Push auf Prod: Apache-Reload ist fuer Plugins/Themes normalerweise nicht noetig
 - `--delete` bei rsync nur verwenden wenn ausdruecklich gewuenscht (entfernt Dateien im Ziel die in der Quelle nicht existieren)
