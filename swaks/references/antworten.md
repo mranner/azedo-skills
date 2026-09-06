@@ -13,8 +13,6 @@ ignorieren `format=flowed`.
 Q=$(mktemp -d .tmp/reply.XXXXXX)
 B=~/.claude/skills/swaks/build_mail.py
 
-ENV=$(python3 $B --swaks-env)
-
 python3 ~/.claude/skills/imap/imap quote <uid> -a <konto> > $Q/quote.txt
 python3 ~/.claude/skills/imap/imap quote <uid> -a <konto> --format html > $Q/quote.html
 python3 ~/.claude/skills/imap/imap quote <uid> -a <konto> --json > $Q/quote.json
@@ -36,12 +34,14 @@ python3 $B \
   && test -s $Q/mail.eml \
   && python3 $B --verify $Q/mail.eml \
       --expect-sha256 "$(cat $Q/mail.sha256)" \
-      --expect-marker "<wörtliches Stück aus dem Entwurf>" \
-  && ( eval "$ENV"; swaks --to "empfaenger@example.com" --data @$Q/mail.eml ) \
-     > $Q/swaks.log 2>&1
-grep -q "queued as" $Q/swaks.log && ! grep -qE '^<.\*' $Q/swaks.log \
-  && grep "queued as" $Q/swaks.log \
-  || echo "FEHLGESCHLAGEN — siehe $Q/swaks.log"
+      --expect-marker "<wörtliches Stück aus dem Entwurf>"
+```
+
+Erst wenn das mit Exit `0` durchgelaufen ist, folgt der Versand als **eigener
+Befehl** — `--send` lädt den Versandweg selbst und prüft das Ergebnis:
+
+```bash
+python3 $B --send $Q/mail.eml --to "empfaenger@example.com"
 ```
 
 - **Eigenes Verzeichnis, kein festes `.tmp/reply`.** Genau dieser feste Pfad ist der Kollisionspunkt gewesen: eine zweite Session schrieb dieselbe `mail.eml`, und die Antwort ging mit fremdem Inhalt an den Kunden. `mktemp -d` plus die `--verify`-Zeile schließen das aus.

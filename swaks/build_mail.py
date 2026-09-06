@@ -6,7 +6,7 @@
 # um das alternative-Part gelegt. Bei einer Antwort kommt der Zitatblock aus
 # `imap quote` unter Body und Signatur (Top-Posting), die Threading-Header
 # In-Reply-To und References haengen die Antwort an den bestehenden Thread.
-# version 1.44.12
+# version 1.52.0
 
 import argparse
 import hashlib
@@ -256,8 +256,8 @@ def resolve_route(cfg, muttrc_path=DEFAULT_MUTTRC):
             "auth_user": user, "auth_password": password, "source": muttrc_path}
 
 
-def route_env(route):
-    """Versandweg als SWAKS_OPT_*-Exportzeilen. Ein leerer Wert entspricht bei
+def route_env_vars(route):
+    """Versandweg als SWAKS_OPT_*-Variablen. Ein leerer Wert entspricht bei
     swaks der Option ohne Argument (z.B. -tls)."""
     env = {"server": route["server"], "port": str(route["port"])}
 
@@ -271,9 +271,92 @@ def route_env(route):
         env["auth_user"] = route["auth_user"]
         env["auth_password"] = route["auth_password"]
 
+    return {"SWAKS_OPT_" + k: v for k, v in env.items()}
+
+
+def route_env(route):
+    """Dieselben Variablen als Exportzeilen fuer `eval` in einer Shell."""
     return "\n".join(
-        "export SWAKS_OPT_%s='%s'" % (k, v.replace("'", "'\\''"))
-        for k, v in env.items())
+        "export %s='%s'" % (k, v.replace("'", "'\\''"))
+        for k, v in route_env_vars(route).items())
+
+
+# --- Versand ------------------------------------------------------------------
+
+# swaks steht in der vorgeschriebenen Aufrufform nie am Befehlsanfang (der
+# Versandweg muss vorher per `eval` in die Shell), weshalb keine Bash-Freigabe
+# darauf greifen kann. --send holt den Aufruf deshalb hierher: der Versandweg
+# geht als Umgebung an den Kindprozess statt ueber stdout durch die Shell, und
+# die drei Erfolgspruefungen stehen nicht mehr als kopierte Kette in jeder
+# Session.
+
+# swaks markiert jede abgelehnte Antwort mit einem '*' an dritter Stelle des
+# Zeilenpraefixes - unverschluesselt '<**', innerhalb einer TLS-Sitzung '<~*'.
+# Bei mehreren Empfaengern ist das der einzige Hinweis auf einen einzelnen
+# Reject: swaks laeuft fuer die uebrigen weiter und endet mit Exit-Code 0.
+
+SWAKS_REJECT_RE = re.compile(r"^<.\*", re.M)
+
+QUEUED_RE = re.compile(r"^.*queued as.*$", re.M)
+
+
+def send_eml(path, recipient, sender):
+    """Fertige .eml versenden und das Ergebnis pruefen. Liefert (report, fehler)."""
+    if not os.path.isfile(path):
+        return {"file": path}, [f"{path} existiert nicht."]
+
+    if os.path.getsize(path) == 0:
+        return {"file": path}, [f"{path} ist leer — nichts zu senden."]
+
+    route = resolve_route(config)
+
+    env = dict(os.environ)
+    env.update(route_env_vars(route))
+
+    log_path = path + ".swaks.log"
+
+    try:
+        proc = subprocess.run(
+            ["swaks", "--to", recipient, "--from", sender, "--data", "@" + path],
+            env=env, capture_output=True, text=True)
+    except FileNotFoundError:
+        return ({"file": path},
+                ["swaks ist nicht installiert oder nicht im PATH."])
+
+    log = proc.stdout + proc.stderr
+
+    with open(log_path, "w", encoding="utf-8") as f:
+        f.write(log)
+
+    report = {"file": path, "to": recipient, "from": sender,
+              "server": route["server"], "port": route["port"],
+              "exit_code": proc.returncode, "log": log_path}
+
+    errors = []
+
+    # Alle drei Pruefungen, nicht eine davon: der Exit-Code faengt Verbindungs-,
+    # TLS- und Totalablehnungen, die Queue-ID das vergessene '@' bei --data
+    # (swaks quittiert dann mit 250 Ok und verschickt den Pfad als Body), und
+    # die Reject-Zeile den einzelnen abgelehnten Empfaenger.
+
+    if proc.returncode != 0:
+        errors.append(f"swaks endete mit Exit-Code {proc.returncode}.")
+
+    queued = QUEUED_RE.findall(log)
+    report["queued_as"] = [q.strip() for q in queued]
+
+    if not queued:
+        errors.append("Keine 'queued as'-Zeile — der Relay hat die Mail nicht "
+                      "in die Queue genommen.")
+
+    rejected = [l for l in log.splitlines() if SWAKS_REJECT_RE.match(l)]
+
+    if rejected:
+        report["rejected"] = rejected
+        errors.append("Abgelehnte Antwort(en) des Relays: "
+                      + " | ".join(rejected))
+
+    return report, errors
 
 # --- Darstellungspruefung: HTML-Part und fertige .eml -------------------------
 
@@ -434,6 +517,44 @@ if "--verify" in sys.argv[1:]:
 
     sys.exit(0)
 
+if "--send" in sys.argv[1:]:
+    sp = argparse.ArgumentParser(prog="build_mail.py --send")
+    sp.add_argument("--send", metavar="EML", required=True,
+                    help="Fertige .eml versenden und beenden: Versandweg laden, "
+                         "swaks aufrufen, Ergebnis pruefen (Exit-Code, "
+                         "Queue-ID, abgelehnte Empfaenger). Exit != 0 bei "
+                         "jedem Befund.")
+    sp.add_argument("--to", help="Envelope-Empfaenger (kommasepariert, inkl. Cc "
+                                 "und Bcc). Ohne Angabe gilt 'to' aus swaks.json.")
+    sp.add_argument("--from", dest="sender",
+                    help="Envelope-Absender. Ohne Angabe gilt 'from' aus swaks.json.")
+    sargs, _ = sp.parse_known_args()
+
+    to = sargs.to or config.get("to")
+    frm = sargs.sender or config.get("from")
+
+    if not to:
+        sys.exit("build_mail.py: Fehler — kein Empfaenger. Entweder --to angeben "
+                 "oder 'to' in .claude/swaks.json (projektlokal oder ~/) setzen.")
+
+    if not frm:
+        sys.exit("build_mail.py: Fehler — kein Absender. Entweder --from angeben "
+                 "oder 'from' in .claude/swaks.json (projektlokal oder ~/) setzen.")
+
+    report, errors = send_eml(sargs.send, to, frm)
+    report["ok"] = not errors
+    report["errors"] = errors
+
+    print(json.dumps(report, indent=2, ensure_ascii=False))
+
+    if errors:
+        for e in errors:
+            print(f"build_mail.py: Fehler — {e}", file=sys.stderr)
+
+        sys.exit(1)
+
+    sys.exit(0)
+
 if "--swaks-env" in sys.argv[1:]:
     print(route_env(resolve_route(config)))
     sys.exit(0)
@@ -464,6 +585,12 @@ parser.add_argument("--expect-sha256",
                     help="Nur mit --verify: erwartete sha256 der .eml.")
 parser.add_argument("--expect-marker",
                     help="Nur mit --verify: Textstueck aus dem freigegebenen Entwurf.")
+parser.add_argument("--send", metavar="EML",
+                    help="Fertige .eml versenden und beenden: Versandweg laden, "
+                         "swaks aufrufen und das Ergebnis pruefen (Exit-Code, "
+                         "Queue-ID, abgelehnte Empfaenger). Envelope ueber --to "
+                         "und --from. Das Passwort verlaesst dabei den Prozess "
+                         "nicht — anders als bei --swaks-env.")
 parser.add_argument("--swaks-env", action="store_true",
                     help="Versandweg als SWAKS_OPT_*-Exportzeilen ausgeben und "
                          "beenden. Per eval in die Shell holen, dann braucht "

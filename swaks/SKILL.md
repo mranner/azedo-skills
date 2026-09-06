@@ -102,7 +102,7 @@ unmittelbar vor dem Versand (siehe „Vor dem Versand prüfen") fängt auch die
 Ablauf: `build_mail.py` baut die MIME-DATA (korrekte Boundaries/Encoding, hängt Signaturen an) in eine Datei, danach geht diese per `swaks --data @<datei>` raus.
 
 1. Text-Body als `.txt` und HTML-Body als `.html` ins Versand-Verzeichnis `$M` schreiben (jeweils **ohne** Signatur – die hängt der Helper an). Liegt nur Text vor, `--html-file` schlicht weglassen – der Helper baut den HTML-Part daraus (siehe „HTML-Part").
-2. Versandweg laden, MIME-DATA bauen, **prüfen**, senden, Ergebnis prüfen. **Erst in eine Datei bauen, dann senden** – nicht direkt in `swaks` pipen: schlägt der Bau fehl (Exit ≠ 0 oder Interpreter nicht gefunden), würde `swaks` sonst auf leerem STDIN laufen und seine eingebaute **Default-Test-Mail** verschicken. Die `&&`-Kette stoppt vor `swaks`, sobald der Bau fehlschlägt, die Datei leer ist oder die Prüfung anschlägt:
+2. MIME-DATA bauen und **prüfen**, dann in einem **zweiten Befehl** senden. **Erst in eine Datei bauen, dann senden** – nicht direkt in `swaks` pipen: schlägt der Bau fehl (Exit ≠ 0 oder Interpreter nicht gefunden), würde `swaks` sonst auf leerem STDIN laufen und seine eingebaute **Default-Test-Mail** verschicken. Die `&&`-Kette stoppt, sobald der Bau fehlschlägt, die Datei leer ist oder die Prüfung anschlägt:
 
 ```bash
 M=$(mktemp -d .tmp/mail.XXXXXX)
@@ -110,30 +110,29 @@ B=~/.claude/skills/swaks/build_mail.py
 
 # Bodies nach $M/body.txt und $M/body.html schreiben, dann:
 
-ENV=$(python3 $B --swaks-env) \
-  && test -n "$ENV" \
-  && python3 $B \
-      --subject "Betreff" \
-      --to "empfaenger@example.com" \
-      --from <absender> \
-      --text-file $M/body.txt \
-      --html-file $M/body.html \
-      --sha-file $M/mail.sha256 \
-      > $M/mail.eml \
+python3 $B \
+    --subject "Betreff" \
+    --to "empfaenger@example.com" \
+    --from <absender> \
+    --text-file $M/body.txt \
+    --html-file $M/body.html \
+    --sha-file $M/mail.sha256 \
+    > $M/mail.eml \
   && test -s $M/mail.eml \
   && python3 $B --verify $M/mail.eml \
       --expect-sha256 "$(cat $M/mail.sha256)" \
-      --expect-marker "<wörtliches Stück aus dem freigegebenen Entwurf>" \
-  && ( eval "$ENV"; swaks \
-      --to "empfaenger@example.com" \
-      --from <absender> \
-      --data @$M/mail.eml ) > $M/swaks.log 2>&1
-RC=$?
-
-test $RC -eq 0 && grep -q "queued as" $M/swaks.log && ! grep -qE '^<.\*' $M/swaks.log \
-  && grep "queued as" $M/swaks.log \
-  || { echo "FEHLGESCHLAGEN (rc=$RC) — siehe $M/swaks.log"; grep -E '^<.\*' $M/swaks.log; }
+      --expect-marker "<wörtliches Stück aus dem freigegebenen Entwurf>"
 ```
+
+Erst wenn dieser Befehl mit Exit `0` durchgelaufen ist, folgt der Versand als **eigener Befehl**:
+
+```bash
+python3 $B --send $M/mail.eml --to "empfaenger@example.com" --from <absender>
+```
+
+`--send` lädt den Versandweg selbst, ruft `swaks` auf und prüft das Ergebnis (Exit-Code, `queued as`, abgelehnte Empfänger – siehe „Ergebnis prüfen"). Exit `0` heißt versendet, Exit `1` heißt Fehlschlag; das JSON nennt Queue-ID bzw. Befund, das vollständige swaks-Protokoll steht in `$M/mail.eml.swaks.log`.
+
+**Warum zwei Befehle und nicht eine `&&`-Kette?** Eine Bash-Freigabe greift auf den **Anfang** des Befehls. In einer Kette, die mit `ENV=$(…)` oder `python3 $B --verify …` beginnt, steht der Versand irgendwo in der Mitte und ist von keiner Regel erreichbar – der Versand scheitert dann an der Freigabe, nachdem Recherche, Bau und Prüfung bereits gelaufen sind (CR4613). `python3 $B --send …` steht am Anfang und ist freigebbar. Die Trennung kostet nichts: die Prüfkette davor bricht bei jedem Befund mit Exit ≠ 0 ab, und `--send` prüft die `.eml` nochmals auf Existenz und Größe.
 
 Die Prüfung am Ende ist **kein Beiwerk** – ohne sie geht ein Reject als Erfolg durch (siehe „Ergebnis prüfen").
 
@@ -200,8 +199,16 @@ stderr (`build_mail.py: sha256(DATA) = …`).
 übersehen schon: in der langen Protokollausgabe steht der Reject als eine Zeile
 unter dreißig. Deshalb wird das Ergebnis **nicht gelesen, sondern geprüft**.
 
-Die `&&`-Kette beim Bau sichert nur die `.eml` ab, nicht den Versand. Dafür die
-Ausgabe mitschreiben und danach beides prüfen — Exit-Code **und** Queue-ID:
+Die `&&`-Kette beim Bau sichert nur die `.eml` ab, nicht den Versand. Die drei
+Prüfungen übernimmt deshalb `--send` selbst — Exit `0` heißt versendet, Exit `1`
+nennt den Befund im JSON und auf stderr:
+
+```bash
+python3 $B --send $M/mail.eml --to "empfänger@example.com" --from <absender>
+```
+
+Wer stattdessen von Hand mit `swaks` sendet, muss dieselben drei Prüfungen
+nachbauen:
 
 ```bash
 ( eval "$ENV"; swaks --to "empfänger@example.com" --from <absender> \
@@ -311,7 +318,7 @@ Die vollstaendige Optionsreferenz liegt daneben und wird bei Bedarf gelesen:
 5. Fehlende Angaben aus dem Kontext ableiten (Betreff, Body, Anhänge).
 6. Befehl zusammenbauen und dem Nutzer kurz zeigen; auf Bestätigung warten – außer der Nutzer hat bereits „ja" gesagt oder den Versand klar angeordnet.
 7. **Vor dem Versand prüfen:** `--verify` auf die fertige `.eml`, mit `--expect-sha256` aus der `--sha-file` und einem `--expect-marker` aus dem freigegebenen Entwurf (siehe „Vor dem Versand prüfen"). Exit ≠ 0 heißt: nicht senden.
-8. **Versandweg laden** (`eval` des `--swaks-env`, siehe Versandweg), Befehl ausführen, Ausgabe mitschreiben und **prüfen** — Exit-Code, `queued as` *und* keine `^<.\*`-Zeile (siehe „Ergebnis prüfen"). Nur bei allen dreien „versendet" melden, sonst den Fehlschlag mit Statuscode nennen.
+8. **Senden:** `python3 $B --send $M/mail.eml --to … --from …` als **eigener Befehl** (nicht an die Prüfkette aus Schritt 7 hängen — sonst steht der Versand nicht am Befehlsanfang und ist von keiner Bash-Freigabe erreichbar). `--send` lädt den Versandweg selbst und prüft Exit-Code, `queued as` *und* die `^<.\*`-Zeile. Nur bei Exit `0` „versendet" melden, sonst den Fehlschlag mit Statuscode aus dem JSON nennen.
 9. **Ablegen:** nach erfolgreichem Versand die `.eml` mit `imap append $M/mail.eml -a <konto>` in „Gesendet" legen — swaks tut das nicht (siehe „Ablage").
 10. **Erfolgsmeldung:** Queue-ID, übertragene Datei mit sha256 und Größe, Envelope-Empfänger (inkl. Bcc) und die Fundstelle der Kopie nennen (siehe „Was in der Erfolgsmeldung stehen muss").
 11. **Kontakt ergänzen:** Wenn eine neue E-Mail-Adresse verwendet wurde, die noch nicht in `.claude/swaks-contacts.tsv` steht, per `printf` anhängen.
@@ -319,7 +326,7 @@ Die vollstaendige Optionsreferenz liegt daneben und wird bei Bedarf gelesen:
 ## Hinweise
 
 - `--subject` existiert in dieser swaks-Version nicht → immer `--header "Subject: ..."` verwenden.
-- MX-Routing ist nicht verfügbar (Net::DNS fehlt). Ohne geladenen Versandweg nimmt swaks deshalb **stillschweigend `localhost:25`** — kein Fehler, aber der falsche Weg. Immer erst `eval "$ENV"`.
+- MX-Routing ist nicht verfügbar (Net::DNS fehlt). Ohne geladenen Versandweg nimmt swaks deshalb **stillschweigend `localhost:25`** — kein Fehler, aber der falsche Weg. `--send` lädt den Weg selbst; beim Aufruf von Hand immer erst `eval "$ENV"`.
 - Erfolg erkennbar an: `250 2.0.0 Ok: queued as <ID>` **bei Exit-Code 0 und ohne `<**`/`<~*`-Zeile**. Alle drei prüfen — bei mehreren Empfängern ist ein einzelner Reject sonst unsichtbar.
 - Zum Ausprobieren einer Route ohne Zustellung: `--quit-after RCPT` — die Verbindung endet vor `DATA`, es geht nichts raus.
 - Ein `250 Ok` sagt nur, dass der Server die Bytes genommen hat. Ob es die **richtigen** Bytes waren (Datei zwischenzeitlich überschrieben) und ob sie beim Empfänger **lesbar** ankommen (HTML-Part ohne Markup), sagt es nicht — dafür gibt es `--verify`.

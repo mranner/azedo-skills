@@ -3,6 +3,27 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.52.0
+
+- **`swaks`: Der Versand hat einen eigenen Befehl.** Die vorgeschriebene
+  Aufrufform hatte `swaks` nie am Befehlsanfang stehen (der Versandweg musste
+  vorher per `eval "$ENV"` in die Shell), womit keine Bash-Freigabe darauf
+  greifen konnte - der Versand wurde abgelehnt, nachdem Adressrecherche, Bau
+  und `--verify` bereits gelaufen waren (CR4613).
+  - `build_mail.py --send <eml> --to ... --from ...`: loest den Versandweg
+    selbst auf, gibt ihn als `SWAKS_OPT_*` an die Umgebung des
+    `swaks`-Prozesses und prueft danach alle drei Erfolgsbedingungen
+    (Exit-Code, `queued as`, keine `^<.\*`-Zeile). Exit `0` heisst versendet,
+    Exit `1` nennt den Befund im JSON und auf stderr; das swaks-Protokoll
+    steht in `<eml>.swaks.log`.
+  - Nebeneffekt: das SMTP-Passwort verlaesst den Prozess nicht mehr. `--swaks-env`
+    bleibt fuer den Aufruf von Hand, die Warnung, seine Ausgabe nie ungefiltert
+    anzuzeigen, steht jetzt in `references/versandweg.md`.
+  - `SKILL.md` und `references/antworten.md`: Bau/`--verify` und Versand sind
+    zwei getrennte Befehle, mit der Begruendung dazu (eine Freigabe greift auf
+    den Befehlsanfang). Die Pruefkette von Hand bleibt als Alternative
+    dokumentiert.
+
 ### 1.51.6
 
 - **`wiki`: Zerlegen ist jetzt ein eigener Refactor-Weg.** `refactor` kannte fuer

@@ -4,10 +4,20 @@ Woher die Zugangsdaten kommen, Kontaktaufloesung, Signatur, Encoding.
 
 ## Versandweg und Authentifizierung
 
-**Nicht `--server` von Hand setzen.** Den Versandweg löst `build_mail.py` auf und
-gibt ihn als `SWAKS_OPT_*`-Variablen aus; `swaks` liest diese Umgebungsvariablen
-selbst. Das Passwort steht damit in der Prozessumgebung und nicht in der
-Kommandozeile, wo jedes `ps` es mitliest.
+**Nicht `--server` von Hand setzen.** Den Versandweg löst `build_mail.py` auf.
+
+**Der Regelweg ist `--send`:** der Helper lädt den Weg selbst, gibt ihn als
+`SWAKS_OPT_*` an die Umgebung des `swaks`-Prozesses weiter und prüft das
+Ergebnis. Das Passwort verlässt den Prozess dabei nicht.
+
+```bash
+python3 ~/.claude/skills/swaks/build_mail.py --send $M/mail.eml \
+  --to "empfaenger@example.com" --from <absender>
+```
+
+`--swaks-env` bleibt für den Aufruf von Hand — es gibt dieselben Variablen als
+Exportzeilen aus, `swaks` liest sie dann selbst aus der Umgebung statt aus der
+Kommandozeile, wo jedes `ps` sie mitliest:
 
 ```bash
 ENV=$(python3 ~/.claude/skills/swaks/build_mail.py --swaks-env) \
@@ -15,8 +25,9 @@ ENV=$(python3 ~/.claude/skills/swaks/build_mail.py --swaks-env) \
   && eval "$ENV"
 ```
 
-Danach braucht `swaks` weder `--server` noch `--port` noch Auth-Optionen. Welcher
-Weg dabei herauskommt, zeigt `--show-config` (Passwort maskiert):
+**Die Ausgabe von `--swaks-env` nie ungefiltert anzeigen** — sie enthält das
+Passwort im Klartext und landet sonst in Transcript und Shell-History. Zur
+Kontrolle des Weges ist `--show-config` da (Passwort maskiert):
 
 ```bash
 python3 ~/.claude/skills/swaks/build_mail.py --show-config

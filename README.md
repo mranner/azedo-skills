@@ -608,6 +608,14 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
+### 1.52.0
+
+- **`swaks`: Der Versand hat einen eigenen Befehl.** `build_mail.py --send <eml>`
+  laedt den Versandweg selbst, ruft `swaks` auf und prueft alle drei
+  Erfolgsbedingungen. Bisher stand `swaks` mitten in einer `&&`-Kette und war
+  damit von keiner Bash-Freigabe erreichbar; nebenbei verlaesst das
+  SMTP-Passwort den Prozess nicht mehr.
+
 ### 1.51.6
 
 - **`wiki`: Zerlegen ist jetzt ein eigener Refactor-Weg.** `audit-wiki.py` meldet
