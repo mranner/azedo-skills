@@ -66,7 +66,6 @@ Sobald eines dieser Merkmale vorkommt:
 |---------|----------|---------------------|
 | `iocage exec` + `sudo -u` | `iocage exec jail sudo -u user ...` | jexec faengt `-u` als eigenen Flag ab |
 | Stderr-Redirect | `2>/dev/null`, `2>&1` | tcsh interpretiert `2` als Dateiname |
-| `&&` / `||` | `cmd1 && cmd2` | "Invalid null command" |
 | `$()` | `$(hostname)` | Nicht unterstuetzt, nur Backticks |
 | Variablen-Zuweisung | `VAR=value cmd` | Keine Inline-Zuweisung |
 | Funktionen | `f() { ...; }` | "Badly placed ()'s" |
@@ -78,8 +77,8 @@ Sobald eines dieser Merkmale vorkommt:
 # Stderr unterdruecken
 sudo ssh -C root@server "sh -c 'ls /some/path 2>/dev/null'"
 
-# Bedingte Ausfuehrung
-sudo ssh -C root@server "sh -c 'test -f /etc/rc.conf && grep nginx /etc/rc.conf'"
+# Bedingte Ausfuehrung - && und || kann tcsh selbst, kein sh -c noetig
+sudo ssh -C root@server "test -f /etc/rc.conf && grep nginx /etc/rc.conf"
 
 # Command Substitution
 sudo ssh -C root@server "sh -c 'echo Hostname: \$(hostname)'"

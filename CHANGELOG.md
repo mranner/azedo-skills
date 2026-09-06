@@ -3,6 +3,18 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.52.3
+
+- **`tcsh`: `&&` und `||` gehoeren nicht auf die `sh -c`-Liste.** Der Skill
+  fuehrte bedingtes Chaining als tcsh-Luecke ("Invalid null command"). Auf
+  fry, jailer und mom (tcsh 6.22.04 als `/bin/csh`) laeuft `cmd1 && cmd2`
+  durch, samt Kurzschluss und auch nach Pipes und Redirects. Reproduzierbar ist
+  stattdessen `Ambiguous output redirect.`, sobald `2>&1` im selben Befehl
+  steht - daher vermutlich die Verwechslung. Betroffen waren die
+  Entscheidungsmatrix und das Beispiel in `SKILL.md` sowie zwei Stellen in
+  `references/syntax.md`. Die Stderr-Regeln und `$()` bleiben unveraendert,
+  beides gegengeprueft (CR4614).
+
 ### 1.52.2
 
 - **`wp-sync-dev`: `chown` gehoert ins Jail, nicht auf den Jail-Host.** Schritt 3

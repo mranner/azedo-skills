@@ -138,8 +138,8 @@ if ( $a > 0 && $b > 0 )   # UND (in Expressions erlaubt!)
 if ( $a > 0 || $b > 0 )   # ODER
 ```
 
-**Beachte:** `&&` und `||` funktionieren innerhalb von `if ( )`-Ausdruecken,
-aber NICHT als Command-Chaining zwischen Befehlen.
+**Beachte:** `&&` und `||` funktionieren sowohl innerhalb von `if ( )`-Ausdruecken
+als auch als Command-Chaining zwischen Befehlen, samt Kurzschluss-Semantik.
 
 ### Aliases
 
@@ -163,8 +163,8 @@ alias mcd 'mkdir -p \!^ ; cd \!^'  # erstes Argument (2x)
 | `VAR=val` | `set var = val` | Leerzeichen um `=` erlaubt |
 | `VAR=val command` | `setenv VAR val ; command` | Keine Inline-Zuweisung |
 | `$(command)` | `` `command` `` | Backticks, nicht verschachtelbar |
-| `cmd1 && cmd2` | `cmd1 ; cmd2` oder `sh -c` | Kein bedingtes Chaining |
-| `cmd1 \|\| cmd2` | `sh -c 'cmd1 \|\| cmd2'` | Nicht nativ moeglich |
+| `cmd1 && cmd2` | `cmd1 && cmd2` | Gleich, auch der Kurzschluss |
+| `cmd1 \|\| cmd2` | `cmd1 \|\| cmd2` | Gleich |
 | `2>/dev/null` | `>& /dev/null` (beide) oder `sh -c` | Kein separater Stderr-Redirect |
 | `2>&1 \| grep` | `\|& grep` | Pipe inkl. Stderr |
 | `[[ -f file ]]` | `if ( -f file )` | Anderer Syntax |

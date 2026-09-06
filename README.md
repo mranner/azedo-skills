@@ -612,6 +612,12 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
+### 1.52.3
+
+- **`tcsh`: `&&` / `||` brauchen kein `sh -c`.** Bedingtes Chaining stand
+  faelschlich als tcsh-Luecke in der Entscheidungsmatrix; die Meldung, die dazu
+  gefuehrt hat, kommt von `2>&1`. Stderr-Regeln und `$()` bleiben.
+
 ### 1.52.2
 
 - **`wp-sync-dev`: `chown` laeuft per `iocage exec` im Jail**, `chmod`/`find`
