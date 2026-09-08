@@ -113,9 +113,12 @@ erst dort auf, wo niemand ihn sucht.
 Vor dem Push prueft `python3 scripts/lint-skills.py` (ohne Argumente, im
 Repo-Wurzelverzeichnis) das Frontmatter aller Skills: Pflichtfelder, `name`
 gegen den Verzeichnisnamen, kebab-case, Laengengrenzen, die Block-Scalar-Regel
-von oben, `version` im Frontmatter und unbekannte Schluessel. Exit 0 heisst
-sauber, Exit 1 nennt die Fehler; Warnungen (unbekannter Schluessel, Body ueber
-500 Zeilen) aendern den Exit-Code nicht. Einzelne Skills gehen als Argument.
+von oben, `version` im Frontmatter und unbekannte Schluessel. Ebenso, ob jeder
+Skill in der Liste von `install.sh` steht - fehlt er dort, bekommt eine frische
+Installation keinen Symlink, und auf der eigenen Maschine faellt das nie auf.
+Exit 0 heisst sauber, Exit 1 nennt die Fehler; Warnungen (unbekannter
+Schluessel, Body ueber 500 Zeilen, verwaister Name in `install.sh`) aendern den
+Exit-Code nicht. Einzelne Skills gehen als Argument.
 
 Beim Anlegen eines neuen Skills **`install.sh` mitpflegen**: die Skill-Liste dort ist
 hartcodiert. Fehlt der Name, bekommt eine frische Installation keinen Symlink und der

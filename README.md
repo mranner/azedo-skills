@@ -612,8 +612,9 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.54.0
+### 1.54.1
 
 - **Neues `scripts/lint-skills.py`** - prueft das Frontmatter aller Skills
   (Pflichtfelder, Name gegen Verzeichnis, Laengen, Block-Scalar, keine `version`
-  im Frontmatter, unbekannte Schluessel). Exit 1 bei Fehlern.
+  im Frontmatter, unbekannte Schluessel) und ihren Eintrag in `install.sh`.
+  Exit 1 bei Fehlern.

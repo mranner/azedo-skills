@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """Prueft das Frontmatter aller Skills im Repo gegen die Anthropic-Empfehlungen
-und die Repo-Konventionen aus CLAUDE.md.
+und die Repo-Konventionen aus CLAUDE.md, dazu ihren Eintrag in install.sh.
 
 Aufruf ohne Argumente im Repo-Wurzelverzeichnis (oder mit Pfaden auf einzelne
 Skill-Verzeichnisse). Exit 0 = keine Fehler, Exit 1 = mindestens ein Fehler.
@@ -161,6 +161,24 @@ def pruefe(verzeichnis):
     return fehler, warnungen
 
 
+def install_liste():
+    """Liest die hartcodierte Skill-Liste aus install.sh.
+
+    Fehlt ein Skill dort, bekommt eine frische Installation keinen Symlink -
+    auf einer Maschine, die ihn schon verlinkt hat, faellt das nicht auf."""
+
+    if not os.path.isfile("install.sh"):
+        return None
+
+    with open("install.sh", encoding="utf-8") as f:
+        m = re.search(r"^for skill in (.+?); do", f.read(), re.M)
+
+    if not m:
+        return None
+
+    return m.group(1).split()
+
+
 def main():
     ziele = sys.argv[1:]
     if not ziele:
@@ -175,15 +193,35 @@ def main():
 
     fehler_gesamt = 0
     warnungen_gesamt = 0
+    liste = install_liste()
+
+    if liste is None:
+        print("WARNUNG install.sh: Skill-Liste nicht gefunden - Eintrag ungeprueft")
+        warnungen_gesamt += 1
 
     for ziel in ziele:
         fehler, warnungen = pruefe(ziel)
+        name = os.path.basename(os.path.normpath(ziel))
+        if liste is not None and name not in liste:
+            fehler.append(
+                "fehlt in der Skill-Liste von install.sh - eine frische "
+                "Installation bekaeme keinen Symlink"
+            )
         for f in fehler:
             print(f"FEHLER  {ziel}: {f}")
         for w in warnungen:
             print(f"WARNUNG {ziel}: {w}")
         fehler_gesamt += len(fehler)
         warnungen_gesamt += len(warnungen)
+
+    if liste is not None and not sys.argv[1:]:
+        namen = {os.path.basename(os.path.normpath(z)) for z in ziele}
+        for verwaist in sorted(set(liste) - namen):
+            print(
+                f"WARNUNG install.sh: '{verwaist}' steht in der Liste, "
+                "das Verzeichnis gibt es nicht"
+            )
+            warnungen_gesamt += 1
 
     print(
         f"\n{len(ziele)} Skills geprueft, "

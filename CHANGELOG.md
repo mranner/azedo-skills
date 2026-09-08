@@ -3,6 +3,15 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.54.1
+
+- **`lint-skills.py` prueft auch den Eintrag in `install.sh`.** Die Skill-Liste
+  dort ist hartcodiert; fehlt ein Name, bekommt eine frische Installation keinen
+  Symlink - auf einer Maschine, die den Skill laengst verlinkt hat, faellt das
+  nie auf. Ein fehlender Eintrag ist jetzt ein Fehler, ein Name ohne
+  zugehoeriges Verzeichnis eine Warnung. Beim Aufruf fuer einzelne Skills
+  entfaellt die zweite Pruefung, weil der Rueckschluss dann nicht traegt.
+
 ### 1.54.0
 
 - **Neues `scripts/lint-skills.py`** - prueft das Frontmatter aller Skills gegen
