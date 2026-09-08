@@ -63,10 +63,14 @@ Release gehören drei Dateien gemeinsam:
 - `VERSION` — hochzählen (semver)
 - `CHANGELOG.md` — neuer Abschnitt oben, absteigend nach Version
 - `README.md` — führt nur die *aktuelle* Version, kein Verlauf
-- `metadata.version` in `einfache-sprache`, `humanizer-de` und `wie-bitte` —
-  diese drei Skills tragen die Version zusaetzlich im Frontmatter und laufen
-  sonst auseinander (in `humanizer-de` steht daneben `upstream_version` fuer die
-  Fassung des urspruenglichen Autors; die bleibt, wie sie ist)
+
+**Die Version steht ausschliesslich in `VERSION`.** Kein Skill fuehrt sie
+zusaetzlich im Frontmatter: eine zweite Stelle wird bei Releases vergessen und
+steht danach falsch da - genau so waren `einfache-sprache`, `humanizer-de` und
+`wie-bitte` auf 1.37.0, 5.2.0 und 1.46.0 stehengeblieben. Was ein Skill an
+Herkunft mitbringt, ist davon unberuehrt: in `humanizer-de` nennt
+`upstream_version` die Fassung des urspruenglichen Autors und veraltet durch
+unsere Releases nicht.
 
 Commit-Konvention: `CR<id>: <skill> - <was geändert wurde> (<version>)`
 Beispiel: `CR4426: swos - poe-voltage (poe.b i03) + gemeinsame Write-Basis (1.26.1)`

@@ -612,6 +612,13 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
+### 1.52.9
+
+- **`metadata.version` aus allen Skills entfernt** - die Version steht
+  ausschliesslich in `VERSION`. Die Angabe im Frontmatter wurde bei Releases
+  nicht mitgezogen und stand danach falsch da. `upstream_version` in
+  `humanizer-de` bleibt (Fassung des urspruenglichen Autors).
+
 ### 1.52.8
 
 - **Frontmatter-Audit ueber alle 32 Skills** - konform bis auf die eigene

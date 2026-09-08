@@ -12,7 +12,6 @@ description: >
 allowed-tools: [Read, Write, Edit, Grep, Glob, Bash]
 metadata:
   display_name: Humanizer (Deutsch)
-  version: 1.52.8
   upstream_version: 5.2.0
   author: Martin Moeller
   maintainer_website: https://www.martin-moeller.biz

@@ -3,6 +3,17 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.52.9
+
+- **`metadata.version` ist aus allen Skills raus, `VERSION` gilt allein.** Die
+  Angabe im Frontmatter war eine zweite Stelle fuer dieselbe Zahl und wurde bei
+  Releases nicht mitgezogen - `einfache-sprache`, `humanizer-de` und `wie-bitte`
+  standen deshalb auf 1.37.0, 5.2.0 und 1.46.0. Das Nachziehen in 1.52.8 haette
+  sich beim naechsten Release wiederholt, also faellt das Feld weg. Die Regel
+  steht in der `CLAUDE.md`. Erhalten bleibt `upstream_version` in
+  `humanizer-de`: sie nennt die Fassung des urspruenglichen Autors und veraltet
+  durch unsere Releases nicht.
+
 ### 1.52.8
 
 - **Frontmatter aller 32 Skills gegen die Anthropic-Empfehlungen geprueft.**

@@ -11,7 +11,6 @@ description: >
 allowed-tools: [Read, Write, Edit, Grep, Glob, Bash]
 metadata:
   display_name: Einfache Sprache
-  version: 1.52.8
 ---
 
 # Einfache Sprache
