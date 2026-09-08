@@ -612,6 +612,14 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
+### 1.52.7
+
+- **`swaks`: Versand nur noch ueber `build_mail.py --send`** - die verbliebenen
+  rohen `swaks …`-Beispiele in der SKILL.md sind umgestellt bzw. als Ausnahme
+  gekennzeichnet. Neu dokumentiert: `--show-config` und `--swaks-env` maskieren
+  `auth_password` als `<gesetzt>`; der Platzhalter als Passwort endet mit
+  `535 5.7.8 Error: authentication failed`.
+
 ### 1.52.6
 
 - **`wiki`: Wikilinks auf lokale Nachbar-Wikis** - `[[<präfix>:<slug>]]` löst

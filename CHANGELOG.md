@@ -3,6 +3,19 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.52.7
+
+- **`swaks`: Der Versand laeuft ausschliesslich ueber `build_mail.py --send`.**
+  Die SKILL.md beschrieb `--send` zwar als Regelweg, liess daneben aber rohe
+  `swaks …`-Beispiele stehen; wer die woertlich nahm, brauchte Zugangsdaten, die
+  der Helper bewusst zurueckhaelt. `--show-config` und `--swaks-env` zeigen das
+  Passwort maskiert als `<gesetzt>` - dieser Literalstring ging als Passwort an
+  den Relay und die Sitzung endete mit `535 5.7.8 Error: authentication failed`,
+  ohne dass Mail rausging. Das Anhang-Beispiel ist jetzt zweistufig ueber
+  `--send`, der Handaufruf ist als Ausnahme fuer die Sonderfaelle aus
+  `references/bausteine.md` gekennzeichnet, und an beiden Stellen steht, dass das
+  maskierte `auth_password` eine Anzeige und keine Passwortquelle ist (CR4621).
+
 ### 1.52.6
 
 - **`wiki`: Wikilinks auf lokale Nachbar-Wikis lösen jetzt auf.** Ein
