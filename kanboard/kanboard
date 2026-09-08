@@ -2,7 +2,7 @@
 
 # Kanboard JSON-RPC 2.0 API helper
 # stdlib only, no pip dependencies
-# version 1.52.1
+# version 1.54.4
 
 import argparse
 import base64
@@ -11,6 +11,9 @@ import os
 import sys
 import urllib.request
 from datetime import datetime
+
+# identifies this client in the Kanboard server's access log
+USER_AGENT = "azedo-skills kanboard"
 
 
 def format_ts(ts):
@@ -95,7 +98,8 @@ def _rpc(method, params, strict):
         data=payload,
         headers={
             "Content-Type": "application/json",
-            "Authorization": f"Basic {credentials}"
+            "Authorization": f"Basic {credentials}",
+            "User-Agent": USER_AGENT
         }
     )
 

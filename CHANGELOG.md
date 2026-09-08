@@ -3,6 +3,14 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.54.4
+
+- **`kanboard`: JSON-RPC-Aufrufe schicken jetzt eine User-Agent-Zeile.** Bisher
+  gingen sie ohne, und im Access-Log des Kanboard-Servers stand nur ein `"-"` -
+  Aufrufe des Skills waren dort von anderen POSTs auf `jsonrpc.php` nicht zu
+  unterscheiden. Der Header lautet `azedo-skills kanboard`. Reine Kennzeichnung,
+  am Verhalten der Aufrufe aendert sich nichts.
+
 ### 1.54.3
 
 - **`envato`: `-o` lädt bei WordPress-Themes nicht mehr das falsche Archiv.** Die

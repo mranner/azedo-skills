@@ -612,14 +612,10 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.54.3
+### 1.54.4
 
-- **`envato`: `-o` lädt bei WordPress-Themes nicht mehr das falsche Archiv.** Die
-  API liefert zwei URLs; `download_url` ist das All-Files-Paket mit Doku und
-  Lizenzen, `wordpress_theme` das installierbare Theme-ZIP. Beim Download nach
-  `-o` wurde `download_url` immer zuerst geprüft und ist bei Themes immer da -
-  der Zweig für `wordpress_theme` war damit toter Code, und das Ergebnis ließ
-  sich mit `wp theme install` nicht installieren. Das neue `--wp-theme` lenkt
-  `-o` auf die zweite URL um, ohne Flag bleibt es beim bisherigen Verhalten.
-  `SKILL.md` nennt den Unterschied jetzt unter "Item herunterladen", nicht nur
-  als Randnotiz unter "Hinweise".
+- **`kanboard`: JSON-RPC-Aufrufe schicken jetzt eine User-Agent-Zeile.** Bisher
+  gingen sie ohne, und im Access-Log des Kanboard-Servers stand nur ein `"-"` -
+  Aufrufe des Skills waren dort von anderen POSTs auf `jsonrpc.php` nicht zu
+  unterscheiden. Der Header lautet `azedo-skills kanboard`. Reine Kennzeichnung,
+  am Verhalten der Aufrufe aendert sich nichts.
