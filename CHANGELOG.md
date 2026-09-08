@@ -3,6 +3,21 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.54.0
+
+- **Neues `scripts/lint-skills.py`** - prueft das Frontmatter aller Skills gegen
+  die Anthropic-Empfehlungen und die Repo-Konventionen: Pflichtfelder, `name`
+  gegen den Verzeichnisnamen, kebab-case, `description` unter 1024 Zeichen und
+  als Block-Scalar notiert, keine `version` im Frontmatter, unbekannte
+  Schluessel, Body ueber 500 Zeilen. Fehler setzen Exit 1, Warnungen nicht.
+  Loest den Durchgang von Hand ab, der die Abweichung in 1.52.9 gefunden hatte -
+  die geprueften Regeln sind statisch und brechen nur bei einem neuen Skill.
+  Gegen acht Wegwerf-Skills mit je einem eingebauten Fehler durchgespielt.
+- **`CHANGELOG.md`: 1.52.8 und 1.52.9 zusammengezogen.** Die beiden Eintraege
+  liefen gegeneinander - 1.52.8 zog drei Versionsnummern nach, 1.52.9 entfernte
+  das Feld. Der Befund steht jetzt bei 1.52.9, wo auch die Loesung steht; 1.52.8
+  fuehrt nur noch die Festlegung zum Description-Stil, die Bestand hat.
+
 ### 1.53.1
 
 - **`README.md` fuehrt wieder nur die aktuelle Version.** Der Changelog-Abschnitt
@@ -36,24 +51,18 @@ Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version 
 - **`metadata.version` ist aus allen Skills raus, `VERSION` gilt allein.** Die
   Angabe im Frontmatter war eine zweite Stelle fuer dieselbe Zahl und wurde bei
   Releases nicht mitgezogen - `einfache-sprache`, `humanizer-de` und `wie-bitte`
-  standen deshalb auf 1.37.0, 5.2.0 und 1.46.0. Das Nachziehen in 1.52.8 haette
-  sich beim naechsten Release wiederholt, also faellt das Feld weg. Die Regel
+  standen deshalb auf 1.37.0, 5.2.0 und 1.46.0. Aufgefallen bei einem Durchgang
+  durch das Frontmatter aller 32 Skills, der sonst nichts zu beanstanden fand:
+  Pflichtfelder, Namensschema, Laengen und Zusatzschluessel sind konform, und
+  keine `description` steht unquotiert mit einem `: ` im Text - der Fall, an dem
+  strikte YAML-Parser abbrechen. Ein Nachziehen der drei Zahlen (1.52.8) haette
+  sich beim naechsten Release wiederholt, also faellt das Feld weg; die Regel
   steht in der `CLAUDE.md`. Erhalten bleibt `upstream_version` in
   `humanizer-de`: sie nennt die Fassung des urspruenglichen Autors und veraltet
   durch unsere Releases nicht.
 
 ### 1.52.8
 
-- **Frontmatter aller 32 Skills gegen die Anthropic-Empfehlungen geprueft.**
-  Pflichtfelder, Namensschema, Laengen und Zusatzschluessel sind konform, und
-  keine `description` steht unquotiert mit einem `: ` im Text - der Fall, an dem
-  strikte YAML-Parser abbrechen. Nachgezogen wurde
-  die eine Abweichung: `einfache-sprache`, `humanizer-de` und `wie-bitte`
-  trugen im Frontmatter eine eigene, veraltete `metadata.version` (1.37.0,
-  5.2.0, 1.46.0) und liefen damit gegen die Regel einer einzigen Repo-Version.
-  Sie stehen jetzt auf der Repo-Version und sind im Release-Workflow als
-  mitzupflegende Dateien vermerkt. Die Version des urspruenglichen Autors von
-  `humanizer-de` bleibt als `upstream_version` erhalten.
 - **Stil der `description` festgelegt.** Die beiden Anthropic-Quellen
   widersprechen sich (dritte Person gegen Imperativ); massgeblich ist die
   neuere - also das hier ohnehin verwendete trigger-freudige Muster. Steht

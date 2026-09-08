@@ -612,14 +612,8 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.53.1
+### 1.54.0
 
-- **`README.md` fuehrt wieder nur die aktuelle Version** - der Verlauf lebt in
-  der `CHANGELOG.md`.
-
-### 1.53.0
-
-- **`swaks`: `references/bausteine.md` und `antworten.md` auf `--send`
-  umgestellt** - die letzten rohen `swaks`-Beispiele sind weg, damit auch die
-  `--header`-Zeilen für Encoding, das `@` bei `--attach` und die
-  `--attach-type`-Tabelle. Alle Bausteine gegen den Helper durchgespielt.
+- **Neues `scripts/lint-skills.py`** - prueft das Frontmatter aller Skills
+  (Pflichtfelder, Name gegen Verzeichnis, Laengen, Block-Scalar, keine `version`
+  im Frontmatter, unbekannte Schluessel). Exit 1 bei Fehlern.

@@ -108,6 +108,15 @@ dieselben Skills ueber `~/.agents/skills/` einbinden, ueberspringen den Skill
 stattdessen still und fallen auf eine alte Kopie zurueck. Der Fehler faellt damit
 erst dort auf, wo niemand ihn sucht.
 
+### Pruefen mit `scripts/lint-skills.py`
+
+Vor dem Push prueft `python3 scripts/lint-skills.py` (ohne Argumente, im
+Repo-Wurzelverzeichnis) das Frontmatter aller Skills: Pflichtfelder, `name`
+gegen den Verzeichnisnamen, kebab-case, Laengengrenzen, die Block-Scalar-Regel
+von oben, `version` im Frontmatter und unbekannte Schluessel. Exit 0 heisst
+sauber, Exit 1 nennt die Fehler; Warnungen (unbekannter Schluessel, Body ueber
+500 Zeilen) aendern den Exit-Code nicht. Einzelne Skills gehen als Argument.
+
 Beim Anlegen eines neuen Skills **`install.sh` mitpflegen**: die Skill-Liste dort ist
 hartcodiert. Fehlt der Name, bekommt eine frische Installation keinen Symlink und der
 Skill existiert für den Konsumenten nicht — auf einer Maschine, die ihn schon per
