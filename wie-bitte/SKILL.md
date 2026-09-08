@@ -5,7 +5,7 @@ allowed-tools: []
 disable-model-invocation: true
 metadata:
   display_name: Wie bitte?
-  version: 1.46.0
+  version: 1.52.8
 ---
 
 # Wie bitte?

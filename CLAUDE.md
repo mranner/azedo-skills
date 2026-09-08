@@ -63,11 +63,32 @@ Release gehören drei Dateien gemeinsam:
 - `VERSION` — hochzählen (semver)
 - `CHANGELOG.md` — neuer Abschnitt oben, absteigend nach Version
 - `README.md` — führt nur die *aktuelle* Version, kein Verlauf
+- `metadata.version` in `einfache-sprache`, `humanizer-de` und `wie-bitte` —
+  diese drei Skills tragen die Version zusaetzlich im Frontmatter und laufen
+  sonst auseinander (in `humanizer-de` steht daneben `upstream_version` fuer die
+  Fassung des urspruenglichen Autors; die bleibt, wie sie ist)
 
 Commit-Konvention: `CR<id>: <skill> - <was geändert wurde> (<version>)`
 Beispiel: `CR4426: swos - poe-voltage (poe.b i03) + gemeinsame Write-Basis (1.26.1)`
 
 ## Neuer Skill
+
+### Stil der `description`
+
+Anthropic hat dazu zwei Quellen, die sich widersprechen: `plugin-dev/skill-development`
+verlangt die dritte Person („This skill should be used when …"), der neuere
+`skill-creator` aus `anthropic-agent-skills` schreibt seine eigene Description
+dagegen im Imperativ („Use when users want to …") und raet ausdruecklich zu
+trigger-freudigen Formulierungen, weil Claude Skills eher unter- als
+uebertriggert.
+
+**Massgeblich ist die neuere Quelle**, also das hier ueberall verwendete Muster:
+zuerst was der Skill tut, dann „Nutze diesen Skill wenn der User …" bzw. „Auch
+bei …" mit woertlichen Nutzerformulierungen, zum Schluss `Trigger: /name.`
+Festgelegt 2026-09-08, damit die Frage nicht bei jedem neuen Skill neu
+aufgemacht wird.
+
+### Notation
 
 Die `description` im Frontmatter gehoert als Block-Scalar notiert:
 

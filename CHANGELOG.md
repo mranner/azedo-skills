@@ -3,6 +3,24 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.52.8
+
+- **Frontmatter aller 32 Skills gegen die Anthropic-Empfehlungen geprueft.**
+  Pflichtfelder, Namensschema, Laengen und Zusatzschluessel sind konform, und
+  keine `description` steht unquotiert mit einem `: ` im Text - der Fall, an dem
+  strikte YAML-Parser abbrechen. Nachgezogen wurde
+  die eine Abweichung: `einfache-sprache`, `humanizer-de` und `wie-bitte`
+  trugen im Frontmatter eine eigene, veraltete `metadata.version` (1.37.0,
+  5.2.0, 1.46.0) und liefen damit gegen die Regel einer einzigen Repo-Version.
+  Sie stehen jetzt auf der Repo-Version und sind im Release-Workflow als
+  mitzupflegende Dateien vermerkt. Die Version des urspruenglichen Autors von
+  `humanizer-de` bleibt als `upstream_version` erhalten.
+- **Stil der `description` festgelegt.** Die beiden Anthropic-Quellen
+  widersprechen sich (dritte Person gegen Imperativ); massgeblich ist die
+  neuere - also das hier ohnehin verwendete trigger-freudige Muster. Steht
+  jetzt in der `CLAUDE.md`, damit die Frage bei jedem neuen Skill nicht neu
+  aufgemacht wird.
+
 ### 1.52.7
 
 - **`swaks`: Der Versand laeuft ausschliesslich ueber `build_mail.py --send`.**

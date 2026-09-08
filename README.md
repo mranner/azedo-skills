@@ -612,6 +612,15 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
+### 1.52.8
+
+- **Frontmatter-Audit ueber alle 32 Skills** - konform bis auf die eigene
+  `metadata.version` in `einfache-sprache`, `humanizer-de` und `wie-bitte`; die
+  drei stehen jetzt auf der Repo-Version und sind im Release-Workflow vermerkt.
+- **Stil der `description` in der `CLAUDE.md` festgelegt** - massgeblich ist die
+  neuere Anthropic-Quelle (Imperativ, trigger-freudig), nicht die dritte Person
+  aus `plugin-dev`.
+
 ### 1.52.7
 
 - **`swaks`: Versand nur noch ueber `build_mail.py --send`** - die verbliebenen
