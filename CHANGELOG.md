@@ -3,6 +3,13 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.53.1
+
+- **`README.md` fuehrt wieder nur die aktuelle Version.** Der Changelog-Abschnitt
+  hatte sich ueber 19 Versionen bis 1.50.0 zurueck angesammelt, entgegen der
+  eigenen Regel im Release-Workflow. Vor dem Kuerzen geprueft: alle 19 stehen
+  vollstaendig in der `CHANGELOG.md`, es geht nichts verloren.
+
 ### 1.53.0
 
 - **`swaks`: `references/bausteine.md` geht jetzt ebenfalls über `--send`.** Die
