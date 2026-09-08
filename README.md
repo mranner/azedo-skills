@@ -612,9 +612,10 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.54.1
+### 1.54.2
 
-- **Neues `scripts/lint-skills.py`** - prueft das Frontmatter aller Skills
-  (Pflichtfelder, Name gegen Verzeichnis, Laengen, Block-Scalar, keine `version`
-  im Frontmatter, unbekannte Schluessel) und ihren Eintrag in `install.sh`.
-  Exit 1 bei Fehlern.
+- **`swaks`: `--send` kennt jetzt `--cc` und `--bcc`.** Der Envelope entstand
+  bisher nur aus `--to`, ein mitgegebenes `--bcc` fiel still weg - die Mail ging
+  raus, die Ablage-Kopie nicht. Unbekannte Flags brechen beim `--send` jetzt mit
+  Exit 2 ab. Snippets in `swaks` und `mail-as-me` zeigen beide Flags an beiden
+  Aufrufen.

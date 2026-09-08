@@ -68,6 +68,33 @@ Genau hier ist die Ergebnisprüfung nicht optional: lehnt der Relay **einen**
 der Empfänger ab, läuft der Versand fuer die übrigen durch. `--send` fängt
 das ab (siehe SKILL.md, „Ergebnis prüfen").
 
+## Cc und Bcc
+
+Beide Flags gehören an **beide** Aufrufe: beim Bau setzen sie den Header
+(`--bcc` bewusst keinen), beim `--send` den Envelope. Zugestellt wird allein
+über den Envelope, den `--send` aus `--to`, `--cc` und `--bcc` zusammensetzt.
+
+```bash
+python3 $B \
+  --subject "Betreff" \
+  --to "alice@example.com" \
+  --cc "bob@example.com" \
+  --bcc "ablage@example.com" \
+  --from <absender> \
+  --text-file $M/body.txt \
+  > $M/mail.eml \
+  && test -s $M/mail.eml
+
+python3 $B --send $M/mail.eml \
+  --to "alice@example.com" --cc "bob@example.com" \
+  --bcc "ablage@example.com" --from <absender>
+```
+
+Fehlt das `--bcc` beim `--send`, geht die Mail an alle sichtbaren Empfänger
+raus und die stille Kopie nicht - ohne Fehlermeldung, weil der Versand selbst
+gelungen ist. Genau so blieb eine Ablage-Kopie aus (CR4623); seither lehnt
+`--send` auch unbekannte Flags mit Exit `2` ab, statt sie zu ignorieren.
+
 ## HTML-Body
 
 Eigene HTML-Fassung statt der aus dem Text erzeugten:

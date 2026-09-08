@@ -211,8 +211,10 @@ ist es leer), geht keine Kopie raus. Mehrere Bcc-Adressen kommasepariert.
 geladenen Profil gelesen und angewendet — ohne Rueckfrage, wie die Signatur. Eine
 Angabe des Nutzers im Auftrag ("schick das von X") hat Vorrang.
 
-Umsetzung im swaks-Aufruf — `from` geht an **beide** Seiten (Header und Envelope),
-`bcc` **nur** in den Envelope, sonst wird die Kopie fuer die Empfaenger sichtbar:
+Umsetzung: `from` und `bcc` gehen an **beide** Aufrufe -- den Bau und den Versand.
+Beim Bau setzt `--from` den Header und `--bcc` bewusst **keinen** (sonst waere die
+Kopie fuer die Empfaenger sichtbar), beim `--send` bilden dieselben Werte den
+Envelope. Gebaut und geprueft wird in einem Befehl, gesendet im naechsten:
 
 ```bash
 M=$(mktemp -d .tmp/mail.XXXXXX)
@@ -230,11 +232,14 @@ python3 $B \
   && test -s $M/mail.eml \
   && python3 $B --verify $M/mail.eml \
       --expect-sha256 "$(cat $M/mail.sha256)" \
-      --expect-marker "<woertliches Stueck aus dem freigegebenen Entwurf>" \
-  && swaks --server <server> \
-      --to "empfaenger@example.com,ich@example.org" \
-      --from ich@example.org \
-      --data @$M/mail.eml
+      --expect-marker "<woertliches Stueck aus dem freigegebenen Entwurf>"
+```
+
+```bash
+python3 $B --send $M/mail.eml \
+  --to "empfaenger@example.com" \
+  --from ich@example.org \
+  --bcc ich@example.org
 ```
 
 **Kein fester Pfad wie `.tmp/mail.eml`, und die `--verify`-Zeile gehoert dazu.**
@@ -263,9 +268,12 @@ Textdatei ein zweites Mal angeben. Ein HTML-Part aus rohem Text hat kein
 einziges Tag und kommt beim Empfaenger in einer einzigen Zeile an -- Aufzaehlung,
 Tabelle und Zugangsdaten inklusive.
 
-`--bcc` an `build_mail.py` setzt bewusst **keinen** Header; zugestellt wird die Kopie
-allein ueber den Envelope-`--to` von swaks. Fehlt sie dort, kommt trotz `--bcc` nichts
-an. Die Signatur bleibt beim eigenen Absender aus `send.from` dran (die globale
+`--bcc` beim Bau setzt bewusst **keinen** Header; zugestellt wird die Kopie allein
+ueber den Envelope, und den baut der `--send`-Aufruf. **Fehlt `--bcc` dort, geht die
+Mail an den Empfaenger raus und die Kopie nicht** -- ohne Fehlermeldung, denn der
+Versand selbst ist gelungen. Genau so blieb eine Ablage-Kopie aus (CR4623); seither
+lehnt `--send` unbekannte Flags mit Exit `2` ab, statt sie stillschweigend zu
+verwerfen. Die Signatur bleibt beim eigenen Absender aus `send.from` dran (die globale
 Signatur ist die eigene, siehe swaks-Skill) — der Wechsel des Absenders ist **kein**
 Ausschlussgrund.
 
@@ -335,6 +343,7 @@ python3 $B \
   --subject "$SUBJ" \
   --to "$TO" \
   --from ich@example.org \
+  --bcc ich@example.org \
   --text-file $Q/body.txt \
   --html-file $Q/body.html \
   --quote-text-file $Q/quote.txt \
@@ -346,9 +355,12 @@ python3 $B \
   && test -s $Q/mail.eml \
   && python3 $B --verify $Q/mail.eml \
       --expect-sha256 "$(cat $Q/mail.sha256)" \
-      --expect-marker "<woertliches Stueck aus dem Entwurf>" \
-  && swaks --server <server> --to "$TO" \
-      --from ich@example.org --data @$Q/mail.eml
+      --expect-marker "<woertliches Stueck aus dem Entwurf>"
+
+# 5. Versand als eigener Befehl -- --bcc gehoert hier noch einmal hin,
+#    sonst entsteht kein Envelope-Eintrag fuer die Ablage-Kopie.
+python3 $B --send $Q/mail.eml \
+  --to "$TO" --from ich@example.org --bcc ich@example.org
 ```
 
 Zum Betreff: `Re: ` wird **einmal** vorangestellt. Traegt der Originalbetreff bereits

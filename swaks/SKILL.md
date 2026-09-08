@@ -79,8 +79,8 @@ Abweichende Werte übernimmst du aus der Nutzeranfrage.
 
 **Kommt der Entwurf aus `mail-as-me`**, gelten nicht diese Defaults, sondern der
 `send`-Block aus dem Profil (`~/.claude/mail-as-me/<profil>/config.json`): `send.from`
-als Absender (Header **und** Envelope), `send.bcc` als stille Kopie (**nur** im
-Envelope-`--to`). Das ist ohne Rückfrage anzuwenden — eine Mail in der Stimme des
+als Absender (Header **und** Envelope), `send.bcc` als stille Kopie — als `--bcc`
+an **beide** Aufrufe, den Bau *und* den `--send`. Das ist ohne Rückfrage anzuwenden — eine Mail in der Stimme des
 Nutzers, die vom Default-Absender kommt, ist beim Empfänger falsch. Details im
 mail-as-me-Skill, Abschnitt „Versand".
 
@@ -151,8 +151,14 @@ Die Prüfung am Ende ist **kein Beiwerk** – ohne sie geht ein Reject als Erfol
 
 Hinweise:
 - `--to`/`--from` bei **beiden** (Helper *und* swaks) angeben: der Helper setzt die Header, swaks den SMTP-Envelope.
-- **Cc:** `--cc "adr"` an `build_mail.py` setzt den sichtbaren `Cc:`-Header. Die Cc-Adresse **zusätzlich** in den swaks-Envelope `--to` aufnehmen (kommasepariert), sonst wird sie nicht zugestellt.
-- **Bcc:** `--bcc "adr"` an `build_mail.py` setzt **bewusst keinen** Header (sonst wären die Empfänger sichtbar). Die Bcc-Adresse **nur** in den swaks-Envelope `--to` aufnehmen — sie bleibt für die anderen Empfänger unsichtbar. Beispiel: Header via `build_mail.py --to a@x --cc cc@x --bcc bcc@x`, Envelope via `swaks --to "a@x,cc@x,bcc@x" …`.
+- **Cc und Bcc:** `--cc` / `--bcc` gehören an **beide** Aufrufe — beim Bau für den Header, beim `--send` für den Envelope. `--cc` setzt den sichtbaren `Cc:`-Header, `--bcc` setzt **bewusst keinen** Header (sonst wären die stillen Empfänger sichtbar). Zugestellt wird beides nur über den Envelope, den `--send` aus `--to`, `--cc` und `--bcc` zusammensetzt (doppelte Adressen fallen dabei raus):
+
+```bash
+python3 $B --subject … --to a@x --cc cc@x --bcc bcc@x … > $M/mail.eml
+python3 $B --send $M/mail.eml --to a@x --cc cc@x --bcc bcc@x --from <absender>
+```
+
+  **Fehlt `--bcc` beim `--send`, geht die Kopie nicht raus** — die Mail wird trotzdem zugestellt, der Fehler fällt also nur im eigenen Posteingang auf, wo nichts ankommt (CR4623). Unbekannte Flags lehnt `--send` seit demselben CR mit Exit `2` ab, statt sie still zu schlucken.
 - **Leerer Body / Bau-Fehler:** `build_mail.py` bricht mit Exit ≠ 0 ab, wenn Text *und* HTML leer sind. Deshalb **nie direkt in `swaks` pipen** — bei einem Bau-Fehler (Exit ≠ 0 oder Interpreter nicht gefunden) läuft `swaks` sonst auf leerem STDIN und sendet seine eingebaute Default-Test-Mail. Immer erst in eine Datei bauen und mit `&& test -s <datei> && swaks … --data @<datei>` absichern. `set -o pipefail` allein genügt **nicht**, da `swaks` in der Pipe trotzdem startet.
 - **`--data` braucht zwingend das `@`:** `swaks --data <datei>` liest die Datei **nicht**, sondern verschickt den **Pfad als Body-Text**. Es gibt keine Fehlermeldung — swaks quittiert mit `250 Ok`, zugestellt wird eine Mail ohne Betreff und ohne die gebauten Header, mit dem Dateinamen als einzigem Inhalt. Beim Empfänger sieht das nach Spam oder kompromittiertem Konto aus, und zurückholen lässt es sich nicht. Immer `--data @<datei>` schreiben. Gegenprobe direkt nach dem Versand: die `size=`-Angabe der Queue-ID im Maillog des Relays gegen die Größe der `.eml` halten — ein paar hundert Bytes statt einiger KB heißt, das `@` hat gefehlt.
 - **HTML-Part:** `--html-file` ist **optional**. Fehlt es, baut der Helper den HTML-Part aus dem Text (Leerzeilen werden `<p>`, einfache Umbrüche `<br>`). **Niemals dieselbe Datei an `--text-file` und `--html-file` geben** — der HTML-Part hätte dann kein einziges Tag und käme beim Empfänger als eine einzige Zeile an („in einer Wurst"), inklusive Tabellen und Kennwortlisten. Der Helper erkennt diesen Fall inzwischen, warnt auf stderr und wandelt um; die Warnung ist trotzdem ein Grund, den Aufruf zu korrigieren.
@@ -347,7 +353,7 @@ Die vollstaendige Optionsreferenz liegt daneben und wird bei Bedarf gelesen:
 5. Fehlende Angaben aus dem Kontext ableiten (Betreff, Body, Anhänge).
 6. Befehl zusammenbauen und dem Nutzer kurz zeigen; auf Bestätigung warten – außer der Nutzer hat bereits „ja" gesagt oder den Versand klar angeordnet.
 7. **Vor dem Versand prüfen:** `--verify` auf die fertige `.eml`, mit `--expect-sha256` aus der `--sha-file` und einem `--expect-marker` aus dem freigegebenen Entwurf (siehe „Vor dem Versand prüfen"). Exit ≠ 0 heißt: nicht senden.
-8. **Senden:** `python3 $B --send $M/mail.eml --to … --from …` als **eigener Befehl** (nicht an die Prüfkette aus Schritt 7 hängen — sonst steht der Versand nicht am Befehlsanfang und ist von keiner Bash-Freigabe erreichbar). `--send` lädt den Versandweg selbst und prüft Exit-Code, `queued as` *und* die `^<.\*`-Zeile. Nur bei Exit `0` „versendet" melden, sonst den Fehlschlag mit Statuscode aus dem JSON nennen.
+8. **Senden:** `python3 $B --send $M/mail.eml --to … --from …` als **eigener Befehl**, und **jedes `--cc`/`--bcc` aus Schritt 3 hier wiederholen** — der Envelope entsteht allein aus diesen Flags, ein vergessenes `--bcc` kostet die Ablage-Kopie, ohne dass der Versand etwas meldet (nicht an die Prüfkette aus Schritt 7 hängen — sonst steht der Versand nicht am Befehlsanfang und ist von keiner Bash-Freigabe erreichbar). `--send` lädt den Versandweg selbst und prüft Exit-Code, `queued as` *und* die `^<.\*`-Zeile. Nur bei Exit `0` „versendet" melden, sonst den Fehlschlag mit Statuscode aus dem JSON nennen.
 9. **Ablegen:** nach erfolgreichem Versand die `.eml` mit `imap append $M/mail.eml -a <konto>` in „Gesendet" legen — swaks tut das nicht (siehe „Ablage").
 10. **Erfolgsmeldung:** Queue-ID, übertragene Datei mit sha256 und Größe, Envelope-Empfänger (inkl. Bcc) und die Fundstelle der Kopie nennen (siehe „Was in der Erfolgsmeldung stehen muss").
 11. **Kontakt ergänzen:** Wenn eine neue E-Mail-Adresse verwendet wurde, die noch nicht in `.claude/swaks-contacts.tsv` steht, per `printf` anhängen. Existiert die Datei nicht, entsteht sie dabei — nur für Adressen, die ohne Thread wieder gebraucht werden; Thread-Adressen liefert `imap contacts` jederzeit neu.

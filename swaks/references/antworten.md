@@ -44,6 +44,7 @@ Befehl** — `--send` lädt den Versandweg selbst und prüft das Ergebnis:
 python3 $B --send $Q/mail.eml --to "empfaenger@example.com"
 ```
 
+- **Bcc gehört an beide Aufrufe.** Kommt der Entwurf aus `mail-as-me`, steht die Ablage-Adresse in `send.bcc` des Profils; sie muss sowohl beim Bau (`--bcc`, setzt bewusst keinen Header) als auch beim `--send` stehen. Nur der `--send`-Aufruf baut den Envelope - fehlt das Flag dort, geht die Antwort raus und die Kopie nicht (CR4623).
 - **Eigenes Verzeichnis, kein festes `.tmp/reply`.** Genau dieser feste Pfad ist der Kollisionspunkt gewesen: eine zweite Session schrieb dieselbe `mail.eml`, und die Antwort ging mit fremdem Inhalt an den Kunden. `mktemp -d` plus die `--verify`-Zeile schließen das aus.
 - **Position:** Antwort oben, Zitat unten (Top-Posting). Die Reihenfolge im fertigen Part ist Body → Signatur → Zitat. Der Body-Text enthält also **kein** Zitat, das hängt der Helper an.
 - **Beide Parts:** Der Quote geht in den Text- **und** den HTML-Part. Fehlt `--quote-html-file`, wird die HTML-Fassung aus dem Text escaped nachgebaut (`<blockquote type="cite">` mit `<br>`). Umgekehrt geht nicht: `--quote-html-file` **ohne** `--quote-text-file` bricht ab, sonst hätte ein Part das Zitat und der andere nicht.

@@ -327,6 +327,24 @@ SWAKS_REJECT_RE = re.compile(r"^<.\*", re.M)
 QUEUED_RE = re.compile(r"^.*queued as.*$", re.M)
 
 
+def envelope_recipients(*groups):
+    """Adressen aus --to/--cc/--bcc zu einer Envelope-Liste zusammenfuehren.
+
+    Doppelte Adressen fallen raus, sonst stellt der Relay zweimal zu."""
+
+    out = []
+    seen = set()
+
+    for group in groups:
+        for addr in (group or "").split(","):
+            addr = addr.strip()
+
+            if addr and addr.lower() not in seen:
+                seen.add(addr.lower())
+                out.append(addr)
+
+    return ",".join(out)
+
 def send_eml(path, recipient, sender):
     """Fertige .eml versenden und das Ergebnis pruefen. Liefert (report, fehler)."""
     if not os.path.isfile(path):
@@ -565,11 +583,24 @@ if "--send" in sys.argv[1:]:
                          "swaks aufrufen, Ergebnis pruefen (Exit-Code, "
                          "Queue-ID, abgelehnte Empfaenger). Exit != 0 bei "
                          "jedem Befund.")
-    sp.add_argument("--to", help="Envelope-Empfaenger (kommasepariert, inkl. Cc "
-                                 "und Bcc). Ohne Angabe gilt 'to' aus swaks.json.")
+    sp.add_argument("--to", help="Envelope-Empfaenger (kommasepariert). Ohne "
+                                 "Angabe gilt 'to' aus swaks.json. Cc und Bcc "
+                                 "gehoeren nicht hier hinein, sondern in --cc "
+                                 "bzw. --bcc.")
+    sp.add_argument("--cc", help="Empfaenger der sichtbaren Kopie (kommasepariert). "
+                                 "Kommt in den Envelope; der Cc:-Header steht "
+                                 "bereits in der .eml und wird hier nicht gesetzt.")
+    sp.add_argument("--bcc", help="Empfaenger der stillen Kopie (kommasepariert). "
+                                  "Kommt nur in den Envelope — bewusst kein "
+                                  "Header, sonst waeren die Empfaenger sichtbar.")
     sp.add_argument("--from", dest="sender",
                     help="Envelope-Absender. Ohne Angabe gilt 'from' aus swaks.json.")
-    sargs, _ = sp.parse_known_args()
+
+    # parse_args statt parse_known_args: ein durchgereichtes --bcc, das still
+    # weggefallen ist, kostet die Ablage-Kopie, ohne dass irgendwo ein Fehler
+    # auftaucht — die Mail geht ja raus (CR4623).
+
+    sargs = sp.parse_args()
 
     to = sargs.to or config.get("to")
     frm = sargs.sender or config.get("from")
@@ -582,7 +613,9 @@ if "--send" in sys.argv[1:]:
         sys.exit("build_mail.py: Fehler — kein Absender. Entweder --from angeben "
                  "oder 'from' in .claude/swaks.json (projektlokal oder ~/) setzen.")
 
-    report, errors = send_eml(sargs.send, to, frm)
+    envelope = envelope_recipients(to, sargs.cc, sargs.bcc)
+
+    report, errors = send_eml(sargs.send, envelope, frm)
     report["ok"] = not errors
     report["errors"] = errors
 
@@ -644,8 +677,8 @@ parser.add_argument("--reveal-password", action="store_true",
                          "in Transcript und Shell-History.")
 parser.add_argument("--subject", required=True)
 parser.add_argument("--to", help="Empfaenger. Ohne Angabe gilt 'to' aus swaks.json.")
-parser.add_argument("--cc", help="Sichtbarer Cc:-Header (kommasepariert). Die Adressen zusaetzlich in den swaks-Envelope --to aufnehmen.")
-parser.add_argument("--bcc", help="Bcc-Empfaenger (kommasepariert). Setzt bewusst KEINEN Header (sonst waeren die Empfaenger sichtbar) — die Adressen nur in den swaks-Envelope --to aufnehmen.")
+parser.add_argument("--cc", help="Sichtbarer Cc:-Header (kommasepariert). Fuer die Zustellung dasselbe --cc beim --send-Aufruf wiederholen.")
+parser.add_argument("--bcc", help="Bcc-Empfaenger (kommasepariert). Setzt bewusst KEINEN Header (sonst waeren die Empfaenger sichtbar) — fuer die Zustellung dasselbe --bcc beim --send-Aufruf wiederholen.")
 parser.add_argument("--from", dest="sender",
                     help="Absender. Ohne Angabe gilt 'from' aus swaks.json.")
 parser.add_argument("--text-file", required=True)
@@ -818,12 +851,14 @@ if args.cc:
     msg["Cc"] = args.cc
 
 # Bcc bewusst NICHT als Header setzen (wuerde die Empfaenger sichtbar machen).
-# Zustellung erfolgt ausschliesslich ueber den swaks-Envelope (--to).
+# Zustellung erfolgt ausschliesslich ueber den Envelope, den der --send-Aufruf
+# baut — deshalb der Hinweis, das Flag dort zu wiederholen.
 
 if args.bcc:
     print(
         "build_mail.py: Hinweis — Bcc-Adressen erscheinen bewusst NICHT im Header; "
-        "sie muessen im swaks-Envelope (--to) stehen, damit sie zugestellt werden.",
+        "'--bcc' beim '--send'-Aufruf wiederholen, sonst stehen sie in keinem "
+        "Envelope und werden nicht zugestellt.",
         file=sys.stderr,
     )
 

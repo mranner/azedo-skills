@@ -3,6 +3,23 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.54.2
+
+- **`swaks`: `--send` kennt jetzt `--cc` und `--bcc`.** Der Envelope entstand
+  bisher allein aus `--to`; ein mitgegebenes `--bcc` fiel weg, weil der
+  `--send`-Subparser mit `parse_known_args()` alles Unbekannte still verwarf. Die
+  Mail ging damit raus, die stille Kopie zur Ablage nicht - und weil der Versand
+  selbst gelingt, meldete nichts einen Fehler. `--send` setzt den Envelope nun aus
+  `--to`, `--cc` und `--bcc` zusammen (doppelte Adressen fallen raus, Header
+  kommen keine dazu) und lehnt unbekannte Flags mit Exit 2 ab, statt sie zu
+  schlucken. Aufgefallen ist es erst mit dem Pflichtweg ueber `--send`: vorher
+  schrieben die Snippets die Bcc-Adresse von Hand in den swaks-Envelope.
+- **`swaks` und `mail-as-me`: Snippets und Hinweise nachgezogen.** `SKILL.md`,
+  `references/bausteine.md` (neuer Abschnitt „Cc und Bcc") und
+  `references/antworten.md` zeigen `--cc`/`--bcc` jetzt an **beiden** Aufrufen,
+  ebenso der Versand- und der Antwort-Baustein in `mail-as-me`; die
+  Versand-Checkliste nennt das Wiederholen der Flags als eigenen Punkt.
+
 ### 1.54.1
 
 - **`lint-skills.py` prueft auch den Eintrag in `install.sh`.** Die Skill-Liste
