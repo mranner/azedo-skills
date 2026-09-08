@@ -612,6 +612,13 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
+### 1.53.0
+
+- **`swaks`: `references/bausteine.md` und `antworten.md` auf `--send`
+  umgestellt** - die letzten rohen `swaks`-Beispiele sind weg, damit auch die
+  `--header`-Zeilen für Encoding, das `@` bei `--attach` und die
+  `--attach-type`-Tabelle. Alle Bausteine gegen den Helper durchgespielt.
+
 ### 1.52.9
 
 - **`metadata.version` aus allen Skills entfernt** - die Version steht

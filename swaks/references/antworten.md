@@ -1,6 +1,6 @@
-# swaks - Antworten und Sonderfaelle
+# swaks - Antworten und Versandweg
 
-Zitat und Threading, einfache Sonderfaelle.
+Zitat und Threading, und warum der Versandweg nicht von Hand nachgebaut wird.
 
 ## Antwort auf eine Mail (Zitat + Threading)
 
@@ -55,18 +55,13 @@ python3 $B --send $Q/mail.eml --to "empfaenger@example.com"
 Kommt der Entwurf aus `mail-as-me`, ist der `imap quote`-Aufruf dort ohnehin
 Pflichtschritt — siehe dessen SKILL.md.
 
-## Einfache Sonderfälle
+## Warum der Versandweg nicht von Hand nachgebaut wird
 
-Die folgenden Blöcke setzen **voraus, dass der Versandweg geladen ist** (siehe
-Versandweg und Authentifizierung):
-
-```bash
-ENV=$(python3 ~/.claude/skills/swaks/build_mail.py --swaks-env --reveal-password) \
-  && test -n "$ENV" && eval "$ENV"
-```
-
-**Ohne das fällt `swaks` still auf `localhost:25` zurück**, weil MX-Routing
-mangels `Net::DNS` nicht verfügbar ist:
+Die einfachen Fälle stehen in `bausteine.md` und gehen alle über
+`build_mail.py --send`; der Helper lädt den Versandweg dabei selbst. Wer statt
+dessen `swaks` direkt aufruft, hat den Weg **nicht** geladen - und `swaks` fällt
+dann still auf `localhost:25` zurück, weil MX-Routing mangels `Net::DNS` nicht
+verfügbar ist:
 
 ```
 *** MX Routing not available: requires Net::DNS.  Using localhost as mail server
@@ -76,4 +71,10 @@ Auf einem Host, der selbst einen Postfix betreibt, ist das kein Fehler, sondern
 ein *anderer* Versandweg: unauthentifiziert über Port 25, mit genau der
 Relay-Beschränkung, die externe Empfänger abweist. Es gibt keine Warnung —
 die Zeile oben ist der einzige Hinweis, und sie steht im Protokoll, nicht im
-Ergebnis. Die Ergebnisprüfung gilt hier deshalb genauso.
+Ergebnis.
+
+Das Passwort für den richtigen Weg gibt der Helper nicht heraus: `--show-config`
+und `--swaks-env` maskieren es als `<gesetzt>`, und dieser Literalstring endet am
+Relay mit `535 5.7.8 Error: authentication failed` (CR4621). `--send` ist deshalb
+nicht nur bequemer, sondern der einzige Weg, der ohne Umgang mit dem Klartext
+auskommt.

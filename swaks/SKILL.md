@@ -20,8 +20,9 @@ von Hand aufzurufen ist kein zweiter, gleichwertiger Weg: die Zugangsdaten gibt
 der Helper bewusst nicht heraus — `--show-config` und `--swaks-env` zeigen das
 Passwort maskiert als `<gesetzt>`. Wer diesen Literalstring als Passwort
 weiterreicht, bekommt vom Relay `535 5.7.8 Error: authentication failed`, und es
-geht keine Mail raus (CR4621). Die `swaks`-Zeilen in den Referenzdateien
-beschreiben Sonderfälle mit eigenen Voraussetzungen, nicht den Regelweg.
+geht keine Mail raus (CR4621). Auch die einfacheren Fälle in
+`references/bausteine.md` gehen über den Helper - einen zweiten Versandweg gibt
+es nicht.
 
 ## Defaults (`.claude/swaks.json`)
 
@@ -173,7 +174,7 @@ Der Versand folgt auch hier als **eigener Befehl**:
 python3 $B --send $M/mail.eml --to "..." --from <absender>
 ```
 
-Die folgenden Abschnitte (reiner Text-Body, HTML-Body, `--attach` direkt an swaks) sind **einfachere Sonderfälle** – nur nutzen, wenn explizit nur Text gewünscht ist oder es rein um einen Dateiversand ohne formatierten Body geht.
+Die einfacheren Fälle (Body ohne eigene HTML-Fassung, mehrere Empfänger, Dateiversand) stehen in `references/bausteine.md` – dieselbe Abfolge aus Bau und `--send`, nur mit weniger Optionen.
 
 ## Vor dem Versand prüfen — was `250 Ok` nicht abdeckt
 
@@ -229,10 +230,10 @@ nennt den Befund im JSON und auf stderr:
 python3 $B --send $M/mail.eml --to "empfänger@example.com" --from <absender>
 ```
 
-**Der Handaufruf ist die Ausnahme, nicht die Alternative.** Er kommt nur für die
-Sonderfälle aus `references/bausteine.md` in Frage. Dann sind dieselben drei
-Prüfungen von Hand nachzubauen, und der Versandweg muss vorher in der Umgebung
-stehen: `$ENV` stammt **ausschliesslich** aus
+**Ein Handaufruf ist dafür kein Ersatz.** Er ist in keiner der Referenzdateien
+mehr vorgesehen; wo er trotzdem unumgänglich wird, sind dieselben drei Prüfungen
+von Hand nachzubauen, und der Versandweg muss vorher in der Umgebung stehen:
+`$ENV` stammt **ausschliesslich** aus
 `build_mail.py --swaks-env --reveal-password`. Das maskierte
 `auth_password: "<gesetzt>"` aus `--show-config` ist eine Anzeige und kein
 Passwort — als solches weitergereicht endet die Sitzung mit
@@ -327,14 +328,14 @@ es außer dem Maillog des Relays gar keine Spur; dann das ausdrücklich sagen.
 Die lokale `$M/mail.eml` ist die dritte Spur, hält aber nur bis zum nächsten
 Aufräumen.
 
-## Bausteine und Sonderfaelle
+## Bausteine und Referenzen
 
 Die vollstaendige Optionsreferenz liegt daneben und wird bei Bedarf gelesen:
 
 | Datei | Inhalt |
 |---|---|
-| `references/bausteine.md` | Grundbefehl, Freitext-Body, mehrere Empfaenger, HTML-Body, Dateianhaenge, MIME-Types |
-| `references/antworten.md` | Antwort auf eine Mail (Zitat + Threading), einfache Sonderfaelle |
+| `references/bausteine.md` | Grundbefehl, Body, mehrere Empfaenger, HTML-Body, Dateianhaenge - alle ueber `--send` |
+| `references/antworten.md` | Antwort auf eine Mail (Zitat + Threading), warum der Versandweg nicht von Hand nachgebaut wird |
 | `references/versandweg.md` | Versandweg und Authentifizierung, Kontakte, Signatur, Encoding |
 
 ## Ablauf
@@ -353,7 +354,7 @@ Die vollstaendige Optionsreferenz liegt daneben und wird bei Bedarf gelesen:
 
 ## Hinweise
 
-- **`--subject` gilt für `build_mail.py`, nicht für `swaks`.** Der Helper verlangt `--subject` **zwingend** (ohne bricht der Bau mit Exit 2 ab); `swaks` selbst kennt die Option in dieser Version **nicht** — wird dort ein Betreff gebraucht (nur bei den einfachen Sonderfällen ohne Helper), geht das über `--header "Subject: ..."`. Beim Regelweg über `build_mail.py` steht der Betreff ohnehin schon in der gebauten `.eml` und gehört nicht ein zweites Mal an `swaks`.
+- **`--subject` gilt für `build_mail.py`, nicht für `swaks`.** Der Helper verlangt `--subject` **zwingend** (ohne bricht der Bau mit Exit 2 ab); `swaks` selbst kennt die Option in dieser Version **nicht** — bei einem Handaufruf ginge das nur über `--header "Subject: ..."`. Beim Weg über `build_mail.py` steht der Betreff ohnehin schon in der gebauten `.eml` und gehört nicht ein zweites Mal an `swaks`.
 - MX-Routing ist nicht verfügbar (Net::DNS fehlt). Ohne geladenen Versandweg nimmt swaks deshalb **stillschweigend `localhost:25`** — kein Fehler, aber der falsche Weg. `--send` lädt den Weg selbst; beim Aufruf von Hand erst `eval "$ENV"` mit `--swaks-env --reveal-password`.
 - **`--swaks-env` und `--show-config` maskieren das Passwort** (`auth_password: "<gesetzt>"`) — beides ist Anzeige, keine Passwortquelle; der Platzhalter als Passwort quittiert der Relay mit `535 5.7.8 Error: authentication failed` (CR4621). Der Klartext kommt nur aus `--swaks-env --reveal-password`, und dessen Ausgabe **nie ungefiltert anzeigen** — sie landet sonst in Transcript und Shell-History (CR4613).
 - Erfolg erkennbar an: `250 2.0.0 Ok: queued as <ID>` **bei Exit-Code 0 und ohne `<**`/`<~*`-Zeile**. Alle drei prüfen — bei mehreren Empfängern ist ein einzelner Reject sonst unsichtbar.

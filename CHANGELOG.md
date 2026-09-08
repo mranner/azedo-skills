@@ -3,6 +3,27 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.53.0
+
+- **`swaks`: `references/bausteine.md` geht jetzt ebenfalls über `--send`.** Die
+  Datei bestand komplett aus rohen `swaks`-Aufrufen - genau den Beispielen, die
+  zum Handaufruf mit maskiertem Passwort geführt hatten (CR4621, 1.52.7). Alle
+  fünf Bausteine (Grundbefehl, mehrere Empfänger, HTML-Body, ein und mehrere
+  Anhänge) sind auf `build_mail.py` plus `--send` umgestellt und gegen den
+  Helper durchgespielt. Damit entfallen die `--header`-Zeilen für Zeichensatz
+  und Encoding (setzt der Helper), das `@`-Präfix bei `--attach` und die
+  `--attach-type`-Tabelle - den MIME-Type errät der Helper aus der Endung.
+  Einen Inline-Body wie `swaks --body` gibt es nicht, der Text kommt aus einer
+  Datei.
+- **`swaks`: `references/antworten.md` erklärt den Versandweg statt ihn
+  nachzubauen.** Der Abschnitt „Einfache Sonderfälle" hielt die
+  `eval "$ENV"`-Vorbereitung für die Bausteine bereit; die braucht es nicht
+  mehr. Der `localhost:25`-Fallstrick bleibt beschrieben, jetzt als Begründung
+  dafür, warum `--send` der einzige Weg ist, der ohne den Passwort-Klartext
+  auskommt.
+- **`swaks`: SKILL.md zieht nach** - die Verweise auf „Sonderfälle mit
+  Handaufruf" stimmten nach der Umstellung nicht mehr.
+
 ### 1.52.9
 
 - **`metadata.version` ist aus allen Skills raus, `VERSION` gilt allein.** Die
