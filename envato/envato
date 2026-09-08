@@ -153,14 +153,12 @@ def cmd_download(args):
     result = api_call("/v3/market/buyer/download", params)
 
     if args.output:
-        if "download_url" in result:
-            path = download_file(result["download_url"], args.output)
-            print(f"Downloaded to: {path}")
-        elif "wordpress_theme" in result:
-            path = download_file(result["wordpress_theme"], args.output)
+        field = "wordpress_theme" if args.wp_theme else "download_url"
+        if field in result:
+            path = download_file(result[field], args.output)
             print(f"Downloaded to: {path}")
         else:
-            print("Download URL not found in response. Full response:", file=sys.stderr)
+            print(f"Download URL '{field}' not found in response. Full response:", file=sys.stderr)
             output(result)
     else:
         output(result)
@@ -230,6 +228,9 @@ def main():
     dl.add_argument("--item-id", dest="item_id", help="Item ID")
     dl.add_argument("--purchase-code", dest="purchase_code", help="Purchase code")
     dl.add_argument("--output", "-o", help="Output file path (downloads directly)")
+    dl.add_argument("--wp-theme", dest="wp_theme", action="store_true",
+                     help="With -o: download the installable WordPress theme ZIP "
+                          "instead of the all-files package")
     dl.add_argument("--shorten-url", dest="shorten_url", action="store_true",
                      help="Get shortened download URL")
 

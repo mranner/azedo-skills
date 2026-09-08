@@ -66,6 +66,15 @@ python3 "$SKILL_DIR/envato" download --purchase-code <code> [-o /pfad/zur/datei.
 
 Ohne `-o` wird die Download-URL als JSON ausgegeben. Mit `-o` wird die Datei direkt heruntergeladen.
 
+Bei WordPress-Themes liefert die API zwei URLs. `-o` nimmt standardmäßig
+`download_url`, also "All files & documentation" - dieses Archiv lässt sich
+**nicht** mit `wp theme install` installieren. Für das installierbare Theme-ZIP
+(`wordpress_theme`) zusätzlich `--wp-theme` angeben:
+
+```bash
+python3 "$SKILL_DIR/envato" download --item-id <id> --wp-theme -o /pfad/theme.zip
+```
+
 ### Item-Details anzeigen
 
 ```bash
@@ -100,4 +109,4 @@ python3 "$SKILL_DIR/envato" user-email
 - Temporaere Dateien und Downloads gehoeren ins Projekt-Verzeichnis `.tmp/`, **nicht** in `$SKILL_DIR/.tmp/`.
 - Output ist JSON — relevante Felder extrahieren und lesbar darstellen.
 - Der Download-Endpunkt liefert eine temporaere URL, die nur kurz gueltig ist.
-- Bei WordPress-Themes liefert die API getrennte URLs fuer "Installable WordPress file only" und "All files & documentation".
+- Bei WordPress-Themes liefert die API getrennte URLs fuer "Installable WordPress file only" (`wordpress_theme`, via `--wp-theme`) und "All files & documentation" (`download_url`, Default).

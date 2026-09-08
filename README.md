@@ -612,10 +612,14 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.54.2
+### 1.54.3
 
-- **`swaks`: `--send` kennt jetzt `--cc` und `--bcc`.** Der Envelope entstand
-  bisher nur aus `--to`, ein mitgegebenes `--bcc` fiel still weg - die Mail ging
-  raus, die Ablage-Kopie nicht. Unbekannte Flags brechen beim `--send` jetzt mit
-  Exit 2 ab. Snippets in `swaks` und `mail-as-me` zeigen beide Flags an beiden
-  Aufrufen.
+- **`envato`: `-o` lädt bei WordPress-Themes nicht mehr das falsche Archiv.** Die
+  API liefert zwei URLs; `download_url` ist das All-Files-Paket mit Doku und
+  Lizenzen, `wordpress_theme` das installierbare Theme-ZIP. Beim Download nach
+  `-o` wurde `download_url` immer zuerst geprüft und ist bei Themes immer da -
+  der Zweig für `wordpress_theme` war damit toter Code, und das Ergebnis ließ
+  sich mit `wp theme install` nicht installieren. Das neue `--wp-theme` lenkt
+  `-o` auf die zweite URL um, ohne Flag bleibt es beim bisherigen Verhalten.
+  `SKILL.md` nennt den Unterschied jetzt unter "Item herunterladen", nicht nur
+  als Randnotiz unter "Hinweise".
