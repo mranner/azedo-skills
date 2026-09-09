@@ -184,6 +184,12 @@ Die einfacheren Fälle (Body ohne eigene HTML-Fassung, mehrere Empfänger, Datei
 
 ## Vor dem Versand prüfen — was `250 Ok` nicht abdeckt
 
+**Bei Mail an Externe: Entwurf zuerst vorlegen, bauen erst nach dem Go.** Gezeigt
+wird der Text im Chat (Kopfdaten, Body, Anhänge), nicht die fertige `.eml`. Der Bau
+kostet sonst Zeit für eine Fassung, die noch geändert wird - und `--expect-marker`
+verlangt ohnehin ein wörtliches Stück aus dem *freigegebenen* Entwurf, es gibt vor
+dem Go also gar keinen brauchbaren Marker.
+
 Ein erfolgreicher Rückgabewert von swaks sagt nur, dass der Server die Bytes
 angenommen hat. Er sagt **nicht**, dass die richtigen Bytes drinstanden, und
 **nicht**, dass sie beim Empfänger lesbar ankommen. Beides ist schon passiert,

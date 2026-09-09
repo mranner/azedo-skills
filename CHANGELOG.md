@@ -3,6 +3,14 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.54.5
+
+- **`swaks`: Entwurf vor dem Bau vorlegen.** Der Skill beschrieb Bau, Prüfung und
+  Versand, sagte aber nicht, wann die Freigabe einzuholen ist. Der Abschnitt "Vor
+  dem Versand prüfen" nennt das jetzt zuerst: bei Mail an Externe den Text im Chat
+  zeigen, die `.eml` erst nach dem Go bauen. Vor der Freigabe gibt es ohnehin kein
+  wörtliches Stück für `--expect-marker`. (CR4627)
+
 ### 1.54.4
 
 - **`kanboard`: JSON-RPC-Aufrufe schicken jetzt eine User-Agent-Zeile.** Bisher

@@ -612,10 +612,10 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.54.4
+### 1.54.5
 
-- **`kanboard`: JSON-RPC-Aufrufe schicken jetzt eine User-Agent-Zeile.** Bisher
-  gingen sie ohne, und im Access-Log des Kanboard-Servers stand nur ein `"-"` -
-  Aufrufe des Skills waren dort von anderen POSTs auf `jsonrpc.php` nicht zu
-  unterscheiden. Der Header lautet `azedo-skills kanboard`. Reine Kennzeichnung,
-  am Verhalten der Aufrufe aendert sich nichts.
+- **`swaks`: Entwurf vor dem Bau vorlegen.** Der Skill beschrieb Bau, Pruefung und
+  Versand, sagte aber nicht, wann die Freigabe einzuholen ist. Der Abschnitt "Vor
+  dem Versand pruefen" nennt das jetzt zuerst: bei Mail an Externe den Text im Chat
+  zeigen, die `.eml` erst nach dem Go bauen. Vor der Freigabe gibt es ohnehin kein
+  woertliches Stueck fuer `--expect-marker`. (CR4627)
