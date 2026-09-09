@@ -3,6 +3,17 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.54.6
+
+- **`kanboard`: Teilaufgaben und Kommentare bekommen eine ansprechbare Nummer.**
+  Im UI haben beide keine sichtbare ID, eine referenzierte Zahl war dort also
+  nicht auffindbar. `list-subtasks` und `get-comments` liefern jetzt je Eintrag
+  ein Feld `ref` (`T1`, `K1`, …) in der Reihenfolge des UI, und SKILL.md schreibt
+  die Schreibweise vor: `T3 "Log-Rotation umstellen" (812)` bzw.
+  `K2 Michael, 09.09. 14:12: "…" (4471)`. Dazu die geprüften Randbedingungen -
+  Sortierung nach `position` bzw. Erstellzeit, im UI pro Benutzer umkehrbar, und
+  der Kommentar-Permalink `#comment-<id>`.
+
 ### 1.54.5
 
 - **`swaks`: Entwurf vor dem Bau vorlegen.** Der Skill beschrieb Bau, Prüfung und

@@ -109,6 +109,35 @@ Volltext (`get-comments`), Teilaufgaben (`list-subtasks`), Task-Links
 (`list-task-links`), Datei-**Anhaenge** (`list-files`/`download-file`). Von
 Kommentaren und Anhaengen kommt nur der Zaehler als Signal mit.
 
+## Teilaufgaben und Kommentare benennen
+
+Im Kanboard-UI haben Teilaufgaben und Kommentare **keine sichtbare ID**. Eine
+nackte Zahl aus der API ist dort also nicht auffindbar. Jede Referenz in einer
+Ausgabe trägt deshalb das, was im UI zu sehen ist, und die ID nur nachgestellt
+in Klammern:
+
+- Teilaufgabe: `T3 "Log-Rotation umstellen" (812)`
+- Kommentar: `K2 Michael, 09.09. 14:12: "…Rollout zweite Tranche…" (4471)`
+
+Titel auf ~40 Zeichen kürzen, beim Kommentar Autor, Tag und Uhrzeit sowie die
+ersten ~50 Zeichen des Textes.
+
+`T<n>` und `K<n>` kommen als Feld `ref` aus `list-subtasks` bzw. `get-comments` -
+nicht selbst zählen, sonst wandert die Nummer zwischen zwei Aufrufen. Sie
+entspricht der Reihenfolge im UI: Teilaufgaben sortiert Kanboard nach
+`position`, Kommentare nach Erstellzeit, beide aufsteigend
+(`SubtaskModel::getQuery()` und `CommentModel::getAll()`, geprüft 2026-09-09).
+
+**Vorbehalt bei Kommentaren:** Die Sortierrichtung ist im UI pro Benutzer
+umkehrbar (`KEY_COMMENT_SORTING_DIRECTION`, Default aufsteigend), die API liefert
+immer aufsteigend. Steht sie auf absteigend, steht K1 im UI unten - die
+Nummerierung bleibt "ältester Kommentar = K1".
+
+Einen Permalink gibt es nur für Kommentare, über das Link-Icon am Kommentar:
+`…/kanboard/?controller=TaskViewController&action=show&task_id=<task_id>#comment-<id>`
+(office.azedo.at läuft ohne URL-Rewrite). Nur auf Nachfrage ausgeben - in einer
+Aufzählung macht er jede Zeile unlesbar.
+
 ### Die haeufigsten Aufrufe
 
 ```bash

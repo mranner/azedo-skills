@@ -612,10 +612,13 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.54.5
+### 1.54.6
 
-- **`swaks`: Entwurf vor dem Bau vorlegen.** Der Skill beschrieb Bau, Pruefung und
-  Versand, sagte aber nicht, wann die Freigabe einzuholen ist. Der Abschnitt "Vor
-  dem Versand pruefen" nennt das jetzt zuerst: bei Mail an Externe den Text im Chat
-  zeigen, die `.eml` erst nach dem Go bauen. Vor der Freigabe gibt es ohnehin kein
-  woertliches Stueck fuer `--expect-marker`. (CR4627)
+- **`kanboard`: Teilaufgaben und Kommentare bekommen eine ansprechbare Nummer.**
+  Im UI haben beide keine sichtbare ID, eine referenzierte Zahl war dort also
+  nicht auffindbar. `list-subtasks` und `get-comments` liefern jetzt je Eintrag
+  ein Feld `ref` (`T1`, `K1`, …) in der Reihenfolge des UI, und SKILL.md schreibt
+  die Schreibweise vor: `T3 "Log-Rotation umstellen" (812)` bzw.
+  `K2 Michael, 09.09. 14:12: "…" (4471)`. Dazu die geprueften Randbedingungen -
+  Sortierung nach `position` bzw. Erstellzeit, im UI pro Benutzer umkehrbar, und
+  der Kommentar-Permalink `#comment-<id>`.

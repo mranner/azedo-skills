@@ -219,6 +219,14 @@ def output(data):
     print(json.dumps(data, indent=2, ensure_ascii=False))
 
 
+def add_refs(items, prefix):
+    """Number list entries in server order (T1, K1, ...) for UI-facing references"""
+    for pos, item in enumerate(items, 1):
+        if isinstance(item, dict):
+            item["ref"] = f"{prefix}{pos}"
+    return items
+
+
 # Subcommands
 
 def read_file_arg(path):
@@ -842,7 +850,7 @@ def cmd_set_project_owner(args):
 
 def cmd_get_comments(args):
     result = rpc_call("getAllComments", {"task_id": int(args.task_id)})
-    output(result if result else [])
+    output(add_refs(result, "K") if result else [])
 
 
 _instance = None
@@ -937,7 +945,7 @@ def cmd_download_file(args):
 
 def cmd_list_subtasks(args):
     result = rpc_call("getAllSubtasks", {"task_id": int(args.task_id)})
-    output(result if result else [])
+    output(add_refs(result, "T") if result else [])
 
 
 def cmd_create_subtask(args):

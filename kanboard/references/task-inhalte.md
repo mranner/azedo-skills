@@ -15,6 +15,11 @@ python3 "$SKILL_DIR/kanboard" attach-file <task_id> --file /absoluter/pfad/zur/d
 python3 "$SKILL_DIR/kanboard" get-comments <task_id>
 ```
 
+Jeder Eintrag trägt ein Feld `ref` (`K1`, `K2`, …) - die laufende Nummer in der
+Reihenfolge des UI. Beim Referenzieren `K2 Michael, 09.09. 14:12: "…" (4471)`
+schreiben, nie die nackte ID (siehe SKILL.md, "Teilaufgaben und Kommentare
+benennen").
+
 ### Kommentar hinzufuegen
 
 ```bash
@@ -93,6 +98,11 @@ lokalen `.md`-Datei (Default bleibt die Datei) — siehe handoff-Skill.
 ```bash
 python3 "$SKILL_DIR/kanboard" list-subtasks <task_id>
 ```
+
+Jeder Eintrag trägt ein Feld `ref` (`T1`, `T2`, …) - die laufende Nummer in der
+Reihenfolge des UI. Beim Referenzieren `T3 "Log-Rotation umstellen" (812)`
+schreiben, nie die nackte ID (siehe SKILL.md, "Teilaufgaben und Kommentare
+benennen").
 
 ### Teilaufgabe erstellen
 
