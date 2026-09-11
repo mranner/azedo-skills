@@ -3,6 +3,14 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.54.8
+
+- **`kanboard`: `update-comment` nimmt jetzt auch `--file`.** Bisher gab es nur
+  `--text`, womit ein laengerer Markdown-Kommentar nur ueber
+  `--text "$(cat datei.md)"` zu aendern war - also durch die Shell, wo Backticks
+  und `$` ausgewertet werden. `--text` und `--file` bilden nun wie bei
+  `add-comment` eine sich ausschliessende Gruppe mit gleicher Semantik. (CR4638)
+
 ### 1.54.7
 
 - **`wp-nf`: ein Feldwert liegt an vier Stellen, nicht an zwei.** Der Skill kannte

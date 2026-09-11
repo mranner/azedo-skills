@@ -901,9 +901,11 @@ def cmd_add_comment(args):
 
 
 def cmd_update_comment(args):
+    content = read_file_arg(args.file) if args.file else args.text
+
     result = rpc_call("updateComment", {
         "id": int(args.comment_id),
-        "content": args.text
+        "content": content
     })
     output({"success": result})
 
@@ -1446,7 +1448,9 @@ def main():
     # update-comment
     p = sub.add_parser("update-comment")
     p.add_argument("comment_id")
-    p.add_argument("--text", required=True)
+    g = p.add_mutually_exclusive_group(required=True)
+    g.add_argument("--text", help="Kommentartext direkt uebergeben")
+    g.add_argument("--file", help="Kommentartext aus Datei lesen")
     p.set_defaults(func=cmd_update_comment)
 
     # remove-comment

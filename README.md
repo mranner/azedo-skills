@@ -614,19 +614,10 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.54.7
+### 1.54.8
 
-- **`wp-nf`: ein Feldwert liegt an vier Stellen, nicht an zwei.** Der Skill kannte
-  `nf3_field_meta` und den Form-Cache. Dazu kommen die Legacy-Spalte
-  `nf3_fields.default_value` und - auf mehrsprachigen Sites - der WPML-Quellstring
-  in `icl_strings` (Kontext `ninja-forms-<form_id>`, Name `default-<field_id>`);
-  beide schreibt die Model-API nicht mit, der Quellstring rendert ohne
-  Uebersetzung sogar weiter. Ein Fix an HTML-Feldern war dadurch zur Haelfte
-  wirkungslos, ohne dass die Verifikation "Meta plus Cache" das gezeigt haette.
-  Abschnitt 2 fuehrt die vier Ablagen jetzt als Tabelle, Abschnitt 7 gibt sie
-  nebeneinander aus und nennt die beiden Nachzieh-UPDATEs.
-- **`wp-nf`: der Form-Cache ist PHP-serialisiert, nicht JSON.** `nf3_upgrades.cache`
-  enthaelt `serialize()`-Ausgabe; ein `json_decode()` darauf liefert still `null`
-  und laesst die Pruefung fuer jedes Feld eine Abweichung melden - ein Fehlalarm,
-  der wie ein defekter Cache aussieht. `unserialize()` und die Key-Struktur
-  (`id`, `fields`, `actions`, `settings`) stehen jetzt im Skill. (CR4633)
+- **`kanboard`: `update-comment` nimmt jetzt auch `--file`.** Bisher gab es nur
+  `--text`, womit ein laengerer Markdown-Kommentar nur ueber
+  `--text "$(cat datei.md)"` zu aendern war - also durch die Shell, wo Backticks
+  und `$` ausgewertet werden. `--text` und `--file` bilden nun wie bei
+  `add-comment` eine sich ausschliessende Gruppe mit gleicher Semantik. (CR4638)

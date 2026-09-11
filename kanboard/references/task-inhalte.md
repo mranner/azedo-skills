@@ -38,7 +38,12 @@ und Anfuehrungszeichen ausgewertet werden.
 
 ```bash
 python3 "$SKILL_DIR/kanboard" update-comment <comment_id> --text "<neuer text>"
+python3 "$SKILL_DIR/kanboard" update-comment <comment_id> --file <pfad>
 ```
+
+`--text` und `--file` verhalten sich wie bei `add-comment` - sie schliessen
+einander aus, eines von beiden ist noetig, und fuer laengeren Markdown ist
+`--file` der sichere Weg.
 
 ### Kommentar loeschen
 
