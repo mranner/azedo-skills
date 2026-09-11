@@ -92,6 +92,25 @@ jeweils eine **Leerzeile** einfuegen — auch zwischen `*/` und der darauf
 folgenden Funktions-/Methodendeklaration. Ausnahme: am Blockanfang/Ende
 keine ueberfluessige Leerzeile.
 
+## Kommentare: Inhalt und Umfang
+
+Die Regeln oben betreffen die Formatierung von Kommentaren, diese ihren Inhalt.
+
+Ein Kommentar steht nur dort, wo er etwas traegt, das der Code nicht selbst sagt:
+eine Falle, eine belegte Eigenheit eines Fremdsystems, ein bewusst gewaehlter
+Sonderweg. Doc-Block am Klassen- oder Methodenkopf hoechstens zwei Zeilen,
+Inline-Kommentar einer.
+
+Nicht kommentieren, was ohnehin dasteht — den Methodennamen in Worten,
+Aufzaehlungen verwandter Klassen, Verweise auf Code drei Zeilen weiter, die
+Signatur als Prosa.
+
+Beim Verschieben von Code gehoeren geerbte Kommentare auf denselben Pruefstand:
+mitkuerzen, nicht ungeprueft mitschleppen.
+
+Gilt nicht fuer PHPDoc-Annotationen (`@param`, `@return`, `@var`) — die sind
+Schnittstellenbeschreibung, kein Prosa-Kommentar.
+
 ## Beispiel
 
 ```php
