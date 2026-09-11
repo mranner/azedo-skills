@@ -3,6 +3,18 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.55.0
+
+- **`php-formatting`: neuer Abschnitt "Kommentare: Inhalt und Umfang".** Der Skill
+  regelte bisher nur die Formatierung von Kommentaren (Leerzeilen um `/* */`), nichts
+  zu ihrem Inhalt. Ein Kommentar steht jetzt ausdruecklich nur dort, wo er etwas
+  traegt, das der Code nicht selbst sagt; Doc-Block am Klassen- oder Methodenkopf
+  hoechstens zwei Zeilen, Inline-Kommentar einer. Beim Verschieben von Code gehoeren
+  geerbte Kommentare auf denselben Pruefstand. PHPDoc-Annotationen (`@param`,
+  `@return`, `@var`) sind ausgenommen, sonst widerspraeche die Regel dem Beispiel
+  weiter unten im Skill. Anlass: ein siebenzeiliger Doc-Block an einer neuen Klasse,
+  von dem nach dem Kuerzen zwei Zeilen uebrig blieben. (CR4639)
+
 ### 1.54.8
 
 - **`kanboard`: `update-comment` nimmt jetzt auch `--file`.** Bisher gab es nur
