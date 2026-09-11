@@ -422,10 +422,12 @@ Referenz-Skill fuer PixelYourSite Pro Event-Verwaltung in WordPress-(Multi-)Site
 Referenz-Skill fuer Ninja-Forms-Administration in WordPress-(Multi-)Sites per WP-CLI (FreeBSD-Jail). Kein eigenes Script, reine SKILL.md mit PHP-Snippets, verifiziert an NF 3.14.8:
 
 - Datenmodell + Footguns: `nf3_forms`/`nf3_fields`/`nf3_field_meta`, `element_class` liegt in der Meta-Tabelle (keine `settings`-Spalte); Render-Quelle ist der Form-Cache (`nf3_upgrades`), `use_cache()` hart `true`
+- Ein Feldwert liegt an **vier** Stellen: Meta, Form-Cache, Legacy-Spalte `nf3_fields.default_value` und WPML-Quellstring in `icl_strings` — die letzten beiden schreibt die Model-API nicht mit
+- Der Form-Cache ist **PHP-serialisiert**, nicht JSON (`unserialize()`; `json_decode()` liefert still `null` und erzeugt Fehlalarme), Keys `id`/`fields`/`actions`/`settings`
 - Formulare auflisten + Titel→ID-Mapping (native `wp ninja-forms list` oder Snippet), Felder + Settings dumpen (Model-API)
 - `element_class`/HTML-Link-Klasse setzen — Backup (Form-Export) → Write → Cache invalidieren → Verify
 - Export/Import (`.nff`, Backend-identisch): Backup und Klonen zwischen Subsites; Import legt immer ein neues Formular an
-- Settings-Preflight: Meta↔Cache-Drift pruefen (Signatur des stillen „geaendert, aendert sich nichts"-Fehlers)
+- Preflight/Verify: Drift ueber alle vier Ablagen pruefen (Signatur des stillen „geaendert, aendert sich nichts"-Fehlers) inkl. Nachzieh-UPDATEs
 - Diagnose-Muster PYS-CSS-Click ↔ NF-`element_class` (Cross-Link zu wp-pys)
 - Uebersicht der nativen `wp ninja-forms`-Extension und ihrer Grenzen (kein Export/Import, keine Settings-Details)
 
@@ -612,13 +614,19 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.54.6
+### 1.54.7
 
-- **`kanboard`: Teilaufgaben und Kommentare bekommen eine ansprechbare Nummer.**
-  Im UI haben beide keine sichtbare ID, eine referenzierte Zahl war dort also
-  nicht auffindbar. `list-subtasks` und `get-comments` liefern jetzt je Eintrag
-  ein Feld `ref` (`T1`, `K1`, …) in der Reihenfolge des UI, und SKILL.md schreibt
-  die Schreibweise vor: `T3 "Log-Rotation umstellen" (812)` bzw.
-  `K2 Michael, 09.09. 14:12: "…" (4471)`. Dazu die geprueften Randbedingungen -
-  Sortierung nach `position` bzw. Erstellzeit, im UI pro Benutzer umkehrbar, und
-  der Kommentar-Permalink `#comment-<id>`.
+- **`wp-nf`: ein Feldwert liegt an vier Stellen, nicht an zwei.** Der Skill kannte
+  `nf3_field_meta` und den Form-Cache. Dazu kommen die Legacy-Spalte
+  `nf3_fields.default_value` und - auf mehrsprachigen Sites - der WPML-Quellstring
+  in `icl_strings` (Kontext `ninja-forms-<form_id>`, Name `default-<field_id>`);
+  beide schreibt die Model-API nicht mit, der Quellstring rendert ohne
+  Uebersetzung sogar weiter. Ein Fix an HTML-Feldern war dadurch zur Haelfte
+  wirkungslos, ohne dass die Verifikation "Meta plus Cache" das gezeigt haette.
+  Abschnitt 2 fuehrt die vier Ablagen jetzt als Tabelle, Abschnitt 7 gibt sie
+  nebeneinander aus und nennt die beiden Nachzieh-UPDATEs.
+- **`wp-nf`: der Form-Cache ist PHP-serialisiert, nicht JSON.** `nf3_upgrades.cache`
+  enthaelt `serialize()`-Ausgabe; ein `json_decode()` darauf liefert still `null`
+  und laesst die Pruefung fuer jedes Feld eine Abweichung melden - ein Fehlalarm,
+  der wie ein defekter Cache aussieht. `unserialize()` und die Key-Struktur
+  (`id`, `fields`, `actions`, `settings`) stehen jetzt im Skill. (CR4633)

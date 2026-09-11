@@ -3,6 +3,23 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.54.7
+
+- **`wp-nf`: ein Feldwert liegt an vier Stellen, nicht an zwei.** Der Skill kannte
+  `nf3_field_meta` und den Form-Cache. Dazu kommen die Legacy-Spalte
+  `nf3_fields.default_value` und - auf mehrsprachigen Sites - der WPML-Quellstring
+  in `icl_strings` (Kontext `ninja-forms-<form_id>`, Name `default-<field_id>`);
+  beide schreibt die Model-API nicht mit, der Quellstring rendert ohne
+  Uebersetzung sogar weiter. Ein Fix an HTML-Feldern war dadurch zur Haelfte
+  wirkungslos, ohne dass die Verifikation "Meta plus Cache" das gezeigt haette.
+  Abschnitt 2 fuehrt die vier Ablagen jetzt als Tabelle, Abschnitt 7 gibt sie
+  nebeneinander aus und nennt die beiden Nachzieh-UPDATEs.
+- **`wp-nf`: der Form-Cache ist PHP-serialisiert, nicht JSON.** `nf3_upgrades.cache`
+  enthaelt `serialize()`-Ausgabe; ein `json_decode()` darauf liefert still `null`
+  und laesst die Pruefung fuer jedes Feld eine Abweichung melden - ein Fehlalarm,
+  der wie ein defekter Cache aussieht. `unserialize()` und die Key-Struktur
+  (`id`, `fields`, `actions`, `settings`) stehen jetzt im Skill. (CR4633)
+
 ### 1.54.6
 
 - **`kanboard`: Teilaufgaben und Kommentare bekommen eine ansprechbare Nummer.**
