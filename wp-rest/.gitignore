@@ -1,4 +1,5 @@
-# Echte Profile leben in der .env ausserhalb des Repos.
-# Falls doch mal lokal im Skill-Ordner: nie committen.
+# Echte Config mit den Application Passwords lebt in ~/.claude/wp-rest.json
+# (ausserhalb des Repos). Falls doch mal lokal im Skill-Ordner: nie committen.
+wp-rest.json
 .env
 __pycache__/

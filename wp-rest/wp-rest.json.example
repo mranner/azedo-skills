@@ -1,0 +1,21 @@
+{
+  "default": "beispiel",
+  "instances": {
+    "beispiel": {
+      "url": "https://www.example.org",
+      "user": "<username>",
+      "app_password": "xxxx xxxx xxxx xxxx xxxx xxxx",
+      "aliases": ["www.example.org", "example.org"]
+    },
+    "shop": {
+      "url": "https://shop.example.org",
+      "user": "<username>",
+      "app_password": "xxxx xxxx xxxx xxxx xxxx xxxx",
+      "aliases": ["shop.example.org"],
+      "wc": {
+        "key": "ck_<consumer_key>",
+        "secret": "cs_<consumer_secret>"
+      }
+    }
+  }
+}

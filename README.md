@@ -446,7 +446,7 @@ Pflegt WordPress-Inhalte ueber die REST-API (`/wp-json/wp/v2/`) mit einem Applic
 - Fallstrick fest eingebaut: gelesen wird mit `context=edit`, weil `content.rendered` die Block-Kommentare verliert
 - Abgrenzung zu `wp-cli`: Cache, Plugins, Datenbank, Theme-Dateien und Customizer-CSS von Classic-Themes kann die REST-API nicht
 
-Profile in `.env`: `WP_<INSTANZ>_URL`, `WP_<INSTANZ>_USER`, `WP_<INSTANZ>_APP_PASSWORD` (Auffindung wie kimai/kanboard: `WP_REST_ENV` → cwd/.env → ~/.env), optional `WP_DEFAULT_INSTANCE` und `WP_<INSTANZ>_WC_KEY`/`_WC_SECRET`.
+Profile in `~/.claude/wp-rest.json` (Muster wie `jira`; `WP_REST_CONFIG` ueberschreibt den Pfad): `instances` als Objekt mit `url`, `user`, `app_password`, optional `wc: {key, secret}` und `aliases`. Ueber die Aliasse bzw. den Host der `url` waehlt `--instance www.example.org` die Instanz, ohne den Profilnamen zu kennen; sonst greift `default`.
 
 **Trigger:** `/wp-rest` oder natuerliche Sprache wie "leg einen Beitrag an", "lad das Bild hoch", "setz die Seite auf publish", "Produkt in WooCommerce".
 
@@ -631,23 +631,17 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.56.0
+### 1.56.1
 
-- **Neuer Skill `wp-rest`: WordPress-Inhalte ueber die REST-API pflegen.** Inhalte
-  wurden bisher ohne festen Weg gepflegt - mal ueber einen PHP-/WP-CLI-Umweg mit
-  vollem Dateisystemzugriff, mal ueber von Hand zusammengesetzte `curl`-Aufrufe,
-  und das Wissen zum Zugang steckte verstreut in Notizen. Der Skill setzt
-  stattdessen auf `/wp-json/wp/v2/` mit einem Application Password: kein SSH, kein
-  sudo, kein PHP-Eval, einzeln widerrufbar und nur mit den Rechten seines
-  Benutzers. Abgedeckt sind Beitraege, Seiten und wiederverwendbare Bloecke,
-  Medien (Upload mit sprechendem Dateinamen als Slug, Alt-Text, Zuordnung),
-  Kategorien und Schlagworte, Templates und Global Styles von Block-Themes sowie
-  WooCommerce ueber `/wc/v3/`; ein `request`-Subcommand bleibt als Escape-Hatch
-  fuer alles Uebrige. Mehrere Sites laufen ueber benannte Profile in der `.env`
-  (`WP_<INSTANZ>_URL/_USER/_APP_PASSWORD`), analog zu `jira`. Zwei Fallstricke
-  sind fest eingebaut: gelesen wird immer mit `context=edit`, weil
-  `content.rendered` die Block-Kommentare verliert und beim Zurueckschreiben die
-  Blockstruktur zerlegt - und Loeschen verlangt `--yes`, ohne das nur ein Dry-Run
-  zeigt, was getroffen waere. Die Abgrenzung zu `wp-cli` steht in der SKILL.md:
-  Cache, Plugins, Datenbank, Theme-Dateien und das Customizer-CSS von
-  Classic-Themes kann die REST-API nicht. (CR4641)
+- **`wp-rest`: Profile liegen jetzt in `~/.claude/wp-rest.json` statt in der `.env`.**
+  Das Schema `WP_<INSTANZ>_URL/_USER/_APP_PASSWORD` kam aus den vorhandenen Notizen
+  und traegt bei mehreren Sites nicht: ein flacher Namensraum nimmt keine
+  Verschachtelung auf (WooCommerce-Keys, Domain-Aliasse), und die Auffindung
+  cwd/.env vor ~/.env laesst dasselbe Kommando je nach Arbeitsverzeichnis eine
+  andere Site treffen - bei einem schreibenden Skill ein Risiko, nicht bloss eine
+  Fehlermeldung. Die JSON folgt jetzt dem Muster von `jira`: `instances` als
+  Objekt, `default`, pro Instanz `url`, `user`, `app_password`, optional
+  `wc: {key, secret}` und `aliases`. Ueber die Aliasse (oder den Host der `url`)
+  waehlt `--instance www.example.org` die Instanz, ohne dass der Profilname
+  bekannt sein muss. Ein `.env`-Fallback bleibt bewusst aus, sonst gaebe es zwei
+  Quellen mit Vorrangregel. (CR4641)

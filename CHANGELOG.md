@@ -3,6 +3,21 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.56.1
+
+- **`wp-rest`: Profile liegen jetzt in `~/.claude/wp-rest.json` statt in der `.env`.**
+  Das Schema `WP_<INSTANZ>_URL/_USER/_APP_PASSWORD` kam aus den vorhandenen Notizen
+  und traegt bei mehreren Sites nicht: ein flacher Namensraum nimmt keine
+  Verschachtelung auf (WooCommerce-Keys, Domain-Aliasse), und die Auffindung
+  cwd/.env vor ~/.env laesst dasselbe Kommando je nach Arbeitsverzeichnis eine
+  andere Site treffen - bei einem schreibenden Skill ein Risiko, nicht bloss eine
+  Fehlermeldung. Die JSON folgt jetzt dem Muster von `jira`: `instances` als
+  Objekt, `default`, pro Instanz `url`, `user`, `app_password`, optional
+  `wc: {key, secret}` und `aliases`. Ueber die Aliasse (oder den Host der `url`)
+  waehlt `--instance www.example.org` die Instanz, ohne dass der Profilname
+  bekannt sein muss. Ein `.env`-Fallback bleibt bewusst aus, sonst gaebe es zwei
+  Quellen mit Vorrangregel. (CR4641)
+
 ### 1.56.0
 
 - **Neuer Skill `wp-rest`: WordPress-Inhalte ueber die REST-API pflegen.** Inhalte

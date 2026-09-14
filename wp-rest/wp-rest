@@ -9,7 +9,6 @@ import base64
 import json
 import mimetypes
 import os
-import re
 import sys
 import urllib.error
 import urllib.parse
@@ -32,95 +31,104 @@ TYPE_ENDPOINTS = {
 }
 
 
-def env_path():
-    override = os.environ.get("WP_REST_ENV")
+def config_path():
+    override = os.environ.get("WP_REST_CONFIG")
     if override:
         return override
-    if os.path.exists(".env"):
-        return os.path.abspath(".env")
-    return os.path.join(os.path.expanduser("~"), ".env")
+    return os.path.join(os.path.expanduser("~"), ".claude", "wp-rest.json")
 
 
-_env = None
+CONFIG_FILE = config_path()
+_config = None
 
 
-def load_env():
-    """Liest die .env (gecached) und legt sie ueber os.environ; die Datei gewinnt."""
-    global _env
-    if _env is not None:
-        return _env
-
-    values = dict(os.environ)
-    path = env_path()
-    if os.path.exists(path):
-        try:
-            with open(path, encoding="utf-8") as f:
-                for line in f:
-                    line = line.strip()
-                    if not line or line.startswith("#"):
-                        continue
-                    if line.startswith("export "):
-                        line = line[len("export "):].strip()
-                    if "=" not in line:
-                        continue
-                    key, val = line.split("=", 1)
-                    val = val.strip()
-                    if len(val) >= 2 and val[0] == val[-1] and val[0] in "\"'":
-                        val = val[1:-1]
-                    values[key.strip()] = val
-        except OSError as e:
-            print(f"Error: {path} nicht lesbar: {e}", file=sys.stderr)
-            sys.exit(1)
-
-    _env = values
-    return _env
+def load_config():
+    """Read ~/.claude/wp-rest.json (cached)"""
+    global _config
+    if _config is not None:
+        return _config
+    if not os.path.exists(CONFIG_FILE):
+        print(
+            f"Error: {CONFIG_FILE} nicht gefunden (siehe wp-rest.json.example)",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    try:
+        with open(CONFIG_FILE, encoding="utf-8") as f:
+            cfg = json.load(f)
+    except (OSError, ValueError) as e:
+        print(f"Error: {CONFIG_FILE} nicht lesbar: {e}", file=sys.stderr)
+        sys.exit(1)
+    if not isinstance(cfg.get("instances"), dict) or not cfg["instances"]:
+        print(f"Error: keine 'instances' in {CONFIG_FILE}", file=sys.stderr)
+        sys.exit(1)
+    _config = cfg
+    return cfg
 
 
 def list_instances():
-    """Instanz-Namen aus allen WP_<NAME>_URL ableiten (klein geschrieben)"""
-    env = load_env()
-    names = []
-    for key in env:
-        m = re.fullmatch(r"WP_([A-Z0-9_]+)_URL", key)
-        if m:
-            names.append(m.group(1).lower())
-    return sorted(names)
+    """Return configured instance names (as written in config)"""
+    return list(load_config()["instances"].keys())
+
+
+def _host_of(url):
+    return urllib.parse.urlparse(url or "").netloc.lower()
+
+
+def _instance_by_alias(cfg, name):
+    """Instanz ueber 'aliases' oder den Host der URL finden -- erlaubt
+    'wp-rest -i www.example.org' statt des Profilnamens"""
+    wanted = name.strip().lower()
+    wanted_host = _host_of(wanted if "//" in wanted else f"//{wanted}")
+    for key, inst in cfg["instances"].items():
+        aliases = [a.lower() for a in inst.get("aliases", [])]
+        if wanted in aliases or wanted_host and wanted_host in aliases:
+            return key
+        if wanted_host and wanted_host == _host_of(inst.get("url")):
+            return key
+    return None
 
 
 def resolve_instance(name):
-    """(--instance | WP_DEFAULT_INSTANCE | einzige konfigurierte) -> Instance"""
-    env = load_env()
-    available = list_instances()
+    """(--instance | Domain/Alias | 'default' | einzige konfigurierte) -> Instance"""
+    cfg = load_config()
 
     if not name:
-        name = env.get("WP_DEFAULT_INSTANCE")
-    if not name and len(available) == 1:
-        name = available[0]
+        name = cfg.get("default")
+    if not name and len(cfg["instances"]) == 1:
+        name = list(cfg["instances"])[0]
     if not name:
-        avail = ", ".join(available) or "(keine)"
+        avail = ", ".join(list_instances()) or "(keine)"
         print(
-            "Error: keine Instanz bestimmbar (kein --instance, kein "
-            f"WP_DEFAULT_INSTANCE). Verfuegbar: {avail}",
+            "Error: keine Instanz bestimmbar (kein --instance, kein 'default' in "
+            f"der Config). Verfuegbar: {avail}",
             file=sys.stderr,
         )
         sys.exit(1)
 
-    key = name.upper().replace("-", "_")
-    url = env.get(f"WP_{key}_URL")
-    user = env.get(f"WP_{key}_USER")
-    password = env.get(f"WP_{key}_APP_PASSWORD")
-
-    if not url:
-        avail = ", ".join(available) or "(keine)"
+    inst = cfg["instances"].get(name)
+    if inst is None:
+        for k, v in cfg["instances"].items():
+            if k.lower() == str(name).lower():
+                name, inst = k, v
+                break
+    if inst is None:
+        match = _instance_by_alias(cfg, str(name))
+        if match:
+            name, inst = match, cfg["instances"][match]
+    if inst is None:
+        avail = ", ".join(list_instances()) or "(keine)"
         print(
-            f"Error: Instanz '{name}' unbekannt (kein WP_{key}_URL in "
-            f"{env_path()}). Verfuegbar: {avail}",
-            file=sys.stderr,
+            f"Error: Instanz '{name}' unbekannt. Verfuegbar: {avail}", file=sys.stderr
         )
         sys.exit(1)
-    if not user or not password:
+
+    url = inst.get("url")
+    user = inst.get("user")
+    password = inst.get("app_password")
+    if not url or not user or not password:
         print(
-            f"Error: Instanz '{name}' ohne WP_{key}_USER / WP_{key}_APP_PASSWORD",
+            f"Error: Instanz '{name}' ohne url/user/app_password in {CONFIG_FILE}",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -128,14 +136,15 @@ def resolve_instance(name):
     auth = "Basic " + base64.b64encode(f"{user}:{password}".encode()).decode()
 
     # WooCommerce akzeptiert dasselbe Application Password; eigene Consumer-Keys
-    # nur, wenn sie gesetzt sind.
-    ck = env.get(f"WP_{key}_WC_KEY")
-    cs = env.get(f"WP_{key}_WC_SECRET")
+    # nur, wenn sie unter 'wc' hinterlegt sind.
+    wc = inst.get("wc") or {}
     wc_auth = auth
-    if ck and cs:
-        wc_auth = "Basic " + base64.b64encode(f"{ck}:{cs}".encode()).decode()
+    if wc.get("key") and wc.get("secret"):
+        wc_auth = "Basic " + base64.b64encode(
+            f"{wc['key']}:{wc['secret']}".encode()
+        ).decode()
 
-    return Instance(name.lower(), url.rstrip("/"), auth, wc_auth)
+    return Instance(name, url.rstrip("/"), auth, wc_auth)
 
 
 def api_call(inst, method, path, data=None, params=None, namespace="wp/v2"):
@@ -346,20 +355,21 @@ def slim_generic(item):
 
 
 def cmd_instances(args):
-    env = load_env()
+    cfg = load_config()
     rows = []
-    for name in list_instances():
-        key = name.upper()
+    for name, inst in cfg["instances"].items():
+        wc = inst.get("wc") or {}
         rows.append(
             {
                 "instance": name,
-                "url": env.get(f"WP_{key}_URL"),
-                "user": env.get(f"WP_{key}_USER"),
-                "app_password": "gesetzt" if env.get(f"WP_{key}_APP_PASSWORD") else "fehlt",
-                "wc_keys": "eigene" if env.get(f"WP_{key}_WC_KEY") else "App Password",
+                "url": inst.get("url"),
+                "user": inst.get("user"),
+                "app_password": "gesetzt" if inst.get("app_password") else "fehlt",
+                "aliases": inst.get("aliases", []),
+                "wc_keys": "eigene" if wc.get("key") else "App Password",
             }
         )
-    out_json({"env": env_path(), "default": env.get("WP_DEFAULT_INSTANCE"), "instances": rows})
+    out_json({"config": CONFIG_FILE, "default": cfg.get("default"), "instances": rows})
 
 
 def cmd_whoami(args):
@@ -857,7 +867,9 @@ def build_parser():
 
     def add_instance(sp):
         sp.add_argument(
-            "-i", "--instance", help="Instanz-Name (Default: WP_DEFAULT_INSTANCE)"
+            "-i",
+            "--instance",
+            help="Instanz-Name oder Domain/Alias (Default: 'default' aus der Config)",
         )
 
     def add_type(sp):

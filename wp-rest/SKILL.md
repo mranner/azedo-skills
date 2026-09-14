@@ -40,29 +40,46 @@ und das Customizer-CSS von Classic-Themes (siehe unten).
 
 ## Konfiguration
 
-Profile kommen aus einer `.env` - Reihenfolge: `WP_REST_ENV` (voller Pfad),
-sonst `.env` im aktuellen Arbeitsverzeichnis, sonst `~/.env`. Pro Instanz drei
-Werte, der Name zwischen den Unterstrichen ist der Profilname:
+Profile stehen in `~/.claude/wp-rest.json` (`WP_REST_CONFIG` überschreibt den
+Pfad), Vorlage: `wp-rest.json.example` im Skill. Pro Instanz URL, Benutzer und
+Application Password; `aliases` erlaubt, die Site über ihre Domain statt über
+den Profilnamen anzusprechen:
 
-```
-WP_<INSTANZ>_URL=https://www.example.org
-WP_<INSTANZ>_USER=<username>
-WP_<INSTANZ>_APP_PASSWORD="xxxx xxxx xxxx xxxx xxxx xxxx"   # gequotet, enthält Leerzeichen
+```json
+{
+  "default": "beispiel",
+  "instances": {
+    "beispiel": {
+      "url": "https://www.example.org",
+      "user": "<username>",
+      "app_password": "xxxx xxxx xxxx xxxx xxxx xxxx",
+      "aliases": ["www.example.org", "example.org"]
+    },
+    "shop": {
+      "url": "https://shop.example.org",
+      "user": "<username>",
+      "app_password": "xxxx xxxx xxxx xxxx xxxx xxxx",
+      "wc": { "key": "ck_...", "secret": "cs_..." }
+    }
+  }
+}
 ```
 
-Optional:
+Der Block `wc` ist optional - ohne ihn wird das Application Password auch für
+`/wc/v3` verwendet, der Benutzer braucht dann `manage_woocommerce`.
 
-```
-WP_DEFAULT_INSTANCE=<instanz>          # sonst --instance nötig (außer bei genau einem Profil)
-WP_<INSTANZ>_WC_KEY=ck_...             # eigene WooCommerce-Consumer-Keys,
-WP_<INSTANZ>_WC_SECRET=cs_...          # sonst wird das App Password auch für /wc/v3 verwendet
-```
+Die Instanz ergibt sich aus `--instance` (Profilname **oder** Domain/Alias),
+sonst aus `default`, sonst aus dem einzigen konfigurierten Profil. `instances`
+zeigt, was gefunden wurde (ohne das Passwort auszugeben), `whoami` prüft Zugang
+und Rechte gegen die Site.
 
-`instances` zeigt, was gefunden wurde (ohne das Passwort auszugeben), `whoami`
-prüft Zugang und Rechte gegen die Site.
+Das Application Password wird in WordPress unter Benutzer > Profil >
+„Anwendungspasswörter" erzeugt, ist einzeln widerrufbar und trägt nur die Rechte
+seines Benutzers.
 
 **Sicherheitsregel:** Application Passwords nie auf der Kommandozeile übergeben,
-nie in Logs oder Kommentare schreiben - ausschließlich aus der `.env` lesen.
+nie in Logs, Kommentare oder Tickets schreiben - ausschließlich aus der Config
+lesen.
 
 ## Subcommands
 
