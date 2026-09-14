@@ -649,3 +649,18 @@ Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle 
   `date_started` 00:00 - das Datum stimmt in beiden Faellen, die Doku nennt es.
   (CR4645)
 
+### 1.57.0
+
+- **`kimai`: Stundensaetze lesen und setzen (`list-rates`, `set-rate`,
+  `delete-rate`).** Der Stundensatz steht nicht im Feld `budget` - das ist ein
+  Geldbudget -, sondern haengt als eigener Datensatz an Aktivitaet, Projekt oder
+  Kunde. Genau einer der drei Scopes ist anzugeben; fuer Benutzer gibt es diesen
+  Weg nicht, `/api/users/<id>/rates` antwortet mit 404. `--fixed` macht aus dem
+  Satz einen Festbetrag je Eintrag, `--user` begrenzt ihn auf einen Benutzer.
+  Wichtig ist die Vererbung: der engste gesetzte Satz gewinnt (Aktivitaet vor
+  Projekt vor Kunde), eine neue Aktivitaet ohne eigenen Satz rechnet also sofort
+  mit dem des Projekts. Und Kimai schreibt den ermittelten Satz beim Buchen in den
+  Eintrag - eine spaeter gesetzte Rate wirkt nur auf neue Eintraege, bestehende
+  behalten ihren Wert auch nach einem Umhaengen per `update-timesheet --activity`.
+  Dafuer nimmt `update-timesheet` jetzt `--hourly-rate` und `--fixed-rate`, die den
+  Satz am einzelnen Eintrag nachziehen. (CR4272)
