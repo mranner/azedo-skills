@@ -31,7 +31,13 @@ siehe Zeitregeln in der SKILL.md.
 python3 "$SKILL_DIR/kimai" update-timesheet <id> \
   [--begin <iso>] [--end <iso>] [--project <id>] [--activity <id>] \
   [--description "<text>"] [--user <id>] [--tags "tag1,tag2"] \
-  [--exported <0|1>] [--billable <0|1>]
+  [--exported <0|1>] [--billable <0|1>] \
+  [--hourly-rate <betrag>] [--fixed-rate <betrag>]
+
+# Hinweis: `--hourly-rate` setzt den Satz dieses Eintrags. Noetig, wenn eine Rate
+# erst nach dem Buchen gesetzt wurde - Kimai schreibt den Satz beim Anlegen fest,
+# ein Umhaengen per --activity zieht ihn nicht nach. Siehe references/stammdaten.md,
+# Abschnitt Stundensaetze.
 
 # Eintrag loeschen
 python3 "$SKILL_DIR/kimai" delete-timesheet <id>

@@ -356,6 +356,10 @@ def cmd_update_timesheet(args):
         data["exported"] = args.exported == "1"
     if args.billable is not None:
         data["billable"] = args.billable == "1"
+    if args.hourly_rate is not None:
+        data["hourlyRate"] = float(args.hourly_rate)
+    if args.fixed_rate is not None:
+        data["fixedRate"] = float(args.fixed_rate)
 
     if not data:
         print("Error: nothing to update", file=sys.stderr)
@@ -550,6 +554,41 @@ def cmd_update_activity(args):
 
     result = api_call("PATCH", f"activities/{args.activity_id}", data=data)
     output(result)
+
+
+RATE_SCOPES = {"activity": "activities", "project": "projects", "customer": "customers"}
+
+
+def _rate_scope(args):
+    """Liefert (scope, id) aus --activity/--project/--customer. Genau eines ist Pflicht."""
+    given = [(s, getattr(args, s)) for s in RATE_SCOPES if getattr(args, s, None)]
+    if len(given) != 1:
+        print("Error: genau eines von --activity, --project, --customer angeben",
+              file=sys.stderr)
+        sys.exit(1)
+    scope, value = given[0]
+    return RATE_SCOPES[scope], int(value)
+
+
+def cmd_list_rates(args):
+    path, oid = _rate_scope(args)
+    output(api_call("GET", f"{path}/{oid}/rates"))
+
+
+def cmd_set_rate(args):
+    path, oid = _rate_scope(args)
+    data = {"rate": float(args.rate), "isFixed": bool(args.fixed)}
+    if args.user:
+        data["user"] = int(args.user)
+    if args.internal_rate is not None:
+        data["internalRate"] = float(args.internal_rate)
+    output(api_call("POST", f"{path}/{oid}/rates", data=data))
+
+
+def cmd_delete_rate(args):
+    path, oid = _rate_scope(args)
+    api_call("DELETE", f"{path}/{oid}/rates/{args.rate_id}")
+    output({"success": True, "deleted_rate_id": int(args.rate_id)})
 
 
 def cmd_delete_activity(args):
@@ -1265,6 +1304,10 @@ def main():
     p.add_argument("--tags", help="Comma-separated tag names")
     p.add_argument("--exported", help="Exported status (0 or 1)")
     p.add_argument("--billable", help="Billable (0 or 1)")
+    p.add_argument("--hourly-rate", dest="hourly_rate",
+                   help="Stundensatz dieses Eintrags (ueberschreibt den geerbten Satz)")
+    p.add_argument("--fixed-rate", dest="fixed_rate",
+                   help="Festbetrag dieses Eintrags statt Stundensatz")
     p.set_defaults(func=cmd_update_timesheet)
 
     p = sub.add_parser("delete-timesheet")
@@ -1364,6 +1407,28 @@ def main():
     p = sub.add_parser("delete-activity")
     p.add_argument("activity_id")
     p.set_defaults(func=cmd_delete_activity)
+
+    # ── rates (Stundensaetze an Aktivitaet, Projekt oder Kunde) ──
+
+    for name, func, extra in (
+        ("list-rates", cmd_list_rates, None),
+        ("set-rate", cmd_set_rate, "set"),
+        ("delete-rate", cmd_delete_rate, "delete"),
+    ):
+        p = sub.add_parser(name)
+        p.add_argument("--activity", help="Activity ID")
+        p.add_argument("--project", help="Project ID")
+        p.add_argument("--customer", help="Customer ID")
+        if extra == "set":
+            p.add_argument("--rate", required=True, help="Satz, z.B. 80")
+            p.add_argument("--fixed", action="store_true",
+                           help="Festbetrag statt Stundensatz")
+            p.add_argument("--internal-rate", dest="internal_rate",
+                           help="interner Satz (optional)")
+            p.add_argument("--user", help="User ID - Satz gilt nur fuer diesen Benutzer")
+        if extra == "delete":
+            p.add_argument("rate_id")
+        p.set_defaults(func=func)
 
     # ── customers ──
 

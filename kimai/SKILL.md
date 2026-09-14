@@ -117,7 +117,7 @@ Befehlsreferenz liegt daneben und wird bei Bedarf gelesen:
 | Datei | Inhalt |
 |---|---|
 | `references/timesheets.md` | Eintraege auflisten, anzeigen, anlegen, aendern, loeschen; Timer starten, stoppen, neustarten, duplizieren; als exportiert markieren |
-| `references/stammdaten.md` | Projekte, Aktivitaeten, Kunden, Benutzer, Tags, Teams |
+| `references/stammdaten.md` | Projekte, Aktivitaeten, Kunden, Benutzer, Tags, Teams; Stundensaetze (Rates) an Aktivitaet, Projekt und Kunde |
 | `references/import-hours.md` | Externe Stunden aus JSON auf Werktage verteilen (`import-hours`) |
 
 `python3 "$SKILL_DIR/kimai" <subcommand> --help` listet die Optionen eines Subcommands
