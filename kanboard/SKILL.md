@@ -142,13 +142,16 @@ Aufzählung macht er jede Zeile unlesbar.
 
 ```bash
 # Task anlegen
-python3 "$SKILL_DIR/kanboard" create-task --project <name|id> --title "..." [--description "..." | --description-file <pfad>] [--column <name>] [--owner <username>]
+python3 "$SKILL_DIR/kanboard" create-task --project <name|id> --title "..." [--description "..." | --description-file <pfad>] [--column <name>] [--owner <username>] [--due YYYY-MM-DD] [--start YYYY-MM-DD]
 
 # Task anzeigen (inkl. column_title, swimlane_name, owner_username)
 python3 "$SKILL_DIR/kanboard" get-task <task_id>
 
 # Task erledigen -- Spalte wechseln, NICHT close-task (siehe Sicherheitsregeln)
 python3 "$SKILL_DIR/kanboard" move-task <task_id> --column erledigt
+
+# Faelligkeits- bzw. Startdatum setzen (leerer Wert loescht es)
+python3 "$SKILL_DIR/kanboard" update-task <task_id> [--due YYYY-MM-DD] [--start "YYYY-MM-DD HH:MM"]
 
 # Task in ein anderes Projekt verschieben
 python3 "$SKILL_DIR/kanboard" move-project <task_id> --project <name|id> [--column <name>]

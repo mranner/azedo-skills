@@ -239,6 +239,24 @@ def read_file_arg(path):
         return f.read()
 
 
+def parse_date_arg(value, label):
+    """Validate a date from the command line and hand it to Kanboard as a string.
+
+    Kanboard parses 'YYYY-MM-DD' and 'YYYY-MM-DD HH:MM' itself, but turns
+    anything it does not understand into 0 (= not set) without an error - so an
+    unusable value is rejected here instead of silently clearing the field.
+    """
+    for fmt in ("%Y-%m-%d %H:%M", "%Y-%m-%d"):
+        try:
+            datetime.strptime(value, fmt)
+            return value
+        except ValueError:
+            continue
+    print(f"Error: {label} '{value}' is not a valid date "
+          "(expected YYYY-MM-DD or 'YYYY-MM-DD HH:MM')", file=sys.stderr)
+    sys.exit(1)
+
+
 def cmd_create_task(args):
     project_id = resolve_project(args.project)
     params = {
@@ -260,6 +278,11 @@ def cmd_create_task(args):
 
     if args.swimlane:
         params["swimlane_id"] = resolve_swimlane(project_id, args.swimlane)
+
+    if args.due:
+        params["date_due"] = parse_date_arg(args.due, "--due")
+    if args.start:
+        params["date_started"] = parse_date_arg(args.start, "--start")
 
     task_id = rpc_call("createTask", params)
     if not task_id:
@@ -322,9 +345,13 @@ def cmd_update_task(args):
         params["description"] = args.description
     if args.owner:
         params["owner_id"] = resolve_user(args.owner)
+    if args.due is not None:
+        params["date_due"] = parse_date_arg(args.due, "--due") if args.due else ""
+    if args.start is not None:
+        params["date_started"] = parse_date_arg(args.start, "--start") if args.start else ""
 
     if len(params) == 1:
-        print("Error: nothing to update (specify --title, --description/--description-file, or --owner)", file=sys.stderr)
+        print("Error: nothing to update (specify --title, --description/--description-file, --owner, --due or --start)", file=sys.stderr)
         sys.exit(1)
 
     result = rpc_call("updateTask", params)
@@ -1320,6 +1347,8 @@ def main():
     p.add_argument("--column")
     p.add_argument("--owner")
     p.add_argument("--swimlane")
+    p.add_argument("--due", help="Faelligkeitsdatum: YYYY-MM-DD oder 'YYYY-MM-DD HH:MM'")
+    p.add_argument("--start", help="Startdatum: YYYY-MM-DD oder 'YYYY-MM-DD HH:MM'")
     p.set_defaults(func=cmd_create_task)
 
     # get-task
@@ -1335,6 +1364,8 @@ def main():
     g.add_argument("--description", help="Beschreibung direkt uebergeben")
     g.add_argument("--description-file", dest="description_file", help="Beschreibung aus Datei lesen")
     p.add_argument("--owner")
+    p.add_argument("--due", help="Faelligkeitsdatum setzen; leerer Wert loescht es")
+    p.add_argument("--start", help="Startdatum setzen; leerer Wert loescht es")
     p.set_defaults(func=cmd_update_task)
 
     # move-task

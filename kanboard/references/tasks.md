@@ -9,7 +9,7 @@ Aufruf durchgehend `python3 "$SKILL_DIR/kanboard" <subcommand>`.
 python3 "$SKILL_DIR/kanboard" create-task \
   --project <name|id> --title "<titel>" \
   [--description "<text>" | --description-file <pfad>] [--column <name>] \
-  [--owner <username>] [--swimlane <name>]
+  [--owner <username>] [--swimlane <name>] [--due <datum>] [--start <datum>]
 ```
 
 `--description` und `--description-file` schliessen einander aus. Bei laengeren
@@ -19,6 +19,9 @@ Backticks, `$` und Anfuehrungszeichen ausgewertet werden.
 
 Ohne `--owner` wird der Task dem `default_user` aus `instance.json` zugewiesen (wie
 bei `add-comment`). Ist dort kein `default_user` gesetzt, bleibt der Task unassigned.
+
+`--due` setzt das Faelligkeits-, `--start` das Startdatum — siehe **Datumsfelder**
+weiter unten.
 
 ### Task anzeigen
 
@@ -30,11 +33,38 @@ python3 "$SKILL_DIR/kanboard" get-task <task_id>
 
 ```bash
 python3 "$SKILL_DIR/kanboard" update-task <task_id> \
-  [--title "<titel>"] [--description "<text>" | --description-file <pfad>] [--owner <username>]
+  [--title "<titel>"] [--description "<text>" | --description-file <pfad>] [--owner <username>] \
+  [--due <datum>] [--start <datum>]
 ```
 
 `--description-file` liest die neue Beschreibung aus einer Datei, sonst wie bei
 `create-task`.
+
+### Datumsfelder
+
+`--due` setzt `date_due` (Faelligkeit), `--start` setzt `date_started` (ab wann
+gearbeitet werden kann). Beide nehmen `YYYY-MM-DD` oder `'YYYY-MM-DD HH:MM'`;
+andere Schreibweisen — auch das deutsche `13.10.2026` — weist das Script mit
+Exit-Code 1 ab, weil Kanboard sie stillschweigend zu `0` (= nicht gesetzt) machen
+wuerde.
+
+```bash
+python3 "$SKILL_DIR/kanboard" update-task 4644 --start 2026-10-13
+python3 "$SKILL_DIR/kanboard" create-task --project azedo --title "..." --due "2026-10-13 16:30"
+```
+
+Zwei Eigenheiten:
+
+- **Ohne Uhrzeit setzt Kanboard bei `date_due` die aktuelle Uhrzeit ein** (`--due
+  2026-10-13` wird zu `2026-10-13 19:56`). Das Datum stimmt, und im UI wird nur
+  das Datum angezeigt; wer die Uhrzeit braucht, gibt sie mit an. `date_started`
+  faellt ohne Uhrzeit auf 00:00.
+- **Nur bei `update-task` loescht ein leerer Wert das Feld:** `--due ""` bzw.
+  `--start ""` setzt es auf `0` zurueck. Die Option ganz wegzulassen laesst das
+  Feld unveraendert.
+
+`get-task` gibt beide Felder als Unix-Timestamp zurueck (`0` = nicht gesetzt);
+`list-tasks` zeigt `date_due` bereits lesbar formatiert.
 
 ### Task verschieben (Spalte aendern)
 

@@ -633,20 +633,19 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.56.2
+### 1.57.1
 
-- **`wp-rest`: Aufrufbeispiele und Voraussetzungen in der SKILL.md.** Der Skill
-  beschrieb seine 26 Subcommands in Tabellen, zeigte aber keinen einzigen
-  vollstaendigen Aufruf - ein Modell, das ihn laedt, musste sich jeden Befehl aus
-  Spaltennamen zusammensetzen. Neu ist ein Abschnitt "Typische Ablaeufe" mit den
-  fuenf Wegen, die in der Praxis vorkommen: Beitrag anlegen und einsortieren,
-  bestehenden Inhalt ueber den Umweg Datei aendern, Bild hochladen und als
-  Beitragsbild setzen, Instanz ueber die Domain waehlen, WooCommerce-Produkt
-  aendern. Der zweite ist der wichtigste, weil er den Fallstrick weiter unten
-  praktisch aufloest: `get-post --output`, lokal bearbeiten, `update-post
-  --content-file` - so geht genau das zurueck, was vorher drin stand. Dazu ein
-  Dreisatz fuer den ersten Kontakt mit einer unbekannten Site (`whoami`, aktives
-  Theme, WooCommerce vorhanden?), der klaert, welche Teile des Skills dort
-  ueberhaupt greifen. Die Aufrufzeile nennt jetzt die Voraussetzung (Python >= 3.9,
-  stdlib only). Anlass: ein Abgleich mit den Anthropic-Empfehlungen zum
-  Skill-Aufbau. (CR4641)
+- **`kanboard`: Faelligkeits- und Startdatum setzbar (`--due`, `--start`).**
+  `create-task` und `update-task` boten nur Titel, Beschreibung und Owner - die
+  Datumsfelder, die Kanboard am Task fuehrt, waren ueber den Skill nicht
+  erreichbar. Aufgefallen bei einem Task, dessen Datum kein Faelligkeits-, sondern
+  ein Startdatum war: ab dann konnte getestet werden, und weder das eine noch das
+  andere liess sich eintragen. Beide Optionen nehmen `YYYY-MM-DD` oder
+  `'YYYY-MM-DD HH:MM'`; andere Schreibweisen - auch das deutsche `13.10.2026` -
+  weist das Script ab, weil Kanboard sie stillschweigend zu `0` (= nicht gesetzt)
+  machen wuerde und die Aenderung dann als Erfolg gemeldet zurueckkaeme. Bei
+  `update-task` loescht ein leerer Wert das Feld. Eine Eigenheit bleibt: ohne
+  Uhrzeit setzt Kanboard bei `date_due` die aktuelle Uhrzeit ein, bei
+  `date_started` 00:00 - das Datum stimmt in beiden Faellen, die Doku nennt es.
+  (CR4645)
+
