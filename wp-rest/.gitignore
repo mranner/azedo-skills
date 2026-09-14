@@ -1,0 +1,4 @@
+# Echte Profile leben in der .env ausserhalb des Repos.
+# Falls doch mal lokal im Skill-Ordner: nie committen.
+.env
+__pycache__/

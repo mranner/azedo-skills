@@ -433,6 +433,23 @@ Referenz-Skill fuer Ninja-Forms-Administration in WordPress-(Multi-)Sites per WP
 
 **Trigger:** `/wp-nf` oder natuerliche Sprache wie "Ninja Forms Feld", "element_class setzen", "Formular exportieren/importieren".
 
+### wp-rest
+
+Pflegt WordPress-Inhalte ueber die REST-API (`/wp-json/wp/v2/`) mit einem Application Password statt Shell-Zugang. Eigenes Python-Script, stdlib-only:
+
+- Beitraege, Seiten und wiederverwendbare Bloecke: auflisten, lesen, anlegen, einzelne Felder aendern, Status setzen, loeschen (`--yes` noetig, sonst Dry-Run)
+- Medien: Upload als Binary-Body mit `Content-Disposition`, damit der Dateiname zum Slug wird; Titel, Alt-Text, Caption und Beitragszuordnung
+- Kategorien und Schlagworte auflisten, anlegen und zuweisen (Namen statt IDs, `--create` legt fehlende an)
+- Templates, Template-Parts und Global Styles von Block-Themes (`styles.css` einzeln setzbar)
+- WooCommerce generisch ueber `/wc/v3/` (`products`, `orders`, `customers`, ...), optional mit eigenen Consumer-Keys
+- `request` als Escape-Hatch fuer jeden weiteren Endpunkt (`settings`, `block-types`, `navigation`, ...)
+- Fallstrick fest eingebaut: gelesen wird mit `context=edit`, weil `content.rendered` die Block-Kommentare verliert
+- Abgrenzung zu `wp-cli`: Cache, Plugins, Datenbank, Theme-Dateien und Customizer-CSS von Classic-Themes kann die REST-API nicht
+
+Profile in `.env`: `WP_<INSTANZ>_URL`, `WP_<INSTANZ>_USER`, `WP_<INSTANZ>_APP_PASSWORD` (Auffindung wie kimai/kanboard: `WP_REST_ENV` → cwd/.env → ~/.env), optional `WP_DEFAULT_INSTANCE` und `WP_<INSTANZ>_WC_KEY`/`_WC_SECRET`.
+
+**Trigger:** `/wp-rest` oder natuerliche Sprache wie "leg einen Beitrag an", "lad das Bild hoch", "setz die Seite auf publish", "Produkt in WooCommerce".
+
 ### wiki
 
 LLM Wiki-Verwaltung fuer strukturierte Dokumentation. Unterstuetzt **mehrere Wikis** mit je eigenem Entity-Modell (Infra `azedo`: Server/Service/Access/Site/Procedure; Projekt-Wikis abweichend). Zwei Scripts (`lint-wiki.py`, `audit-wiki.py`), sonst reine SKILL.md mit Subcommands:
@@ -614,14 +631,23 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.55.0
+### 1.56.0
 
-- **`php-formatting`: neuer Abschnitt "Kommentare: Inhalt und Umfang".** Der Skill
-  regelte bisher nur die Formatierung von Kommentaren (Leerzeilen um `/* */`), nichts
-  zu ihrem Inhalt. Ein Kommentar steht jetzt ausdruecklich nur dort, wo er etwas
-  traegt, das der Code nicht selbst sagt; Doc-Block am Klassen- oder Methodenkopf
-  hoechstens zwei Zeilen, Inline-Kommentar einer. Beim Verschieben von Code gehoeren
-  geerbte Kommentare auf denselben Pruefstand. PHPDoc-Annotationen (`@param`,
-  `@return`, `@var`) sind ausgenommen, sonst widerspraeche die Regel dem Beispiel
-  weiter unten im Skill. Anlass: ein siebenzeiliger Doc-Block an einer neuen Klasse,
-  von dem nach dem Kuerzen zwei Zeilen uebrig blieben. (CR4639)
+- **Neuer Skill `wp-rest`: WordPress-Inhalte ueber die REST-API pflegen.** Inhalte
+  wurden bisher ohne festen Weg gepflegt - mal ueber einen PHP-/WP-CLI-Umweg mit
+  vollem Dateisystemzugriff, mal ueber von Hand zusammengesetzte `curl`-Aufrufe,
+  und das Wissen zum Zugang steckte verstreut in Notizen. Der Skill setzt
+  stattdessen auf `/wp-json/wp/v2/` mit einem Application Password: kein SSH, kein
+  sudo, kein PHP-Eval, einzeln widerrufbar und nur mit den Rechten seines
+  Benutzers. Abgedeckt sind Beitraege, Seiten und wiederverwendbare Bloecke,
+  Medien (Upload mit sprechendem Dateinamen als Slug, Alt-Text, Zuordnung),
+  Kategorien und Schlagworte, Templates und Global Styles von Block-Themes sowie
+  WooCommerce ueber `/wc/v3/`; ein `request`-Subcommand bleibt als Escape-Hatch
+  fuer alles Uebrige. Mehrere Sites laufen ueber benannte Profile in der `.env`
+  (`WP_<INSTANZ>_URL/_USER/_APP_PASSWORD`), analog zu `jira`. Zwei Fallstricke
+  sind fest eingebaut: gelesen wird immer mit `context=edit`, weil
+  `content.rendered` die Block-Kommentare verliert und beim Zurueckschreiben die
+  Blockstruktur zerlegt - und Loeschen verlangt `--yes`, ohne das nur ein Dry-Run
+  zeigt, was getroffen waere. Die Abgrenzung zu `wp-cli` steht in der SKILL.md:
+  Cache, Plugins, Datenbank, Theme-Dateien und das Customizer-CSS von
+  Classic-Themes kann die REST-API nicht. (CR4641)

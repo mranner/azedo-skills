@@ -1,0 +1,1119 @@
+#!/usr/bin/env python3
+
+# WordPress REST API helper (multi-instance): /wp-json/wp/v2/ fuer Inhalte,
+# /wp-json/wc/v3/ fuer WooCommerce. Auth per Application Password (Basic).
+# stdlib only, no pip dependencies
+
+import argparse
+import base64
+import json
+import mimetypes
+import os
+import re
+import sys
+import urllib.error
+import urllib.parse
+import urllib.request
+from collections import namedtuple
+
+SKILL_DIR = os.path.dirname(os.path.realpath(__file__))
+
+# Aufgeloeste Instanz: name + base-URL + Authorization-Header fuer wp/v2 und wc/v3
+Instance = namedtuple("Instance", "name url auth wc_auth")
+
+# Post-Type -> Endpunkt unter wp/v2. Alles andere geht ueber --endpoint.
+
+TYPE_ENDPOINTS = {
+    "post": "posts",
+    "page": "pages",
+    "wp_block": "blocks",
+    "media": "media",
+    "nav_menu_item": "menu-items",
+}
+
+
+def env_path():
+    override = os.environ.get("WP_REST_ENV")
+    if override:
+        return override
+    if os.path.exists(".env"):
+        return os.path.abspath(".env")
+    return os.path.join(os.path.expanduser("~"), ".env")
+
+
+_env = None
+
+
+def load_env():
+    """Liest die .env (gecached) und legt sie ueber os.environ; die Datei gewinnt."""
+    global _env
+    if _env is not None:
+        return _env
+
+    values = dict(os.environ)
+    path = env_path()
+    if os.path.exists(path):
+        try:
+            with open(path, encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith("#"):
+                        continue
+                    if line.startswith("export "):
+                        line = line[len("export "):].strip()
+                    if "=" not in line:
+                        continue
+                    key, val = line.split("=", 1)
+                    val = val.strip()
+                    if len(val) >= 2 and val[0] == val[-1] and val[0] in "\"'":
+                        val = val[1:-1]
+                    values[key.strip()] = val
+        except OSError as e:
+            print(f"Error: {path} nicht lesbar: {e}", file=sys.stderr)
+            sys.exit(1)
+
+    _env = values
+    return _env
+
+
+def list_instances():
+    """Instanz-Namen aus allen WP_<NAME>_URL ableiten (klein geschrieben)"""
+    env = load_env()
+    names = []
+    for key in env:
+        m = re.fullmatch(r"WP_([A-Z0-9_]+)_URL", key)
+        if m:
+            names.append(m.group(1).lower())
+    return sorted(names)
+
+
+def resolve_instance(name):
+    """(--instance | WP_DEFAULT_INSTANCE | einzige konfigurierte) -> Instance"""
+    env = load_env()
+    available = list_instances()
+
+    if not name:
+        name = env.get("WP_DEFAULT_INSTANCE")
+    if not name and len(available) == 1:
+        name = available[0]
+    if not name:
+        avail = ", ".join(available) or "(keine)"
+        print(
+            "Error: keine Instanz bestimmbar (kein --instance, kein "
+            f"WP_DEFAULT_INSTANCE). Verfuegbar: {avail}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    key = name.upper().replace("-", "_")
+    url = env.get(f"WP_{key}_URL")
+    user = env.get(f"WP_{key}_USER")
+    password = env.get(f"WP_{key}_APP_PASSWORD")
+
+    if not url:
+        avail = ", ".join(available) or "(keine)"
+        print(
+            f"Error: Instanz '{name}' unbekannt (kein WP_{key}_URL in "
+            f"{env_path()}). Verfuegbar: {avail}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    if not user or not password:
+        print(
+            f"Error: Instanz '{name}' ohne WP_{key}_USER / WP_{key}_APP_PASSWORD",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    auth = "Basic " + base64.b64encode(f"{user}:{password}".encode()).decode()
+
+    # WooCommerce akzeptiert dasselbe Application Password; eigene Consumer-Keys
+    # nur, wenn sie gesetzt sind.
+    ck = env.get(f"WP_{key}_WC_KEY")
+    cs = env.get(f"WP_{key}_WC_SECRET")
+    wc_auth = auth
+    if ck and cs:
+        wc_auth = "Basic " + base64.b64encode(f"{ck}:{cs}".encode()).decode()
+
+    return Instance(name.lower(), url.rstrip("/"), auth, wc_auth)
+
+
+def api_call(inst, method, path, data=None, params=None, namespace="wp/v2"):
+    """HTTP-Request an /wp-json/<namespace>/<path>"""
+    url = f"{inst.url}/wp-json/{namespace.strip('/')}/{path.lstrip('/')}"
+
+    if params:
+        flat = []
+        for k, v in params.items():
+            if v is None:
+                continue
+            if isinstance(v, (list, tuple)):
+                flat.append((k, ",".join(str(x) for x in v)))
+            elif isinstance(v, bool):
+                flat.append((k, "true" if v else "false"))
+            else:
+                flat.append((k, str(v)))
+        if flat:
+            url += "?" + urllib.parse.urlencode(flat)
+
+    body = json.dumps(data).encode("utf-8") if data is not None else None
+    auth = inst.wc_auth if namespace.startswith("wc/") else inst.auth
+    req = urllib.request.Request(
+        url,
+        data=body,
+        headers={
+            "Authorization": auth,
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": "wp-rest-skill",
+        },
+        method=method,
+    )
+    return _send(req, url)
+
+
+def api_upload(inst, filepath, filename=None):
+    """Medien-Upload als Binary-Body; der Dateiname wird zum Slug."""
+    fname = filename or os.path.basename(filepath)
+    ctype = mimetypes.guess_type(fname)[0] or "application/octet-stream"
+    try:
+        with open(filepath, "rb") as f:
+            content = f.read()
+    except OSError as e:
+        print(f"Error: {filepath} nicht lesbar: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    url = f"{inst.url}/wp-json/wp/v2/media"
+    req = urllib.request.Request(
+        url,
+        data=content,
+        method="POST",
+        headers={
+            "Authorization": inst.auth,
+            "Content-Type": ctype,
+            "Content-Disposition": f'attachment; filename="{fname}"',
+            "Accept": "application/json",
+            "User-Agent": "wp-rest-skill",
+        },
+    )
+    return _send(req, url)
+
+
+def _send(req, url):
+    try:
+        with urllib.request.urlopen(req) as resp:
+            raw = resp.read()
+            if not raw:
+                return None
+            try:
+                return json.loads(raw.decode("utf-8"))
+            except ValueError:
+                # 200 mit HTML statt JSON: meist eine vorgeschaltete Login-/
+                # Security-Seite oder ein Plugin, das die REST-API abschaltet.
+                print(
+                    f"Error: Antwort von {url} ist kein JSON "
+                    f"({resp.headers.get('Content-Type', '?')}) -- vermutlich eine "
+                    "Login-Seite oder eine gesperrte REST-API.",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+    except urllib.error.HTTPError as e:
+        err = e.read().decode("utf-8", errors="replace")
+        print(f"API error {e.code}: {err}", file=sys.stderr)
+        sys.exit(1)
+    except urllib.error.URLError as e:
+        print(f"Verbindungsfehler: {e.reason}", file=sys.stderr)
+        sys.exit(1)
+
+
+def out_json(data):
+    print(json.dumps(data, indent=2, ensure_ascii=False))
+
+
+def read_content(args):
+    """Inhalt aus --content-file ('-' = stdin) oder --content lesen"""
+    path = getattr(args, "content_file", None)
+    if path:
+        if path == "-":
+            return sys.stdin.read()
+        try:
+            with open(path, encoding="utf-8") as f:
+                return f.read()
+        except OSError as e:
+            print(f"Error: {path} nicht lesbar: {e}", file=sys.stderr)
+            sys.exit(1)
+    return getattr(args, "content", None)
+
+
+def read_json_file(path):
+    if path == "-":
+        raw = sys.stdin.read()
+    else:
+        try:
+            with open(path, encoding="utf-8") as f:
+                raw = f.read()
+        except OSError as e:
+            print(f"Error: {path} nicht lesbar: {e}", file=sys.stderr)
+            sys.exit(1)
+    try:
+        return json.loads(raw)
+    except ValueError as e:
+        print(f"Error: {path} ist kein gueltiges JSON: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+def endpoint_for(args):
+    """Endpunkt aus --endpoint oder --type ableiten"""
+    if getattr(args, "endpoint", None):
+        return args.endpoint.strip("/")
+    ptype = getattr(args, "type", None) or "post"
+    if ptype in TYPE_ENDPOINTS:
+        return TYPE_ENDPOINTS[ptype]
+    print(
+        f"Error: unbekannter Post-Type '{ptype}'. Bekannt: "
+        f"{', '.join(sorted(TYPE_ENDPOINTS))}. Sonst --endpoint verwenden.",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+
+
+def _text(field):
+    """{'rendered': ...} / {'raw': ...} auf den Text reduzieren"""
+    if isinstance(field, dict):
+        return field.get("raw") or field.get("rendered") or ""
+    return field
+
+
+def slim_post(item):
+    return {
+        "id": item.get("id"),
+        "date": item.get("date"),
+        "status": item.get("status"),
+        "type": item.get("type"),
+        "slug": item.get("slug"),
+        "title": _text(item.get("title")),
+        "parent": item.get("parent"),
+        "link": item.get("link"),
+    }
+
+
+def slim_media(item):
+    return {
+        "id": item.get("id"),
+        "date": item.get("date"),
+        "slug": item.get("slug"),
+        "title": _text(item.get("title")),
+        "alt_text": item.get("alt_text"),
+        "mime_type": item.get("mime_type"),
+        "post": item.get("post"),
+        "source_url": item.get("source_url"),
+    }
+
+
+def slim_term(item):
+    return {
+        "id": item.get("id"),
+        "name": item.get("name"),
+        "slug": item.get("slug"),
+        "parent": item.get("parent"),
+        "count": item.get("count"),
+    }
+
+
+def slim_generic(item):
+    """Fuer WooCommerce und Templates: die ueblichen Kennfelder, sofern vorhanden"""
+    keys = (
+        "id",
+        "name",
+        "slug",
+        "sku",
+        "status",
+        "type",
+        "price",
+        "number",
+        "total",
+        "theme",
+        "date_created",
+        "date_modified",
+    )
+    out = {k: item[k] for k in keys if k in item}
+    if "title" in item:
+        out["title"] = _text(item["title"])
+    return out or item
+
+
+# ---- Instanzen und Zugang -------------------------------------------------
+
+
+def cmd_instances(args):
+    env = load_env()
+    rows = []
+    for name in list_instances():
+        key = name.upper()
+        rows.append(
+            {
+                "instance": name,
+                "url": env.get(f"WP_{key}_URL"),
+                "user": env.get(f"WP_{key}_USER"),
+                "app_password": "gesetzt" if env.get(f"WP_{key}_APP_PASSWORD") else "fehlt",
+                "wc_keys": "eigene" if env.get(f"WP_{key}_WC_KEY") else "App Password",
+            }
+        )
+    out_json({"env": env_path(), "default": env.get("WP_DEFAULT_INSTANCE"), "instances": rows})
+
+
+def cmd_whoami(args):
+    inst = resolve_instance(args.instance)
+    me = api_call(inst, "GET", "users/me", params={"context": "edit"})
+    out_json(
+        {
+            "instance": inst.name,
+            "url": inst.url,
+            "id": me.get("id"),
+            "name": me.get("name"),
+            "slug": me.get("slug"),
+            "roles": me.get("roles"),
+            "capabilities": sorted(
+                k for k, v in (me.get("capabilities") or {}).items() if v
+            ),
+        }
+    )
+
+
+# ---- Beitraege, Seiten, wiederverwendbare Bloecke --------------------------
+
+
+def cmd_list_posts(args):
+    inst = resolve_instance(args.instance)
+    params = {
+        "status": args.status,
+        "search": args.search,
+        "per_page": args.per_page,
+        "page": args.page,
+        "parent": args.parent,
+        "categories": args.categories,
+        "tags": args.tags,
+        "orderby": args.orderby,
+        "order": args.order,
+        "context": "edit",
+    }
+    items = api_call(inst, "GET", endpoint_for(args), params=params)
+    if args.json:
+        out_json(items)
+        return
+    slim = slim_media if endpoint_for(args) == "media" else slim_post
+    out_json([slim(i) for i in items])
+
+
+def cmd_get_post(args):
+    inst = resolve_instance(args.instance)
+    # context=edit liefert content.raw -- nur das darf zurueckgeschrieben werden.
+    ctx = "view" if args.rendered else "edit"
+    item = api_call(inst, "GET", f"{endpoint_for(args)}/{args.id}", params={"context": ctx})
+
+    if args.output:
+        content = _text(item.get("content"))
+        try:
+            with open(args.output, "w", encoding="utf-8") as f:
+                f.write(content)
+        except OSError as e:
+            print(f"Error: {args.output} nicht schreibbar: {e}", file=sys.stderr)
+            sys.exit(1)
+        out_json(
+            {
+                "id": item.get("id"),
+                "title": _text(item.get("title")),
+                "status": item.get("status"),
+                "context": ctx,
+                "content_file": os.path.abspath(args.output),
+                "bytes": len(content.encode("utf-8")),
+            }
+        )
+        return
+
+    if args.json:
+        out_json(item)
+        return
+    data = slim_post(item)
+    data["content"] = _text(item.get("content"))
+    out_json(data)
+
+
+def _post_payload(args, content):
+    """Nur die tatsaechlich uebergebenen Felder einsammeln"""
+    payload = {}
+    if args.title is not None:
+        payload["title"] = args.title
+    if content is not None:
+        payload["content"] = content
+    if args.excerpt is not None:
+        payload["excerpt"] = args.excerpt
+    if args.status is not None:
+        payload["status"] = args.status
+    if args.slug is not None:
+        payload["slug"] = args.slug
+    if args.date is not None:
+        payload["date"] = args.date
+    if args.parent is not None:
+        payload["parent"] = args.parent
+    if args.featured_media is not None:
+        payload["featured_media"] = args.featured_media
+    if getattr(args, "template", None) is not None:
+        payload["template"] = args.template
+    return payload
+
+
+def cmd_create_post(args):
+    inst = resolve_instance(args.instance)
+    payload = _post_payload(args, read_content(args))
+    if not payload.get("title") and not payload.get("content"):
+        print("Error: mindestens --title oder --content/--content-file noetig", file=sys.stderr)
+        sys.exit(1)
+    payload.setdefault("status", "draft")
+    item = api_call(inst, "POST", endpoint_for(args), data=payload)
+    out_json(slim_post(item))
+
+
+def cmd_update_post(args):
+    inst = resolve_instance(args.instance)
+    payload = _post_payload(args, read_content(args))
+    if not payload:
+        print("Error: kein Feld zum Aendern angegeben", file=sys.stderr)
+        sys.exit(1)
+    item = api_call(inst, "POST", f"{endpoint_for(args)}/{args.id}", data=payload)
+    out_json(slim_post(item))
+
+
+def cmd_set_status(args):
+    inst = resolve_instance(args.instance)
+    item = api_call(
+        inst, "POST", f"{endpoint_for(args)}/{args.id}", data={"status": args.status}
+    )
+    out_json(slim_post(item))
+
+
+def cmd_delete_post(args):
+    inst = resolve_instance(args.instance)
+    path = f"{endpoint_for(args)}/{args.id}"
+    if not args.yes:
+        item = api_call(inst, "GET", path, params={"context": "edit"})
+        out_json(
+            {
+                "dry_run": True,
+                "wuerde_loeschen": slim_post(item),
+                "endgueltig": bool(args.force),
+                "hinweis": "mit --yes ausfuehren",
+            }
+        )
+        return
+    res = api_call(inst, "DELETE", path, params={"force": args.force})
+    out_json({"geloescht": True, "endgueltig": bool(args.force), "antwort": slim_post(res.get("previous", res) if isinstance(res, dict) else res)})
+
+
+# ---- Kategorien und Schlagworte -------------------------------------------
+
+
+def _taxonomy_endpoint(taxonomy):
+    if taxonomy in ("categories", "category"):
+        return "categories"
+    if taxonomy in ("tags", "tag", "post_tag"):
+        return "tags"
+    return taxonomy
+
+
+def cmd_list_terms(args):
+    inst = resolve_instance(args.instance)
+    items = api_call(
+        inst,
+        "GET",
+        _taxonomy_endpoint(args.taxonomy),
+        params={"search": args.search, "per_page": args.per_page, "page": args.page},
+    )
+    out_json(items if args.json else [slim_term(i) for i in items])
+
+
+def cmd_create_term(args):
+    inst = resolve_instance(args.instance)
+    payload = {"name": args.name}
+    if args.slug:
+        payload["slug"] = args.slug
+    if args.parent is not None:
+        payload["parent"] = args.parent
+    if args.description:
+        payload["description"] = args.description
+    item = api_call(inst, "POST", _taxonomy_endpoint(args.taxonomy), data=payload)
+    out_json(slim_term(item))
+
+
+def _resolve_terms(inst, endpoint, names, create):
+    """Namen oder IDs zu Term-IDs aufloesen, fehlende optional anlegen"""
+    ids = []
+    for raw in names:
+        raw = raw.strip()
+        if not raw:
+            continue
+        if raw.isdigit():
+            ids.append(int(raw))
+            continue
+        found = api_call(inst, "GET", endpoint, params={"search": raw, "per_page": 100})
+        match = next((t for t in found if t.get("name", "").lower() == raw.lower()), None)
+        if match:
+            ids.append(match["id"])
+            continue
+        if not create:
+            print(
+                f"Error: Begriff '{raw}' existiert nicht in {endpoint} "
+                "(mit --create anlegen lassen)",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        ids.append(api_call(inst, "POST", endpoint, data={"name": raw})["id"])
+    return ids
+
+
+def cmd_set_terms(args):
+    inst = resolve_instance(args.instance)
+    payload = {}
+    if args.categories is not None:
+        payload["categories"] = _resolve_terms(
+            inst, "categories", args.categories.split(","), args.create
+        )
+    if args.tags is not None:
+        payload["tags"] = _resolve_terms(inst, "tags", args.tags.split(","), args.create)
+    if not payload:
+        print("Error: --categories und/oder --tags angeben", file=sys.stderr)
+        sys.exit(1)
+    item = api_call(inst, "POST", f"{endpoint_for(args)}/{args.id}", data=payload)
+    out_json(
+        {
+            "id": item.get("id"),
+            "title": _text(item.get("title")),
+            "categories": item.get("categories"),
+            "tags": item.get("tags"),
+        }
+    )
+
+
+# ---- Medien ---------------------------------------------------------------
+
+
+def cmd_upload_media(args):
+    inst = resolve_instance(args.instance)
+    item = api_upload(inst, args.file, args.filename)
+
+    meta = {}
+    if args.title is not None:
+        meta["title"] = args.title
+    if args.alt is not None:
+        meta["alt_text"] = args.alt
+    if args.caption is not None:
+        meta["caption"] = args.caption
+    if args.description is not None:
+        meta["description"] = args.description
+    if args.post is not None:
+        meta["post"] = args.post
+    if meta:
+        item = api_call(inst, "POST", f"media/{item['id']}", data=meta)
+
+    out_json(slim_media(item))
+
+
+def cmd_list_media(args):
+    inst = resolve_instance(args.instance)
+    items = api_call(
+        inst,
+        "GET",
+        "media",
+        params={
+            "search": args.search,
+            "media_type": args.media_type,
+            "parent": args.post,
+            "per_page": args.per_page,
+            "page": args.page,
+            "context": "edit",
+        },
+    )
+    out_json(items if args.json else [slim_media(i) for i in items])
+
+
+def cmd_update_media(args):
+    inst = resolve_instance(args.instance)
+    payload = {}
+    for field, value in (
+        ("title", args.title),
+        ("alt_text", args.alt),
+        ("caption", args.caption),
+        ("description", args.description),
+        ("post", args.post),
+    ):
+        if value is not None:
+            payload[field] = value
+    if not payload:
+        print("Error: kein Feld zum Aendern angegeben", file=sys.stderr)
+        sys.exit(1)
+    out_json(slim_media(api_call(inst, "POST", f"media/{args.id}", data=payload)))
+
+
+def cmd_delete_media(args):
+    inst = resolve_instance(args.instance)
+    # Medien kennen keinen Papierkorb -- die API verlangt force=true.
+    if not args.yes:
+        item = api_call(inst, "GET", f"media/{args.id}", params={"context": "edit"})
+        out_json(
+            {
+                "dry_run": True,
+                "wuerde_loeschen": slim_media(item),
+                "hinweis": "Medien kennen keinen Papierkorb; mit --yes ausfuehren",
+            }
+        )
+        return
+    api_call(inst, "DELETE", f"media/{args.id}", params={"force": True})
+    out_json({"geloescht": True, "id": args.id})
+
+
+# ---- Templates und Global Styles (Block-Themes) ---------------------------
+
+
+def cmd_list_templates(args):
+    inst = resolve_instance(args.instance)
+    endpoint = "template-parts" if args.parts else "templates"
+    items = api_call(inst, "GET", endpoint, params={"context": "edit"})
+    out_json(items if args.json else [slim_generic(i) for i in items])
+
+
+def cmd_get_template(args):
+    inst = resolve_instance(args.instance)
+    endpoint = "template-parts" if args.parts else "templates"
+    item = api_call(inst, "GET", f"{endpoint}/{args.id}", params={"context": "edit"})
+    if args.output:
+        content = _text(item.get("content"))
+        with open(args.output, "w", encoding="utf-8") as f:
+            f.write(content)
+        out_json({"id": item.get("id"), "content_file": os.path.abspath(args.output)})
+        return
+    if args.json:
+        out_json(item)
+        return
+    data = slim_generic(item)
+    data["content"] = _text(item.get("content"))
+    out_json(data)
+
+
+def cmd_update_template(args):
+    inst = resolve_instance(args.instance)
+    endpoint = "template-parts" if args.parts else "templates"
+    content = read_content(args)
+    if content is None:
+        print("Error: --content oder --content-file noetig", file=sys.stderr)
+        sys.exit(1)
+    item = api_call(inst, "POST", f"{endpoint}/{args.id}", data={"content": content})
+    out_json(slim_generic(item))
+
+
+def _global_styles_id(inst):
+    """Die User-Global-Styles-ID haengt am aktiven Theme (_links)"""
+    themes = api_call(inst, "GET", "themes", params={"status": "active"})
+    if not themes:
+        print("Error: kein aktives Theme ueber die API sichtbar", file=sys.stderr)
+        sys.exit(1)
+    links = themes[0].get("_links") or {}
+    href = (links.get("wp:user-global-styles") or [{}])[0].get("href")
+    if not href:
+        print(
+            "Error: keine Global Styles vorhanden -- das aktive Theme ist "
+            "vermutlich ein Classic-Theme. Customizer-CSS geht nur ueber wp-cli.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    return href.rstrip("/").rsplit("/", 1)[-1]
+
+
+def cmd_get_global_styles(args):
+    inst = resolve_instance(args.instance)
+    if args.theme_defaults:
+        themes = api_call(inst, "GET", "themes", params={"status": "active"})
+        stylesheet = themes[0].get("stylesheet")
+        item = api_call(inst, "GET", f"global-styles/themes/{stylesheet}")
+    else:
+        item = api_call(inst, "GET", f"global-styles/{_global_styles_id(inst)}")
+
+    if args.css_output:
+        css = ((item.get("styles") or {}).get("css")) or ""
+        with open(args.css_output, "w", encoding="utf-8") as f:
+            f.write(css)
+        out_json({"id": item.get("id"), "css_file": os.path.abspath(args.css_output), "bytes": len(css.encode("utf-8"))})
+        return
+    out_json(item)
+
+
+def cmd_set_global_css(args):
+    inst = resolve_instance(args.instance)
+    gid = _global_styles_id(inst)
+    current = api_call(inst, "GET", f"global-styles/{gid}")
+    styles = current.get("styles") or {}
+    # Nur das Feld css ersetzen, der Rest der theme.json-Ebene bleibt stehen.
+    styles["css"] = read_content(args) or ""
+    item = api_call(inst, "POST", f"global-styles/{gid}", data={"styles": styles})
+    out_json({"id": item.get("id"), "bytes": len(styles["css"].encode("utf-8"))})
+
+
+def cmd_set_global_styles(args):
+    inst = resolve_instance(args.instance)
+    gid = _global_styles_id(inst)
+    payload = read_json_file(args.file)
+    item = api_call(inst, "POST", f"global-styles/{gid}", data=payload)
+    out_json({"id": item.get("id"), "gesetzt": sorted(payload.keys())})
+
+
+# ---- WooCommerce ----------------------------------------------------------
+
+
+def cmd_wc_list(args):
+    inst = resolve_instance(args.instance)
+    params = {"per_page": args.per_page, "page": args.page, "search": args.search}
+    for pair in args.param or []:
+        if "=" not in pair:
+            print(f"Error: --param braucht key=value, nicht '{pair}'", file=sys.stderr)
+            sys.exit(1)
+        k, v = pair.split("=", 1)
+        params[k] = v
+    items = api_call(inst, "GET", args.resource, params=params, namespace="wc/v3")
+    out_json(items if args.json else [slim_generic(i) for i in items])
+
+
+def cmd_wc_get(args):
+    inst = resolve_instance(args.instance)
+    out_json(api_call(inst, "GET", f"{args.resource}/{args.id}", namespace="wc/v3"))
+
+
+def cmd_wc_create(args):
+    inst = resolve_instance(args.instance)
+    item = api_call(
+        inst, "POST", args.resource, data=read_json_file(args.file), namespace="wc/v3"
+    )
+    out_json(slim_generic(item))
+
+
+def cmd_wc_update(args):
+    inst = resolve_instance(args.instance)
+    item = api_call(
+        inst,
+        "PUT",
+        f"{args.resource}/{args.id}",
+        data=read_json_file(args.file),
+        namespace="wc/v3",
+    )
+    out_json(slim_generic(item))
+
+
+def cmd_wc_delete(args):
+    inst = resolve_instance(args.instance)
+    path = f"{args.resource}/{args.id}"
+    if not args.yes:
+        item = api_call(inst, "GET", path, namespace="wc/v3")
+        out_json(
+            {
+                "dry_run": True,
+                "wuerde_loeschen": slim_generic(item),
+                "endgueltig": bool(args.force),
+                "hinweis": "mit --yes ausfuehren",
+            }
+        )
+        return
+    res = api_call(
+        inst, "DELETE", path, params={"force": args.force}, namespace="wc/v3"
+    )
+    out_json({"geloescht": True, "endgueltig": bool(args.force), "id": (res or {}).get("id", args.id)})
+
+
+# ---- Roher Aufruf ---------------------------------------------------------
+
+
+def cmd_request(args):
+    inst = resolve_instance(args.instance)
+    params = {}
+    for pair in args.param or []:
+        if "=" not in pair:
+            print(f"Error: --param braucht key=value, nicht '{pair}'", file=sys.stderr)
+            sys.exit(1)
+        k, v = pair.split("=", 1)
+        params[k] = v
+    data = read_json_file(args.file) if args.file else None
+    out_json(
+        api_call(
+            inst, args.method.upper(), args.path, data=data, params=params,
+            namespace=args.namespace,
+        )
+    )
+
+
+def build_parser():
+    p = argparse.ArgumentParser(
+        prog="wp-rest",
+        description="WordPress REST API helper (multi-instance): Inhalte, Medien, "
+        "Templates, Global Styles, WooCommerce",
+    )
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    def add_instance(sp):
+        sp.add_argument(
+            "-i", "--instance", help="Instanz-Name (Default: WP_DEFAULT_INSTANCE)"
+        )
+
+    def add_type(sp):
+        sp.add_argument(
+            "--type",
+            default="post",
+            help="Post-Type: post, page, wp_block, media (Default post)",
+        )
+        sp.add_argument(
+            "--endpoint", help="Endpunkt unter wp/v2 direkt angeben (statt --type)"
+        )
+
+    def add_paging(sp):
+        sp.add_argument("--per-page", type=int, default=20, help="Treffer pro Seite (Default 20)")
+        sp.add_argument("--page", type=int, default=1, help="Seite (Default 1)")
+
+    def add_json(sp):
+        sp.add_argument("--json", action="store_true", help="rohes JSON ausgeben")
+
+    def add_content(sp):
+        sp.add_argument("--content", help="Inhalt inline (nur ASCII-Text zumutbar)")
+        sp.add_argument(
+            "--content-file", help="Inhalt aus Datei lesen, UTF-8 ('-' = stdin)"
+        )
+
+    sp = sub.add_parser("instances", help="konfigurierte Instanzen auflisten")
+    sp.set_defaults(func=cmd_instances)
+
+    sp = sub.add_parser("whoami", help="Zugang und Rechte des App-Passworts pruefen")
+    add_instance(sp)
+    sp.set_defaults(func=cmd_whoami)
+
+    sp = sub.add_parser("list-posts", help="Beitraege/Seiten/Bloecke auflisten")
+    add_instance(sp)
+    add_type(sp)
+    add_paging(sp)
+    add_json(sp)
+    sp.add_argument("--status", help="publish, draft, pending, private, any")
+    sp.add_argument("--search", help="Suchbegriff")
+    sp.add_argument("--parent", type=int, help="nur Kinder dieser Seite")
+    sp.add_argument("--categories", help="Kategorie-IDs, komma-getrennt")
+    sp.add_argument("--tags", help="Schlagwort-IDs, komma-getrennt")
+    sp.add_argument("--orderby", help="date, title, menu_order, modified")
+    sp.add_argument("--order", help="asc oder desc")
+    sp.set_defaults(func=cmd_list_posts)
+
+    sp = sub.add_parser("get-post", help="einzelnen Beitrag/Seite anzeigen")
+    add_instance(sp)
+    add_type(sp)
+    add_json(sp)
+    sp.add_argument("id", type=int)
+    sp.add_argument(
+        "--rendered",
+        action="store_true",
+        help="content.rendered statt Roh-Markup (NICHT zum Zurueckschreiben)",
+    )
+    sp.add_argument("--output", help="Inhalt in diese Datei schreiben")
+    sp.set_defaults(func=cmd_get_post)
+
+    def add_post_fields(sp):
+        sp.add_argument("--title")
+        sp.add_argument("--excerpt")
+        sp.add_argument("--status", help="publish, draft, pending, private")
+        sp.add_argument("--slug")
+        sp.add_argument("--date", help="ISO-8601, z.B. 2026-09-14T10:00:00")
+        sp.add_argument("--parent", type=int, help="Elternseite")
+        sp.add_argument("--featured-media", type=int, help="Beitragsbild (Media-ID)")
+        sp.add_argument("--template", help="Seitentemplate (Dateiname)")
+
+    sp = sub.add_parser("create-post", help="Beitrag/Seite/Block anlegen (schreibend)")
+    add_instance(sp)
+    add_type(sp)
+    add_content(sp)
+    add_post_fields(sp)
+    sp.set_defaults(func=cmd_create_post)
+
+    sp = sub.add_parser("update-post", help="einzelne Felder aendern (schreibend)")
+    add_instance(sp)
+    add_type(sp)
+    add_content(sp)
+    add_post_fields(sp)
+    sp.add_argument("id", type=int)
+    sp.set_defaults(func=cmd_update_post)
+
+    sp = sub.add_parser("set-status", help="Status setzen (schreibend)")
+    add_instance(sp)
+    add_type(sp)
+    sp.add_argument("id", type=int)
+    sp.add_argument("status", help="publish, draft, pending, private")
+    sp.set_defaults(func=cmd_set_status)
+
+    sp = sub.add_parser("delete-post", help="Beitrag/Seite loeschen (--yes noetig)")
+    add_instance(sp)
+    add_type(sp)
+    sp.add_argument("id", type=int)
+    sp.add_argument("--force", action="store_true", help="endgueltig statt Papierkorb")
+    sp.add_argument("--yes", action="store_true", help="ausfuehren (ohne: nur dry-run)")
+    sp.set_defaults(func=cmd_delete_post)
+
+    sp = sub.add_parser("list-terms", help="Kategorien/Schlagworte auflisten")
+    add_instance(sp)
+    add_paging(sp)
+    add_json(sp)
+    sp.add_argument("--taxonomy", default="categories", help="categories oder tags")
+    sp.add_argument("--search")
+    sp.set_defaults(func=cmd_list_terms)
+
+    sp = sub.add_parser("create-term", help="Kategorie/Schlagwort anlegen (schreibend)")
+    add_instance(sp)
+    sp.add_argument("--taxonomy", default="categories", help="categories oder tags")
+    sp.add_argument("--name", required=True)
+    sp.add_argument("--slug")
+    sp.add_argument("--parent", type=int)
+    sp.add_argument("--description")
+    sp.set_defaults(func=cmd_create_term)
+
+    sp = sub.add_parser("set-terms", help="Kategorien/Schlagworte zuweisen (schreibend)")
+    add_instance(sp)
+    add_type(sp)
+    sp.add_argument("id", type=int)
+    sp.add_argument("--categories", help="Namen oder IDs, komma-getrennt")
+    sp.add_argument("--tags", help="Namen oder IDs, komma-getrennt")
+    sp.add_argument("--create", action="store_true", help="fehlende Begriffe anlegen")
+    sp.set_defaults(func=cmd_set_terms)
+
+    sp = sub.add_parser("upload-media", help="Datei hochladen (schreibend)")
+    add_instance(sp)
+    sp.add_argument("file", help="absoluter Pfad zur Datei")
+    sp.add_argument("--filename", help="abweichender Dateiname (wird zum Slug)")
+    sp.add_argument("--title")
+    sp.add_argument("--alt", help="Alt-Text")
+    sp.add_argument("--caption")
+    sp.add_argument("--description")
+    sp.add_argument("--post", type=int, help="Zuordnung zu einem Beitrag")
+    sp.set_defaults(func=cmd_upload_media)
+
+    sp = sub.add_parser("list-media", help="Mediathek auflisten")
+    add_instance(sp)
+    add_paging(sp)
+    add_json(sp)
+    sp.add_argument("--search")
+    sp.add_argument("--media-type", help="image, video, audio, application")
+    sp.add_argument("--post", type=int, help="nur Anhaenge dieses Beitrags")
+    sp.set_defaults(func=cmd_list_media)
+
+    sp = sub.add_parser("update-media", help="Titel/Alt-Text aendern (schreibend)")
+    add_instance(sp)
+    sp.add_argument("id", type=int)
+    sp.add_argument("--title")
+    sp.add_argument("--alt")
+    sp.add_argument("--caption")
+    sp.add_argument("--description")
+    sp.add_argument("--post", type=int)
+    sp.set_defaults(func=cmd_update_media)
+
+    sp = sub.add_parser("delete-media", help="Medium loeschen (--yes noetig)")
+    add_instance(sp)
+    sp.add_argument("id", type=int)
+    sp.add_argument("--yes", action="store_true", help="ausfuehren (ohne: nur dry-run)")
+    sp.set_defaults(func=cmd_delete_media)
+
+    sp = sub.add_parser("list-templates", help="Templates auflisten (Block-Themes)")
+    add_instance(sp)
+    add_json(sp)
+    sp.add_argument("--parts", action="store_true", help="template-parts statt templates")
+    sp.set_defaults(func=cmd_list_templates)
+
+    sp = sub.add_parser("get-template", help="Template anzeigen (Block-Themes)")
+    add_instance(sp)
+    add_json(sp)
+    sp.add_argument("id", help="Template-ID, z.B. theme//single")
+    sp.add_argument("--parts", action="store_true")
+    sp.add_argument("--output", help="Markup in diese Datei schreiben")
+    sp.set_defaults(func=cmd_get_template)
+
+    sp = sub.add_parser("update-template", help="Template-Markup setzen (schreibend)")
+    add_instance(sp)
+    add_content(sp)
+    sp.add_argument("id", help="Template-ID, z.B. theme//single")
+    sp.add_argument("--parts", action="store_true")
+    sp.set_defaults(func=cmd_update_template)
+
+    sp = sub.add_parser("get-global-styles", help="Global Styles lesen (Block-Themes)")
+    add_instance(sp)
+    sp.add_argument(
+        "--theme-defaults",
+        action="store_true",
+        help="Theme-Vorgaben statt der eigenen Einstellungen",
+    )
+    sp.add_argument("--css-output", help="nur styles.css in diese Datei schreiben")
+    sp.set_defaults(func=cmd_get_global_styles)
+
+    sp = sub.add_parser("set-global-css", help="styles.css setzen (schreibend)")
+    add_instance(sp)
+    add_content(sp)
+    sp.set_defaults(func=cmd_set_global_css)
+
+    sp = sub.add_parser(
+        "set-global-styles", help="Global-Styles-JSON setzen (schreibend)"
+    )
+    add_instance(sp)
+    sp.add_argument("--file", required=True, help="JSON mit styles/settings")
+    sp.set_defaults(func=cmd_set_global_styles)
+
+    sp = sub.add_parser("wc-list", help="WooCommerce-Ressource auflisten")
+    add_instance(sp)
+    add_paging(sp)
+    add_json(sp)
+    sp.add_argument("resource", help="products, orders, customers, coupons, products/categories")
+    sp.add_argument("--search")
+    sp.add_argument("--param", action="append", help="key=value, mehrfach moeglich")
+    sp.set_defaults(func=cmd_wc_list)
+
+    sp = sub.add_parser("wc-get", help="einzelne WooCommerce-Ressource anzeigen")
+    add_instance(sp)
+    sp.add_argument("resource")
+    sp.add_argument("id")
+    sp.set_defaults(func=cmd_wc_get)
+
+    sp = sub.add_parser("wc-create", help="WooCommerce-Ressource anlegen (schreibend)")
+    add_instance(sp)
+    sp.add_argument("resource")
+    sp.add_argument("--file", required=True, help="JSON-Datei mit den Feldern ('-' = stdin)")
+    sp.set_defaults(func=cmd_wc_create)
+
+    sp = sub.add_parser("wc-update", help="WooCommerce-Ressource aendern (schreibend)")
+    add_instance(sp)
+    sp.add_argument("resource")
+    sp.add_argument("id")
+    sp.add_argument("--file", required=True, help="JSON-Datei mit den Feldern ('-' = stdin)")
+    sp.set_defaults(func=cmd_wc_update)
+
+    sp = sub.add_parser("wc-delete", help="WooCommerce-Ressource loeschen (--yes noetig)")
+    add_instance(sp)
+    sp.add_argument("resource")
+    sp.add_argument("id")
+    sp.add_argument("--force", action="store_true", help="endgueltig statt Papierkorb")
+    sp.add_argument("--yes", action="store_true", help="ausfuehren (ohne: nur dry-run)")
+    sp.set_defaults(func=cmd_wc_delete)
+
+    sp = sub.add_parser("request", help="roher REST-Aufruf (Escape-Hatch)")
+    add_instance(sp)
+    sp.add_argument("method", help="GET, POST, PUT, DELETE")
+    sp.add_argument("path", help="Pfad unter dem Namespace, z.B. settings")
+    sp.add_argument("--namespace", default="wp/v2", help="Default wp/v2")
+    sp.add_argument("--param", action="append", help="key=value, mehrfach moeglich")
+    sp.add_argument("--file", help="JSON-Body aus Datei ('-' = stdin)")
+    sp.set_defaults(func=cmd_request)
+
+    return p
+
+
+def main():
+    args = build_parser().parse_args()
+    args.func(args)
+
+
+if __name__ == "__main__":
+    main()
