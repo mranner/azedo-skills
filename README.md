@@ -448,6 +448,8 @@ Pflegt WordPress-Inhalte ueber die REST-API (`/wp-json/wp/v2/`) mit einem Applic
 
 Profile in `~/.claude/wp-rest.json` (Muster wie `jira`; `WP_REST_CONFIG` ueberschreibt den Pfad): `instances` als Objekt mit `url`, `user`, `app_password`, optional `wc: {key, secret}` und `aliases`. Ueber die Aliasse bzw. den Host der `url` waehlt `--instance www.example.org` die Instanz, ohne den Profilnamen zu kennen; sonst greift `default`.
 
+**Voraussetzungen:** Python >= 3.9, stdlib only. Pro Site ein Application Password (WordPress: Benutzer > Profil > Anwendungspasswoerter).
+
 **Trigger:** `/wp-rest` oder natuerliche Sprache wie "leg einen Beitrag an", "lad das Bild hoch", "setz die Seite auf publish", "Produkt in WooCommerce".
 
 ### wiki
@@ -631,17 +633,20 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.56.1
+### 1.56.2
 
-- **`wp-rest`: Profile liegen jetzt in `~/.claude/wp-rest.json` statt in der `.env`.**
-  Das Schema `WP_<INSTANZ>_URL/_USER/_APP_PASSWORD` kam aus den vorhandenen Notizen
-  und traegt bei mehreren Sites nicht: ein flacher Namensraum nimmt keine
-  Verschachtelung auf (WooCommerce-Keys, Domain-Aliasse), und die Auffindung
-  cwd/.env vor ~/.env laesst dasselbe Kommando je nach Arbeitsverzeichnis eine
-  andere Site treffen - bei einem schreibenden Skill ein Risiko, nicht bloss eine
-  Fehlermeldung. Die JSON folgt jetzt dem Muster von `jira`: `instances` als
-  Objekt, `default`, pro Instanz `url`, `user`, `app_password`, optional
-  `wc: {key, secret}` und `aliases`. Ueber die Aliasse (oder den Host der `url`)
-  waehlt `--instance www.example.org` die Instanz, ohne dass der Profilname
-  bekannt sein muss. Ein `.env`-Fallback bleibt bewusst aus, sonst gaebe es zwei
-  Quellen mit Vorrangregel. (CR4641)
+- **`wp-rest`: Aufrufbeispiele und Voraussetzungen in der SKILL.md.** Der Skill
+  beschrieb seine 26 Subcommands in Tabellen, zeigte aber keinen einzigen
+  vollstaendigen Aufruf - ein Modell, das ihn laedt, musste sich jeden Befehl aus
+  Spaltennamen zusammensetzen. Neu ist ein Abschnitt "Typische Ablaeufe" mit den
+  fuenf Wegen, die in der Praxis vorkommen: Beitrag anlegen und einsortieren,
+  bestehenden Inhalt ueber den Umweg Datei aendern, Bild hochladen und als
+  Beitragsbild setzen, Instanz ueber die Domain waehlen, WooCommerce-Produkt
+  aendern. Der zweite ist der wichtigste, weil er den Fallstrick weiter unten
+  praktisch aufloest: `get-post --output`, lokal bearbeiten, `update-post
+  --content-file` - so geht genau das zurueck, was vorher drin stand. Dazu ein
+  Dreisatz fuer den ersten Kontakt mit einer unbekannten Site (`whoami`, aktives
+  Theme, WooCommerce vorhanden?), der klaert, welche Teile des Skills dort
+  ueberhaupt greifen. Die Aufrufzeile nennt jetzt die Voraussetzung (Python >= 3.9,
+  stdlib only). Anlass: ein Abgleich mit den Anthropic-Empfehlungen zum
+  Skill-Aufbau. (CR4641)

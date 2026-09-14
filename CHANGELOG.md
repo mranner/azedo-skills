@@ -3,6 +3,24 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.56.2
+
+- **`wp-rest`: Aufrufbeispiele und Voraussetzungen in der SKILL.md.** Der Skill
+  beschrieb seine 26 Subcommands in Tabellen, zeigte aber keinen einzigen
+  vollstaendigen Aufruf - ein Modell, das ihn laedt, musste sich jeden Befehl aus
+  Spaltennamen zusammensetzen. Neu ist ein Abschnitt "Typische Ablaeufe" mit den
+  fuenf Wegen, die in der Praxis vorkommen: Beitrag anlegen und einsortieren,
+  bestehenden Inhalt ueber den Umweg Datei aendern, Bild hochladen und als
+  Beitragsbild setzen, Instanz ueber die Domain waehlen, WooCommerce-Produkt
+  aendern. Der zweite ist der wichtigste, weil er den Fallstrick weiter unten
+  praktisch aufloest: `get-post --output`, lokal bearbeiten, `update-post
+  --content-file` - so geht genau das zurueck, was vorher drin stand. Dazu ein
+  Dreisatz fuer den ersten Kontakt mit einer unbekannten Site (`whoami`, aktives
+  Theme, WooCommerce vorhanden?), der klaert, welche Teile des Skills dort
+  ueberhaupt greifen. Die Aufrufzeile nennt jetzt die Voraussetzung (Python >= 3.9,
+  stdlib only). Anlass: ein Abgleich mit den Anthropic-Empfehlungen zum
+  Skill-Aufbau. (CR4641)
+
 ### 1.56.1
 
 - **`wp-rest`: Profile liegen jetzt in `~/.claude/wp-rest.json` statt in der `.env`.**

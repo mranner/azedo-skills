@@ -19,7 +19,7 @@ Pflegt Inhalte auf WordPress-Sites über `/wp-json/wp/v2/` und WooCommerce über
 kein SSH, kein sudo, kein PHP-Eval. Das Passwort ist einzeln widerrufbar und
 trägt nur die Rechte seines Benutzers.
 
-**Aufruf:** `python3 "$SKILL_DIR/wp-rest" <subcommand> [options]`
+**Aufruf:** `python3 "$SKILL_DIR/wp-rest" <subcommand> [options]` (Python >= 3.9, stdlib only)
 
 `$SKILL_DIR` ist das Base Directory dieses Skills.
 
@@ -159,6 +159,58 @@ Generisch über den Namespace `wc/v3` - `resource` ist der Endpunkt-Pfad, z.B.
 Namespace (Default `wp/v2`). Damit sind auch `settings`, `block-types`,
 `block-patterns/patterns`, `navigation` und `block-renderer/<name>` erreichbar,
 ohne dass es dafür eigene Subcommands braucht.
+
+## Typische Abläufe
+
+**Beitrag anlegen und einsortieren.** Inhalt kommt aus einer Datei, damit
+Umlaute und Anführungszeichen nicht durch die Shell müssen:
+
+```bash
+python3 "$SKILL_DIR/wp-rest" create-post -i <instanz> \
+    --title "Titel des Beitrags" --content-file .tmp/beitrag.html --status draft
+python3 "$SKILL_DIR/wp-rest" set-terms <id> -i <instanz> \
+    --categories "News" --tags "Fundraising,Event" --create
+python3 "$SKILL_DIR/wp-rest" set-status <id> publish -i <instanz>
+```
+
+**Bestehenden Inhalt ändern.** Der Umweg über die Datei ist der Punkt: `get-post`
+schreibt das Roh-Markup heraus, bearbeitet wird lokal, und zurück geht genau das,
+was vorher drin stand - nur mit der gewollten Änderung:
+
+```bash
+python3 "$SKILL_DIR/wp-rest" get-post <id> -i <instanz> --output .tmp/seite.html
+# .tmp/seite.html bearbeiten
+python3 "$SKILL_DIR/wp-rest" update-post <id> -i <instanz> --content-file .tmp/seite.html
+```
+
+**Bild hochladen und als Beitragsbild setzen.** `--filename` bestimmt den Slug
+und damit die URL:
+
+```bash
+python3 "$SKILL_DIR/wp-rest" upload-media /pfad/DSC_4711.jpg -i <instanz> \
+    --filename "sommerfest-2026-buehne.jpg" \
+    --title "Sommerfest 2026" --alt "Bühne beim Sommerfest"
+python3 "$SKILL_DIR/wp-rest" update-post <id> -i <instanz> --featured-media <media-id>
+```
+
+**Instanz über die Domain wählen**, ohne den Profilnamen zu kennen:
+
+```bash
+python3 "$SKILL_DIR/wp-rest" list-posts -i www.example.org --status draft
+```
+
+**WooCommerce-Produkt ändern.** Die Felder kommen als JSON-Datei, weil `wc-update`
+die Nutzlast unverändert durchreicht:
+
+```bash
+echo '{"regular_price": "49.00"}' > .tmp/preis.json
+python3 "$SKILL_DIR/wp-rest" wc-update products <id> -i <instanz> --file .tmp/preis.json
+```
+
+**Vor dem ersten Schreibzugriff auf eine unbekannte Site** lohnt der Dreisatz
+`whoami` (Rechte), `request GET themes --param status=active` (Block- oder
+Classic-Theme) und ein `wc-list products --per-page 1` (WooCommerce vorhanden?) -
+er beantwortet, welche Teile des Skills dort überhaupt greifen.
 
 ## Block-Markup: der Fallstrick
 
