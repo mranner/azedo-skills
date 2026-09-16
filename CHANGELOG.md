@@ -3,6 +3,28 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.58.1
+
+- **`wp-nf`: ein Write kann das Feld in ein anderes Formular verschieben.** Auf
+  einer mehrsprachigen Site hat `$field->save()` ueber die Model-API bei zwei
+  Feldern die `parent_id` geaendert - das Feld wanderte vom Uebersetzungs- ins
+  Quellformular, ein Formular verlor dadurch seinen Absende-Button. Neun weitere
+  Felder desselben Laufs blieben korrekt zugeordnet; betroffen waren nur die,
+  deren Formular eine Uebersetzung eines anderen ist. Die bisherige Verifikation
+  ueber die vier Ablagen deckt das nicht auf, weil der **Wert** ueberall richtig
+  steht und nur die Zuordnung falsch ist. Abschnitt 5 haelt jetzt die `parent_id`
+  vor und nach jedem Write fest und schreibt sie im Fall der Faelle per direktem
+  `UPDATE` zurueck - bewusst nicht ueber die Model-API, weil dort der ausloesende
+  Hook sitzt; die Caches beider Formulare werden danach neu gebaut. Der Preflight
+  in Abschnitt 7 fuehrt `parent_id` und die Feldzahl des Formulars als fuenfte
+  Pruefgroesse. Dazu eine Abwaegung, ob Writes auf Uebersetzungsformularen
+  grundsaetzlich per SQL laufen sollten: Empfehlung bleibt die Model-API mit
+  Guard, weil direktes SQL beide Spaltenpaare der Meta-Tabelle selbst konsistent
+  halten muesste. Nebenbefund in Abschnitt 2: `update_setting('label', …)`
+  schreibt die Spalte `nf3_fields.label`, laesst die gleichnamige Meta-Zeile aber
+  stehen - eine fuenfte Stelle, an der ein alter Wert zurueckbleibt, diesmal mit
+  umgekehrter Rollenverteilung.
+
 ### 1.58.0
 
 - **Neuer Skill `cloudns`: DNS-Records bei ClouDNS.** Records einer Zone

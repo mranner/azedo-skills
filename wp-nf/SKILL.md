@@ -28,7 +28,8 @@ Grenzt an zwei Nachbar-Skills und dupliziert deren Wissen bewusst **nicht**:
   (`element_class`). Siehe Abschnitt 6.
 
 Belegte Evidenzbasis: CR4266 (Kundenprojekt, GA4-CSS-Click-Events auf einem Shared-Webhost),
-CR4630/CR4633 (Bild-URLs in HTML-Feldern einer mehrsprachigen Multisite).
+CR4630/CR4633 (Bild-URLs in HTML-Feldern einer mehrsprachigen Multisite),
+CR4656 (Model-API-Write verschiebt ein Feld zwischen WPML-Formularen).
 Verifiziert gegen **Ninja Forms 3.14.8** auf apache1.acme.com.
 
 ---
@@ -139,6 +140,18 @@ Beleg (CR4630/CR4633): Nach einem Fix an sechs HTML-Feldern standen Meta und
 Cache auf dem neuen Wert, `default_value` und der WPML-Quellstring weiterhin auf
 dem alten. Die Verifikation „Meta plus Cache" hat den halb wirkungslosen Fix
 nicht gezeigt.
+
+### `label` ist die fuenfte Stelle — Spalte neu, Meta-Zeile alt
+
+`update_setting( 'label', … )` schreibt die **Spalte** `nf3_fields.label`. Die
+gleichnamige Zeile in `nf3_field_meta` (`key='label'`) bleibt stehen. Cache und
+Model-API liefern danach den neuen Wert, die Meta-Zeile den alten.
+
+Das ist die Umkehrung des `default_value`-Falls aus der Tabelle oben: dort ist
+die Spalte veraltet, hier die Meta-Zeile. Beide Male sieht ein `SELECT` auf die
+jeweils andere Stelle so aus, als waere nichts passiert. Am Frontend schadet es
+nicht, fuehrt aber jede direkte DB-Suche in die Irre — Preflight (Abschnitt 7)
+kennt `label` deshalb als eigenen `<setting_key>`.
 
 ### Der Form-Cache ist PHP-serialisiert, nicht JSON
 
@@ -287,6 +300,89 @@ HTML-Feld-Link-Klasse (Feldtyp `html`) sitzt im Setting **`default`** (der HTML-
 dort per gezieltem String-Ersatz die Klasse am `<a>` ergaenzen, dann derselbe
 Cache-/Verify-Ablauf.
 
+### WPML: ein Write kann das Feld in ein anderes Formular verschieben
+
+Auf Sites mit `wpml-ninja-forms` aendert `$field->save()` unter Umstaenden die
+**`parent_id`** des Feldes — das Feld wandert vom Uebersetzungs- ins
+Quellformular. Betroffen sind nur Felder, deren Formular eine WPML-Uebersetzung
+eines anderen Formulars ist; Felder normaler Formulare bleiben im selben Lauf
+korrekt zugeordnet. Verdacht: ein Hook des Uebersetzungs-Plugins im
+Save-Vorgang. Im Quellcode nicht abschliessend verifiziert.
+
+Die Verifikation ueber die vier Ablagen deckt das **nicht** auf: der Wert steht
+ueberall richtig, nur haengt das Feld am falschen Formular. Sichtbar wird es
+erst, wenn im Frontend ein Feld fehlt — im belegten Fall (CR4656) der
+Absende-Button des italienischen Login-Formulars, der in der deutschen Fassung
+ein zweites Mal auftauchte.
+
+Deshalb auf WPML-Sites die `parent_id` vor und nach **jedem** Write festhalten,
+vergleichen und im Fall der Faelle sofort zurueckschreiben — per direktem
+`UPDATE`, weil in der Model-API genau der ausloesende Hook sitzt:
+
+```php
+<?php
+// Ergaenzung zum Write oben — nur die parent_id-Klammer
+global $wpdb;
+$ftab = $wpdb->prefix . 'nf3_fields';
+
+$before = $wpdb->get_row( $wpdb->prepare(
+    "SELECT parent_id, `order` FROM $ftab WHERE id=%d", $field_id ) );
+
+// … update_setting() + save() wie oben …
+
+$after = $wpdb->get_row( $wpdb->prepare(
+    "SELECT parent_id, `order` FROM $ftab WHERE id=%d", $field_id ) );
+
+if ( (int) $before->parent_id !== (int) $after->parent_id ) {
+    printf( "ACHTUNG: Feld %d von Form %s nach Form %s gewandert — setze zurueck\n",
+        $field_id, $before->parent_id, $after->parent_id );
+
+    $wpdb->update( $ftab,
+        array( 'parent_id' => $before->parent_id, 'order' => $before->order ),
+        array( 'id' => $field_id ) );
+
+    // Caches BEIDER Formulare neu bauen — das Feld fehlt im einen und steht zuviel im anderen
+    foreach ( array( $before->parent_id, $after->parent_id ) as $fid ) {
+        WPN_Helper::delete_nf_cache( $fid );
+        WPN_Helper::build_nf_cache( $fid );
+    }
+}
+```
+
+Bei einem Lauf ueber mehrere Felder die `parent_id` je Feld pruefen, nicht erst
+am Ende: der zweite Write laeuft sonst bereits gegen ein Formular, dessen
+Feldbestand nicht mehr stimmt.
+
+### Model-API oder direktes SQL auf Uebersetzungsformularen?
+
+Naheliegend waere, Writes auf Uebersetzungsformularen grundsaetzlich per
+`UPDATE` zu fahren — dann laeuft kein Hook mit und die `parent_id` bleibt
+unberuehrt. Der Preis steht in Abschnitt 2: `nf3_field_meta` fuehrt `key`/`value`
+**und** `meta_key`/`meta_value`, beide Paare muss das eigene SQL dann konsistent
+halten, und eine noch gar nicht existierende Meta-Zeile legt kein `UPDATE` an.
+
+| | Model-API + parent_id-Guard | direktes SQL |
+|---|---|---|
+| Spaltenpaare in `nf3_field_meta` | schreibt das Plugin | selbst konsistent halten |
+| Setting noch ohne Meta-Zeile | wird angelegt | `INSERT` selbst bauen |
+| `parent_id` | kann wandern → Guard noetig | bleibt unberuehrt |
+| Cache | `delete`/`build` noetig | `delete`/`build` noetig |
+
+**Empfehlung:** bei der Model-API bleiben und den Guard mitlaufen lassen — er
+kostet zwei `SELECT`s und faengt den Fall vollstaendig ab. Direktes SQL nur dort,
+wo ausschliesslich **vorhandene** Meta-Zeilen zu aendern sind und ein Lauf viele
+Felder eines Uebersetzungsformulars trifft; dann beide Spaltenpaare in einem
+`UPDATE` setzen:
+
+```php
+$wpdb->update( "{$wpdb->prefix}nf3_field_meta",
+    array( 'value' => $neu, 'meta_value' => $neu ),
+    array( 'parent_id' => $field_id, 'key' => $key ) );
+```
+
+Der Cache-Schritt entfaellt dabei nicht — er haengt am Formular, nicht am
+Schreibweg.
+
 ---
 
 ## 6. Diagnose-Muster: PYS-CSS-Click ↔ NF-`element_class`
@@ -309,12 +405,19 @@ Ein Subsite-Vergleich braucht keinen eigenen Befehl: Abschnitt 3 (Forms/IDs je S
 
 ---
 
-## 7. Preflight/Verify: Drift ueber alle vier Ablagen
+## 7. Preflight/Verify: Drift ueber alle vier Ablagen — plus Zuordnung
 
 Vor Read-Interpretation, **vor jedem Write** und **nach jedem Write** klaeren, ob
 die vier Ablagen aus Abschnitt 2 denselben Wert fuehren. Eine Drift ist exakt die
 Signatur der beiden stillen Fehler: „geaendert, aendert sich nichts" (Cache stale)
 und „geaendert, steht aber noch alt da" (Legacy-Spalte bzw. WPML-Quellstring).
+
+Als **fuenfte Pruefgroesse** kommen `parent_id` und die Feldzahl des Formulars
+dazu. Sie sind keine Wertablage, sondern die Stelle, an der ein Write auf einer
+WPML-Site danebengeht (Abschnitt 5): der Wert stimmt dann in allen vier Ablagen,
+das Feld haengt aber am falschen Formular. Die Feldzahl hat keinen Sollwert in
+der DB — sie wird gegen den `.nff`-Export von **vor** dem Write gehalten
+(Abschnitt 8).
 
 ```php
 <?php
@@ -345,10 +448,12 @@ if ( is_array( $cache ) && ! empty( $cache['fields'] ) ) {
     }
 }
 
-// 3. nf3_fields.default_value — Legacy-Spalte, von der Model-API nicht mitgeschrieben
-$col_val = ( $key === 'default' )
+// 3. Spalte in nf3_fields — bei `default` ist die Spalte die alte Seite,
+//    bei `label` die Meta-Zeile (Abschnitt 2); verglichen wird so oder so
+$col_map = array( 'default' => 'default_value', 'label' => 'label' );
+$col_val = isset( $col_map[ $key ] )
     ? $wpdb->get_var( $wpdb->prepare(
-        "SELECT default_value FROM {$wpdb->prefix}nf3_fields WHERE id=%d", $field_id ) )
+        "SELECT `{$col_map[$key]}` FROM {$wpdb->prefix}nf3_fields WHERE id=%d", $field_id ) )
     : null;
 
 // 4. WPML-Quellstring — rendert als Fallback, solange keine Uebersetzung existiert
@@ -358,15 +463,26 @@ $icl_val  = $has_wpml ? $wpdb->get_var( $wpdb->prepare(
     "SELECT value FROM $icl WHERE context=%s AND name=%s",
     "ninja-forms-$form_id", "default-$field_id" ) ) : null;
 
+// 5. Zuordnung: haengt das Feld noch am erwarteten Formular, und wie viele
+//    Felder hat dieses Formular jetzt? (Sollwert: der .nff-Export von vorher)
+$parent_id   = $wpdb->get_var( $wpdb->prepare(
+    "SELECT parent_id FROM {$wpdb->prefix}nf3_fields WHERE id=%d", $field_id ) );
+$field_count = $wpdb->get_var( $wpdb->prepare(
+    "SELECT COUNT(*) FROM {$wpdb->prefix}nf3_fields WHERE parent_id=%d", $form_id ) );
+
 printf( "1 meta         : %s\n", var_export( $meta_val,  true ) );
 printf( "2 cache        : %s\n", var_export( $cache_val, true ) );
-printf( "3 default_value: %s\n", ( $key === 'default' ) ? var_export( $col_val, true ) : '(nur fuer key=default)' );
+printf( "3 %-12s: %s\n", $col_map[ $key ] ?? 'spalte',
+    isset( $col_map[ $key ] ) ? var_export( $col_val, true ) : '(nur fuer key=default|label)' );
 printf( "4 icl_strings  : %s\n", $has_wpml ? var_export( $icl_val, true ) : '(kein WPML)' );
+printf( "5 parent_id    : %s (erwartet %d) | Felder in Form %d: %d\n",
+    var_export( $parent_id, true ), $form_id, $form_id, $field_count );
 
 $drift = array();
 if ( $meta_val !== $cache_val )                       { $drift[] = 'cache'; }
-if ( $col_val !== null && $col_val !== $meta_val )    { $drift[] = 'default_value'; }
+if ( $col_val !== null && $col_val !== $meta_val )    { $drift[] = $col_map[ $key ]; }
 if ( $icl_val !== null && $icl_val !== $meta_val )    { $drift[] = 'icl_strings'; }
+if ( (int) $parent_id !== $form_id )                  { $drift[] = 'parent_id'; }
 
 echo $drift
     ? 'DRIFT gegen meta: ' . implode( ', ', $drift ) . "\n"
@@ -374,13 +490,20 @@ echo $drift
 ```
 
 Meldet der Lauf `cache`, fehlt `delete_nf_cache()`/`build_nf_cache()` (Abschnitt 5).
-Meldet er `default_value` oder `icl_strings`, sind das die beiden Ablagen, die die
-Model-API nicht mitschreibt — gezielt nachziehen:
+Meldet er `parent_id`, ist der Write auf einer WPML-Site ins Quellformular
+gelaufen — Reparatur in Abschnitt 5, und zwar bevor weitere Felder geschrieben
+werden. Meldet er `default_value`, `label` oder `icl_strings`, sind das die
+Ablagen, die die Model-API nicht mitschreibt — gezielt nachziehen:
 
 ```php
 // 3. Legacy-Spalte
 $wpdb->update( "{$wpdb->prefix}nf3_fields",
     array( 'default_value' => $neu ), array( 'id' => $field_id ) );
+
+// 3b. Meta-Zeile bei key=label (dort ist die Spalte die frische Seite)
+$wpdb->update( "{$wpdb->prefix}nf3_field_meta",
+    array( 'value' => $neu, 'meta_value' => $neu ),
+    array( 'parent_id' => $field_id, 'key' => 'label' ) );
 
 // 4. WPML-Quellstring
 $wpdb->update( "{$wpdb->prefix}icl_strings",
@@ -453,7 +576,7 @@ Merke:
 - **[[wp-pys]]** — PYS-Event-/Trigger-Config; NF-ID-Lookup verweist hierher (Abschnitt 3).
 - Wiki `wiki/acme/wiki/services/customer-multisite.md` — geloeste GA4-Notiz.
 - Kanboard CR4266 (Attachment `handoff-ninja-forms-knowledge.md`), CR4409 (Skill-Entscheidung),
-  CR4633 (vier Ablagen + Cache-Format).
+  CR4633 (vier Ablagen + Cache-Format), CR4656 (parent_id-Wanderung bei WPML, `label`-Meta-Zeile).
 
 ## Quellen
 
@@ -463,3 +586,8 @@ Merke:
 - DB-Struktur `nf3_fields`/`nf3_field_meta`/`nf3_upgrades` (verifiziert 2026-07-17).
 - `nf3_fields.default_value`, WPML-Quellstrings in `icl_strings` und das
   `serialize()`-Format von `nf3_upgrades.cache` (verifiziert 2026-09-11).
+- `parent_id`-Wanderung beim `save()` auf WPML-Uebersetzungsformularen und die
+  stehenbleibende `label`-Meta-Zeile: beobachtet und repariert 2026-09-16 auf
+  apache1.acme.com (zwei von elf Feldern betroffen, beide auf
+  Uebersetzungsformularen). Der ausloesende Hook in `wpml-ninja-forms` ist
+  **nicht** im Quellcode nachgewiesen.

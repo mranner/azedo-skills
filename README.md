@@ -427,7 +427,9 @@ Referenz-Skill fuer Ninja-Forms-Administration in WordPress-(Multi-)Sites per WP
 - Formulare auflisten + Titel→ID-Mapping (native `wp ninja-forms list` oder Snippet), Felder + Settings dumpen (Model-API)
 - `element_class`/HTML-Link-Klasse setzen — Backup (Form-Export) → Write → Cache invalidieren → Verify
 - Export/Import (`.nff`, Backend-identisch): Backup und Klonen zwischen Subsites; Import legt immer ein neues Formular an
-- Preflight/Verify: Drift ueber alle vier Ablagen pruefen (Signatur des stillen „geaendert, aendert sich nichts"-Fehlers) inkl. Nachzieh-UPDATEs
+- WPML-Falle beim Write: `save()` kann die `parent_id` aendern und das Feld ins Quellformular verschieben — `parent_id` vor/nach jedem Write pruefen, Ruecksetzen per direktem `UPDATE` (dort sitzt kein Hook), Caches beider Formulare neu bauen; dazu die Abwaegung Model-API gegen direktes SQL
+- `update_setting('label', …)` schreibt die Spalte `nf3_fields.label` und laesst die gleichnamige Meta-Zeile alt stehen — dieselbe Drift, nur mit vertauschten Rollen
+- Preflight/Verify: Drift ueber alle vier Ablagen pruefen (Signatur des stillen „geaendert, aendert sich nichts"-Fehlers) inkl. Nachzieh-UPDATEs, plus `parent_id` und Feldzahl je Formular als fuenfte Pruefgroesse
 - Diagnose-Muster PYS-CSS-Click ↔ NF-`element_class` (Cross-Link zu wp-pys)
 - Uebersicht der nativen `wp ninja-forms`-Extension und ihrer Grenzen (kein Export/Import, keine Settings-Details)
 
@@ -643,27 +645,24 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.58.0
+### 1.58.1
 
-- **Neuer Skill `cloudns`: DNS-Records bei ClouDNS.** Records einer Zone
-  auflisten, anlegen, aendern und loeschen, dazu die Zonenliste des Accounts und
-  eine autoritative Gegenprobe gegen alle Nameserver der Zone. Zonen anlegen oder
-  loeschen kann der Skill bewusst nicht. Schreiben passiert erst mit `--commit`;
-  ohne das Flag zeigt jeder Schreibbefehl nur den Bestand und die geplante
-  Aenderung. Anlass war eine Kundenzone, die nicht auf den eigenen Nameservern
-  liegt, sondern ueber Vanity-Namen bei ClouDNS - ein Umstand, der sich der
-  NS-Liste nicht ansehen laesst und erst beim Reverse-Lookup auffiel. Vier
-  Eigenheiten der API sind abgefangen: Fehler kommen mit HTTP 200 und
-  `status=Failed` im Body, eine leere Zone liefert `[]` statt einer leeren Map,
-  der Aenderungs-Endpoint heisst `mod-record.json` statt `modify-record.json`,
-  und die TTL nimmt nur feste Werte an. Dazu zwei eigene Guard-Rails: ein CNAME
-  wird nicht neben bestehende Records desselben Namens gesetzt, und ein
-  abschliessender Punkt im Zielwert wird entfernt, weil ClouDNS ihn mitspeichern
-  wuerde. Die Config legt `cloudns setup` an: ID-Variante abgefragt, Passwort
-  verdeckt gelesen, Datei mit 0600 geschrieben und der Zugang gleich geprueft -
-  damit weder ein Editor noch die Shell-History gebraucht wird. Neben den
-  Records deckt der Skill `export`/`import` (BIND- und tinydns-Format), die
-  SOA-Werte und den DNSSEC-Status samt DS-Records ab - der Export ist die
-  Sicherung vor groesseren Aenderungen. Zwei Fallstricke des Imports sind
-  benannt: `--delete-existing` raeumt die Zone vorher komplett ab, und ab 100
-  Records laeuft der Import als Hintergrund-Job, meldet aber sofort Erfolg
+- **`wp-nf`: ein Write kann das Feld in ein anderes Formular verschieben.** Auf
+  einer mehrsprachigen Site hat `$field->save()` ueber die Model-API bei zwei
+  Feldern die `parent_id` geaendert - das Feld wanderte vom Uebersetzungs- ins
+  Quellformular, ein Formular verlor dadurch seinen Absende-Button. Neun weitere
+  Felder desselben Laufs blieben korrekt zugeordnet; betroffen waren nur die,
+  deren Formular eine Uebersetzung eines anderen ist. Die bisherige Verifikation
+  ueber die vier Ablagen deckt das nicht auf, weil der **Wert** ueberall richtig
+  steht und nur die Zuordnung falsch ist. Abschnitt 5 haelt jetzt die `parent_id`
+  vor und nach jedem Write fest und schreibt sie im Fall der Faelle per direktem
+  `UPDATE` zurueck - bewusst nicht ueber die Model-API, weil dort der ausloesende
+  Hook sitzt; die Caches beider Formulare werden danach neu gebaut. Der Preflight
+  in Abschnitt 7 fuehrt `parent_id` und die Feldzahl des Formulars als fuenfte
+  Pruefgroesse. Dazu eine Abwaegung, ob Writes auf Uebersetzungsformularen
+  grundsaetzlich per SQL laufen sollten: Empfehlung bleibt die Model-API mit
+  Guard, weil direktes SQL beide Spaltenpaare der Meta-Tabelle selbst konsistent
+  halten muesste. Nebenbefund in Abschnitt 2: `update_setting('label', …)`
+  schreibt die Spalte `nf3_fields.label`, laesst die gleichnamige Meta-Zeile aber
+  stehen - eine fuenfte Stelle, an der ein alter Wert zurueckbleibt, diesmal mit
+  umgekehrter Rollenverteilung.
