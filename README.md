@@ -433,6 +433,8 @@ Referenz-Skill fuer Ninja-Forms-Administration in WordPress-(Multi-)Sites per WP
 - Diagnose-Muster PYS-CSS-Click ↔ NF-`element_class` (Cross-Link zu wp-pys)
 - Uebersicht der nativen `wp ninja-forms`-Extension und ihrer Grenzen (kein Export/Import, keine Settings-Details)
 
+- Aufteilung: Kern in der SKILL.md (Zugriff, Datenmodell, Write-Ablauf, Diagnose), Ausfuehrungsrezepte in `references/` (`snippets-read.md`, `wpml-writes.md`, `preflight.md`, `export-import.md`)
+
 **Trigger:** `/wp-nf` oder natuerliche Sprache wie "Ninja Forms Feld", "element_class setzen", "Formular exportieren/importieren".
 
 ### wp-rest
@@ -645,24 +647,18 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.58.1
+### 1.58.2
 
-- **`wp-nf`: ein Write kann das Feld in ein anderes Formular verschieben.** Auf
-  einer mehrsprachigen Site hat `$field->save()` ueber die Model-API bei zwei
-  Feldern die `parent_id` geaendert - das Feld wanderte vom Uebersetzungs- ins
-  Quellformular, ein Formular verlor dadurch seinen Absende-Button. Neun weitere
-  Felder desselben Laufs blieben korrekt zugeordnet; betroffen waren nur die,
-  deren Formular eine Uebersetzung eines anderen ist. Die bisherige Verifikation
-  ueber die vier Ablagen deckt das nicht auf, weil der **Wert** ueberall richtig
-  steht und nur die Zuordnung falsch ist. Abschnitt 5 haelt jetzt die `parent_id`
-  vor und nach jedem Write fest und schreibt sie im Fall der Faelle per direktem
-  `UPDATE` zurueck - bewusst nicht ueber die Model-API, weil dort der ausloesende
-  Hook sitzt; die Caches beider Formulare werden danach neu gebaut. Der Preflight
-  in Abschnitt 7 fuehrt `parent_id` und die Feldzahl des Formulars als fuenfte
-  Pruefgroesse. Dazu eine Abwaegung, ob Writes auf Uebersetzungsformularen
-  grundsaetzlich per SQL laufen sollten: Empfehlung bleibt die Model-API mit
-  Guard, weil direktes SQL beide Spaltenpaare der Meta-Tabelle selbst konsistent
-  halten muesste. Nebenbefund in Abschnitt 2: `update_setting('label', …)`
-  schreibt die Spalte `nf3_fields.label`, laesst die gleichnamige Meta-Zeile aber
-  stehen - eine fuenfte Stelle, an der ein alter Wert zurueckbleibt, diesmal mit
-  umgekehrter Rollenverteilung.
+- **`wp-nf`: Snippets nach `references/`, Fallstricke bleiben in der SKILL.md.**
+  Der Skill war mit dem vorigen Release auf 593 Zeilen gewachsen und lag damit
+  ueber der Grenze, ab der Inhalt laut Repo-Konvention danebengehoert. Ausgelagert
+  sind die vier Teile, die reine Ausfuehrungsrezepte sind: die beiden Read-Snippets
+  (`snippets-read.md`), der `parent_id`-Guard samt SQL-Abwaegung fuer
+  Uebersetzungsformulare (`wpml-writes.md`), der Preflight (`preflight.md`) und
+  Export/Import (`export-import.md`). In der SKILL.md bleiben Zugriff, Datenmodell
+  samt Footguns, der Write-Ablauf und das Diagnose-Muster - zusammen noch rund 320
+  Zeilen. Bewusst **nicht** ausgelagert ist das Datenmodell: dass ein Feldwert an
+  vier bis fuenf Stellen liegt, entscheidet, ob jemand ueberhaupt merkt, dass er
+  den Preflight braucht - wer das erst in einer Referenzdatei findet, liest es nach
+  dem Fehler statt davor. Jeder Verweis nennt deshalb die Konsequenz statt nur den
+  Dateinamen, und die Abschnittsnummern sind auf 1-5 durchgezogen.

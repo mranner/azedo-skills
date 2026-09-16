@@ -3,6 +3,22 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.58.2
+
+- **`wp-nf`: Snippets nach `references/`, Fallstricke bleiben in der SKILL.md.**
+  Der Skill war mit dem vorigen Release auf 593 Zeilen gewachsen und lag damit
+  ueber der Grenze, ab der Inhalt laut Repo-Konvention danebengehoert. Ausgelagert
+  sind die vier Teile, die reine Ausfuehrungsrezepte sind: die beiden Read-Snippets
+  (`snippets-read.md`), der `parent_id`-Guard samt SQL-Abwaegung fuer
+  Uebersetzungsformulare (`wpml-writes.md`), der Preflight (`preflight.md`) und
+  Export/Import (`export-import.md`). In der SKILL.md bleiben Zugriff, Datenmodell
+  samt Footguns, der Write-Ablauf und das Diagnose-Muster - zusammen noch rund 320
+  Zeilen. Bewusst **nicht** ausgelagert ist das Datenmodell: dass ein Feldwert an
+  vier bis fuenf Stellen liegt, entscheidet, ob jemand ueberhaupt merkt, dass er
+  den Preflight braucht - wer das erst in einer Referenzdatei findet, liest es nach
+  dem Fehler statt davor. Jeder Verweis nennt deshalb die Konsequenz statt nur den
+  Dateinamen, und die Abschnittsnummern sind auf 1-5 durchgezogen.
+
 ### 1.58.1
 
 - **`wp-nf`: ein Write kann das Feld in ein anderes Formular verschieben.** Auf

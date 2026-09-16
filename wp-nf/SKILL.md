@@ -25,12 +25,25 @@ Grenzt an zwei Nachbar-Skills und dupliziert deren Wissen bewusst **nicht**:
   voraus und verweist darauf statt es zu wiederholen.
 - **[[wp-pys]]** — PixelYourSite-Event-/Trigger-Config. Die Verbindung ist das
   CSS-Click-Tracking: PYS liefert den **Selektor**, das NF-Feld die **Klasse**
-  (`element_class`). Siehe Abschnitt 6.
+  (`element_class`). Siehe Abschnitt 5.
 
 Belegte Evidenzbasis: CR4266 (Kundenprojekt, GA4-CSS-Click-Events auf einem Shared-Webhost),
 CR4630/CR4633 (Bild-URLs in HTML-Feldern einer mehrsprachigen Multisite),
 CR4656 (Model-API-Write verschiebt ein Feld zwischen WPML-Formularen).
 Verifiziert gegen **Ninja Forms 3.14.8** auf apache1.acme.com.
+
+## Referenzdateien
+
+Der Kern steht hier: Zugriff, Datenmodell samt Footguns, der Write-Ablauf und das
+Diagnose-Muster. Die Snippets, die erst beim Ausfuehren gebraucht werden, liegen
+daneben:
+
+| Datei | Inhalt und wann sie zaehlt |
+|---|---|
+| `references/snippets-read.md` | Formulare auflisten (Titel→ID), Felder + Settings dumpen — der uebliche erste Schritt, aenderungsfrei |
+| `references/wpml-writes.md` | Ein Write auf einem WPML-Uebersetzungsformular kann das Feld ins Quellformular verschieben — `parent_id`-Guard, Reparatur, und die Abwaegung Model-API gegen direktes SQL |
+| `references/preflight.md` | Drift ueber die vier Ablagen plus `parent_id`/Feldzahl — vor und nach **jedem** Write, sonst bleibt ein halb wirkungsloser Fix unbemerkt |
+| `references/export-import.md` | `.nff`-Export als Backup vor dem Write und als Sollwert der Feldzahl; Import zum Klonen zwischen Subsites |
 
 ---
 
@@ -55,8 +68,8 @@ sudo ssh -C root@jailer.acme.com "iocage exec apache1.acme.com sh -c \
 
 Ninja Forms bringt eine eigene WP-CLI-Extension mit (`wp ninja-forms <sub>`, registriert
 in `ninja-forms.php`). Sie deckt nur Grundlegendes ab — fuer Settings-Detail,
-`element_class`-Writes und Export/Import ist weiterhin `eval-file` (Abschnitte 4/5/8)
-noetig:
+`element_class`-Writes und Export/Import ist weiterhin `eval-file` noetig
+(Abschnitt 4, `references/snippets-read.md`, `references/export-import.md`):
 
 | Subcommand | Zweck |
 |---|---|
@@ -102,10 +115,10 @@ Dies ist der zentrale Footgun. Fuer NF **3.14.8** gilt (aus dem Plugin-Quellcode
   sofort — das gerenderte Formular aber erst nach Cache-Neuaufbau.
 - **Daraus der Write-Footgun** („geaendert, aendert sich aber nichts"): Ein direkter
   Write in `nf3_field_meta` aktualisiert die Quelle, laesst aber `nf3_upgrades` **stale**
-  → Frontend zeigt weiter den alten Wert. **Immer Cache invalidieren** (Abschnitt 5).
+  → Frontend zeigt weiter den alten Wert. **Immer Cache invalidieren** (Abschnitt 4).
 - **Dual-Column-Quirk:** `nf3_field_meta` fuehrt `key`/`value` **und** `meta_key`/`meta_value`;
   das Plugin schreibt beide Paare. Raw-SQL muss beide konsistent halten → besser die
-  Model-API nutzen (Abschnitt 5).
+  Model-API nutzen (Abschnitt 4).
 
 ### Ein Feldwert liegt an bis zu vier Stellen
 
@@ -132,9 +145,9 @@ Aenderung fuer erledigt, waehrend zwei Kopien des alten Werts stehenbleiben:
   liegen daneben in `icl_string_translations` und sind eigene Kopien.)
 
 **Verifikationsregel:** Nach einem Write **alle vier** Ablagen gegenlesen, nicht
-nur Meta und Cache — Snippet in Abschnitt 7. Ablage 3 und 4 anschliessend per
-gezieltem `UPDATE` nachziehen (ebenfalls Abschnitt 7); auf einer Site ohne WPML
-entfaellt Ablage 4, die Tabelle existiert dann nicht.
+nur Meta und Cache — Snippet in [references/preflight.md](references/preflight.md).
+Ablage 3 und 4 anschliessend per gezieltem `UPDATE` nachziehen (ebenfalls dort);
+auf einer Site ohne WPML entfaellt Ablage 4, die Tabelle existiert dann nicht.
 
 Beleg (CR4630/CR4633): Nach einem Fix an sechs HTML-Feldern standen Meta und
 Cache auf dem neuen Wert, `default_value` und der WPML-Quellstring weiterhin auf
@@ -150,8 +163,9 @@ Model-API liefern danach den neuen Wert, die Meta-Zeile den alten.
 Das ist die Umkehrung des `default_value`-Falls aus der Tabelle oben: dort ist
 die Spalte veraltet, hier die Meta-Zeile. Beide Male sieht ein `SELECT` auf die
 jeweils andere Stelle so aus, als waere nichts passiert. Am Frontend schadet es
-nicht, fuehrt aber jede direkte DB-Suche in die Irre — Preflight (Abschnitt 7)
-kennt `label` deshalb als eigenen `<setting_key>`.
+nicht, fuehrt aber jede direkte DB-Suche in die Irre — der Preflight
+([references/preflight.md](references/preflight.md)) kennt `label` deshalb als
+eigenen `<setting_key>`.
 
 ### Der Form-Cache ist PHP-serialisiert, nicht JSON
 
@@ -181,77 +195,33 @@ Struktur zur Orientierung:
 
 ---
 
-## 3. Formulare auflisten + Titel→ID-Mapping
+## 3. Formulare und Felder auslesen
 
 Form-IDs sind subsite-spezifisch — **nie raten, immer nachschlagen** und ueber den
-Formular-**Titel** mappen.
-
-Schnellster Weg (native Extension, Abschnitt 1):
+Formular-**Titel** mappen. Schnellster Weg ist die native Extension aus Abschnitt 1:
 
 ```
 wp ninja-forms list --url=<subsite>
 ```
 
-Falls die Extension nicht geladen ist oder maschinenlesbare Ausgabe gebraucht wird,
-das Snippet (mit Tabellen-Guard):
-
-```php
-<?php
-// nf-list-forms.php — wp eval-file nf-list-forms.php --url=<subsite>
-global $wpdb;
-$table = $wpdb->prefix . 'nf3_forms';
-
-if ( $wpdb->get_var( "SHOW TABLES LIKE '$table'" ) !== $table ) {
-    echo "Tabelle $table existiert nicht (Ninja Forms auf dieser Subsite aktiv?)\n";
-    exit( 0 );
-}
-
-foreach ( $wpdb->get_results( "SELECT id, title FROM $table ORDER BY id" ) as $f ) {
-    echo "ID:{$f->id} | {$f->title}\n";
-}
-```
+Fuer maschinenlesbare Ausgabe, Feld-Settings im Detail und Sites ohne geladene
+Extension liegen die beiden Snippets in
+**[references/snippets-read.md](references/snippets-read.md)**. Reads laufen ueber
+die **Model-API**, nicht ueber die Rohtabellen: `get_settings()` merged Spalten +
+Meta und deserialisiert `options` selbst — damit sind die Footguns aus Abschnitt 2
+umgangen.
 
 ---
 
-## 4. Felder + Settings eines Formulars auslesen
-
-Fuer Reads die **Model-API** nutzen, nicht die Rohtabellen: `get_settings()` merged
-Spalten + Meta und deserialisiert `options` selbst — damit umgeht man die
-Meta-Footguns aus Abschnitt 2 vollstaendig.
-
-```php
-<?php
-// nf-dump-fields.php <form_id> — wp eval-file nf-dump-fields.php <form_id> --url=<subsite>
-$form_id = intval( $args[0] );
-$fields  = Ninja_Forms()->form( $form_id )->get_fields();
-
-foreach ( $fields as $field ) {
-    $s = $field->get_settings();
-    printf( "#%d  key=%s  type=%s  label=%s\n",
-        $field->get_id(), $s['key'] ?? '', $s['type'] ?? '', $s['label'] ?? '' );
-    printf( "     element_class=%s  container_class=%s\n",
-        $s['element_class'] ?? '', $s['container_class'] ?? '' );
-
-    if ( isset( $s['default'] ) && $s['default'] !== '' ) {
-        printf( "     default(HTML)=%s\n", trim( $s['default'] ) );
-    }
-    if ( isset( $s['options'] ) && is_array( $s['options'] ) ) {
-        foreach ( $s['options'] as $o ) {
-            printf( "     option: label=%s value=%s\n", $o['label'] ?? '', $o['value'] ?? '' );
-        }
-    }
-}
-```
-
----
-
-## 5. Write: `element_class` / HTML-Link-Klasse setzen
+## 4. Write: `element_class` / HTML-Link-Klasse setzen
 
 Wenige, sorgfaeltige Writes — immer nach dem Muster **Backup → Write → Cache
-invalidieren → Verify ueber alle vier Ablagen** (Abschnitt 2). Als **Backup** vor dem Write das ganze Formular exportieren
-(Abschnitt 8, `nf-export-form.php`) — ein vollstaendiger, wiederherstellbarer Stand statt
-nur des alten Einzelwerts. Der Cache-Schritt ist nicht optional (Abschnitt 2): ohne ihn
-rendert das Frontend weiter den alten Wert.
+invalidieren → Verify ueber alle vier Ablagen** (Abschnitt 2). Als **Backup** vor
+dem Write das ganze Formular exportieren
+([references/export-import.md](references/export-import.md), `nf-export-form.php`)
+— ein vollstaendiger, wiederherstellbarer Stand statt nur des alten Einzelwerts.
+Der Cache-Schritt ist nicht optional (Abschnitt 2): ohne ihn rendert das Frontend
+weiter den alten Wert.
 
 Bevorzugt ueber die Model-API (schreibt `nf3_field_meta` konsistent inkl. beider
 Spaltenpaare):
@@ -267,7 +237,7 @@ $class    = $args[2];
 $field = Ninja_Forms()->form()->field( $field_id )->get();
 if ( ! $field || ! $field->get_id() ) { echo "Feld $field_id nicht gefunden\n"; exit( 1 ); }
 
-// Alten Wert protokollieren (echtes Backup = Form-Export, Abschnitt 8)
+// Alten Wert protokollieren (echtes Backup = Form-Export, references/export-import.md)
 $old = $field->get_setting( 'element_class' );
 echo "alt : " . var_export( $old, true ) . "\n";
 
@@ -286,106 +256,32 @@ echo ( $verify === $class ) ? "OK\n" : "FEHLER: Wert nicht gesetzt\n";
 ```
 
 > [!warning] Vor dem ersten produktiven Einsatz an einem **Testfeld** verifizieren.
-> Die Read-Snippets (Abschnitt 3/4/7) sind harmlos; dieser Write ist der einzige
-> heikle Teil und noch nicht gegen einen realen Fall gefahren. Immer zuerst
-> Abschnitt 7 (Preflight) laufen lassen, um Ausgangswert und Cache-Zustand zu kennen.
+> Die Read-Snippets (Abschnitt 3, `references/snippets-read.md`) sind harmlos;
+> dieser Write ist der einzige heikle Teil und noch nicht gegen einen realen Fall
+> gefahren. Immer zuerst den Preflight (`references/preflight.md`) laufen lassen,
+> um Ausgangswert und Cache-Zustand zu kennen.
 
 Das `echo "OK"` am Ende belegt nur die Ablagen 1 und 2: `nf3_fields.default_value`
 und der WPML-Quellstring bleiben auf dem alten Wert, weil `update_setting()`/`save()`
 sie nicht mitschreiben — bei Feldtyp `html` auf einer mehrsprachigen Site ist der Fix
-damit zur Haelfte wirkungslos. Nach dem Write deshalb **immer** Abschnitt 7 fahren und
-die beiden Ablagen bei Bedarf nachziehen.
+damit zur Haelfte wirkungslos. Nach dem Write deshalb **immer** den Preflight
+([references/preflight.md](references/preflight.md)) fahren und die beiden Ablagen
+bei Bedarf nachziehen.
 
 HTML-Feld-Link-Klasse (Feldtyp `html`) sitzt im Setting **`default`** (der HTML-Markup) —
 dort per gezieltem String-Ersatz die Klasse am `<a>` ergaenzen, dann derselbe
 Cache-/Verify-Ablauf.
 
-### WPML: ein Write kann das Feld in ein anderes Formular verschieben
-
-Auf Sites mit `wpml-ninja-forms` aendert `$field->save()` unter Umstaenden die
-**`parent_id`** des Feldes — das Feld wandert vom Uebersetzungs- ins
-Quellformular. Betroffen sind nur Felder, deren Formular eine WPML-Uebersetzung
-eines anderen Formulars ist; Felder normaler Formulare bleiben im selben Lauf
-korrekt zugeordnet. Verdacht: ein Hook des Uebersetzungs-Plugins im
-Save-Vorgang. Im Quellcode nicht abschliessend verifiziert.
-
-Die Verifikation ueber die vier Ablagen deckt das **nicht** auf: der Wert steht
-ueberall richtig, nur haengt das Feld am falschen Formular. Sichtbar wird es
-erst, wenn im Frontend ein Feld fehlt — im belegten Fall (CR4656) der
-Absende-Button des italienischen Login-Formulars, der in der deutschen Fassung
-ein zweites Mal auftauchte.
-
-Deshalb auf WPML-Sites die `parent_id` vor und nach **jedem** Write festhalten,
-vergleichen und im Fall der Faelle sofort zurueckschreiben — per direktem
-`UPDATE`, weil in der Model-API genau der ausloesende Hook sitzt:
-
-```php
-<?php
-// Ergaenzung zum Write oben — nur die parent_id-Klammer
-global $wpdb;
-$ftab = $wpdb->prefix . 'nf3_fields';
-
-$before = $wpdb->get_row( $wpdb->prepare(
-    "SELECT parent_id, `order` FROM $ftab WHERE id=%d", $field_id ) );
-
-// … update_setting() + save() wie oben …
-
-$after = $wpdb->get_row( $wpdb->prepare(
-    "SELECT parent_id, `order` FROM $ftab WHERE id=%d", $field_id ) );
-
-if ( (int) $before->parent_id !== (int) $after->parent_id ) {
-    printf( "ACHTUNG: Feld %d von Form %s nach Form %s gewandert — setze zurueck\n",
-        $field_id, $before->parent_id, $after->parent_id );
-
-    $wpdb->update( $ftab,
-        array( 'parent_id' => $before->parent_id, 'order' => $before->order ),
-        array( 'id' => $field_id ) );
-
-    // Caches BEIDER Formulare neu bauen — das Feld fehlt im einen und steht zuviel im anderen
-    foreach ( array( $before->parent_id, $after->parent_id ) as $fid ) {
-        WPN_Helper::delete_nf_cache( $fid );
-        WPN_Helper::build_nf_cache( $fid );
-    }
-}
-```
-
-Bei einem Lauf ueber mehrere Felder die `parent_id` je Feld pruefen, nicht erst
-am Ende: der zweite Write laeuft sonst bereits gegen ein Formular, dessen
-Feldbestand nicht mehr stimmt.
-
-### Model-API oder direktes SQL auf Uebersetzungsformularen?
-
-Naheliegend waere, Writes auf Uebersetzungsformularen grundsaetzlich per
-`UPDATE` zu fahren — dann laeuft kein Hook mit und die `parent_id` bleibt
-unberuehrt. Der Preis steht in Abschnitt 2: `nf3_field_meta` fuehrt `key`/`value`
-**und** `meta_key`/`meta_value`, beide Paare muss das eigene SQL dann konsistent
-halten, und eine noch gar nicht existierende Meta-Zeile legt kein `UPDATE` an.
-
-| | Model-API + parent_id-Guard | direktes SQL |
-|---|---|---|
-| Spaltenpaare in `nf3_field_meta` | schreibt das Plugin | selbst konsistent halten |
-| Setting noch ohne Meta-Zeile | wird angelegt | `INSERT` selbst bauen |
-| `parent_id` | kann wandern → Guard noetig | bleibt unberuehrt |
-| Cache | `delete`/`build` noetig | `delete`/`build` noetig |
-
-**Empfehlung:** bei der Model-API bleiben und den Guard mitlaufen lassen — er
-kostet zwei `SELECT`s und faengt den Fall vollstaendig ab. Direktes SQL nur dort,
-wo ausschliesslich **vorhandene** Meta-Zeilen zu aendern sind und ein Lauf viele
-Felder eines Uebersetzungsformulars trifft; dann beide Spaltenpaare in einem
-`UPDATE` setzen:
-
-```php
-$wpdb->update( "{$wpdb->prefix}nf3_field_meta",
-    array( 'value' => $neu, 'meta_value' => $neu ),
-    array( 'parent_id' => $field_id, 'key' => $key ) );
-```
-
-Der Cache-Schritt entfaellt dabei nicht — er haengt am Formular, nicht am
-Schreibweg.
+Auf einer **mehrsprachigen Site** kommt ein Schritt dazu: `save()` kann dort die
+`parent_id` aendern und das Feld ins Quellformular verschieben — der Wert stimmt
+danach in allen vier Ablagen, nur haengt das Feld am falschen Formular, und im
+Frontend fehlt es. Guard und Reparatur in
+**[references/wpml-writes.md](references/wpml-writes.md)**, dort auch die
+Abwaegung, ob solche Writes stattdessen per direktem SQL laufen sollten.
 
 ---
 
-## 6. Diagnose-Muster: PYS-CSS-Click ↔ NF-`element_class`
+## 5. Diagnose-Muster: PYS-CSS-Click ↔ NF-`element_class`
 
 Ob ein PixelYourSite-`css_click`-Event feuert, haengt an **zwei** Stellen: dem
 PYS-Selektor **und** der CSS-Klasse im Ziel-Formularfeld.
@@ -400,180 +296,17 @@ Kuendigungsformular die Klassen fehlten (`submit` ohne `cancel-submit`, HTML-Lin
 `cancellation-edit`) — obwohl die PYS-Config byte-identisch zu sgb-fss war. Klassen
 ergaenzt → Event feuerte.
 
-Ein Subsite-Vergleich braucht keinen eigenen Befehl: Abschnitt 3 (Forms/IDs je Subsite)
-+ Abschnitt 4 (Felder dumpen) nebeneinanderlegen.
-
----
-
-## 7. Preflight/Verify: Drift ueber alle vier Ablagen — plus Zuordnung
-
-Vor Read-Interpretation, **vor jedem Write** und **nach jedem Write** klaeren, ob
-die vier Ablagen aus Abschnitt 2 denselben Wert fuehren. Eine Drift ist exakt die
-Signatur der beiden stillen Fehler: „geaendert, aendert sich nichts" (Cache stale)
-und „geaendert, steht aber noch alt da" (Legacy-Spalte bzw. WPML-Quellstring).
-
-Als **fuenfte Pruefgroesse** kommen `parent_id` und die Feldzahl des Formulars
-dazu. Sie sind keine Wertablage, sondern die Stelle, an der ein Write auf einer
-WPML-Site danebengeht (Abschnitt 5): der Wert stimmt dann in allen vier Ablagen,
-das Feld haengt aber am falschen Formular. Die Feldzahl hat keinen Sollwert in
-der DB — sie wird gegen den `.nff`-Export von **vor** dem Write gehalten
-(Abschnitt 8).
-
-```php
-<?php
-// nf-preflight.php <form_id> <field_id> <setting_key>
-//   wp eval-file nf-preflight.php <form_id> <field_id> default --url=<subsite>
-$form_id  = intval( $args[0] );
-$field_id = intval( $args[1] );
-$key      = $args[2];
-
-global $wpdb;
-$meta_table = $wpdb->prefix . 'nf3_field_meta';
-
-// Struktur-Check: existiert wirklich keine settings-Spalte? (Version-agnostisch)
-$has_settings_col = $wpdb->get_var(
-    "SHOW COLUMNS FROM {$wpdb->prefix}nf3_fields LIKE 'settings'" );
-echo "nf3_fields.settings-Spalte: " . ( $has_settings_col ? "JA (aelteres Layout!)" : "nein" ) . "\n";
-
-// 1. nf3_field_meta — Quelle beim Lesen
-$meta_val = $wpdb->get_var( $wpdb->prepare(
-    "SELECT value FROM $meta_table WHERE parent_id=%d AND `key`=%s", $field_id, $key ) );
-
-// 2. Form-Cache — Render-Quelle (get_nf_cache() unserialisiert selbst, kein json_decode!)
-$cache     = WPN_Helper::get_nf_cache( $form_id );
-$cache_val = null;
-if ( is_array( $cache ) && ! empty( $cache['fields'] ) ) {
-    foreach ( $cache['fields'] as $cf ) {
-        if ( $cf['id'] == $field_id ) { $cache_val = $cf['settings'][ $key ] ?? null; break; }
-    }
-}
-
-// 3. Spalte in nf3_fields — bei `default` ist die Spalte die alte Seite,
-//    bei `label` die Meta-Zeile (Abschnitt 2); verglichen wird so oder so
-$col_map = array( 'default' => 'default_value', 'label' => 'label' );
-$col_val = isset( $col_map[ $key ] )
-    ? $wpdb->get_var( $wpdb->prepare(
-        "SELECT `{$col_map[$key]}` FROM {$wpdb->prefix}nf3_fields WHERE id=%d", $field_id ) )
-    : null;
-
-// 4. WPML-Quellstring — rendert als Fallback, solange keine Uebersetzung existiert
-$icl      = $wpdb->prefix . 'icl_strings';
-$has_wpml = $wpdb->get_var( "SHOW TABLES LIKE '$icl'" ) === $icl;
-$icl_val  = $has_wpml ? $wpdb->get_var( $wpdb->prepare(
-    "SELECT value FROM $icl WHERE context=%s AND name=%s",
-    "ninja-forms-$form_id", "default-$field_id" ) ) : null;
-
-// 5. Zuordnung: haengt das Feld noch am erwarteten Formular, und wie viele
-//    Felder hat dieses Formular jetzt? (Sollwert: der .nff-Export von vorher)
-$parent_id   = $wpdb->get_var( $wpdb->prepare(
-    "SELECT parent_id FROM {$wpdb->prefix}nf3_fields WHERE id=%d", $field_id ) );
-$field_count = $wpdb->get_var( $wpdb->prepare(
-    "SELECT COUNT(*) FROM {$wpdb->prefix}nf3_fields WHERE parent_id=%d", $form_id ) );
-
-printf( "1 meta         : %s\n", var_export( $meta_val,  true ) );
-printf( "2 cache        : %s\n", var_export( $cache_val, true ) );
-printf( "3 %-12s: %s\n", $col_map[ $key ] ?? 'spalte',
-    isset( $col_map[ $key ] ) ? var_export( $col_val, true ) : '(nur fuer key=default|label)' );
-printf( "4 icl_strings  : %s\n", $has_wpml ? var_export( $icl_val, true ) : '(kein WPML)' );
-printf( "5 parent_id    : %s (erwartet %d) | Felder in Form %d: %d\n",
-    var_export( $parent_id, true ), $form_id, $form_id, $field_count );
-
-$drift = array();
-if ( $meta_val !== $cache_val )                       { $drift[] = 'cache'; }
-if ( $col_val !== null && $col_val !== $meta_val )    { $drift[] = $col_map[ $key ]; }
-if ( $icl_val !== null && $icl_val !== $meta_val )    { $drift[] = 'icl_strings'; }
-if ( (int) $parent_id !== $form_id )                  { $drift[] = 'parent_id'; }
-
-echo $drift
-    ? 'DRIFT gegen meta: ' . implode( ', ', $drift ) . "\n"
-    : "OK: konsistent\n";
-```
-
-Meldet der Lauf `cache`, fehlt `delete_nf_cache()`/`build_nf_cache()` (Abschnitt 5).
-Meldet er `parent_id`, ist der Write auf einer WPML-Site ins Quellformular
-gelaufen — Reparatur in Abschnitt 5, und zwar bevor weitere Felder geschrieben
-werden. Meldet er `default_value`, `label` oder `icl_strings`, sind das die
-Ablagen, die die Model-API nicht mitschreibt — gezielt nachziehen:
-
-```php
-// 3. Legacy-Spalte
-$wpdb->update( "{$wpdb->prefix}nf3_fields",
-    array( 'default_value' => $neu ), array( 'id' => $field_id ) );
-
-// 3b. Meta-Zeile bei key=label (dort ist die Spalte die frische Seite)
-$wpdb->update( "{$wpdb->prefix}nf3_field_meta",
-    array( 'value' => $neu, 'meta_value' => $neu ),
-    array( 'parent_id' => $field_id, 'key' => 'label' ) );
-
-// 4. WPML-Quellstring
-$wpdb->update( "{$wpdb->prefix}icl_strings",
-    array( 'value' => $neu ),
-    array( 'context' => "ninja-forms-$form_id", 'name' => "default-$field_id" ) );
-```
-
-Danach den Preflight erneut laufen lassen. Die Alternative ohne SQL ist, das
-Formular einmal ueber das Admin-UI zu speichern — das schreibt beide Ablagen mit,
-ist auf einer Multisite aber je Subsite ein Handgriff.
-
----
-
-## 8. Export / Import (Backup & Klonen)
-
-Entspricht dem Backend-Import/Export (`.nff`-Datei = **utf8-kodiertes JSON**). Als
-WP-CLI-Subcommand **nicht** verfuegbar → via `eval-file` ueber die Form-API
-(`export_form()`/`import_form()`). Ein Export enthaelt **nur die Definition**
-(settings/fields/actions inkl. `element_class`), **keine Submissions**.
-
-**Export** (Backup / Quelle fuers Klonen):
-
-```php
-<?php
-// nf-export-form.php <form_id> <ziel.nff>
-//   wp eval-file nf-export-form.php <form_id> /tmp/form.nff --url=<subsite>
-$form_id = intval( $args[0] );
-$outfile = $args[1];
-
-$export = Ninja_Forms()->form( $form_id )->export_form( true );
-if ( ! is_array( $export ) ) { echo "Export fehlgeschlagen (Form $form_id?)\n"; exit( 1 ); }
-
-// Backend-identisches Format: utf8-kodiertes JSON
-$json = json_encode( WPN_Helper::utf8_encode( $export ) );
-if ( file_put_contents( $outfile, $json ) === false ) {
-    echo "FEHLER: konnte $outfile nicht schreiben (Web-User schreibbar?)\n"; exit( 1 );
-}
-echo "OK: $outfile (" . strlen( $json ) . " Bytes)\n";
-```
-
-**Import** (legt IMMER ein neues Formular an, gibt neue ID zurueck):
-
-```php
-<?php
-// nf-import-form.php <quelle.nff>
-//   wp eval-file nf-import-form.php /tmp/form.nff --url=<ziel-subsite>
-$infile = $args[0];
-if ( ! is_readable( $infile ) ) { echo "Datei nicht lesbar: $infile\n"; exit( 1 ); }
-
-$json   = file_get_contents( $infile );
-$new_id = Ninja_Forms()->form()->import_form( $json );
-
-echo $new_id ? "OK: neues Formular #$new_id angelegt\n" : "Import fehlgeschlagen (JSON gueltig?)\n";
-```
-
-Merke:
-- Import **ueberschreibt nichts** — es entsteht ein neues Formular mit neuer ID. „Restore"
-  = importieren, altes danach ggf. per `wp ninja-forms delete form <id>` entfernen. Zum
-  **Klonen** (z.B. DE→FR): auf der Quelle exportieren, auf der Ziel-Subsite importieren.
-- Form-IDs im Export sind die der Quelle; beim Import neu vergeben → Referenzierung weiter
-  ueber den Titel (Abschnitt 3).
-- Die `.nff` ins Jail-`/tmp` schreiben, fuer ein echtes Backup vom Host abholen, danach im
-  Jail aufraeumen.
+Ein Subsite-Vergleich braucht keinen eigenen Befehl: die beiden Snippets aus
+`references/snippets-read.md` (Forms/IDs je Subsite, Felder dumpen)
+nebeneinanderlegen.
 
 ---
 
 ## Cross-Links
 
 - **[[wp-cli]]** — Jail-Zugriff, `wp eval-file`, DB-Ops, csh-Quoting.
-- **[[wp-pys]]** — PYS-Event-/Trigger-Config; NF-ID-Lookup verweist hierher (Abschnitt 3).
+- **[[wp-pys]]** — PYS-Event-/Trigger-Config; NF-ID-Lookup verweist hierher
+  (`references/snippets-read.md`).
 - Wiki `wiki/acme/wiki/services/customer-multisite.md` — geloeste GA4-Notiz.
 - Kanboard CR4266 (Attachment `handoff-ninja-forms-knowledge.md`), CR4409 (Skill-Entscheidung),
   CR4633 (vier Ablagen + Cache-Format), CR4656 (parent_id-Wanderung bei WPML, `label`-Meta-Zeile).
