@@ -1,0 +1,5 @@
+# Reale Config mit Credentials - nie einchecken
+cloudns.json
+
+__pycache__/
+*.pyc

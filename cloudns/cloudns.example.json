@@ -1,0 +1,8 @@
+{
+  "//": "Kopie nach ~/.claude/cloudns.json - nie ins Repo.",
+  "//_id": "Genau eine ID setzen: auth-id (Haupt-API-User), sub-auth-id (numerisch) oder sub-auth-user (Name).",
+  "//_pw": "Statt auth-password geht auch auth-password-env mit dem Namen einer Umgebungsvariablen.",
+
+  "auth-id": "",
+  "auth-password": ""
+}

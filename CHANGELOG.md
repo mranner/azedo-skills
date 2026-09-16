@@ -3,6 +3,31 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.58.0
+
+- **Neuer Skill `cloudns`: DNS-Records bei ClouDNS.** Records einer Zone
+  auflisten, anlegen, aendern und loeschen, dazu die Zonenliste des Accounts und
+  eine autoritative Gegenprobe gegen alle Nameserver der Zone. Zonen anlegen oder
+  loeschen kann der Skill bewusst nicht. Schreiben passiert erst mit `--commit`;
+  ohne das Flag zeigt jeder Schreibbefehl nur den Bestand und die geplante
+  Aenderung. Anlass war eine Kundenzone, die nicht auf den eigenen Nameservern
+  liegt, sondern ueber Vanity-Namen bei ClouDNS - ein Umstand, der sich der
+  NS-Liste nicht ansehen laesst und erst beim Reverse-Lookup auffiel. Vier
+  Eigenheiten der API sind abgefangen: Fehler kommen mit HTTP 200 und
+  `status=Failed` im Body, eine leere Zone liefert `[]` statt einer leeren Map,
+  der Aenderungs-Endpoint heisst `mod-record.json` statt `modify-record.json`,
+  und die TTL nimmt nur feste Werte an. Dazu zwei eigene Guard-Rails: ein CNAME
+  wird nicht neben bestehende Records desselben Namens gesetzt, und ein
+  abschliessender Punkt im Zielwert wird entfernt, weil ClouDNS ihn mitspeichern
+  wuerde. Die Config legt `cloudns setup` an: ID-Variante abgefragt, Passwort
+  verdeckt gelesen, Datei mit 0600 geschrieben und der Zugang gleich geprueft -
+  damit weder ein Editor noch die Shell-History gebraucht wird. Neben den
+  Records deckt der Skill `export`/`import` (BIND- und tinydns-Format), die
+  SOA-Werte und den DNSSEC-Status samt DS-Records ab - der Export ist die
+  Sicherung vor groesseren Aenderungen. Zwei Fallstricke des Imports sind
+  benannt: `--delete-existing` raeumt die Zone vorher komplett ab, und ab 100
+  Records laeuft der Import als Hintergrund-Job, meldet aber sofort Erfolg
+
 ### 1.57.1
 
 - **`kanboard`: Faelligkeits- und Startdatum setzbar (`--due`, `--start`).**

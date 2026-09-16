@@ -1,0 +1,530 @@
+#!/usr/bin/env python3
+
+# ClouDNS HTTP-API helper - DNS-Records lesen und schreiben
+# stdlib only, keine pip-Abhaengigkeiten. Lauffaehig auf FreeBSD und Linux.
+
+import argparse
+import getpass
+import json
+import os
+import subprocess
+import sys
+import urllib.error
+import urllib.parse
+import urllib.request
+
+API_BASE = "https://api.cloudns.net/dns"
+
+CONFIG_PATH = os.environ.get(
+    "CLOUDNS_CONFIG",
+    os.path.join(os.path.expanduser("~"), ".claude", "cloudns.json"),
+)
+
+# ClouDNS akzeptiert nur diese TTL-Werte; alles andere quittiert die API mit
+# "Invalid TTL", ohne zu sagen, welche erlaubt waeren.
+
+VALID_TTL = [60, 300, 900, 1800, 3600, 21600, 43200, 86400,
+             172800, 259200, 604800, 1209600, 2592000]
+
+# Typen, bei denen genau ein Record pro Name existieren darf (RFC 1034):
+# ein CNAME vertraegt keinen Nachbarn gleichen Namens.
+
+SINGLETON_TYPES = {"CNAME"}
+
+
+def die(msg):
+    print(f"Fehler: {msg}", file=sys.stderr)
+    sys.exit(1)
+
+
+# --- Config -----------------------------------------------------------------
+
+def load_config():
+    """Auth-Daten aus ~/.claude/cloudns.json lesen."""
+    if not os.path.exists(CONFIG_PATH):
+        die(f"Config fehlt: {CONFIG_PATH}\n"
+            f"       Anlegen mit: cloudns setup")
+
+    try:
+        with open(CONFIG_PATH) as f:
+            cfg = json.load(f)
+    except (OSError, ValueError) as e:
+        die(f"Config nicht lesbar ({CONFIG_PATH}): {e}")
+
+    password = cfg.get("auth-password")
+    if not password and cfg.get("auth-password-env"):
+        password = os.environ.get(cfg["auth-password-env"])
+    if not password:
+        die("auth-password fehlt in der Config.")
+
+    # Genau eine der drei ID-Varianten - ClouDNS unterscheidet Haupt-API-User
+    # (auth-id) von Sub-Usern (sub-auth-id numerisch bzw. sub-auth-user als Name).
+
+    ids = [k for k in ("auth-id", "sub-auth-id", "sub-auth-user") if cfg.get(k)]
+    if not ids:
+        die("Keine ID in der Config: auth-id, sub-auth-id oder sub-auth-user setzen.")
+    if len(ids) > 1:
+        die(f"Mehrere IDs in der Config ({', '.join(ids)}) - genau eine setzen.")
+
+    return {ids[0]: str(cfg[ids[0]]), "auth-password": password}
+
+
+def auth_label(auth):
+    """ID-Variante und Wert fuer die Diagnose - ohne das Passwort."""
+    key = next(k for k in auth if k != "auth-password")
+    return f"{key}={auth[key]}"
+
+
+# --- API --------------------------------------------------------------------
+
+def api(endpoint, params, auth):
+    """POST auf die ClouDNS-API. Fehler kommen als HTTP 200 mit status=Failed."""
+    data = dict(auth)
+    data.update({k: v for k, v in params.items() if v is not None})
+    body = urllib.parse.urlencode(data).encode()
+
+    req = urllib.request.Request(f"{API_BASE}/{endpoint}", data=body)
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            payload = json.loads(resp.read().decode())
+    except urllib.error.HTTPError as e:
+        die(f"HTTP {e.code} von {endpoint}: {e.read().decode()[:300]}")
+    except (urllib.error.URLError, ValueError) as e:
+        die(f"Aufruf {endpoint} fehlgeschlagen: {e}")
+
+    if isinstance(payload, dict) and payload.get("status") == "Failed":
+        die(f"{endpoint}: {payload.get('statusDescription', 'unbekannter Fehler')}")
+
+    return payload
+
+
+def api_soft(endpoint, params, auth):
+    """Wie api(), gibt status=Failed aber zurueck statt abzubrechen."""
+    data = dict(auth)
+    data.update({k: v for k, v in params.items() if v is not None})
+    req = urllib.request.Request(f"{API_BASE}/{endpoint}",
+                                 data=urllib.parse.urlencode(data).encode())
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            return json.loads(resp.read().decode())
+    except (urllib.error.URLError, ValueError) as e:
+        die(f"Aufruf {endpoint} fehlgeschlagen: {e}")
+
+
+def fetch_records(zone, auth, host=None, rtype=None):
+    """Records einer Zone als Liste. Leeres Ergebnis kommt als [] statt {}."""
+    payload = api("records.json", {
+        "domain-name": zone,
+        "host": host,
+        "type": rtype,
+    }, auth)
+
+    if not payload:
+        return []
+    if isinstance(payload, list):
+        return []
+
+    out = []
+    for rec_id, rec in payload.items():
+        rec = dict(rec)
+        rec.setdefault("id", rec_id)
+        out.append(rec)
+    return sorted(out, key=lambda r: (r.get("type", ""), r.get("host", "")))
+
+
+# --- Ausgabe ----------------------------------------------------------------
+
+def print_records(records):
+    if not records:
+        print("(keine Records)")
+        return
+
+    rows = [("ID", "HOST", "TYP", "TTL", "WERT")]
+    for r in records:
+        host = r.get("host") or "@"
+        value = r.get("record", "")
+        # MX und SRV tragen ihre Prioritaet in einem eigenen Feld, nicht im Wert.
+        if r.get("priority") not in (None, ""):
+            value = f"{r['priority']} {value}"
+        rows.append((r.get("id", ""), host, r.get("type", ""),
+                     str(r.get("ttl", "")), value))
+
+    widths = [max(len(row[i]) for row in rows) for i in range(5)]
+    for row in rows:
+        print("  ".join(cell.ljust(widths[i]) for i, cell in enumerate(row)).rstrip())
+
+
+def fqdn(host, zone):
+    return zone if host in ("", "@", None) else f"{host}.{zone}"
+
+
+# --- Gegenprobe -------------------------------------------------------------
+
+def dig(name, rtype, server=None):
+    cmd = ["dig", "+short", name, rtype]
+    if server:
+        cmd.append(f"@{server}")
+    try:
+        out = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+    except FileNotFoundError:
+        die("dig nicht gefunden - fuer die Gegenprobe wird bind-tools gebraucht.")
+    except subprocess.TimeoutExpired:
+        return []
+    return [line for line in out.stdout.strip().splitlines() if line]
+
+
+def verify(name, rtype, zone):
+    """Autoritativ gegen die NS der Zone pruefen, nicht ueber den lokalen Resolver."""
+    nameservers = dig(zone, "NS")
+    if not nameservers:
+        die(f"Keine NS fuer {zone} gefunden - Gegenprobe nicht moeglich.")
+
+    print(f"\nGegenprobe {name} {rtype}:")
+    for ns in sorted(nameservers):
+        answers = dig(name, rtype, ns.rstrip("."))
+        print(f"  @{ns.rstrip('.'):<28} {', '.join(answers) if answers else '(keine Antwort)'}")
+
+
+# --- Subcommands ------------------------------------------------------------
+
+def cmd_setup(args):
+    """Config interaktiv anlegen - das Passwort kommt nie ueber die Kommandozeile."""
+    if os.path.exists(CONFIG_PATH) and not args.force:
+        die(f"{CONFIG_PATH} existiert bereits - mit --force ueberschreiben.")
+
+    if not sys.stdin.isatty():
+        die("setup braucht ein Terminal (das Passwort wird verdeckt abgefragt).")
+
+    print(f"Config anlegen: {CONFIG_PATH}\n")
+    print("ID-Variante waehlen - ClouDNS unterscheidet Haupt- und Sub-User:")
+    print("  1) auth-id        Haupt-API-User, numerisch")
+    print("  2) sub-auth-id    Sub-User, numerisch")
+    print("  3) sub-auth-user  Sub-User, als Name")
+
+    choice = input("\nAuswahl [1]: ").strip() or "1"
+    keys = {"1": "auth-id", "2": "sub-auth-id", "3": "sub-auth-user"}
+    if choice not in keys:
+        die(f"Ungueltige Auswahl: {choice}")
+    key = keys[choice]
+
+    value = input(f"{key}: ").strip()
+    if not value:
+        die(f"{key} darf nicht leer sein.")
+
+    password = getpass.getpass("auth-password (verdeckt): ")
+    if not password:
+        die("auth-password darf nicht leer sein.")
+
+    os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
+
+    # Erst die Rechte, dann der Inhalt - sonst liegt das Passwort kurz
+    # weltlesbar auf der Platte.
+    fd = os.open(CONFIG_PATH, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as f:
+        json.dump({key: value, "auth-password": password}, f, indent=2)
+        f.write("\n")
+
+    print(f"\nGeschrieben: {CONFIG_PATH} (0600)")
+
+    auth = {key: value, "auth-password": password}
+    api("login.json", {}, auth)
+    print("Authentifizierung ok.")
+
+
+def cmd_check_auth(args, auth):
+    print(f"Config: {CONFIG_PATH}")
+    print(f"Auth:   {auth_label(auth)}")
+    api("login.json", {}, auth)
+    print("Authentifizierung ok.")
+
+
+def cmd_list_zones(args, auth):
+    page = 1
+    total = 0
+    while True:
+        payload = api("list-zones.json", {
+            "page": page, "rows-per-page": 100, "search": args.search,
+        }, auth)
+        if not payload:
+            break
+        zones = list(payload.values()) if isinstance(payload, dict) else list(payload)
+        for z in zones:
+            print(f"{z.get('name', ''):<40} {z.get('type', '')} {z.get('status', '')}")
+            total += 1
+        if len(zones) < 100:
+            break
+        page += 1
+    print(f"\n{total} Zonen.")
+
+
+def cmd_list(args, auth):
+    print_records(fetch_records(args.zone, auth, args.host, args.type))
+
+
+def cmd_add(args, auth):
+    zone, host, rtype = args.zone, args.host, args.type.upper()
+    name = fqdn(host, zone)
+
+    if args.ttl not in VALID_TTL:
+        die(f"TTL {args.ttl} nicht erlaubt. Zulaessig: {', '.join(map(str, VALID_TTL))}")
+
+    # Ein trailing dot ist in ClouDNS nicht vorgesehen - der Wert wuerde mit
+    # Punkt gespeichert und liefe als Name ins Leere.
+    record = args.record
+    if rtype in ("CNAME", "MX", "NS", "PTR", "SRV", "ALIAS") and record.endswith("."):
+        record = record.rstrip(".")
+        print(f"Hinweis: trailing dot entfernt -> {record}")
+
+    existing = fetch_records(zone, auth, host=host)
+    if existing:
+        print(f"Bestand fuer {name}:")
+        print_records(existing)
+        conflict = [r for r in existing
+                    if rtype in SINGLETON_TYPES or r.get("type") in SINGLETON_TYPES]
+        if conflict:
+            die(f"{name} hat bereits Records - ein CNAME vertraegt keinen Nachbarn "
+                f"gleichen Namens. Erst aufloesen, dann anlegen.")
+    else:
+        print(f"Bestand fuer {name}: (keine Records)")
+
+    print(f"\nAnlegen: {name} {args.ttl} {rtype} {record}")
+    if not args.commit:
+        print("\nDry-Run - nichts geaendert. Mit --commit ausfuehren.")
+        return
+
+    result = api("add-record.json", {
+        "domain-name": zone, "record-type": rtype, "host": host,
+        "record": record, "ttl": args.ttl, "priority": args.priority,
+    }, auth)
+    print(f"OK: {result.get('statusDescription', 'angelegt')} (id {result.get('data', {}).get('id', '?')})")
+
+    print_records(fetch_records(zone, auth, host=host))
+    verify(name, rtype, zone)
+
+
+def cmd_modify(args, auth):
+    zone = args.zone
+    existing = fetch_records(zone, auth)
+    target = next((r for r in existing if str(r.get("id")) == str(args.id)), None)
+    if not target:
+        die(f"Record {args.id} in {zone} nicht gefunden.")
+
+    ttl = args.ttl if args.ttl is not None else int(target.get("ttl", 3600))
+    if ttl not in VALID_TTL:
+        die(f"TTL {ttl} nicht erlaubt. Zulaessig: {', '.join(map(str, VALID_TTL))}")
+
+    host = args.host if args.host is not None else target.get("host", "")
+    record = args.record if args.record is not None else target.get("record", "")
+    if target.get("type") in ("CNAME", "MX", "NS", "PTR", "SRV", "ALIAS"):
+        record = record.rstrip(".")
+
+    print("Bestand:")
+    print_records([target])
+    print(f"\nAendern auf: {fqdn(host, zone)} {ttl} {target.get('type')} {record}")
+    if not args.commit:
+        print("\nDry-Run - nichts geaendert. Mit --commit ausfuehren.")
+        return
+
+    result = api("mod-record.json", {
+        "domain-name": zone, "record-id": args.id, "host": host,
+        "record": record, "ttl": ttl, "priority": args.priority,
+    }, auth)
+    print(f"OK: {result.get('statusDescription', 'geaendert')}")
+
+    print_records(fetch_records(zone, auth, host=host))
+    verify(fqdn(host, zone), target.get("type", "A"), zone)
+
+
+def cmd_delete(args, auth):
+    zone = args.zone
+    existing = fetch_records(zone, auth)
+    target = next((r for r in existing if str(r.get("id")) == str(args.id)), None)
+    if not target:
+        die(f"Record {args.id} in {zone} nicht gefunden.")
+
+    print("Zu loeschen:")
+    print_records([target])
+    if not args.commit:
+        print("\nDry-Run - nichts geloescht. Mit --commit ausfuehren.")
+        return
+
+    result = api("delete-record.json", {"domain-name": zone, "record-id": args.id}, auth)
+    print(f"OK: {result.get('statusDescription', 'geloescht')}")
+
+
+def cmd_export(args, auth):
+    payload = api("records-export.json", {"domain-name": args.zone}, auth)
+    zone_text = payload.get("zone", "") if isinstance(payload, dict) else ""
+    if not zone_text:
+        die(f"Kein Zoneninhalt zurueckgekommen - {args.zone} ist moeglicherweise "
+            f"keine Master-Zone (Export gibt es nur fuer Master-Zonen).")
+
+    if args.output:
+        with open(args.output, "w") as f:
+            f.write(zone_text if zone_text.endswith("\n") else zone_text + "\n")
+        print(f"Geschrieben: {args.output} ({len(zone_text.splitlines())} Zeilen)")
+    else:
+        print(zone_text)
+
+
+def cmd_import(args, auth):
+    try:
+        with open(args.file) as f:
+            content = f.read()
+    except OSError as e:
+        die(f"{args.file} nicht lesbar: {e}")
+
+    lines = [l for l in content.splitlines() if l.strip() and not l.strip().startswith(";")]
+    if not lines:
+        die(f"{args.file} enthaelt keine Records.")
+
+    print(f"Quelle: {args.file} ({len(lines)} Zeilen, Format {args.format})")
+    print(f"Ziel:   {args.zone}")
+
+    if args.delete_existing:
+        existing = fetch_records(args.zone, auth)
+        print(f"\nACHTUNG: --delete-existing loescht zuvor alle {len(existing)} "
+              f"bestehenden Records der Zone.")
+
+    print("\nZu importieren:")
+    for line in lines[:20]:
+        print(f"  {line}")
+    if len(lines) > 20:
+        print(f"  ... und {len(lines) - 20} weitere")
+
+    if not args.commit:
+        print("\nDry-Run - nichts geaendert. Mit --commit ausfuehren.")
+        return
+
+    result = api("records-import.json", {
+        "domain-name": args.zone, "format": args.format, "content": content,
+        "delete-existing-records": 1 if args.delete_existing else 0,
+    }, auth)
+    print(f"\nOK: {result.get('statusDescription', 'importiert')}")
+
+    # Ab 100 Records laeuft der Import als Hintergrund-Job; der Bestand unten
+    # ist dann noch nicht vollstaendig.
+    if len(lines) >= 100:
+        print("Hinweis: ab 100 Records laeuft der Import als Hintergrund-Job - "
+              "der Bestand unten ist moeglicherweise noch unvollstaendig.")
+
+    print_records(fetch_records(args.zone, auth))
+
+
+def cmd_soa(args, auth):
+    soa = api("soa-details.json", {"domain-name": args.zone}, auth)
+    if not isinstance(soa, dict):
+        die(f"Unerwartete Antwort fuer {args.zone}.")
+    width = max(len(k) for k in soa)
+    for key, value in soa.items():
+        print(f"{key.ljust(width)}  {value}")
+
+
+def cmd_dnssec(args, auth):
+    available = api("is-dnssec-available.json", {"domain-name": args.zone}, auth)
+    print(f"DNSSEC verfuegbar: {available.get('status', available) if isinstance(available, dict) else available}")
+
+    # Ohne aktives DNSSEC antwortet die API mit status=Failed und
+    # "dnssec_not_active" - das ist kein Fehler, sondern die Auskunft.
+    ds = api_soft("get-dnssec-ds-records.json", {"domain-name": args.zone}, auth)
+    if isinstance(ds, dict) and ds.get("status") == "Failed":
+        print(f"DS-Records: {ds.get('statusDescription', 'nicht verfuegbar')}")
+        return
+
+    print("\nDS-Records:")
+    entries = ds.values() if isinstance(ds, dict) else ds
+    for entry in entries:
+        if isinstance(entry, dict):
+            print("  " + "  ".join(f"{k}={v}" for k, v in entry.items()))
+        else:
+            print(f"  {entry}")
+
+
+def cmd_verify(args, auth):
+    zone = args.zone
+    name = fqdn(args.host, zone) if args.host else zone
+    verify(name, args.type.upper(), zone)
+
+
+def main():
+    p = argparse.ArgumentParser(prog="cloudns", description="ClouDNS-Records verwalten")
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    sp = sub.add_parser("setup", help="Config interaktiv anlegen")
+    sp.add_argument("--force", action="store_true", help="bestehende Config ueberschreiben")
+
+    sub.add_parser("check-auth", help="Zugang testen")
+
+    sp = sub.add_parser("list-zones", help="Zonen des Accounts auflisten")
+    sp.add_argument("--search", help="Namensfilter")
+
+    sp = sub.add_parser("list", help="Records einer Zone auflisten")
+    sp.add_argument("zone")
+    sp.add_argument("--host", help="nur diesen Hostteil (leer = Zonenwurzel)")
+    sp.add_argument("--type", help="nur diesen Typ, z.B. A, CNAME, TXT")
+
+    sp = sub.add_parser("add", help="Record anlegen")
+    sp.add_argument("zone")
+    sp.add_argument("--host", required=True, help="Hostteil ohne Zone, '' = Zonenwurzel")
+    sp.add_argument("--type", required=True)
+    sp.add_argument("--record", required=True, help="Zielwert")
+    sp.add_argument("--ttl", type=int, default=3600)
+    sp.add_argument("--priority", type=int, help="nur MX und SRV")
+    sp.add_argument("--commit", action="store_true")
+
+    sp = sub.add_parser("modify", help="Record aendern")
+    sp.add_argument("zone")
+    sp.add_argument("--id", required=True)
+    sp.add_argument("--host")
+    sp.add_argument("--record")
+    sp.add_argument("--ttl", type=int)
+    sp.add_argument("--priority", type=int)
+    sp.add_argument("--commit", action="store_true")
+
+    sp = sub.add_parser("delete", help="Record loeschen")
+    sp.add_argument("zone")
+    sp.add_argument("--id", required=True)
+    sp.add_argument("--commit", action="store_true")
+
+    sp = sub.add_parser("export", help="Zone im BIND-Format exportieren")
+    sp.add_argument("zone")
+    sp.add_argument("--output", help="Datei statt stdout")
+
+    sp = sub.add_parser("import", help="Records aus einer Datei importieren")
+    sp.add_argument("zone")
+    sp.add_argument("--file", required=True, help="Datei mit den Records")
+    sp.add_argument("--format", default="bind", choices=["bind", "tinydns"])
+    sp.add_argument("--delete-existing", action="store_true",
+                    help="alle bestehenden Records der Zone vorher loeschen")
+    sp.add_argument("--commit", action="store_true")
+
+    sp = sub.add_parser("soa", help="SOA-Werte der Zone")
+    sp.add_argument("zone")
+
+    sp = sub.add_parser("dnssec", help="DNSSEC-Status und DS-Records")
+    sp.add_argument("zone")
+
+    sp = sub.add_parser("verify", help="Autoritative Gegenprobe gegen die NS der Zone")
+    sp.add_argument("zone")
+    sp.add_argument("--host")
+    sp.add_argument("--type", default="A")
+
+    args = p.parse_args()
+
+    if args.cmd == "setup":
+        cmd_setup(args)
+        return
+
+    auth = load_config()
+
+    handlers = {
+        "check-auth": cmd_check_auth, "list-zones": cmd_list_zones, "list": cmd_list,
+        "add": cmd_add, "modify": cmd_modify, "delete": cmd_delete,
+        "export": cmd_export, "import": cmd_import, "soa": cmd_soa,
+        "dnssec": cmd_dnssec, "verify": cmd_verify,
+    }
+    handlers[args.cmd](args, auth)
+
+
+if __name__ == "__main__":
+    main()

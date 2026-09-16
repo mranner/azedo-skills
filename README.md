@@ -629,22 +629,41 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 **Trigger:** `/pushover` (Slash-Kommando; `/push` gibt es als Slash nicht — der Name des Skills ist `pushover`) oder natuerliche Sprache wie "push mir eine Nachricht", "push kollege eine Nachricht", "schick mir das per Pushover", "Alert nach Pushover".
 
+### cloudns
+
+DNS-**Records** bei ClouDNS lesen und setzen: `list-zones`, `list`, `add`, `modify`, `delete`, `export`/`import` (BIND, tinydns), `soa`, `dnssec` (read-only) und `verify` (autoritative Gegenprobe gegen alle NS der Zone). Zonen anlegen oder loeschen kann der Skill nicht. Lesen ist der Standard, Schreiben erst mit `--commit` - ohne das Flag zeigt jeder Schreibbefehl nur Bestand und geplante Aenderung. Guard-Rails gegen CNAME-Kollisionen, unzulaessige TTL-Werte und den trailing dot im Zielwert.
+
+Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwort verdeckt, schreibt `~/.claude/cloudns.json` mit 0600 und prueft den Zugang; `--force` ueberschreibt eine bestehende. Inhalt (Vorlage `cloudns.example.json`): genau eine ID - `auth-id` (Haupt-API-User), `sub-auth-id` oder `sub-auth-user` - plus `auth-password` bzw. `auth-password-env`. Anderer Pfad ueber `CLOUDNS_CONFIG`. Steht beim API-User eine IP-Whitelist, meldet die API dieselbe Fehlermeldung wie bei falschem Passwort - `check-auth` zuerst.
+
+**Voraussetzungen:** Python >= 3.9 (stdlib only) und `dig` fuer die Gegenprobe.
+
+**Trigger:** `/cloudns` oder natuerliche Sprache wie "setz den CNAME", "trag den A-Record ein", "welche Records hat die Zone".
+
 ## Changelog
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.57.1
+### 1.58.0
 
-- **`kanboard`: Faelligkeits- und Startdatum setzbar (`--due`, `--start`).**
-  `create-task` und `update-task` boten nur Titel, Beschreibung und Owner - die
-  Datumsfelder, die Kanboard am Task fuehrt, waren ueber den Skill nicht
-  erreichbar. Aufgefallen bei einem Task, dessen Datum kein Faelligkeits-, sondern
-  ein Startdatum war: ab dann konnte getestet werden, und weder das eine noch das
-  andere liess sich eintragen. Beide Optionen nehmen `YYYY-MM-DD` oder
-  `'YYYY-MM-DD HH:MM'`; andere Schreibweisen - auch das deutsche `13.10.2026` -
-  weist das Script ab, weil Kanboard sie stillschweigend zu `0` (= nicht gesetzt)
-  machen wuerde und die Aenderung dann als Erfolg gemeldet zurueckkaeme. Bei
-  `update-task` loescht ein leerer Wert das Feld. Eine Eigenheit bleibt: ohne
-  Uhrzeit setzt Kanboard bei `date_due` die aktuelle Uhrzeit ein, bei
-  `date_started` 00:00 - das Datum stimmt in beiden Faellen, die Doku nennt es.
-  (CR4645)
+- **Neuer Skill `cloudns`: DNS-Records bei ClouDNS.** Records einer Zone
+  auflisten, anlegen, aendern und loeschen, dazu die Zonenliste des Accounts und
+  eine autoritative Gegenprobe gegen alle Nameserver der Zone. Zonen anlegen oder
+  loeschen kann der Skill bewusst nicht. Schreiben passiert erst mit `--commit`;
+  ohne das Flag zeigt jeder Schreibbefehl nur den Bestand und die geplante
+  Aenderung. Anlass war eine Kundenzone, die nicht auf den eigenen Nameservern
+  liegt, sondern ueber Vanity-Namen bei ClouDNS - ein Umstand, der sich der
+  NS-Liste nicht ansehen laesst und erst beim Reverse-Lookup auffiel. Vier
+  Eigenheiten der API sind abgefangen: Fehler kommen mit HTTP 200 und
+  `status=Failed` im Body, eine leere Zone liefert `[]` statt einer leeren Map,
+  der Aenderungs-Endpoint heisst `mod-record.json` statt `modify-record.json`,
+  und die TTL nimmt nur feste Werte an. Dazu zwei eigene Guard-Rails: ein CNAME
+  wird nicht neben bestehende Records desselben Namens gesetzt, und ein
+  abschliessender Punkt im Zielwert wird entfernt, weil ClouDNS ihn mitspeichern
+  wuerde. Die Config legt `cloudns setup` an: ID-Variante abgefragt, Passwort
+  verdeckt gelesen, Datei mit 0600 geschrieben und der Zugang gleich geprueft -
+  damit weder ein Editor noch die Shell-History gebraucht wird. Neben den
+  Records deckt der Skill `export`/`import` (BIND- und tinydns-Format), die
+  SOA-Werte und den DNSSEC-Status samt DS-Records ab - der Export ist die
+  Sicherung vor groesseren Aenderungen. Zwei Fallstricke des Imports sind
+  benannt: `--delete-existing` raeumt die Zone vorher komplett ab, und ab 100
+  Records laeuft der Import als Hintergrund-Job, meldet aber sofort Erfolg
