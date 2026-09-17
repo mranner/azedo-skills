@@ -3,6 +3,19 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.60.3
+
+- **`bridge`: zwei Befunde aus einem Lauf ueber Remote Control.** Erstens sagt das
+  Werkzeug selbst, was es nicht garantiert - ein erfolgreicher Versand quittiert
+  mit `accepted by the server ... not confirmed read`. Der Erfolg gilt also der
+  Annahme durch den Server, nicht der Zustellung und erst recht nicht dem Lesen;
+  bisher war das im Skill nur aus dem Verhalten hergeleitet, jetzt steht der
+  Wortlaut da. Zweitens hat die Einbahnstrasse eine konkrete Abhilfe: in der
+  betroffenen Session `/remote-control` aufrufen, danach steht die Adresse. Die
+  Meldung lautet vollstaendig `one-way: Remote Control is not connected` und
+  erscheint nur im Tool-Ergebnis, nicht in der Nachricht - wer sie uebersieht,
+  wartet auf eine Antwort, die nirgends ankommen kann.
+
 ### 1.60.2
 
 - **`bridge`: ein vollstaendiger Austausch als Beispiel.** Die SKILL.md erklaerte

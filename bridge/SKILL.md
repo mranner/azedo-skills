@@ -30,6 +30,12 @@ ob die andere Session zurückschreibt, ist eine Entscheidung ihres Modells - ein
 blanker Text wird meist gar nicht als Antwortaufforderung gelesen. Wer eine
 Nachricht abschickt, weiß danach schlicht nicht, ob sie angekommen ist.
 
+Das Werkzeug sagt das selbst: ein erfolgreicher Versand quittiert mit
+`accepted by the server … not confirmed read`. Der Erfolg bezieht sich also auf die
+Annahme durch den Server, nicht auf Zustellung und schon gar nicht aufs Lesen.
+Wer den Exit-Status für eine Empfangsbestätigung hält, liest mehr hinein, als
+dasteht.
+
 Deshalb trägt **die Nachricht selbst** die Anweisung zur Quittung. Das ist der
 Kern: die Gegenseite braucht diesen Skill nicht installiert zu haben, sie muss nur
 lesen können. Ein Protokoll, das in der Konfiguration beider Seiten liegen müsste,
@@ -175,7 +181,8 @@ die falsche.
 
 Fehlt `bridgeSessionId`, ist die Session nicht gebridgt und von außen nicht
 erreichbar - `who` sagt das ausdrücklich, statt eine leere Adresse auszugeben.
-Abhilfe: Remote Control aktivieren, dann erneut aufrufen.
+Abhilfe: in der betroffenen Session `/remote-control` aufrufen, danach steht die
+Adresse.
 
 Findet das Script im ganzen Prozessbaum keine Session-Datei, läuft der Aufruf
 vermutlich außerhalb einer Claude-Code-Session; Exit-Code 1.
@@ -187,8 +194,11 @@ verschiedene Dinge. Eine Session ohne verbundenes Remote Control kann eine
 Nachricht beantworten und quittieren; eine Adresse hat sie aber nicht, und ein
 Gespraech von dort aus verlaeuft im Sand:
 
-- Der Versand meldet in dem Fall `one-way`. Das ist kein Fehler, sondern die
-  Ansage, dass es keinen Rueckweg gibt
+- Der Versand meldet in dem Fall `one-way: Remote Control is not connected`. Das
+  ist kein Fehler, sondern die Ansage, dass es keinen Rueckweg gibt - und steht nur
+  im Tool-Ergebnis, nicht in der Nachricht
+- Behoben wird es **auf der betroffenen Seite** mit `/remote-control`; danach
+  liefert `who` dort eine Adresse
 - `who` auf der anderen Seite liefert dann keine `address`, sondern den Hinweis,
   dass die Session nicht gebridgt ist
 

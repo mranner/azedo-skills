@@ -648,13 +648,15 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.60.2
+### 1.60.3
 
-- **`bridge`: ein vollstaendiger Austausch als Beispiel.** Die SKILL.md erklaerte
-  `send`, `ack` und `done` je fuer sich, zeigte den Ablauf aber nie am Stueck -
-  und die Reihenfolge ist genau der Punkt: erst quittieren, dann arbeiten. Das
-  neue Beispiel geht den Weg von beiden Seiten durch, samt der Stelle, an der das
-  `from`-Attribut des eingehenden Wrappers `unknown` lautet und nur die Adresse
-  aus dem Nachrichtenkopf weiterhilft. Anlass war ein Abgleich mit den
-  Skill-Empfehlungen von Anthropic (`skill-creator`), deren „Examples pattern"
-  hier fehlte.
+- **`bridge`: zwei Befunde aus einem Lauf ueber Remote Control.** Erstens sagt das
+  Werkzeug selbst, was es nicht garantiert - ein erfolgreicher Versand quittiert
+  mit `accepted by the server ... not confirmed read`. Der Erfolg gilt also der
+  Annahme durch den Server, nicht der Zustellung und erst recht nicht dem Lesen;
+  bisher war das im Skill nur aus dem Verhalten hergeleitet, jetzt steht der
+  Wortlaut da. Zweitens hat die Einbahnstrasse eine konkrete Abhilfe: in der
+  betroffenen Session `/remote-control` aufrufen, danach steht die Adresse. Die
+  Meldung lautet vollstaendig `one-way: Remote Control is not connected` und
+  erscheint nur im Tool-Ergebnis, nicht in der Nachricht - wer sie uebersieht,
+  wartet auf eine Antwort, die nirgends ankommen kann.

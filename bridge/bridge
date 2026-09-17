@@ -9,7 +9,7 @@
 #
 # Der Handshake liegt im Nachrichtentext selbst, nicht in der Konfiguration der
 # Gegenseite: eine Session ohne installierten Skill kann trotzdem quittieren.
-# version 1.60.2
+# version 1.60.3
 #
 # stdlib only, keine pip-Abhaengigkeiten. Laeuft auf FreeBSD, Linux und macOS.
 
