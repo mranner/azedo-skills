@@ -3,6 +3,17 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.59.3
+
+- **Versionskommentare in den Scripts auf den Repo-Stand gebracht.** Elf Scripts
+  in vier Skills fuehrten im Kopf ein `# version`, das seit dem jeweiligen
+  Release nicht mehr angefasst worden war: `audit-wiki.py` stand auf 1.51.6, die
+  sieben Scripts von `einfache-sprache` auf 1.37.0, `mail-as-me/extract.py` auf
+  1.29.0, `swaks/build_mail.py` auf 1.52.0. Alle tragen jetzt 1.59.3. Damit
+  bleibt es aber bei einer **zweiten** Stelle neben `VERSION`, und die veraltet
+  nach demselben Muster wieder - beim naechsten Release mitziehen oder die Zeile
+  streichen.
+
 ### 1.59.2
 
 - **`wp-rest`: Custom Post Types mit eigenem REST-Namespace.** Die SKILL.md las

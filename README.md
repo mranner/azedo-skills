@@ -647,16 +647,13 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.59.2
+### 1.59.3
 
-- **`wp-rest`: Custom Post Types mit eigenem REST-Namespace.** Die SKILL.md las
-  sich, als laege jeder Post-Type unter `wp/v2` - `--type` und `--endpoint` tun
-  das auch. Ein CPT kann sich aber einen eigenen Namespace registrieren (Web
-  Stories: `web-stories/v1/web-story`), und `wp/v2/web-story` antwortet dann mit
-  `rest_no_route`, was nach einem falschen Pfad aussieht statt nach dem falschen
-  Namespace. Der Escape-Hatch-Abschnitt zeigt jetzt, wie `request GET types
-  --param context=edit` je Typ `rest_namespace` und `rest_base` nennt und wie der
-  Aufruf ueber `request --namespace` laeuft; an der Stelle, wo der Irrtum
-  entsteht, steht ein Verweis darauf. Dazu der Hinweis, dass `context=edit` auch
-  `password` einer passwortgeschuetzten Seite im Klartext liefert. Nur Doku, der
-  Code konnte das schon.
+- **Versionskommentare in den Scripts auf den Repo-Stand gebracht.** Elf Scripts
+  in vier Skills fuehrten im Kopf ein `# version`, das seit dem jeweiligen
+  Release nicht mehr angefasst worden war: `audit-wiki.py` stand auf 1.51.6, die
+  sieben Scripts von `einfache-sprache` auf 1.37.0, `mail-as-me/extract.py` auf
+  1.29.0, `swaks/build_mail.py` auf 1.52.0. Alle tragen jetzt 1.59.3. Damit
+  bleibt es aber bei einer **zweiten** Stelle neben `VERSION`, und die veraltet
+  nach demselben Muster wieder - beim naechsten Release mitziehen oder die Zeile
+  streichen.
