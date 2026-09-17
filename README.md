@@ -648,15 +648,13 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.60.1
+### 1.60.2
 
-- **`bridge`: die Einbahnstrasse dokumentiert.** Senden koennen und erreichbar
-  sein sind zwei verschiedene Dinge - eine Session ohne verbundenes Remote
-  Control quittiert anstandslos, hat aber selbst keine Adresse, und der Versand
-  meldet das nur als beilaeufiges `one-way`. Wer von dort aus ein Gespraech
-  beginnt, wartet auf eine Antwort, die nirgends ankommen kann. `ListAgents`
-  fuehrt beide Sorten gleich auf, die Richtung ist vorher also nicht zu sehen.
-  Aufgefallen beim ersten echten Testlauf des Skills, bei dem `ack` und `done`
-  aus einer nicht adressierbaren Session zurueckkamen - womit sich nebenbei
-  bestaetigt hat, warum die Rueckadresse im Nachrichtentext steht und nicht nur
-  im Transport.
+- **`bridge`: ein vollstaendiger Austausch als Beispiel.** Die SKILL.md erklaerte
+  `send`, `ack` und `done` je fuer sich, zeigte den Ablauf aber nie am Stueck -
+  und die Reihenfolge ist genau der Punkt: erst quittieren, dann arbeiten. Das
+  neue Beispiel geht den Weg von beiden Seiten durch, samt der Stelle, an der das
+  `from`-Attribut des eingehenden Wrappers `unknown` lautet und nur die Adresse
+  aus dem Nachrichtenkopf weiterhilft. Anlass war ein Abgleich mit den
+  Skill-Empfehlungen von Anthropic (`skill-creator`), deren „Examples pattern"
+  hier fehlte.

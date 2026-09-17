@@ -3,6 +3,17 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.60.2
+
+- **`bridge`: ein vollstaendiger Austausch als Beispiel.** Die SKILL.md erklaerte
+  `send`, `ack` und `done` je fuer sich, zeigte den Ablauf aber nie am Stueck -
+  und die Reihenfolge ist genau der Punkt: erst quittieren, dann arbeiten. Das
+  neue Beispiel geht den Weg von beiden Seiten durch, samt der Stelle, an der das
+  `from`-Attribut des eingehenden Wrappers `unknown` lautet und nur die Adresse
+  aus dem Nachrichtenkopf weiterhilft. Anlass war ein Abgleich mit den
+  Skill-Empfehlungen von Anthropic (`skill-creator`), deren „Examples pattern"
+  hier fehlte.
+
 ### 1.60.1
 
 - **`bridge`: die Einbahnstrasse dokumentiert.** Senden koennen und erreichbar

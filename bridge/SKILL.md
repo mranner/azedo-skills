@@ -85,6 +85,51 @@ läuft, und das ist der Fall, für den das Ganze gebaut ist.
 Die Quittungszeile formt auch `bridge ack <msg-id>` bzw.
 `bridge ack <msg-id> --done "<Ergebnis>"`; nötig ist das Script dafür nicht.
 
+## Ein vollständiger Austausch
+
+Der Ablauf am Stück, weil die Reihenfolge der springende Punkt ist. Session A ist
+gebridgt und eröffnet, Session B arbeitet und meldet zurück.
+
+**A baut den Text:**
+
+```
+$ python3 "$SKILL_DIR/bridge" send bridge:session_01Bbb... "Prüf bitte, ob der Dienst auf dem Testhost läuft."
+msg-id: f0f4
+Senden mit: SendMessage(to="bridge:session_01Bbb...", message=<Text unten>)
+
+[bridge msg=f0f4 from=bridge:session_01Aaa... reply=ack]
+
+Prüf bitte, ob der Dienst auf dem Testhost läuft.
+
+Quittiere den Empfang als erste Aktion: SendMessage an "bridge:session_01Aaa..." mit
+dem Text "[bridge ack=f0f4]". Erst danach die Aufgabe bearbeiten. Das Ergebnis kommt
+spaeter als "[bridge done=f0f4] <Ergebnis>" an dieselbe Adresse.
+```
+
+**A verschickt ihn** mit `SendMessage(to="bridge:session_01Bbb...", message=<der Text>)`.
+
+**B bekommt ihn** als `<cross-session-message>` und quittiert **zuerst**, ohne
+irgendetwas anderes zu tun:
+
+```
+SendMessage(to="bridge:session_01Aaa...", message="[bridge ack=f0f4]")
+```
+
+Das `from`-Attribut des Wrappers taugt dafür nicht zwingend - bei einer nicht
+gebridgten Gegenstelle steht dort `unknown`. Verwendet wird die Adresse aus dem
+`from=` **im Nachrichtenkopf**.
+
+**B arbeitet** und meldet danach das Ergebnis:
+
+```
+SendMessage(to="bridge:session_01Aaa...", message="[bridge done=f0f4] Dienst laeuft, seit 6 Tagen ohne Neustart.")
+```
+
+**A sieht** zwei getrennte Nachrichten: erst `[bridge ack=f0f4]` - ab da ist die
+Zustellung geklärt - und später `[bridge done=f0f4] …` mit dem Ergebnis. Genau diese
+Trennung ist der Zweck der Übung: ohne sie wäre die Zeit zwischen Absenden und
+Ergebnis von einer toten Verbindung nicht zu unterscheiden.
+
 ## `list` -- erreichbare Sessions
 
 Kein Script-Unterbefehl: die Peers stehen in keiner Datei, sondern kommen aus dem
