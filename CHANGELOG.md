@@ -3,6 +3,15 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.59.4
+
+- **Repo-CLAUDE.md: der Kopfkommentar der Scripts ist eine gewollte Ausnahme.**
+  Mit 1.59.3 tragen elf Scripts wieder die aktuelle Version im Dateikopf - nur
+  stand nirgends, dass es sie gibt, und der Abschnitt darueber sagt, die Version
+  stehe ausschliesslich in `VERSION`. Der naechste Release haette sie also
+  erneut stehen lassen. Jetzt steht die Ausnahme samt Einzeiler zum Mitziehen im
+  Release-Workflow.
+
 ### 1.59.3
 
 - **Versionskommentare in den Scripts auf den Repo-Stand gebracht.** Elf Scripts

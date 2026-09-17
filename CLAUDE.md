@@ -72,6 +72,18 @@ Herkunft mitbringt, ist davon unberuehrt: in `humanizer-de` nennt
 `upstream_version` die Fassung des urspruenglichen Autors und veraltet durch
 unsere Releases nicht.
 
+**Ausnahme: der Kopfkommentar der Scripts.** Elf Scripts in `wiki`, `swaks`,
+`mail-as-me` und `einfache-sprache` fuehren im Dateikopf ein `# version <x.y.z>`.
+Das ist bewusst so entschieden (2026-09-17) und **gehoert zu jedem Release
+mitgezogen**, sonst faellt es in dieselbe Luecke wie das frueher dort gefuehrte
+Frontmatter-Feld - vor der Angleichung stand `audit-wiki.py` auf 1.51.6 und die
+Scripts von `einfache-sprache` auf 1.37.0, waehrend `VERSION` bei 1.59.2 lag:
+
+```bash
+grep -rl '^# version' --include='*.py' --include='*.sh' . \
+  | xargs sed -i~ 's/^# version .*/# version <neue Version>/'
+```
+
 Commit-Konvention: `CR<id>: <skill> - <was geändert wurde> (<version>)`
 Beispiel: `CR4426: swos - poe-voltage (poe.b i03) + gemeinsame Write-Basis (1.26.1)`
 

@@ -647,13 +647,11 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.59.3
+### 1.59.4
 
-- **Versionskommentare in den Scripts auf den Repo-Stand gebracht.** Elf Scripts
-  in vier Skills fuehrten im Kopf ein `# version`, das seit dem jeweiligen
-  Release nicht mehr angefasst worden war: `audit-wiki.py` stand auf 1.51.6, die
-  sieben Scripts von `einfache-sprache` auf 1.37.0, `mail-as-me/extract.py` auf
-  1.29.0, `swaks/build_mail.py` auf 1.52.0. Alle tragen jetzt 1.59.3. Damit
-  bleibt es aber bei einer **zweiten** Stelle neben `VERSION`, und die veraltet
-  nach demselben Muster wieder - beim naechsten Release mitziehen oder die Zeile
-  streichen.
+- **Repo-CLAUDE.md: der Kopfkommentar der Scripts ist eine gewollte Ausnahme.**
+  Mit 1.59.3 tragen elf Scripts wieder die aktuelle Version im Dateikopf - nur
+  stand nirgends, dass es sie gibt, und der Abschnitt darueber sagt, die Version
+  stehe ausschliesslich in `VERSION`. Der naechste Release haette sie also
+  erneut stehen lassen. Jetzt steht die Ausnahme samt Einzeiler zum Mitziehen im
+  Release-Workflow.
