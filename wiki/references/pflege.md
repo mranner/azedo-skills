@@ -238,11 +238,12 @@ Workflow:
 4. **Nicht** remote schreiben. Am Ende dem User die Transport-Optionen nennen — er
    entscheidet, Transport ist ausdruecklich user-ausgeloest:
    - **Kanboard-Attachment** (`/kanboard`): Note an einen Task haengen (Review-Queue).
-   - **scp** nach `<host>:<path>/raw/inbox/` (Pfad aus `.claude/wiki-remotes.json`).
+   - **scp** nach `<host>:<path>/raw/inbox/` (Pfad aus der
+     [Remote-Config](remote-wikis.md#konfiguration-wiki-remotesjson)).
    - **Mail** (`/swaks`) als Anhang.
 
 Format (Kopf-Frontmatter + Body im Zielschema; Werte sind Beispiele, `source-date` =
-heutiges Datum, `target-host`/Pfad aus `.claude/wiki-remotes.json`):
+heutiges Datum, `target-host`/Pfad aus der Remote-Config):
 
 ```markdown
 ---

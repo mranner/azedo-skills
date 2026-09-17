@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # stdlib only, no pip dependencies
-# version 1.52.6
+# version 1.59.0
 
 """
 lint-wiki.py — Strukturpruefung fuer LLM Wikis (Infra + Projekt-Doku).
@@ -19,10 +19,11 @@ Praefix-Pointer [[<praefix>:<slug>]] werden in dieser Reihenfolge aufgeloest:
 1. <praefix> ist ein Geschwister-Wiki unter <projekt-root>/wiki/<praefix>/ →
    lokaler Cross-Wiki-Pointer. Das Ziel wird direkt im Dateisystem geprueft
    (offline moeglich), fehlt es, ist der Link tot.
-2. <praefix> ist ein Key in <projekt-root>/.claude/wiki-remotes.json → Remote-
-   Pointer auf ein Wiki an einem anderen Host. Das Ziel wird im Default NICHT
-   geprueft (offline-sicher); mit --check-remotes wird die Existenz per SSH
-   (find) on demand verifiziert.
+2. <praefix> ist ein Key in der Remote-Config (~/.claude/wiki-remotes.json,
+   <projekt-root>/.claude/wiki-remotes.json und -.local.json, in dieser
+   Reihenfolge gemergt) → Remote-Pointer auf ein Wiki an einem anderen Host.
+   Das Ziel wird im Default NICHT geprueft (offline-sicher); mit
+   --check-remotes wird die Existenz per SSH (find) on demand verifiziert.
 3. sonst toter Link.
 
 Aufruf: python3 lint-wiki.py [--check-remotes] <wiki-root>
@@ -37,6 +38,10 @@ import json
 import subprocess
 from pathlib import Path
 from collections import defaultdict
+
+# Liegt im selben Verzeichnis; der Modulname traegt deshalb einen Unterstrich
+# (siehe dortiger Docstring).
+import wiki_remotes
 
 # Eingebautes Default-Schema = Infra-Modell (Rueckwaertskompatibilitaet).
 # Greift, wenn im Wiki-Root keine wiki-schema.json liegt.
@@ -72,25 +77,15 @@ def load_schema(wiki_root):
 
 
 def load_remotes(wiki_root):
-    """Laedt bekannte Remote-Wikis aus <projekt-root>/.claude/wiki-remotes.json.
+    """Laedt bekannte Remote-Wikis fuer das Projekt ueber wiki_root.
 
-    Projekt-Root = wiki_root.parent.parent (Layout <projekt>/wiki/<name>/).
-    Mergt optional wiki-remotes.local.json darueber. Fehlt alles → leeres Dict
-    (dann ist jeder [[x:y]]-Link mit unbekanntem x ein toter Link — wie bisher).
-    Gibt {name: {"host": ..., "path": ...}} zurueck.
+    Projekt-Root = wiki_root.parent.parent (Layout <projekt>/wiki/<name>/);
+    welche Dateien gelesen und in welcher Reihenfolge sie gemergt werden, steht
+    in wiki_remotes.py. Fehlt alles → leeres Dict (dann ist jeder [[x:y]]-Link
+    mit unbekanntem x ein toter Link — wie bisher).
     """
-    remotes = {}
     project_root = Path(wiki_root).resolve().parent.parent
-    for fname in ("wiki-remotes.json", "wiki-remotes.local.json"):
-        f = project_root / ".claude" / fname
-        if f.exists():
-            try:
-                data = json.loads(f.read_text(encoding="utf-8"))
-                if isinstance(data, dict):
-                    remotes.update(data)
-            except (json.JSONDecodeError, OSError):
-                pass
-    return remotes
+    return wiki_remotes.load_remotes(project_root)
 
 
 def load_local_wikis(wiki_root):

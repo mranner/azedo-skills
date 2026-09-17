@@ -182,7 +182,8 @@ Das erlaubte Entity-Modell (Typen + Pflichtfelder) liest der Linter aus
 Präfix-Pointer `[[<präfix>:<slug>]]` (siehe
 [Hints](remote-wikis.md#auf-entities-anderer-wikis-verweisen-hints)) löst der Linter
 erst gegen die Nachbar-Wikis unter `wiki/` auf - dort wird das Ziel direkt geprüft,
-ein fehlender Slug ist ein Fehler - und danach gegen `.claude/wiki-remotes.json`;
+ein fehlender Slug ist ein Fehler - und danach gegen die
+[Remote-Config](remote-wikis.md#konfiguration-wiki-remotesjson);
 Remote-Ziele gelten ungeprüft als gültig, `--check-remotes` verifiziert sie per SSH.
 Unbekanntes Präfix bleibt ein toter Link.
 

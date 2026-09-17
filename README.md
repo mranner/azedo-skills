@@ -473,7 +473,7 @@ LLM Wiki-Verwaltung fuer strukturierte Dokumentation. Unterstuetzt **mehrere Wik
 
 Ziel-Wiki per Praefix waehlen: `/wiki cris:query "…"`; ohne Praefix gilt `azedo` (Default). Die Wiki-Root wird projekt-relativ aufgeloest (`wiki/<name>/` relativ zum Projekt-Root), nicht ueber einen absoluten Home-Pfad — portabel ueber Maschinen/Checkout-Orte. Das Entity-Modell (erlaubte Typen + Pflichtfelder) liest der Linter aus `<wiki-root>/wiki-schema.json`, mit Infra-Default als Fallback.
 
-**Remote-Wikis (read-only):** Ein Wiki auf einem anderen Host kann per SSH read-only abgefragt werden — ohne lokale Kopie, ohne Sync. Definiert in `.claude/wiki-remotes.json` (`{name: {host, path}}`); `query`/`status` lesen dann per `ssh <host> "cat/grep …"`, schreibende Subcommands sind fuer Remotes gesperrt. Aus einem lokalen Wiki auf eine Remote-Entity verweisen: `[[<remote>:<slug>]]` (gueltiger Pointer, kein toter Link, wenn `<remote>` bekannt). Neue Erkenntnisse fuer ein Remote-Wiki liefert `<remote>:handoff` als Outbox-Note (`.claude/wiki-outbox/`) zum manuellen Ingest auf dem Zielhost — kein Remote-Write.
+**Remote-Wikis (read-only):** Ein Wiki auf einem anderen Host kann per SSH read-only abgefragt werden — ohne lokale Kopie, ohne Sync. Definiert in `wiki-remotes.json` (`{name: {host, path}}`) - benutzerweit unter `~/.claude/`, projektlokal unter `<projekt>/.claude/`, in dieser Reihenfolge je Key gemergt; `scripts/wiki_remotes.py list` zeigt sie mit Herkunft, `add <name> <host>:<pfad> [--home]` traegt einen ein; `query`/`status` lesen dann per `ssh <host> "cat/grep …"`, schreibende Subcommands sind fuer Remotes gesperrt. Aus einem lokalen Wiki auf eine Remote-Entity verweisen: `[[<remote>:<slug>]]` (gueltiger Pointer, kein toter Link, wenn `<remote>` bekannt). Neue Erkenntnisse fuer ein Remote-Wiki liefert `<remote>:handoff` als Outbox-Note (`.claude/wiki-outbox/`) zum manuellen Ingest auf dem Zielhost — kein Remote-Write.
 
 Referenzen: Frontmatter-Schemas, Compilation-Guide, Cross-Referencing-Regeln.
 
@@ -647,18 +647,29 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.58.2
+### 1.59.0
 
-- **`wp-nf`: Snippets nach `references/`, Fallstricke bleiben in der SKILL.md.**
-  Der Skill war mit dem vorigen Release auf 593 Zeilen gewachsen und lag damit
-  ueber der Grenze, ab der Inhalt laut Repo-Konvention danebengehoert. Ausgelagert
-  sind die vier Teile, die reine Ausfuehrungsrezepte sind: die beiden Read-Snippets
-  (`snippets-read.md`), der `parent_id`-Guard samt SQL-Abwaegung fuer
-  Uebersetzungsformulare (`wpml-writes.md`), der Preflight (`preflight.md`) und
-  Export/Import (`export-import.md`). In der SKILL.md bleiben Zugriff, Datenmodell
-  samt Footguns, der Write-Ablauf und das Diagnose-Muster - zusammen noch rund 320
-  Zeilen. Bewusst **nicht** ausgelagert ist das Datenmodell: dass ein Feldwert an
-  vier bis fuenf Stellen liegt, entscheidet, ob jemand ueberhaupt merkt, dass er
-  den Preflight braucht - wer das erst in einer Referenzdatei findet, liest es nach
-  dem Fehler statt davor. Jeder Verweis nennt deshalb die Konsequenz statt nur den
-  Dateinamen, und die Abschnittsnummern sind auf 1-5 durchgezogen.
+- **`wiki`: Remote-Config auch benutzerweit, `remotes list`/`add` statt Handarbeit.**
+  Die Remote-Wikis wurden bis hierher ausschliesslich projekt-relativ aufgeloest;
+  in sechs Projekten stand daraufhin dieselbe `.claude/wiki-remotes.json` mit
+  demselben Infra-Eintrag, und in einem neuen Projekt fehlte sie - das
+  Remote-Wiki war dort schlicht nicht abfragbar. Gelesen wird nun aus drei
+  Quellen, je Key gemergt: `~/.claude/wiki-remotes.json`, dann die projektlokale
+  Datei, dann `wiki-remotes.local.json`. Der Home-Eintrag ist die Bequemlichkeit
+  der eigenen Maschine; was mit dem Projekt geteilt wird, gehoert weiterhin in die
+  projektlokale Datei, sonst lintet ein `[[<remote>:<slug>]]` nur hier sauber.
+  Dazu ein Script `scripts/wiki_remotes.py`: `list` nennt die drei Dateien und je
+  Remote die **Herkunft** (`[home]`/`[projekt]`/`[local]`) - nach dem Merge waere
+  sonst nicht mehr zu sehen, welcher Eintrag aus dem Projekt stammt -, `add
+  <name> <host>:<pfad>` schreibt ins Projekt, mit `--home` benutzerweit,
+  `--force` ueberschreibt. Legt ein `add` einen Eintrag an, den eine spaetere
+  Quelle bereits verdeckt, sagt der Aufruf das; sonst schreibt ein `--home` still
+  eine Datei, die nie gelesen wird. `lint-wiki.py` bezieht `load_remotes()` jetzt
+  von dort (Modulname mit Unterstrich, damit er importierbar ist).
+- **`wiki`: Trigger greift auch beim Handeln, nicht nur beim Fragen.** Die
+  Description nannte als Ausloeser nur Fragen ans Wiki. Bei einem Deployment auf
+  einen dokumentierten Host wurde der Skill deshalb nicht geladen, und der Agent
+  klopfte Jail, vhost und Config-Pfad per `grep`, `ps` und `jls` ab - alles drei
+  stand im Wiki. Ergaenzt um den handlungsbezogenen Ausloeser: vor einem Eingriff
+  an einem Server oder Service - Deployment, Config-Aenderung, Fehlersuche -
+  zuerst `query`. Nur Description, kein Code.

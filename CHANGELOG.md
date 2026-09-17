@@ -3,6 +3,33 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.59.0
+
+- **`wiki`: Remote-Config auch benutzerweit, `remotes list`/`add` statt Handarbeit.**
+  Die Remote-Wikis wurden bis hierher ausschliesslich projekt-relativ aufgeloest;
+  in sechs Projekten stand daraufhin dieselbe `.claude/wiki-remotes.json` mit
+  demselben Infra-Eintrag, und in einem neuen Projekt fehlte sie - das
+  Remote-Wiki war dort schlicht nicht abfragbar. Gelesen wird nun aus drei
+  Quellen, je Key gemergt: `~/.claude/wiki-remotes.json`, dann die projektlokale
+  Datei, dann `wiki-remotes.local.json`. Der Home-Eintrag ist die Bequemlichkeit
+  der eigenen Maschine; was mit dem Projekt geteilt wird, gehoert weiterhin in die
+  projektlokale Datei, sonst lintet ein `[[<remote>:<slug>]]` nur hier sauber.
+  Dazu ein Script `scripts/wiki_remotes.py`: `list` nennt die drei Dateien und je
+  Remote die **Herkunft** (`[home]`/`[projekt]`/`[local]`) - nach dem Merge waere
+  sonst nicht mehr zu sehen, welcher Eintrag aus dem Projekt stammt -, `add
+  <name> <host>:<pfad>` schreibt ins Projekt, mit `--home` benutzerweit,
+  `--force` ueberschreibt. Legt ein `add` einen Eintrag an, den eine spaetere
+  Quelle bereits verdeckt, sagt der Aufruf das; sonst schreibt ein `--home` still
+  eine Datei, die nie gelesen wird. `lint-wiki.py` bezieht `load_remotes()` jetzt
+  von dort (Modulname mit Unterstrich, damit er importierbar ist).
+- **`wiki`: Trigger greift auch beim Handeln, nicht nur beim Fragen.** Die
+  Description nannte als Ausloeser nur Fragen ans Wiki. Bei einem Deployment auf
+  einen dokumentierten Host wurde der Skill deshalb nicht geladen, und der Agent
+  klopfte Jail, vhost und Config-Pfad per `grep`, `ps` und `jls` ab - alles drei
+  stand im Wiki. Ergaenzt um den handlungsbezogenen Ausloeser: vor einem Eingriff
+  an einem Server oder Service - Deployment, Config-Aenderung, Fehlersuche -
+  zuerst `query`. Nur Description, kein Code.
+
 ### 1.58.2
 
 - **`wp-nf`: Snippets nach `references/`, Fallstricke bleiben in der SKILL.md.**

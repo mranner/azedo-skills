@@ -7,6 +7,8 @@ description: >
   entflechten; Wikis auf anderen Hosts read-only per SSH abfragen.
   Auch bei "trag das ins Wiki ein", "was steht im Wiki zu X", "wiki
   aktualisieren", "gibt es relevante Erkenntnisse fürs Wiki".
+  Ebenso vor dem Eingriff an einem Server oder Service - Deployment,
+  Config-Änderung, Fehlersuche: zuerst "query" statt den Host abzuklopfen.
   Trigger: /wiki.
 ---
 
@@ -67,8 +69,11 @@ Vor jeder Operation:
    `$SKILL_DIR` angesprochen (siehe oben).
 3. Ziel aufloesen — in dieser Reihenfolge:
    a. `WIKI_ROOT` existiert lokal → **lokales Wiki** (wie gehabt, weiter mit Schritt 4).
-   b. Lokal nicht vorhanden, aber `<name>` steht in `.claude/wiki-remotes.json`
-      (projekt-relativ) → **Remote-Wiki, read-only**. Ab hier gilt der Abschnitt
+   b. Lokal nicht vorhanden, aber `<name>` steht in der Remote-Config
+      (`~/.claude/wiki-remotes.json`, dann `.claude/wiki-remotes.json` und
+      `.claude/wiki-remotes.local.json` im Projekt, in dieser Reihenfolge gemergt;
+      `python3 "$SKILL_DIR/scripts/wiki_remotes.py" list` zeigt sie mit Herkunft)
+      → **Remote-Wiki, read-only**. Ab hier gilt der Abschnitt
       [Remote-Wikis](references/remote-wikis.md): nur lesende Subcommands (`query`,
       `status`) sind erlaubt, Dateien werden per SSH gelesen.
    c. Weder lokal noch als Remote bekannt → **nicht** auf einen Home-Pfad ausweichen:
@@ -98,9 +103,11 @@ Kandidaten filtern, vorlegen, erst nach Freigabe schreiben):
 Beide fuehrt das Modell selbst aus, es gibt dafuer **kein Script**: `query` liest
 `index.md`, greppt Frontmatter und folgt Backlinks; `harvest` sammelt Kandidaten,
 schickt sie durch den Aufnahmefilter und legt sie vor. Der Ablauf steht in
-`references/subcommands.md`. Ein Script gibt es nur fuer `lint` und `audit`:
+`references/subcommands.md`. Scripts gibt es nur fuer `lint` und `audit` -
 `python3 "$SKILL_DIR/scripts/lint-wiki.py" <WIKI_ROOT>` und
-`python3 "$SKILL_DIR/scripts/audit-wiki.py" <WIKI_ROOT>`.
+`python3 "$SKILL_DIR/scripts/audit-wiki.py" <WIKI_ROOT>` - sowie fuer die
+Remote-Config (`scripts/wiki_remotes.py list` / `add`, siehe
+[Remote-Wikis](references/remote-wikis.md#remotes-anzeigen-und-eintragen)).
 
 Vollstaendige Referenz daneben, bei Bedarf lesen:
 

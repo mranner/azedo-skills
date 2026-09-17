@@ -7,13 +7,17 @@ test-lint-wiki.py — Testfaelle fuer die Praefix-Aufloesung in lint-wiki.py.
 
 Baut ein Wegwerf-Projekt mit zwei Geschwister-Wikis, einem Verzeichnis ohne
 wiki/-Unterordner und einer wiki-remotes.json, laesst lint-wiki.py darauf laufen
-und vergleicht die Meldungen zu Wikilinks mit der Erwartung.
+und vergleicht die Meldungen zu Wikilinks mit der Erwartung. Das Home wird auf
+ein Wegwerf-Verzeichnis umgebogen: so wird der benutzerweite Fallback
+(~/.claude/wiki-remotes.json) mitgeprueft, ohne dass die echte Datei des
+Entwicklers in den Lauf hineinwirkt.
 
 Aufruf: python3 test-lint-wiki.py
 Exit 0 = alle Faelle erfuellt, 1 = Abweichung (wird ausgegeben).
 """
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -29,8 +33,13 @@ def write(path, text):
     path.write_text(text, encoding="utf-8")
 
 
-def build(root):
-    """Legt das Testprojekt an und gibt den Pfad des zu pruefenden Wikis zurueck."""
+def build(root, home):
+    """Legt Testprojekt und Wegwerf-Home an, gibt das zu pruefende Wiki zurueck."""
+
+    # Nur im Home bekannt — prueft den benutzerweiten Fallback
+    write(home / ".claude/wiki-remotes.json", json.dumps({
+        "heim": {"host": "example.org", "path": "/srv/heim"},
+    }))
 
     # Nachbar-Wiki mit genau einem Artikel
     write(root / "wiki/geschichte/wiki/franzoesische-revolution.md",
@@ -60,7 +69,8 @@ def build(root):
           "Lokal fehlend: [[geschichte:gibt-es-nicht]].\n"
           "Kein Wiki-Verzeichnis: [[notizen:irgendwas]].\n"
           "Unbekanntes Praefix: [[fremd:irgendwas]].\n"
-          "Bekannter Remote: [[fern:egal]].\n")
+          "Bekannter Remote: [[fern:egal]].\n"
+          "Remote nur aus dem Home: [[heim:egal]].\n")
     write(mathe / "index.md", "# Index\n\n- [[schriftliches-dividieren]]\n")
     write(mathe / "log.md", "# Log\n\n- [[geschichte:gibt-es-nicht]]\n")
     return mathe
@@ -71,6 +81,7 @@ CASES = [
     ("Toter Wikilink [[biologie:zellteilung]]", False),
     ("Toter Wikilink [[geschichte:franzoesische-revolution]]", False),
     ("Toter Wikilink [[fern:egal]]", False),
+    ("Toter Wikilink [[heim:egal]]", False),
     ("schriftliches-dividieren.md: Toter Wikilink [[geschichte:gibt-es-nicht]] — Ziel existiert nicht im Wiki 'geschichte'", True),
     ("schriftliches-dividieren.md: Toter Wikilink [[notizen:irgendwas]] — Ziel existiert nicht", True),
     ("schriftliches-dividieren.md: Toter Wikilink [[fremd:irgendwas]] — Ziel existiert nicht", True),
@@ -80,9 +91,11 @@ CASES = [
 
 def main():
     with tempfile.TemporaryDirectory() as tmp:
-        wiki = build(Path(tmp))
+        home = Path(tmp) / "home"
+        wiki = build(Path(tmp) / "projekt", home)
+        env = dict(os.environ, HOME=str(home))
         res = subprocess.run([sys.executable, str(LINT), str(wiki)],
-                             capture_output=True, text=True)
+                             capture_output=True, text=True, env=env)
         out = res.stdout
 
     failed = 0

@@ -9,10 +9,16 @@ ohne lokale Kopie, ohne Sync. `query` ist reines Datei-Lesen (CLAUDE.md + index.
 lesen, Entities greppen, Treffer lesen, synthetisieren); genau dieser Read-Path
 laeuft dann ueber SSH. Es wird **nie** remote ins Wiki geschrieben.
 
-### Konfiguration: `.claude/wiki-remotes.json`
+### Konfiguration: `wiki-remotes.json`
 
-Im Projekt-Root unter `.claude/` (Tooling-Config, kein Wiki-Inhalt), projekt-relativ
-aufgeloest wie `wiki/<name>/`:
+Tooling-Config, kein Wiki-Inhalt. Drei Quellen, in dieser Reihenfolge gemergt -
+spaetere gewinnen **je Key**, nicht als ganze Datei:
+
+| Herkunft | Datei | Wofuer |
+|---|---|---|
+| `home` | `~/.claude/wiki-remotes.json` | was in **jedem** Projekt gilt (das Infra-Wiki) |
+| `projekt` | `<projekt-root>/.claude/wiki-remotes.json` | was zu diesem Projekt gehoert und mitgecheckt wird |
+| `local` | `<projekt-root>/.claude/wiki-remotes.local.json` | maschinenlokal, analog zu Claudes `settings.local.json` - nur bei realem Bedarf |
 
 ```json
 {
@@ -28,8 +34,33 @@ aufgeloest wie `wiki/<name>/`:
   Agent-Kontext).
 - `path` — Wiki-Root auf dem Host; `~` wird von der Remote-Shell expandiert.
 - Enthaelt **keine Secrets** (nur Host/Pfad) → darf eingecheckt/geteilt werden.
-- Optional `.claude/wiki-remotes.local.json` fuer maschinenlokale Remotes (analog zu
-  Claudes `settings.local.json`) — nur bei realem Bedarf, nicht auf Vorrat.
+
+Der Home-Fallback spart die Kopie in jedem neuen Projekt, hat aber einen Preis:
+ein `[[azedo:x]]` lintet auf der eigenen Maschine sauber und bei jemandem ohne
+diese Datei nicht. **Was mit dem Projekt geteilt wird, gehoert deshalb in die
+projektlokale Datei** - der Home-Eintrag ist die Bequemlichkeit der eigenen
+Maschine, nicht die Dokumentation des Projekts.
+
+### Remotes anzeigen und eintragen
+
+```bash
+python3 "$SKILL_DIR/scripts/wiki_remotes.py" list
+python3 "$SKILL_DIR/scripts/wiki_remotes.py" add <name> <host>:<pfad> [--home] [--force]
+```
+
+`list` nennt zuerst die drei Dateien (samt `(fehlt)`) und dann je Remote das Ziel
+und die **Herkunft** - `[home]`, `[projekt]` oder `[local]`. Ohne diese Spalte ist
+nach dem Merge nicht mehr zu sehen, welcher Eintrag aus dem Projekt stammt und
+welcher nur hier existiert.
+
+`add` schreibt in die **projektlokale** Datei, mit `--home` stattdessen in die
+benutzerweite; ein bestehender Eintrag wird nur mit `--force` ueberschrieben.
+Legt der Aufruf einen Eintrag an, den eine spaetere Quelle bereits verdeckt,
+sagt er das (`Hinweis: 'x' wird effektiv aus 'projekt' gelesen.`) - sonst
+schreibt ein `--home` still eine Datei, die nie gelesen wird.
+
+Beide Befehle loesen das Projekt aus dem **aktuellen Arbeitsverzeichnis** auf,
+wie die Wikis unter `wiki/` auch.
 
 ### Lesen ueber SSH
 
@@ -77,7 +108,8 @@ Der Linter löst das Präfix in dieser Reihenfolge auf:
    wird direkt im Dateisystem gesucht (`wiki/<präfix>/wiki/**/<slug>.md`); fehlt es,
    ist der Link **tot**. Hier gibt es keine Nachsicht: anders als beim Remote liegt
    das Ziel greifbar da, es gibt also nichts zu vermuten.
-2. **Remote-Wiki** - `<präfix>` ist ein Key in `.claude/wiki-remotes.json`. Der Link
+2. **Remote-Wiki** - `<präfix>` ist ein Key in der Remote-Config (siehe
+   [Konfiguration](#konfiguration-wiki-remotesjson)). Der Link
    gilt als **gültiger Remote-Pointer** - kein toter Link, keine „Waise"-Folgefehler.
    Das Ziel wird im Default **nicht** geprüft (offline-sicher);
    `python3 "$SKILL_DIR/scripts/lint-wiki.py" --check-remotes <WIKI_ROOT>` verifiziert
