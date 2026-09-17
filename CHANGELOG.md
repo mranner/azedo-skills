@@ -3,6 +3,37 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.60.0
+
+- **Neuer Skill `bridge` - Nachrichten zwischen Sessions bekommen eine Quittung.**
+  Ueber Remote Control lassen sich Sessions zwar per `SendMessage` ansprechen, nur
+  meldet niemand zurueck, ob etwas angekommen ist: das Tool weckt die Gegenseite
+  auf, mehr nicht, und ein blanker Text wird dort in aller Regel gar nicht als
+  Antwortaufforderung gelesen. Wer eine Aufgabe hinueberschickt, sitzt danach vor
+  einem Bildschirm, der von einer stillen Session nicht zu unterscheiden ist.
+  `bridge` definiert drei Zeilenformen - `[bridge msg=<id> from=... reply=ack]`,
+  `[bridge ack=<id>]` und `[bridge done=<id>] <Ergebnis>` - und trennt damit
+  "angekommen" von "erledigt"; sonst wartet man bei einer langen Aufgabe
+  minutenlang, ohne die Zustellung zu kennen.
+- **Der Handshake liegt in der Nachricht, nicht in der Konfiguration.** Die
+  Quittungsanweisung steht im Klartext im Nachrichtentext, weshalb die Gegenseite
+  den Skill nicht installiert haben muss. Die naheliegende Alternative - ein
+  zweiter, modell-aufrufbarer Skill auf der Empfaengerseite - versagte genau im
+  wichtigsten Fall, naemlich bei einer fremden Maschine. Ein Skill mit
+  `disable-model-invocation` wird beim Empfaenger ohnehin nie geladen, dort tippt
+  niemand einen Schraegstrich.
+- **`whoami` ist in `bridge` aufgegangen und ersatzlos entfallen.** Sein Inhalt
+  steckt unveraendert in `/bridge who`, inklusive der Aufloesung ueber den
+  Prozessbaum und der Begruendung, warum allein die bridge-Session-ID als Adresse
+  taugt. Auf Maschinen, die den alten Skill schon verlinkt haben, bleibt der
+  Symlink `~/.claude/skills/whoami` nach dem `git pull` als Leiche zurueck und
+  muss dort von Hand weg - das Loeschen im Repo raeumt ihn nicht ab.
+- **Grenze, bewusst so:** ein ausbleibender `ack` beweist nicht, dass die Nachricht
+  nicht angekommen ist, sondern nur, dass keine Quittung zurueckkam. Eine
+  belastbare Zustellung haette eine gemeinsame Ablage gebraucht; die faellt weg,
+  sobald die Sessions auf verschiedenen Maschinen laufen, und das ist der
+  Normalfall.
+
 ### 1.59.4
 
 - **Repo-CLAUDE.md: der Kopfkommentar der Scripts ist eine gewollte Ausnahme.**

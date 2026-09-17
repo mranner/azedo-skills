@@ -553,18 +553,19 @@ Erklaert die zuletzt gegebene Antwort noch einmal, in Einfacher Sprache. Fuer de
 
 **Trigger:** nur `/wie-bitte`.
 
-### whoami
+### bridge
 
-Gibt aus, welche Claude-Session hier laeuft - Name, Arbeitsverzeichnis, PID - und vor allem die **bridge-Session-ID**, die einzige stabile Adresse, unter der die Session von einer anderen Maschine aus per `SendMessage` erreichbar ist:
+Nachrichten zwischen Claude-Code-Sessions ueber Remote Control, mit einem rudimentaeren Handshake. `SendMessage` weckt die Gegenseite nur auf - es gibt keine Zustellbestaetigung, und ob die andere Session zurueckschreibt, ist eine Entscheidung ihres Modells. Der Skill legt die Quittung deshalb in den **Nachrichtentext selbst**:
 
-- Anzeigenamen taugen nicht als Adresse: sie werden bridge-seitig vergeben und aendern sich im Betrieb; der Name, unter dem sich eine Session selbst kennt, ist von aussen gar nicht adressierbar. Refs aus `ListAgents` gelten nur innerhalb einer Auflistung
+- Drei Zeilenformen: `[bridge msg=<id> from=... reply=ack]`, `[bridge ack=<id>]`, `[bridge done=<id>] <Ergebnis>`. `ack` (angekommen) und `done` (erledigt) sind getrennt, damit man bei einer langen Aufgabe nicht minutenlang im Ungewissen sitzt
+- Die Gegenseite braucht den Skill **nicht installiert** - die Anweisung steht im Klartext in der Nachricht. Ein Protokoll, das auf beiden Seiten konfiguriert sein muesste, versagte genau bei der fremden Maschine
+- `who` gibt die eigene **bridge-Session-ID** aus, die einzige stabile Adresse: Anzeigenamen werden bridge-seitig vergeben und aendern sich im Betrieb, der Name, unter dem sich eine Session selbst kennt, ist von aussen gar nicht adressierbar, und Refs aus `ListAgents` gelten nur innerhalb einer Auflistung
 - Die eigene Session wird ueber den **Prozessbaum** ab der eigenen PID aufgeloest, nicht ueber "die zuletzt geaenderte Datei" - das bleibt auch bei mehreren gleichzeitig laufenden Sessions richtig
-- `--id` gibt nur `bridge:session_...` aus, zum Kopieren; `--json` haengt den rohen Datensatz an
-- Ist die Session nicht gebridgt, sagt das Script das ausdruecklich, statt eine leere Adresse zu liefern
+- `send` baut nur den Text, verschickt wird er mit `SendMessage`; ohne Text-Argument kommt er von STDIN. Ist die eigene Session nicht gebridgt, bricht `send` ab, statt eine Nachricht mit unbeantwortbarer Rueckadresse zu bauen
 
-Die ID einer **fremden** Session kann der Skill nicht ermitteln - deren Datei liegt auf deren Maschine. Dort `/whoami` aufrufen und die Adresse herueberreichen.
+Grenze des Verfahrens: ein ausbleibender `ack` beweist nicht, dass die Nachricht nicht angekommen ist. Der Handshake ist eine Konvention, kein Transportprotokoll.
 
-**Trigger:** `/whoami`, oder Fragen wie "welche Session bist du", "wie ist deine Session-ID", "wie erreiche ich dich von der anderen Maschine".
+**Trigger:** nur `/bridge` (`disable-model-invocation`).
 
 ### telegram
 
@@ -647,11 +648,13 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.59.4
+### 1.60.0
 
-- **Repo-CLAUDE.md: der Kopfkommentar der Scripts ist eine gewollte Ausnahme.**
-  Mit 1.59.3 tragen elf Scripts wieder die aktuelle Version im Dateikopf - nur
-  stand nirgends, dass es sie gibt, und der Abschnitt darueber sagt, die Version
-  stehe ausschliesslich in `VERSION`. Der naechste Release haette sie also
-  erneut stehen lassen. Jetzt steht die Ausnahme samt Einzeiler zum Mitziehen im
-  Release-Workflow.
+- **Neuer Skill `bridge`, `whoami` darin aufgegangen.** Nachrichten zwischen
+  Claude-Code-Sessions hatten bisher keine Rueckmeldung: `SendMessage` weckt die
+  Gegenseite nur auf, und ein blanker Text wird dort meist nicht als
+  Antwortaufforderung gelesen - der Absender weiss danach nicht, ob etwas
+  angekommen ist. `bridge` legt einen rudimentaeren Handshake in den
+  Nachrichtentext selbst, damit auch eine Session ohne installierten Skill
+  quittieren kann. `whoami` ist ersatzlos entfallen, sein Inhalt steckt in
+  `/bridge who`.

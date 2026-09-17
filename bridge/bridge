@@ -1,0 +1,180 @@
+#!/usr/bin/env python3
+
+# bridge - Nachrichten zwischen Claude-Code-Sessions, mit rudimentaerem Handshake.
+#
+# Die bridge-Session-ID ist die einzige stabile Adresse einer Session: Anzeigenamen
+# werden bridge-seitig vergeben und aendern sich im Betrieb, Refs aus ListAgents
+# gelten nur innerhalb einer Auflistung. SendMessage nimmt die ID direkt als
+# "bridge:session_...".
+#
+# Der Handshake liegt im Nachrichtentext selbst, nicht in der Konfiguration der
+# Gegenseite: eine Session ohne installierten Skill kann trotzdem quittieren.
+# version 1.60.0
+#
+# stdlib only, keine pip-Abhaengigkeiten. Laeuft auf FreeBSD, Linux und macOS.
+
+import argparse
+import json
+import os
+import subprocess
+import sys
+
+SESSION_DIR = os.path.expanduser("~/.claude/sessions")
+
+
+def ppid_of(pid):
+    """Eltern-PID ueber ps - portabel auf FreeBSD, Linux und macOS."""
+    try:
+        out = subprocess.run(["ps", "-o", "ppid=", "-p", str(pid)],
+                             capture_output=True, text=True, timeout=5)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    value = out.stdout.strip()
+    return int(value) if value.isdigit() else None
+
+
+def own_session():
+    """Eigene Session ueber den Prozessbaum ab der eigenen PID auffinden.
+
+    Der Weg ueber den Prozessbaum ist der Grund, warum das verlaesslich ist: bei
+    mehreren gleichzeitig laufenden Sessions gibt es keine Heuristik ueber "die
+    neueste Datei", die nicht gelegentlich die falsche erwischt.
+    """
+    pid = os.getpid()
+    for _ in range(40):
+        path = os.path.join(SESSION_DIR, f"{pid}.json")
+        if os.path.exists(path):
+            try:
+                with open(path, encoding="utf-8") as fh:
+                    return json.load(fh)
+            except (OSError, ValueError):
+                pass
+        parent = ppid_of(pid)
+        if not parent or parent == pid or parent <= 1:
+            return None
+        pid = parent
+    return None
+
+
+def require_session():
+    data = own_session()
+    if not data:
+        print("Eigene Session nicht gefunden - im Prozessbaum liegt keine Datei unter "
+              f"{SESSION_DIR}. Laeuft das ausserhalb einer Claude-Code-Session?",
+              file=sys.stderr)
+        sys.exit(1)
+    return data
+
+
+def address_of(data):
+    bridge = data.get("bridgeSessionId")
+    return f"bridge:{bridge}" if bridge else None
+
+
+def cmd_who(args):
+    data = require_session()
+    address = address_of(data)
+
+    if args.id:
+        if not address:
+            print("Diese Session ist nicht gebridgt - keine Adresse vorhanden.",
+                  file=sys.stderr)
+            sys.exit(2)
+        print(address)
+        return
+
+    result = {
+        "name": data.get("name"),
+        "cwd": data.get("cwd"),
+        "pid": data.get("pid"),
+        "session_id": data.get("sessionId"),
+        "bridge_session_id": data.get("bridgeSessionId"),
+        "address": address,
+    }
+    if args.json:
+        result["raw"] = data
+    if not address:
+        result["hinweis"] = ("Diese Session ist nicht gebridgt (Feld bridgeSessionId "
+                             "fehlt) und von aussen nicht adressierbar. Remote Control "
+                             "aktivieren, dann erneut aufrufen.")
+    print(json.dumps(result, indent=2, ensure_ascii=False))
+
+
+def read_text(text):
+    """Text aus dem Argument oder, wenn keines kam, aus STDIN."""
+    if text is not None:
+        return text.strip()
+    if sys.stdin.isatty():
+        print("Kein Text angegeben und nichts auf STDIN.", file=sys.stderr)
+        sys.exit(1)
+    return sys.stdin.read().strip()
+
+
+def cmd_send(args):
+    data = require_session()
+    address = address_of(data)
+    if not address:
+        print("Diese Session ist nicht gebridgt - eine Quittung koennte nicht "
+              "zurueckkommen. Remote Control aktivieren, dann erneut aufrufen.",
+              file=sys.stderr)
+        sys.exit(2)
+
+    body = read_text(args.text)
+    msg_id = args.id or os.urandom(2).hex()
+
+    lines = [f"[bridge msg={msg_id} from={address} reply=ack]", "", body, ""]
+    lines.append(
+        f'Quittiere den Empfang als erste Aktion: SendMessage an "{address}" mit dem '
+        f'Text "[bridge ack={msg_id}]". Erst danach die Aufgabe bearbeiten. Das '
+        f"Ergebnis kommt spaeter als \"[bridge done={msg_id}] <Ergebnis>\" an dieselbe "
+        "Adresse.")
+    message = "\n".join(lines)
+
+    if args.json:
+        print(json.dumps({"msg_id": msg_id, "to": args.ziel, "from": address,
+                          "message": message}, indent=2, ensure_ascii=False))
+        return
+
+    print(f"msg-id: {msg_id}")
+    print(f"Senden mit: SendMessage(to=\"{args.ziel}\", message=<Text unten>)")
+    print()
+    print(message)
+
+
+def cmd_ack(args):
+    if args.done is not None:
+        body = read_text(args.done) if args.done == "-" else args.done.strip()
+        print(f"[bridge done={args.msg_id}] {body}")
+    else:
+        print(f"[bridge ack={args.msg_id}]")
+
+
+def main():
+    p = argparse.ArgumentParser(
+        description="Nachrichten zwischen Claude-Code-Sessions, mit Handshake")
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    w = sub.add_parser("who", help="eigene Session und ihre bridge-Adresse ausgeben")
+    w.add_argument("--id", action="store_true",
+                   help="nur die Adresse 'bridge:session_...' ausgeben, zum Kopieren")
+    w.add_argument("--json", action="store_true", help="vollstaendiger Datensatz als JSON")
+    w.set_defaults(func=cmd_who)
+
+    s = sub.add_parser("send", help="Nachrichtentext samt Handshake-Kopf bauen")
+    s.add_argument("ziel", help="Adresse der Gegenseite, z.B. bridge:session_...")
+    s.add_argument("text", nargs="?", help="Nachrichtentext; ohne Argument aus STDIN")
+    s.add_argument("--id", help="feste msg-id statt einer zufaelligen")
+    s.add_argument("--json", action="store_true", help="Ausgabe als JSON")
+    s.set_defaults(func=cmd_send)
+
+    a = sub.add_parser("ack", help="Quittung fuer eine empfangene msg-id formen")
+    a.add_argument("msg_id", help="die msg-id aus dem Kopf der empfangenen Nachricht")
+    a.add_argument("--done", help="Ergebnis-Quittung statt Empfangs-Quittung; '-' liest STDIN")
+    a.set_defaults(func=cmd_ack)
+
+    args = p.parse_args()
+    args.func(args)
+
+
+if __name__ == "__main__":
+    main()
