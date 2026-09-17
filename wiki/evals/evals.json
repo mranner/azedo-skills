@@ -1,0 +1,78 @@
+{
+  "skill_name": "wiki",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Deploy die fertige PWA nach /www/virtual/example.at/html5/infoscreen auf <dev-host>. Welcher Jail ist das und wie heisst der vhost?",
+      "expected_output": "Der Skill triggert ohne Nennung des Wortes 'Wiki' und beantwortet Jail, vhost-Muster und Config-Pfad aus dem Wiki, statt den Host abzuklopfen.",
+      "files": [],
+      "expectations": [
+        "Der wiki-Skill wird geladen, obwohl der Prompt weder 'Wiki' noch 'query' enthaelt",
+        "Die Antwort stuetzt sich auf einen Wiki-Artikel (index.md bzw. eine Entity unter wiki/), nicht auf ps, jls, grep ueber Apache-Configs oder jexec",
+        "Jail-Name und vhost-Pfadmuster werden genannt"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Auf dem Mailserver von example.org kommt seit heute frueh nichts mehr raus. Ich muss an die Postfix-Konfiguration ran.",
+      "expected_output": "Vor dem Eingriff wird das Wiki abgefragt (Host, Rolle, bekannte Fallstricke), erst danach wird am Server gearbeitet.",
+      "files": [],
+      "expectations": [
+        "Der wiki-Skill wird geladen, bevor ein Befehl auf dem Zielhost abgesetzt wird",
+        "Eine vorhandene procedure oder Server-Entity zum Mailserver wird gelesen"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Was steht im Wiki zum Backup-Verfahren?",
+      "expected_output": "Klassische Frage-Form: der Skill triggert und beantwortet die Frage aus den Entities.",
+      "files": [],
+      "expectations": [
+        "Der wiki-Skill wird geladen",
+        "Die Antwort nennt die Artikel, aus denen sie stammt"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Trag ins Wiki ein, dass der Reload des Dienstes die Konfiguration nur teilweise neu liest - ein voller restart ist noetig.",
+      "expected_output": "Der Kandidat laeuft durch den Aufnahmefilter und wird vorgelegt; geschrieben wird erst nach Freigabe.",
+      "files": [],
+      "expectations": [
+        "Der wiki-Skill wird geladen",
+        "Der Aufnahmefilter (vier Fragen) wird angewandt, bevor geschrieben wird",
+        "Ohne ausdrueckliche Freigabe wird keine Datei im Wiki geaendert"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Ich bin in einem frischen Projektverzeichnis und brauche hier das Infra-Wiki, das auf dem anderen Host liegt.",
+      "expected_output": "Die Remote-Config wird ueber wiki_remotes.py geprueft und ergaenzt, statt eine Datei von Hand anzulegen.",
+      "files": [],
+      "expectations": [
+        "Der wiki-Skill wird geladen",
+        "scripts/wiki_remotes.py list wird aufgerufen, bevor etwas geschrieben wird",
+        "Fehlt der Remote, wird scripts/wiki_remotes.py add vorgeschlagen oder ausgefuehrt - keine handgeschriebene wiki-remotes.json",
+        "Die Wahl zwischen projektlokal und --home wird begruendet, nicht geraten"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Refactor die Funktion parse_frontmatter in scripts/lint-wiki.py, die ist zu lang geworden.",
+      "expected_output": "Negativfall: reine Code-Arbeit an einer Datei, kein Eingriff an einem dokumentierten Server - der Skill darf nicht triggern.",
+      "files": [],
+      "expectations": [
+        "Der wiki-Skill wird NICHT geladen",
+        "Es wird kein query ausgefuehrt"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "Leg mir dazu einen Kanboard-Task an.",
+      "expected_output": "Negativfall: Nachbar-Skill mit eigenem Trigger - der wiki-Skill darf nicht triggern.",
+      "files": [],
+      "expectations": [
+        "Der wiki-Skill wird NICHT geladen"
+      ]
+    }
+  ]
+}

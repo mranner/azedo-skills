@@ -647,29 +647,14 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.59.0
+### 1.59.1
 
-- **`wiki`: Remote-Config auch benutzerweit, `remotes list`/`add` statt Handarbeit.**
-  Die Remote-Wikis wurden bis hierher ausschliesslich projekt-relativ aufgeloest;
-  in sechs Projekten stand daraufhin dieselbe `.claude/wiki-remotes.json` mit
-  demselben Infra-Eintrag, und in einem neuen Projekt fehlte sie - das
-  Remote-Wiki war dort schlicht nicht abfragbar. Gelesen wird nun aus drei
-  Quellen, je Key gemergt: `~/.claude/wiki-remotes.json`, dann die projektlokale
-  Datei, dann `wiki-remotes.local.json`. Der Home-Eintrag ist die Bequemlichkeit
-  der eigenen Maschine; was mit dem Projekt geteilt wird, gehoert weiterhin in die
-  projektlokale Datei, sonst lintet ein `[[<remote>:<slug>]]` nur hier sauber.
-  Dazu ein Script `scripts/wiki_remotes.py`: `list` nennt die drei Dateien und je
-  Remote die **Herkunft** (`[home]`/`[projekt]`/`[local]`) - nach dem Merge waere
-  sonst nicht mehr zu sehen, welcher Eintrag aus dem Projekt stammt -, `add
-  <name> <host>:<pfad>` schreibt ins Projekt, mit `--home` benutzerweit,
-  `--force` ueberschreibt. Legt ein `add` einen Eintrag an, den eine spaetere
-  Quelle bereits verdeckt, sagt der Aufruf das; sonst schreibt ein `--home` still
-  eine Datei, die nie gelesen wird. `lint-wiki.py` bezieht `load_remotes()` jetzt
-  von dort (Modulname mit Unterstrich, damit er importierbar ist).
-- **`wiki`: Trigger greift auch beim Handeln, nicht nur beim Fragen.** Die
-  Description nannte als Ausloeser nur Fragen ans Wiki. Bei einem Deployment auf
-  einen dokumentierten Host wurde der Skill deshalb nicht geladen, und der Agent
-  klopfte Jail, vhost und Config-Pfad per `grep`, `ps` und `jls` ab - alles drei
-  stand im Wiki. Ergaenzt um den handlungsbezogenen Ausloeser: vor einem Eingriff
-  an einem Server oder Service - Deployment, Config-Aenderung, Fehlersuche -
-  zuerst `query`. Nur Description, kein Code.
+- **`wiki`: Trigger-Testfaelle unter `evals/`.** Bisher gab es zum Skill nur einen
+  Unit-Test der Praefix-Aufloesung (`test-lint-wiki.py`) - ob die Description
+  ueberhaupt ausloest, war Annahme. Sieben Faelle im Schema des
+  Anthropic-`skill-creator`: zwei fuer den mit 1.59.0 ergaenzten
+  handlungsbezogenen Trigger (Eingriff an einem dokumentierten System, ohne dass
+  das Wort „Wiki" faellt), drei fuer die klassischen Wege (fragen, eintragen,
+  Remote-Config) und zwei Negativfaelle - ein Skill, der auf jede Dateiaenderung
+  anspringt, ist so unbrauchbar wie einer, der nie anspringt. Nur Testmaterial,
+  der Skill selbst ist unveraendert.

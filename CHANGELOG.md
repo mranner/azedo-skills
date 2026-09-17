@@ -3,6 +3,18 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.59.1
+
+- **`wiki`: Trigger-Testfaelle unter `evals/`.** Bisher gab es zum Skill nur einen
+  Unit-Test der Praefix-Aufloesung (`test-lint-wiki.py`) - ob die Description
+  ueberhaupt ausloest, war Annahme. Sieben Faelle im Schema des
+  Anthropic-`skill-creator`: zwei fuer den mit 1.59.0 ergaenzten
+  handlungsbezogenen Trigger (Eingriff an einem dokumentierten System, ohne dass
+  das Wort „Wiki" faellt), drei fuer die klassischen Wege (fragen, eintragen,
+  Remote-Config) und zwei Negativfaelle - ein Skill, der auf jede Dateiaenderung
+  anspringt, ist so unbrauchbar wie einer, der nie anspringt. Nur Testmaterial,
+  der Skill selbst ist unveraendert.
+
 ### 1.59.0
 
 - **`wiki`: Remote-Config auch benutzerweit, `remotes list`/`add` statt Handarbeit.**
