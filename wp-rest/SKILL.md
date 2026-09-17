@@ -97,7 +97,9 @@ aus dem Script.
 
 Alle Befehle dieses Abschnitts wählen den Post-Type über
 `--type post|page|wp_block|media` (Default `post`); für alles andere unter
-`wp/v2` gibt es `--endpoint <pfad>`.
+`wp/v2` gibt es `--endpoint <pfad>`. Beides bleibt in `wp/v2` - ein Custom Post
+Type mit eigenem Namespace ist damit nicht erreichbar, siehe
+[Escape-Hatch](#escape-hatch).
 
 | Subcommand | Zweck |
 |---|---|
@@ -159,6 +161,29 @@ Generisch über den Namespace `wc/v3` - `resource` ist der Endpunkt-Pfad, z.B.
 Namespace (Default `wp/v2`). Damit sind auch `settings`, `block-types`,
 `block-patterns/patterns`, `navigation` und `block-renderer/<name>` erreichbar,
 ohne dass es dafür eigene Subcommands braucht.
+
+**Custom Post Types mit eigenem Namespace.** Nicht jeder CPT hängt unter
+`wp/v2`: Web Stories registriert seinen Typ als `web-stories/v1/web-story`,
+`wp/v2/web-story` antwortet mit `rest_no_route` - die Meldung sieht nach einem
+falschen Pfad aus, nicht nach dem falschen Namespace. Welcher gilt, steht je Typ
+in `rest_namespace` und `rest_base`:
+
+```bash
+python3 "$SKILL_DIR/wp-rest" request GET types -i <instanz> --param context=edit
+```
+
+Der Aufruf geht dann über `request` statt über `--type`/`--endpoint`:
+
+```bash
+python3 "$SKILL_DIR/wp-rest" request GET web-story -i <instanz> \
+    --namespace web-stories/v1 \
+    --param context=edit --param status=any \
+    --param _fields=id,slug,status,password
+```
+
+`context=edit` liefert Felder, die der Lese-Kontext ausblendet - unter anderem
+`password`, das Passwort einer passwortgeschützten Seite (WordPress speichert es
+im Klartext). Es gehört damit in keine Ausgabe, die den Arbeitsplatz verlässt.
 
 ## Typische Abläufe
 

@@ -647,14 +647,16 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.59.1
+### 1.59.2
 
-- **`wiki`: Trigger-Testfaelle unter `evals/`.** Bisher gab es zum Skill nur einen
-  Unit-Test der Praefix-Aufloesung (`test-lint-wiki.py`) - ob die Description
-  ueberhaupt ausloest, war Annahme. Sieben Faelle im Schema des
-  Anthropic-`skill-creator`: zwei fuer den mit 1.59.0 ergaenzten
-  handlungsbezogenen Trigger (Eingriff an einem dokumentierten System, ohne dass
-  das Wort „Wiki" faellt), drei fuer die klassischen Wege (fragen, eintragen,
-  Remote-Config) und zwei Negativfaelle - ein Skill, der auf jede Dateiaenderung
-  anspringt, ist so unbrauchbar wie einer, der nie anspringt. Nur Testmaterial,
-  der Skill selbst ist unveraendert.
+- **`wp-rest`: Custom Post Types mit eigenem REST-Namespace.** Die SKILL.md las
+  sich, als laege jeder Post-Type unter `wp/v2` - `--type` und `--endpoint` tun
+  das auch. Ein CPT kann sich aber einen eigenen Namespace registrieren (Web
+  Stories: `web-stories/v1/web-story`), und `wp/v2/web-story` antwortet dann mit
+  `rest_no_route`, was nach einem falschen Pfad aussieht statt nach dem falschen
+  Namespace. Der Escape-Hatch-Abschnitt zeigt jetzt, wie `request GET types
+  --param context=edit` je Typ `rest_namespace` und `rest_base` nennt und wie der
+  Aufruf ueber `request --namespace` laeuft; an der Stelle, wo der Irrtum
+  entsteht, steht ein Verweis darauf. Dazu der Hinweis, dass `context=edit` auch
+  `password` einer passwortgeschuetzten Seite im Klartext liefert. Nur Doku, der
+  Code konnte das schon.

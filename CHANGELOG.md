@@ -3,6 +3,20 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.59.2
+
+- **`wp-rest`: Custom Post Types mit eigenem REST-Namespace.** Die SKILL.md las
+  sich, als laege jeder Post-Type unter `wp/v2` - `--type` und `--endpoint` tun
+  das auch. Ein CPT kann sich aber einen eigenen Namespace registrieren (Web
+  Stories: `web-stories/v1/web-story`), und `wp/v2/web-story` antwortet dann mit
+  `rest_no_route`, was nach einem falschen Pfad aussieht statt nach dem falschen
+  Namespace. Der Escape-Hatch-Abschnitt zeigt jetzt, wie `request GET types
+  --param context=edit` je Typ `rest_namespace` und `rest_base` nennt und wie der
+  Aufruf ueber `request --namespace` laeuft; an der Stelle, wo der Irrtum
+  entsteht, steht ein Verweis darauf. Dazu der Hinweis, dass `context=edit` auch
+  `password` einer passwortgeschuetzten Seite im Klartext liefert. Nur Doku, der
+  Code konnte das schon.
+
 ### 1.59.1
 
 - **`wiki`: Trigger-Testfaelle unter `evals/`.** Bisher gab es zum Skill nur einen
