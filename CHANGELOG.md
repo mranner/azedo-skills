@@ -3,6 +3,19 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.60.1
+
+- **`bridge`: die Einbahnstrasse dokumentiert.** Senden koennen und erreichbar
+  sein sind zwei verschiedene Dinge - eine Session ohne verbundenes Remote
+  Control quittiert anstandslos, hat aber selbst keine Adresse, und der Versand
+  meldet das nur als beilaeufiges `one-way`. Wer von dort aus ein Gespraech
+  beginnt, wartet auf eine Antwort, die nirgends ankommen kann. `ListAgents`
+  fuehrt beide Sorten gleich auf, die Richtung ist vorher also nicht zu sehen.
+  Aufgefallen beim ersten echten Testlauf des Skills, bei dem `ack` und `done`
+  aus einer nicht adressierbaren Session zurueckkamen - womit sich nebenbei
+  bestaetigt hat, warum die Rueckadresse im Nachrichtentext steht und nicht nur
+  im Transport.
+
 ### 1.60.0
 
 - **Neuer Skill `bridge` - Nachrichten zwischen Sessions bekommen eine Quittung.**

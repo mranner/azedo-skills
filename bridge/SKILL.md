@@ -135,6 +135,29 @@ Abhilfe: Remote Control aktivieren, dann erneut aufrufen.
 Findet das Script im ganzen Prozessbaum keine Session-Datei, läuft der Aufruf
 vermutlich außerhalb einer Claude-Code-Session; Exit-Code 1.
 
+## Einbahnstrassen - gebridgt ist nicht symmetrisch
+
+Ob eine Session **senden** kann und ob sie **erreichbar** ist, sind zwei
+verschiedene Dinge. Eine Session ohne verbundenes Remote Control kann eine
+Nachricht beantworten und quittieren; eine Adresse hat sie aber nicht, und ein
+Gespraech von dort aus verlaeuft im Sand:
+
+- Der Versand meldet in dem Fall `one-way`. Das ist kein Fehler, sondern die
+  Ansage, dass es keinen Rueckweg gibt
+- `who` auf der anderen Seite liefert dann keine `address`, sondern den Hinweis,
+  dass die Session nicht gebridgt ist
+
+Praktisch heisst das: **die gebridgte Seite muss das Gespraech eroeffnen.** Sie
+gibt ihre Adresse im Kopf mit, und daran haengt die Gegenseite ihre Quittung.
+Umgekehrt kaeme die Antwort nirgends an. Aufgefallen beim ersten echten Testlauf
+(2026-09-17): `ack` und `done` kamen sauber zurueck, obwohl die antwortende
+Session selbst nicht adressierbar war - genau deshalb steht die Rueckadresse im
+Nachrichtentext und nicht nur im Transport.
+
+Erkennbar ist die Richtung vorher nicht: `ListAgents` fuehrt beide Sorten gleich
+auf. Wer wissen will, ob eine Session ansprechbar ist, laesst sich dort `/bridge who`
+aufrufen - oder schickt eine Nachricht und wertet das Ausbleiben der Quittung aus.
+
 ## Wenn die Quittung ausbleibt
 
 `ListAgents` prüfen: `busy` heißt verzögert, die Session arbeitet noch an etwas

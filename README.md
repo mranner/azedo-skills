@@ -648,13 +648,15 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.60.0
+### 1.60.1
 
-- **Neuer Skill `bridge`, `whoami` darin aufgegangen.** Nachrichten zwischen
-  Claude-Code-Sessions hatten bisher keine Rueckmeldung: `SendMessage` weckt die
-  Gegenseite nur auf, und ein blanker Text wird dort meist nicht als
-  Antwortaufforderung gelesen - der Absender weiss danach nicht, ob etwas
-  angekommen ist. `bridge` legt einen rudimentaeren Handshake in den
-  Nachrichtentext selbst, damit auch eine Session ohne installierten Skill
-  quittieren kann. `whoami` ist ersatzlos entfallen, sein Inhalt steckt in
-  `/bridge who`.
+- **`bridge`: die Einbahnstrasse dokumentiert.** Senden koennen und erreichbar
+  sein sind zwei verschiedene Dinge - eine Session ohne verbundenes Remote
+  Control quittiert anstandslos, hat aber selbst keine Adresse, und der Versand
+  meldet das nur als beilaeufiges `one-way`. Wer von dort aus ein Gespraech
+  beginnt, wartet auf eine Antwort, die nirgends ankommen kann. `ListAgents`
+  fuehrt beide Sorten gleich auf, die Richtung ist vorher also nicht zu sehen.
+  Aufgefallen beim ersten echten Testlauf des Skills, bei dem `ack` und `done`
+  aus einer nicht adressierbaren Session zurueckkamen - womit sich nebenbei
+  bestaetigt hat, warum die Rueckadresse im Nachrichtentext steht und nicht nur
+  im Transport.
