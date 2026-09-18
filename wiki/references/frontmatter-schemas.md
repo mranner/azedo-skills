@@ -209,3 +209,46 @@ kunde: alle | <spezifischer Kunde>
 | method | | | x | | |
 | network-segments | | | | x | |
 | applies-to | | | | | x |
+
+## Optionale Vertrauensfelder
+
+Zwei Felder darf jede Entity jedes Typs zusaetzlich tragen. Beide sind
+**optional** — der Lint prueft nur, was dasteht, und verlangt nie, dass es
+dasteht. Uebernommen aus dem Open Knowledge Format 0.2, dort aber verschachtelt;
+hier flach gehalten, weil der Frontmatter-Parser des Lints nur flaches YAML
+liest und die Felder so greppbar bleiben.
+
+### verified
+
+Wer den Inhalt wann an einem echten System nachgeprueft hat. Bisher stand das im
+Fliesstext („Verifiziert 2026-09-06 auf [[fry-azedo-at]]"); im Frontmatter ist
+es auffindbar.
+
+```yaml
+verified: ["human:mranner@2026-09-06", "claude-opus-5@2026-09-14"]
+```
+
+Format je Eintrag: `<akteur>@<YYYY-MM-DD>`. Akteur ist `human:<kuerzel>` fuer
+einen Menschen, `process:<name>` fuer einen automatisierten Lauf, sonst der
+Modell- bzw. Werkzeugname. Der Unterschied traegt die Aussage: was ein Mensch
+bestaetigt hat, wiegt schwerer als was ein Agent behauptet.
+
+```
+grep -rl "verified:.*human:" wiki/       # menschlich geprueft
+grep -rL "verified:" wiki/procedures/    # nie nachgeprueft
+```
+
+Das `date`-Feld bleibt davon unberuehrt: es sagt, wann jemand die Datei
+geschrieben hat, nicht wann der Inhalt zuletzt gestimmt hat.
+
+### stale_after
+
+Datum, ab dem der Inhalt als ueberholt gilt — fuer Wissen, das an einen Stand
+gebunden ist: Paketversionen, IP-Zuordnungen, Zertifikatslaufzeiten.
+
+```yaml
+stale_after: 2027-01-31
+```
+
+Der Lint warnt ab diesem Datum. Ohne das Feld verfaellt eine Entity nie; es
+gehoert nur dorthin, wo ein Ablauf absehbar ist, nicht in jeden Artikel.

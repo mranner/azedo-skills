@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # stdlib only, no pip dependencies
-# version 1.59.4
+# version 1.60.4
 
 """
 lint-wiki.py — Strukturpruefung fuer LLM Wikis (Infra + Projekt-Doku).
@@ -13,6 +13,7 @@ Prueft:
 - Namenskonventionen (nur Kleinbuchstaben, Ziffern, Bindestriche)
 - Verwaiste Seiten (keine eingehenden Links)
 - Datumsangaben in Ueberschriften (Logbuch-Muster, siehe Schreibregeln)
+- Optionale Vertrauensfelder verified/stale_after (Format, Ablauf)
 
 Praefix-Pointer [[<praefix>:<slug>]] werden in dieser Reihenfolge aufgeloest:
 
@@ -36,6 +37,7 @@ import sys
 import re
 import json
 import subprocess
+from datetime import date
 from pathlib import Path
 from collections import defaultdict
 
@@ -131,6 +133,12 @@ INLINE_CODE_PATTERN = re.compile(r"(?<!`)(`+)(?!`).+?(?<!`)\1(?!`)", re.S)
 REMOTE_TARGET_PATTERN = re.compile(r"^([a-z0-9-]+):([a-z0-9-]+)$")
 MIN_WIKILINKS = 3
 
+# Optionale Vertrauensfelder (nach Open Knowledge Format 0.2, dort verschachtelt,
+# hier flach — der Frontmatter-Parser oben liest nur flaches YAML).
+# verified: Liste von "<akteur>@<YYYY-MM-DD>", stale_after: ein ISO-Datum.
+VERIFIED_PATTERN = re.compile(r"^([a-z0-9][a-z0-9.:_/-]*)@(\d{4}-\d{2}-\d{2})$")
+ISO_DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
 # Datum in einer Ueberschrift = Logbuch-Muster. Eine Ueberschrift benennt einen
 # Gegenstand, kein Ereignis; "Umbau 2026-08-15" oder "Stand 2026-08-15" markiert
 # eine Sitzung, die jemand mitgeschrieben hat. Diese Abschnitte wachsen monoton,
@@ -168,6 +176,51 @@ def find_dated_headings(text):
         if m:
             hits.append((line.strip(), m.group(1)))
     return hits
+
+
+def parse_iso_date(value):
+    """ISO-Datum → date, sonst None (auch bei 2026-02-31)."""
+    if not isinstance(value, str) or not ISO_DATE_PATTERN.match(value.strip()):
+        return None
+    try:
+        return date.fromisoformat(value.strip())
+    except ValueError:
+        return None
+
+
+def check_trust_fields(fm, today=None):
+    """Prueft die optionalen Felder verified und stale_after.
+
+    Beide duerfen fehlen — geprueft wird nur, was dasteht. Gibt eine Liste
+    (level, meldung) zurueck, level ist "error" (kaputtes Format) oder
+    "warning" (abgelaufen, Datum in der Zukunft).
+    """
+    today = today or date.today()
+    found = []
+
+    verified = fm.get("verified")
+    if verified is not None:
+        entries = verified if isinstance(verified, list) else [verified]
+        for entry in entries:
+            m = VERIFIED_PATTERN.match(str(entry).strip())
+            if not m:
+                found.append(("error", f"verified-Eintrag '{entry}' hat nicht die Form <akteur>@<YYYY-MM-DD>"))
+                continue
+            when = parse_iso_date(m.group(2))
+            if when is None:
+                found.append(("error", f"verified-Eintrag '{entry}' enthaelt kein gueltiges Datum"))
+            elif when > today:
+                found.append(("warning", f"verified-Eintrag '{entry}' liegt in der Zukunft"))
+
+    stale_after = fm.get("stale_after")
+    if stale_after is not None:
+        when = parse_iso_date(stale_after)
+        if when is None:
+            found.append(("error", f"stale_after '{stale_after}' ist kein ISO-Datum (YYYY-MM-DD)"))
+        elif when <= today:
+            found.append(("warning", f"Inhalt seit {when} ueberfaellig (stale_after) — pruefen und Datum neu setzen"))
+
+    return found
 
 
 def parse_remote_target(target):
@@ -364,6 +417,10 @@ def lint_wiki(wiki_root, check_remotes=False):
         for field in required_fields[entity_type]:
             if field not in fm or fm[field] is None:
                 errors.append(f"{prefix}: Pflichtfeld '{field}' fehlt (Typ: {entity_type})")
+
+        # Optionale Vertrauensfelder
+        for level, msg in check_trust_fields(fm):
+            (errors if level == "error" else warnings).append(f"{prefix}: {msg}")
 
         # Wikilinks zaehlen — Frontmatter-Werte + Body
         fm_str = "\n".join(

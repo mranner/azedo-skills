@@ -3,6 +3,19 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.60.4
+
+- **`wiki`: zwei optionale Vertrauensfelder aus dem Open Knowledge Format 0.2.**
+  `verified: ["human:mranner@2026-09-06"]` haelt fest, wer den Inhalt wann an
+  einem echten System nachgeprueft hat - bisher stand das im Fliesstext und war
+  damit nicht auffindbar. Der Akteur traegt die Aussage: was ein Mensch
+  bestaetigt hat, wiegt schwerer als was ein Agent behauptet. `stale_after:
+  2027-01-31` markiert Wissen, das an einen Stand gebunden ist (Paketversionen,
+  Zertifikatslaufzeiten); der Lint warnt ab dem Datum. Beide Felder sind
+  optional und flach gehalten, weil der Frontmatter-Parser des Lints nur flaches
+  YAML liest - das OKF verschachtelt sie. Bestehende Wikis brauchen keine
+  Migration: geprueft wird nur, was dasteht.
+
 ### 1.60.3
 
 - **`bridge`: zwei Befunde aus einem Lauf ueber Remote Control.** Erstens sagt das

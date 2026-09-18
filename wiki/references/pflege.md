@@ -194,6 +194,22 @@ CR####" darf stehen bleiben, die Liste selbst nicht.
 
 Für **Remote-Wikis** nicht erlaubt (schreibend) — dort `<remote>:handoff` nutzen.
 
+### verified / stale_after setzen
+
+Zwei optionale Frontmatter-Felder, Format in
+[Frontmatter-Schemas](frontmatter-schemas.md#optionale-vertrauensfelder).
+
+`verified` beim **ingest/compile** ergaenzen, wenn der Inhalt in derselben
+Sitzung an einem echten System geprueft wurde — nicht, wenn er nur
+aufgeschrieben oder umformuliert wurde. Bestehende Eintraege bleiben stehen, der
+neue kommt dazu; die Liste ist eine Historie, kein einzelner Stand.
+
+`stale_after` nur dort setzen, wo ein Ablauf absehbar ist (Paketversion,
+Zertifikatslaufzeit, geplante Migration). Meldet der Lint eine Entity als
+ueberfaellig: Inhalt pruefen, dann entweder das Datum neu setzen oder das Feld
+entfernen, wenn der Bezug weggefallen ist. Das blosse Hochsetzen ohne Pruefung
+macht das Feld wertlos.
+
 ### status
 
 Ueberblick ueber den Wiki-Zustand.

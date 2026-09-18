@@ -648,15 +648,15 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.60.3
+### 1.60.4
 
-- **`bridge`: zwei Befunde aus einem Lauf ueber Remote Control.** Erstens sagt das
-  Werkzeug selbst, was es nicht garantiert - ein erfolgreicher Versand quittiert
-  mit `accepted by the server ... not confirmed read`. Der Erfolg gilt also der
-  Annahme durch den Server, nicht der Zustellung und erst recht nicht dem Lesen;
-  bisher war das im Skill nur aus dem Verhalten hergeleitet, jetzt steht der
-  Wortlaut da. Zweitens hat die Einbahnstrasse eine konkrete Abhilfe: in der
-  betroffenen Session `/remote-control` aufrufen, danach steht die Adresse. Die
-  Meldung lautet vollstaendig `one-way: Remote Control is not connected` und
-  erscheint nur im Tool-Ergebnis, nicht in der Nachricht - wer sie uebersieht,
-  wartet auf eine Antwort, die nirgends ankommen kann.
+- **`wiki`: zwei optionale Vertrauensfelder aus dem Open Knowledge Format 0.2.**
+  `verified: ["human:mranner@2026-09-06"]` haelt fest, wer den Inhalt wann an
+  einem echten System nachgeprueft hat - bisher stand das im Fliesstext und war
+  damit nicht auffindbar. Der Akteur traegt die Aussage: was ein Mensch
+  bestaetigt hat, wiegt schwerer als was ein Agent behauptet. `stale_after:
+  2027-01-31` markiert Wissen, das an einen Stand gebunden ist (Paketversionen,
+  Zertifikatslaufzeiten); der Lint warnt ab dem Datum. Beide Felder sind
+  optional und flach gehalten, weil der Frontmatter-Parser des Lints nur flaches
+  YAML liest - das OKF verschachtelt sie. Bestehende Wikis brauchen keine
+  Migration: geprueft wird nur, was dasteht.
