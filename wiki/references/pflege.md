@@ -210,6 +210,10 @@ ueberfaellig: Inhalt pruefen, dann entweder das Datum neu setzen oder das Feld
 entfernen, wenn der Bezug weggefallen ist. Das blosse Hochsetzen ohne Pruefung
 macht das Feld wertlos.
 
+Nach einem Umbau den [Schrumpf-Guard](subcommands.md#schrumpf-guard---check-shrink)
+laufen lassen: `refactor` schreibt ganze Artikel neu, und dabei faellt am
+ehesten etwas heraus, das niemand vermisst hat - ein Abschnitt, ein Verweis.
+
 ### status
 
 Ueberblick ueber den Wiki-Zustand.

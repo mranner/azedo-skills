@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # stdlib only, no pip dependencies
-# version 1.60.4
+# version 1.60.5
 
 """
 lint-wiki.py — Strukturpruefung fuer LLM Wikis (Infra + Projekt-Doku).
@@ -14,6 +14,7 @@ Prueft:
 - Verwaiste Seiten (keine eingehenden Links)
 - Datumsangaben in Ueberschriften (Logbuch-Muster, siehe Schreibregeln)
 - Optionale Vertrauensfelder verified/stale_after (Format, Ablauf)
+- Mit --check-shrink: was eine Aktualisierung gegenueber git HEAD verloren hat
 
 Praefix-Pointer [[<praefix>:<slug>]] werden in dieser Reihenfolge aufgeloest:
 
@@ -27,7 +28,7 @@ Praefix-Pointer [[<praefix>:<slug>]] werden in dieser Reihenfolge aufgeloest:
    --check-remotes wird die Existenz per SSH (find) on demand verifiziert.
 3. sonst toter Link.
 
-Aufruf: python3 lint-wiki.py [--check-remotes] <wiki-root>
+Aufruf: python3 lint-wiki.py [--check-remotes] [--check-shrink] <wiki-root>
         z.B. python3 lint-wiki.py wiki/azedo/   (relativ zum Projekt-Root)
 
 Keine externen Abhaengigkeiten — reines Python 3.
@@ -155,6 +156,27 @@ DATED_HEADING_PATTERN = re.compile(
 )
 
 
+# Abschnitts-Ueberschriften ab Ebene 2 — die Gliederung eines Artikels. Ebene 1
+# ist der Titel und steht genau einmal, die zaehlt nicht mit.
+HEADING_PATTERN = re.compile(r"^#{2,6}\s+(.+?)\s*$")
+
+
+def find_headings(text):
+    """Ueberschriften ab Ebene 2 (Code-Bloecke ausgenommen)."""
+    out = []
+    in_fence = False
+    for line in text.splitlines():
+        if line.lstrip().startswith(("```", "~~~")):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        m = HEADING_PATTERN.match(line)
+        if m:
+            out.append(m.group(1))
+    return out
+
+
 def find_dated_headings(text):
     """Ueberschriften mit Datumsangabe (Code-Bloecke ausgenommen).
 
@@ -251,13 +273,17 @@ def check_remote_target(remote_conf, slug):
 
 
 def parse_frontmatter(filepath):
-    """Extrahiert YAML-Frontmatter aus einer Markdown-Datei.
+    """Extrahiert YAML-Frontmatter aus einer Markdown-Datei."""
+    return parse_frontmatter_text(filepath.read_text(encoding="utf-8"))
+
+
+def parse_frontmatter_text(text):
+    """Extrahiert YAML-Frontmatter aus einem Markdown-Text.
 
     Einfacher Key-Value-Parser fuer flaches YAML-Frontmatter.
     Unterstuetzt: Strings, Listen (YAML-Inline [...] und mehrzeilig mit -),
     quoted Strings mit Wikilinks.
     """
-    text = filepath.read_text(encoding="utf-8")
     if not text.startswith("---"):
         return None, text
 
@@ -347,7 +373,66 @@ def check_filename(filepath):
     return None
 
 
-def lint_wiki(wiki_root, check_remotes=False):
+def git_repo_root(path):
+    """Repo-Wurzel ueber <path>, oder None wenn dort kein git-Repo liegt."""
+    try:
+        res = subprocess.run(
+            ["git", "-C", str(path), "rev-parse", "--show-toplevel"],
+            capture_output=True, text=True, timeout=20,
+        )
+    except (subprocess.SubprocessError, OSError):
+        return None
+    return Path(res.stdout.strip()) if res.returncode == 0 else None
+
+
+def git_show(repo_root, ref, rel_path):
+    """Dateiinhalt aus einem git-Ref, oder None (neu, ungetrackt, kein Repo)."""
+    try:
+        res = subprocess.run(
+            ["git", "-C", str(repo_root), "show", f"{ref}:{rel_path}"],
+            capture_output=True, text=True, timeout=20,
+        )
+    except (subprocess.SubprocessError, OSError):
+        return None
+    return res.stdout if res.returncode == 0 else None
+
+
+def check_shrink(old_text, new_text):
+    """Was eine Aktualisierung an Inventar verloren hat.
+
+    Gemeint ist nicht die Laenge: Verdichten ist erwuenscht (siehe
+    Schreibregeln, "Aktualisieren heisst ersetzen"). Gemeint ist, was sich
+    aufzaehlen laesst und damit auffaellt, wenn es fehlt — ein Frontmatter-Feld,
+    ein Abschnitt, ein Verweis auf eine andere Entity. Verschwindet davon etwas,
+    ist das entweder eine gewollte Verdichtung oder ein Versehen beim
+    Ueberschreiben; unterscheiden kann das nur ein Mensch, deshalb Warnung.
+
+    Gibt eine Liste von Meldungen zurueck.
+    """
+    old_fm, old_body = parse_frontmatter_text(old_text)
+    new_fm, new_body = parse_frontmatter_text(new_text)
+    found = []
+
+    lost_keys = sorted(set(old_fm or {}) - set(new_fm or {}))
+    if lost_keys:
+        found.append(f"Frontmatter-Feld entfernt: {', '.join(lost_keys)}")
+
+    lost_headings = [h for h in find_headings(old_body) if h not in find_headings(new_body)]
+    if lost_headings:
+        shown = ", ".join(f"\"{h}\"" for h in lost_headings[:5])
+        more = f" (und {len(lost_headings) - 5} weitere)" if len(lost_headings) > 5 else ""
+        found.append(f"Abschnitt entfernt: {shown}{more}")
+
+    lost_links = sorted(set(find_wikilinks(old_body)) - set(find_wikilinks(new_body)))
+    if lost_links:
+        shown = ", ".join(f"[[{t}]]" for t in lost_links[:5])
+        more = f" (und {len(lost_links) - 5} weitere)" if len(lost_links) > 5 else ""
+        found.append(f"Wikilink entfernt: {shown}{more}")
+
+    return found
+
+
+def lint_wiki(wiki_root, check_remotes=False, check_shrink_flag=False):
     """Hauptfunktion: prueft das gesamte Wiki."""
     wiki_root = Path(wiki_root)
     wiki_dir = wiki_root / "wiki"
@@ -509,6 +594,22 @@ def lint_wiki(wiki_root, check_remotes=False):
     else:
         errors.append("index.md nicht gefunden")
 
+    # Optional: was die Arbeitskopie gegenueber git HEAD verloren hat
+    if check_shrink_flag:
+        repo_root = git_repo_root(wiki_root)
+        if repo_root is None:
+            warnings.append("--check-shrink: kein git-Repo ueber dem Wiki gefunden, uebersprungen")
+        else:
+            for slug in sorted(articles):
+                info = articles[slug]
+                new_text = info["path"].read_text(encoding="utf-8")
+                rel = info["path"].resolve().relative_to(repo_root)
+                old_text = git_show(repo_root, "HEAD", rel)
+                if old_text is None or old_text == new_text:
+                    continue
+                for msg in check_shrink(old_text, new_text):
+                    warnings.append(f"{info['rel_path']}: {msg} — gewollt verdichtet oder beim Ueberschreiben verloren?")
+
     # Ergebnis ausgeben
     print(f"\n{'='*60}")
     print(f"Wiki Lint Report — {wiki_root}")
@@ -547,9 +648,17 @@ if __name__ == "__main__":
         check_remotes = True
         args.remove("--check-remotes")
 
+    check_shrink_flag = False
+    if "--check-shrink" in args:
+        check_shrink_flag = True
+        args.remove("--check-shrink")
+
     if len(args) != 1:
-        print(f"Aufruf: {sys.argv[0]} [--check-remotes] <wiki-root>")
+        print(f"Aufruf: {sys.argv[0]} [--check-remotes] [--check-shrink] <wiki-root>")
         print(f"  z.B.: {sys.argv[0]} wiki/azedo/")
         print(f"  --check-remotes: [[<remote>:<slug>]]-Ziele per SSH verifizieren")
+        print(f"  --check-shrink:  Frontmatter-Felder, Abschnitte und Wikilinks melden,")
+        print(f"                   die die Arbeitskopie gegenueber git HEAD verloren hat")
         sys.exit(2)
-    sys.exit(lint_wiki(args[0], check_remotes=check_remotes))
+    sys.exit(lint_wiki(args[0], check_remotes=check_remotes,
+                       check_shrink_flag=check_shrink_flag))

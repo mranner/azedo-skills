@@ -252,3 +252,20 @@ stale_after: 2027-01-31
 
 Der Lint warnt ab diesem Datum. Ohne das Feld verfaellt eine Entity nie; es
 gehoert nur dorthin, wo ein Ablauf absehbar ist, nicht in jeden Artikel.
+
+### Abweichungen zur OKF-Referenz
+
+Beide Felder stammen aus dem Open Knowledge Format 0.2
+(`GoogleCloudPlatform/open-knowledge-format` — die Fassung unter `okf/` in
+`knowledge-catalog` ist ein eingefrorener Snapshot). Wir weichen an zwei
+Stellen bewusst ab; wer je exportiert, muss beides umsetzen:
+
+| Punkt | OKF 0.2 | Hier |
+|---|---|---|
+| `stale_after` | ISO-8601-Zeitstempel **mit UTC-Offset**; ein reines Datum wird von der Referenz-Implementierung ignoriert, weil es in jeder Zeitzone einen anderen Moment meint | reines Datum `YYYY-MM-DD` — Infra-Wissen laeuft ueber Monate ab, nicht ueber Stunden |
+| `verified` | Liste von Mappings `{by, at}`, eine einzelne Map auch ohne Listen-Strich | flache Liste `"<akteur>@<datum>"`, weil der Frontmatter-Parser des Lints nur flaches YAML liest |
+
+Die Akteur-Konvention (`human:<id>`, `process:<id>`, sonst Werkzeugname) ist
+dieselbe, ebenso die daraus abgeleiteten Vertrauensstufen: kein `verified` =
+ungeprueft, nur Maschinen-Akteure = maschinell bestaetigt, mindestens ein
+`human:` = menschlich geprueft.

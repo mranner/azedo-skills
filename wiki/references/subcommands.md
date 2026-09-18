@@ -77,6 +77,8 @@ Workflow:
 4. `index.md` aktualisieren (Entity in die passende Sektion des Wikis eintragen)
 5. Backlink-Audit: bestehende Artikel durchsuchen, die den neuen Entity erwaehnen sollten
 6. Eintrag in `log.md`: `COMPILE: <quelle> → <entity1>, <entity2>, ...`
+7. Bei aktualisierten Artikeln (Schritt 2b) den [Schrumpf-Guard](#schrumpf-guard---check-shrink)
+   laufen lassen und jede Meldung einzeln beantworten, bevor committet wird
 
 **Vor Schritt 2 gelten die [Schreibregeln](../SKILL.md#schreibregeln)** - Aufnahmefilter
 (gehört es überhaupt hinein), Dichtegebot und „aktualisieren heisst ersetzen".
@@ -197,3 +199,28 @@ Prueft:
 - **Missing index entries**: Artikel die nicht in index.md gelistet sind
 - **Naming violations**: Dateinamen die nicht der Konvention entsprechen
 - **Low connectivity**: Artikel mit weniger als 3 Wikilinks
+- **Vertrauensfelder**: Format von `verified` und `stale_after`, abgelaufene Inhalte
+  (siehe [Frontmatter-Schemas](frontmatter-schemas.md#optionale-vertrauensfelder))
+
+#### Schrumpf-Guard (`--check-shrink`)
+
+Nach einem `compile` oder `refactor` aufrufen, **bevor** committet wird:
+
+```
+python3 "$SKILL_DIR/scripts/lint-wiki.py" --check-shrink <WIKI_ROOT>
+```
+
+Vergleicht jeden geaenderten Artikel mit seiner Fassung in `git HEAD` und meldet,
+was verschwunden ist: ein Frontmatter-Feld, ein `##`-Abschnitt, ein Wikilink auf
+eine andere Entity. Ungetrackte Artikel und unveraenderte Dateien bleiben still,
+ohne git-Repo entfaellt die Pruefung mit einem Hinweis.
+
+Gemeint ist **nicht** die Laenge - Verdichten ist erwuenscht, siehe
+[Schreibregeln](../SKILL.md#kürzen-heisst-wörter-streichen-nicht-sachverhalte).
+Gemeint ist, was sich aufzaehlen laesst: dass ein Artikel beim Ueberschreiben
+seine Beziehung zu einer anderen Entity oder einen ganzen Abschnitt verliert,
+faellt beim Durchlesen des neuen Textes niemandem auf - dem Diff schon.
+
+Deshalb Warnung und nicht Fehler: ob ein weggefallener Abschnitt Absicht war
+oder ein Versehen, kann nur ein Mensch entscheiden. Jede Meldung einzeln
+beantworten, nicht pauschal wegnicken.

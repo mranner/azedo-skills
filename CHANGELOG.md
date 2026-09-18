@@ -3,6 +3,27 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.60.5
+
+- **`wiki`: Schrumpf-Guard `lint-wiki.py --check-shrink`.** Vergleicht jeden
+  geaenderten Artikel mit seiner Fassung in `git HEAD` und meldet, was
+  verschwunden ist - ein Frontmatter-Feld, ein `##`-Abschnitt, ein Wikilink auf
+  eine andere Entity. Nicht die Laenge: Verdichten ist erwuenscht. Der Punkt ist,
+  dass eine verlorene Beziehung oder ein fehlender Abschnitt beim Durchlesen des
+  neuen Textes niemandem auffaellt - dem Diff schon. Warnung statt Fehler, weil
+  nur ein Mensch entscheiden kann, ob der Wegfall Absicht war. Abgeschaut bei der
+  Referenz-Implementierung des Open Knowledge Format, deren Schreib-Werkzeug
+  jeden Schreibvorgang verweigert, der eine bestehende Feld- oder Quellenliste
+  verkleinert.
+- **`wiki`: Abweichungen zur OKF-Referenz dokumentiert.** `stale_after` verlangt
+  dort einen Zeitstempel mit UTC-Offset (ein reines Datum wird ignoriert, weil es
+  in jeder Zeitzone einen anderen Moment meint), `verified` eine Liste von
+  Mappings. Wir nehmen tagesgenaue Daten und eine flache Liste - beides bewusst,
+  jetzt in den Frontmatter-Schemas als Tabelle festgehalten. Ausserdem: OKF ist
+  aus `knowledge-catalog` in ein eigenes Repo umgezogen
+  (`GoogleCloudPlatform/open-knowledge-format`), die Fassung unter `okf/` ist ein
+  eingefrorener Snapshot.
+
 ### 1.60.4
 
 - **`wiki`: zwei optionale Vertrauensfelder aus dem Open Knowledge Format 0.2.**
