@@ -18,6 +18,36 @@ Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version 
   Rueckfrage. Fuer die Antwort war die Aufloesung schon da, nur fuer die neue Mail
   nicht.
 
+### 1.61.1
+
+- **`kanboard`: Gruppen-Herkunft eines Projektzugriffs annaehern.**
+  `list-project-users` markiert User, die in einer Gruppe stehen, deren
+  Mitglieder vollstaendig Projektmitglieder sind, als `via_group_candidates`.
+  Mehr ist nicht zu holen: `getProjectGroupRoles`, `getProjectUserRoles`,
+  `getProjectGroups`, `getMemberGroups` und `getGroupsByProject` fehlen alle in
+  dieser Kanboard-Version - die Zuordnung Projekt->Gruppe ist nur schreibend
+  erreichbar. Das Feld ist damit ein Verdacht, kein Nachweis, und die Ausgabe
+  sagt das mit. `remove-project-user` ergaenzt bei Rueckgabe `false` einen
+  `hint`, dass der Zugriff aus einer Gruppe stammen koennte; bisher blieb der
+  Entzug stillschweigend wirkungslos. Verifiziert am lebenden System mit
+  Wegwerf-Gruppe und -Projekt, beides wieder abgeraeumt.
+
+### 1.61.0
+
+- **`kanboard`: acht Subcommands fuer Gruppen.** `list-groups`,
+  `list-group-members`, `create-group`, `add-group-member`,
+  `remove-group-member`, `add-project-group`, `set-project-group-role`,
+  `remove-project-group`. Auf office.azedo.at kommt der Projektzugriff
+  ueberwiegend aus Gruppen, ein Entzug ueber `remove-project-user` blieb dort
+  wirkungslos - `removeGroupMember` wirkt dafuer gruppenweit, was vor dem Entzug
+  aufzulisten ist.
+- **`kanboard`: deaktivierte User bleiben adressierbar.** `resolve_user()` nimmt
+  jetzt auch eine numerische User-ID und faellt im Admin-Pfad auf `getAllUsers`
+  zurueck, wenn der Name nicht im Cache steht; `setup` schreibt deaktivierte User
+  mit `"is_active": 0` mit, statt sie herauszufiltern. Sonst ist gerade
+  `remove-project-user` fuer Ausgeschiedene nicht aufrufbar - also im haeufigsten
+  Fall, in dem man ihn braucht.
+
 ### 1.60.5
 
 - **`wiki`: Schrumpf-Guard `lint-wiki.py --check-shrink`.** Vergleicht jeden
