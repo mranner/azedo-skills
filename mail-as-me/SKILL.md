@@ -85,9 +85,21 @@ Einzelne Datei nur pruefen (nichts schreiben): `extract.py --analyze <datei>`.
 ### draft — Entwurf in der eigenen Stimme
 
 Eingabe: Empfaenger (+ Thema **oder** eine Reply-`.eml`). Ablauf:
-1. Register aus `config.json.register_map` bestimmen (Domain), sonst nachfragen.
-2. `referenz.md` + 1–2 Beispiele desselben Registers aus `corpus/clean/` laden.
-3. **Faktencheck vor dem Schreiben.** Bevor der erste Satz steht: welche
+1. **Empfaenger aufloesen -- nicht raten.** Bevor irgendetwas anderes passiert,
+   steht fest, an welche Adresse die Mail geht und woher diese Adresse stammt.
+   Bei einer **Antwort** kommen die Adressen aus `imap quote --json` bzw.
+   `imap contacts` (siehe Abschnitt „Antworten: Zitat und Threading"), bei einer
+   **neuen Mail an einen Namen** aus `grep -i <name> ~/.claude/swaks-contacts.tsv`
+   (auch `.claude/` im Projekt; die Datei ist optional). Kein Treffer, keine Datei
+   oder ein unklarer Kreis: **nachfragen**. Eine aus Domain und Vornamen
+   zusammengebaute Adresse ist geraten, auch wenn sie plausibel aussieht -- sie
+   faellt weder beim Bau noch beim Versand auf, sondern erst beim Bounce oder
+   beim falschen Empfaenger. Herkunft in einem Halbsatz in die Ausfuehrungszeile;
+   `geraten` ist eine zulaessige Angabe und genau deshalb vorgesehen, damit der
+   Fall sichtbar wird statt unbemerkt zu bleiben.
+2. Register aus `config.json.register_map` bestimmen (Domain), sonst nachfragen.
+3. `referenz.md` + 1–2 Beispiele desselben Registers aus `corpus/clean/` laden.
+4. **Faktencheck vor dem Schreiben.** Bevor der erste Satz steht: welche
    **Tatsachenbehauptung** und welche **Machbarkeitszusage** soll die Mail
    enthalten -- und ist sie belegt? Belegt heisst nachgesehen (Datenbank, Code,
    Config, Log, Ticket), nicht plausibel. Was sich nicht belegen laesst, kommt
@@ -98,22 +110,22 @@ Eingabe: Empfaenger (+ Thema **oder** eine Reply-`.eml`). Ablauf:
    Typischer Fall: eine Datenuebernahme wird zugesagt, ohne dass geprueft ist,
    ob im Quellsystem ueberhaupt Werte stehen (sie standen nicht, das Feld war
    durchgehend leer). Ergebnis in einem Halbsatz in die Ausfuehrungszeile.
-4. Entwurf bauen: Anrede/Sign-off/Du-Sie/Dialekt gemaess Profil, Stilmarker
+5. Entwurf bauen: Anrede/Sign-off/Du-Sie/Dialekt gemaess Profil, Stilmarker
    anwenden. **Immer in der eigenen Stimme des Profils — das Gegenueber niemals
    spiegeln** (weder Sprache, Stil, Register, Region/Dialekt, Anrede noch
    Grussformel; bei einer Reply-`.eml` nicht Ton/Region des Absenders uebernehmen).
    Die Sprache nur wechseln, wenn der Nutzer es **explizit** vorgibt.
-5. **Pflicht-Audit via humanizer-de.** Den Skill `humanizer-de` **tatsaechlich
+6. **Pflicht-Audit via humanizer-de.** Den Skill `humanizer-de` **tatsaechlich
    aufrufen** (Skill-Tool bzw. `/humanizer-de`), Modus **Sachlich**, Zweig **Nur
    Audit**. Ein manueller Abgleich gegen die Anti-Pattern-Liste in `referenz.md`
-   ersetzt den Lauf **nicht** und zaehlt nicht als erledigter Schritt 5. Der Lauf
+   ersetzt den Lauf **nicht** und zaehlt nicht als erledigter Schritt 6. Der Lauf
    entfaellt auch bei kurzen Mails, Routinemeldungen oder Zeitdruck nicht.
    Anschliessend die profilspezifischen Anti-Patterns aus `referenz.md` zusaetzlich
    inhaltlich durchgehen: die Linter finden diese Klasse nicht (Zeitkolorit im
    Einstieg, Abstraktum statt konkretem Sachverhalt, Nebenbefunde ohne
    Handlungsrelevanz, doppeltes Hedging, "Rueckfall" fuer Software).
    Beides ist noetig, keines ersetzt das andere.
-6. **Pflicht-Aufruf `imap quote` bei jedem Reply.** Liegt ein Reply-Kontext vor
+7. **Pflicht-Aufruf `imap quote` bei jedem Reply.** Liegt ein Reply-Kontext vor
    (eine Mail, auf die geantwortet wird -- UID im Postfach oder eine `.eml`), wird
    der Zitatblock **nicht getippt, sondern erzeugt**:
    `imap quote <uid> -a <konto> -f <ordner>` fuer den Text-Part, `--format html`
@@ -123,20 +135,22 @@ Eingabe: Empfaenger (+ Thema **oder** eine Reply-`.eml`). Ablauf:
    zwar ohne Fehlermeldung. Ist nur die Message-ID bekannt, `imap quote
    -m "<message-id>"` verwenden: das loest Konto, Ordner und UID selbst auf.
    Selbst gesetzte `> `-Praefixe zaehlen **nicht** als erledigter
-   Schritt 6 -- sie sehen auf den ersten Blick gleich aus, weichen aber bei jeder
+   Schritt 7 -- sie sehen auf den ersten Blick gleich aus, weichen aber bei jeder
    Mail leicht ab und ignorieren `format=flowed` und die Threading-Header. Kein
    Reply-Kontext: der Schritt entfaellt und wird als `kein Reply` ausgewiesen.
-7. Entwurf zeigen, **immer mit der Ausfuehrungszeile** (siehe unten). Optional
+8. Entwurf zeigen, **immer mit der Ausfuehrungszeile** (siehe unten). Optional
    Versand ueber **swaks** (Text + HTML), Signatur dort; Absender und Bcc kommen
    aus `config.json.send` (siehe Abschnitt Versand).
 
 ### rewrite — bestehenden Entwurf in-voice bringen
 
 Nimmt einen Entwurf (eigener oder fremder), gleicht ihn an das Profil an und laeuft
-denselben **verbindlichen** humanizer-de-Audit aus Schritt 5 von `draft` sowie -- bei
-Reply-Kontext -- den **Pflicht-Aufruf** von `imap quote` aus Schritt 6, inklusive
-Ausfuehrungszeile beim Zeigen. Der **Faktencheck** aus Schritt 3 gilt hier genauso:
-ein uebernommener Entwurf bringt seine Zusagen mit, geprueft sind sie deswegen nicht. Bringt der Entwurf bereits ein von Hand getipptes Zitat
+denselben **verbindlichen** humanizer-de-Audit aus Schritt 6 von `draft` sowie -- bei
+Reply-Kontext -- den **Pflicht-Aufruf** von `imap quote` aus Schritt 7, inklusive
+Ausfuehrungszeile beim Zeigen. Der **Faktencheck** aus Schritt 4 gilt hier genauso:
+ein uebernommener Entwurf bringt seine Zusagen mit, geprueft sind sie deswegen nicht.
+Dasselbe fuer die **Empfaenger-Aufloesung** aus Schritt 1: die Adresse im uebernommenen
+Entwurf ist eine Behauptung wie jede andere und wird aufgeloest, nicht uebernommen. Bringt der Entwurf bereits ein von Hand getipptes Zitat
 mit, wird es **ersetzt**, nicht uebernommen. Fuer „mach diese Mail wie ich". Gilt auch hier: **das
 Gegenueber nie spiegeln** (Sprache/Stil/Region), ein fremder Ausgangston wird auf die
 eigene Stimme gezogen, nicht beibehalten.
@@ -160,14 +174,15 @@ tatsaechlich gelaufen sind. Sie steht vor dem Entwurf, nicht danach, und wird au
 kurzen Mails gesetzt:
 
 ```
-Schritte: Profil michael · Register sachlich (example.ch) · Beispiele 76421, 76512 · Faktencheck: Spalte in DB geprueft, keine Werte -> Zusage raus · humanizer-de Sachlich/Nur-Audit: Preflight low, keine HIGH-Cluster · Quote office/ToDo/200
+Schritte: Profil michael · Empfaenger: aus contacts.tsv · Register sachlich (example.ch) · Beispiele 76421, 76512 · Faktencheck: Spalte in DB geprueft, keine Werte -> Zusage raus · humanizer-de Sachlich/Nur-Audit: Preflight low, keine HIGH-Cluster · Quote office/ToDo/200
 ```
 
-Sechs Felder, immer in dieser Reihenfolge:
+Sieben Felder, immer in dieser Reihenfolge:
 
 | Feld | Inhalt |
 |---|---|
 | Profil | Name des geladenen Profils |
+| Empfaenger | Herkunft der Adresse: `aus contacts.tsv` \| `aus imap contacts` \| `aus quote --json` \| `vom Nutzer genannt` \| `geraten` |
 | Register | bestimmtes Register + Herkunft (Domain aus `register_map`, sonst „nachgefragt") |
 | Beispiele | IDs/Dateinamen der geladenen Beispiele aus `corpus/clean/` |
 | Faktencheck | woran die Behauptung/Zusage geprueft wurde und was dabei herauskam, sonst `keine Zusage` |
@@ -178,6 +193,13 @@ Sechs Felder, immer in dieser Reihenfolge:
 Terminabsprache, Rueckfrage, Dank). `Faktencheck: nicht gelaufen` heisst, es gab
 etwas zu pruefen und geprueft wurde nicht -- dieselbe Unterscheidung wie bei
 `kein Reply` gegenueber `nicht gelaufen`.
+
+`Empfaenger: geraten` ist bewusst als Auspraegung vorgesehen, obwohl Raten laut
+Schritt 1 nicht vorkommen soll: die Zeile ist Protokoll, kein Guetesiegel. Steht
+sie da, faellt der Fall vor dem Versand auf -- und das ist der einzige Zeitpunkt,
+zu dem er noch billig zu beheben ist. Wer stattdessen eine Quelle hinschreibt, die
+es nicht gab, macht dieselbe Falschaussage wie bei einem als gelaufen
+ausgewiesenen Audit.
 
 Ist ein Schritt nicht gelaufen, wird das **ausgeschrieben** (`humanizer-de: nicht
 gelaufen`, `Quote: nicht gelaufen`), statt das Feld wegzulassen. `kein Reply` und
@@ -262,6 +284,12 @@ python3 ~/.claude/skills/imap/imap append $M/mail.eml -a <konto>
 Erst nach dem erfolgreichen Versand, nie davor -- eine Kopie in "Gesendet" zu
 einer abgewiesenen Mail ist eine Falschaussage im Postfach. Ein wiederholter
 Lauf legt keinen zweiten Eintrag an (gleiche Message-ID).
+
+**Kontakt ergaenzen (swaks Schritt 11).** Stand die Adresse nicht in
+`~/.claude/swaks-contacts.tsv`, wird sie nach dem Versand dort angehaengt -- sonst
+ist die naechste Mail an dieselbe Person wieder ein Ratespiel. Nur fuer Adressen,
+die ohne Thread wieder gebraucht werden; Thread-Adressen liefert `imap contacts`
+jederzeit neu. Details im swaks-Skill.
 
 **Nur Text und kein HTML-Entwurf?** Dann `--html-file` weglassen, nicht die
 Textdatei ein zweites Mal angeben. Ein HTML-Part aus rohem Text hat kein
@@ -391,16 +419,19 @@ Bezug; diese Checkliste ist die **Ergaenzung** zum Skill-Lauf, nicht sein Ersatz
 
 ## Integration
 
-- **humanizer-de** - verbindlicher KI-Tell-Audit in Schritt 5 von `draft`/`rewrite`,
+- **humanizer-de** - verbindlicher KI-Tell-Audit in Schritt 6 von `draft`/`rewrite`,
   kein optionaler Self-Check; Ergebnis gehoert in die Ausfuehrungszeile.
 - **imap** - `quote` erzeugt bei jeder Antwort den Zitatblock und die
-  Threading-Header (Schritt 6) und liefert Betreff und Empfaenger gleich mit.
+  Threading-Header (Schritt 7) und liefert Betreff und Empfaenger gleich mit.
   Ebenfalls ein Aufruf, kein Nachbauen; Ergebnis gehoert als letztes Feld in die
   Ausfuehrungszeile. Ist statt der UID nur die Message-ID bekannt (einkopierte
   Mail), loest `imap quote -m` bzw. `imap find -m` sie zu Konto, Ordner und UID
   auf -- der Handabgleich ueber `folders` + `list` entfaellt.
 - **swaks** — Versand (`mail-as-me` schreibt, `swaks` sendet; Signatur kommt aus
-  swaks, Absender und Bcc aus `config.json.send` des Profils).
+  swaks, Absender und Bcc aus `config.json.send` des Profils). Dessen Schritt 1
+  (Empfaenger aufloesen) und Schritt 11 (Kontakt ergaenzen) gelten mit -- sie sind
+  hier als Schritt 1 von `draft` und als Absatz im Versand-Abschnitt abgebildet,
+  weil die swaks-Schrittliste beim Weg ueber `mail-as-me` nie zu sehen ist.
 - **imap** — `quote` fuer Zitat und Threading vor dem Versand, `append` fuer die
   Ablage in "Gesendet" danach.
 - **kanboard/handoff** — optional CR-Kontext fuer den `learn`-Loop.

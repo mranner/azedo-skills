@@ -3,6 +3,21 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.61.2
+
+- **`mail-as-me`: Empfaenger aufloesen statt raten.** `draft` bekommt einen neuen
+  Schritt 1 vor dem Entwurf: die Adresse kommt aus `~/.claude/swaks-contacts.tsv`
+  bzw. `imap contacts`/`quote --json`, bei keinem Treffer wird nachgefragt. Die
+  Ausfuehrungszeile fuehrt dafuer ein siebtes Feld `Empfaenger: aus <Quelle>` mit
+  `geraten` als zulaessiger Auspraegung - genau, damit der Fall vor dem Versand
+  sichtbar wird. Der Versand-Abschnitt verweist auf swaks Schritt 11 (Kontakt
+  ergaenzen). Hintergrund: der Skill hat den swaks-Versand weitgehend dupliziert,
+  aber ausgerechnet diese beiden Schritte ausgelassen - wer ueber `mail-as-me`
+  arbeitet, sieht die swaks-Schrittliste nie. Bei einer Mail an Binarium (CR4667)
+  ist deshalb eine Adresse geraten worden; aufgefallen ist es nur durch eine
+  Rueckfrage. Fuer die Antwort war die Aufloesung schon da, nur fuer die neue Mail
+  nicht.
+
 ### 1.60.5
 
 - **`wiki`: Schrumpf-Guard `lint-wiki.py --check-shrink`.** Vergleicht jeden

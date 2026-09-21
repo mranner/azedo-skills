@@ -648,23 +648,18 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.60.5
+### 1.61.2
 
-- **`wiki`: Schrumpf-Guard `lint-wiki.py --check-shrink`.** Vergleicht jeden
-  geaenderten Artikel mit seiner Fassung in `git HEAD` und meldet, was
-  verschwunden ist - ein Frontmatter-Feld, ein `##`-Abschnitt, ein Wikilink auf
-  eine andere Entity. Nicht die Laenge: Verdichten ist erwuenscht. Der Punkt ist,
-  dass eine verlorene Beziehung oder ein fehlender Abschnitt beim Durchlesen des
-  neuen Textes niemandem auffaellt - dem Diff schon. Warnung statt Fehler, weil
-  nur ein Mensch entscheiden kann, ob der Wegfall Absicht war. Abgeschaut bei der
-  Referenz-Implementierung des Open Knowledge Format, deren Schreib-Werkzeug
-  jeden Schreibvorgang verweigert, der eine bestehende Feld- oder Quellenliste
-  verkleinert.
-- **`wiki`: Abweichungen zur OKF-Referenz dokumentiert.** `stale_after` verlangt
-  dort einen Zeitstempel mit UTC-Offset (ein reines Datum wird ignoriert, weil es
-  in jeder Zeitzone einen anderen Moment meint), `verified` eine Liste von
-  Mappings. Wir nehmen tagesgenaue Daten und eine flache Liste - beides bewusst,
-  jetzt in den Frontmatter-Schemas als Tabelle festgehalten. Ausserdem: OKF ist
-  aus `knowledge-catalog` in ein eigenes Repo umgezogen
-  (`GoogleCloudPlatform/open-knowledge-format`), die Fassung unter `okf/` ist ein
-  eingefrorener Snapshot.
+- **`mail-as-me`: Empfaenger aufloesen statt raten.** `draft` bekommt einen neuen
+  Schritt 1 vor dem Entwurf: die Adresse kommt aus `~/.claude/swaks-contacts.tsv`
+  bzw. `imap contacts`/`quote --json`, bei keinem Treffer wird nachgefragt. Die
+  Ausfuehrungszeile fuehrt dafuer ein siebtes Feld `Empfaenger: aus <Quelle>` mit
+  `geraten` als zulaessiger Auspraegung - genau, damit der Fall vor dem Versand
+  sichtbar wird. Der Versand-Abschnitt verweist auf swaks Schritt 11 (Kontakt
+  ergaenzen). Hintergrund: der Skill hat den swaks-Versand weitgehend dupliziert,
+  aber ausgerechnet diese beiden Schritte ausgelassen - wer ueber `mail-as-me`
+  arbeitet, sieht die swaks-Schrittliste nie. Bei einer Mail an Binarium (CR4667)
+  ist deshalb eine Adresse geraten worden; aufgefallen ist es nur durch eine
+  Rueckfrage. Fuer die Antwort war die Aufloesung schon da, nur fuer die neue Mail
+  nicht.
+
