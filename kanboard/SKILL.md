@@ -49,7 +49,8 @@ Falls doch direkt gelesen wird, ist das Schema:
       "swimlanes": ["Standard-Swimlane"],   // Liste von STRINGS (nur Namen)
       "columns":   ["Ideen", "Bereit", "In Arbeit", "Erledigt"] }  // STRINGS
   ],
-  "users": [ { "id": 4, "username": "musterfrau", "name": "Karin Musterfrau" } ]
+  "users": [ { "id": 4, "username": "musterfrau", "name": "Karin Musterfrau", "is_active": 1 } ]
+  // deaktivierte User stehen mit "is_active": 0 drin, damit sie adressierbar bleiben
 }
 ```
 
@@ -58,14 +59,14 @@ Position ergibt sich nicht aus `instance.json`, dafuer `list-columns` verwenden.
 
 ## Subcommands
 
-Das Script kennt 48 Subcommands. Hier stehen der CR-Kontext und die haeufigsten
+Das Script kennt 56 Subcommands. Hier stehen der CR-Kontext und die haeufigsten
 Aufrufe; die vollstaendige Referenz liegt daneben und wird bei Bedarf gelesen:
 
 | Datei | Inhalt |
 |---|---|
 | `references/tasks.md` | Task anlegen, anzeigen, aendern, verschieben, schliessen, loeschen, auflisten, suchen, eigene Tasks |
 | `references/task-inhalte.md` | Kommentare, Anhaenge, Teilaufgaben, Verknuepfungen, Tags, Handoff-Feld |
-| `references/projekte.md` | Projekte anlegen und loeschen, Mitglieder und Rollen, Spalten und User auflisten |
+| `references/projekte.md` | Projekte anlegen und loeschen, Mitglieder und Rollen, Gruppen, Spalten und User auflisten |
 
 `python3 "$SKILL_DIR/kanboard" <subcommand> --help` listet die Optionen eines
 Subcommands direkt aus dem Script - schneller als Nachschlagen, und nie veraltet.
@@ -170,7 +171,7 @@ Projektgrenzen hinweg nicht ausfuehrt.
 
 ## Sicherheitsregeln
 
-Diese vier Regeln gelten unabhaengig davon, welche Referenzdatei gelesen wurde:
+Diese fuenf Regeln gelten unabhaengig davon, welche Referenzdatei gelesen wurde:
 
 - **"Task erledigen" heisst `move-task --column erledigt`.** Tasks werden im
   Regelfall nur in der Spalte "erledigt" geschlossen. `close-task` nur
@@ -183,6 +184,12 @@ Diese vier Regeln gelten unabhaengig davon, welche Referenzdatei gelesen wurde:
   wird **nie** geloescht, nur weil er fertig ist.
 - **`remove-project --force` loescht die enthaltenen Tasks mit.** Ohne `--force`
   bricht es ab, solange Tasks im Projekt liegen.
+- **Rechte-Entzug: erst pruefen, woher der Zugriff kommt.** `remove-project-user`
+  entfernt nur **direkte** Mitgliedschaften und bleibt bei gruppenbasiertem
+  Zugriff wirkungslos (Rueckgabe `false`, keine Fehlermeldung). Vorher
+  `list-groups` / `list-group-members` pruefen. `removeGroupMember` wirkt
+  umgekehrt **gruppenweit** - vor dem Entzug auflisten, welche Projekte der
+  Gruppe zugeordnet sind, sonst verliert der User mehr als gemeint.
 - **Zustandsaendernde Aufrufe einzeln absetzen.** `move-task`, `close-task`,
   `remove-task` und `remove-project` gehoeren nicht mit weiteren Subcommands in eine
   Shell-Befehlskette. Schlaegt ein vorangehender Aufruf fehl - ein falsch erinnerter

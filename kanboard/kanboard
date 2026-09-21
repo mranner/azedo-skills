@@ -181,12 +181,35 @@ def resolve_column(project_id, column_name):
 
 
 def resolve_user(username):
-    """Resolve username to user ID via instance.json cache"""
+    """Resolve username or numeric ID to user ID"""
+    if str(username).isdigit():
+        return int(username)
+
     data = load_instance()
     for u in data.get("users", []):
         if u["username"] == username:
             return int(u["id"])
-    print(f"Error: user '{username}' not found in instance.json (run: setup --default-user {username})", file=sys.stderr)
+
+    # Deaktivierte User fehlen in aelteren instance.json — im Admin-Pfad direkt
+    # nachschlagen, statt auf ein 'setup' zu verweisen, das nichts aendert
+    if is_admin():
+        for u in rpc_try("getAllUsers") or []:
+            if u.get("username") == username:
+                return int(u["id"])
+
+    print(f"Error: user '{username}' not found (weder in instance.json noch ueber getAllUsers) — "
+          "Username pruefen oder User-ID angeben", file=sys.stderr)
+    sys.exit(1)
+
+
+def resolve_group(group):
+    """Resolve group name or numeric ID to group ID"""
+    if str(group).isdigit():
+        return int(group)
+    for g in rpc_call("getAllGroups") or []:
+        if str(g.get("name", "")).lower() == str(group).lower():
+            return int(g["id"])
+    print(f"Error: group '{group}' not found (siehe list-groups)", file=sys.stderr)
     sys.exit(1)
 
 
@@ -861,6 +884,72 @@ def cmd_remove_project_user(args):
     output({"success": bool(ok), "project_id": project_id, "user_id": user_id})
 
 
+# Gruppen
+
+def cmd_list_groups(args):
+    output(rpc_call("getAllGroups") or [])
+
+
+def cmd_list_group_members(args):
+    group_id = resolve_group(args.group)
+    members = rpc_call("getGroupMembers", {"group_id": group_id}) or []
+    summary = [{
+        "id": int(u["id"]),
+        "username": u.get("username", ""),
+        "name": u.get("name", ""),
+        "is_active": u.get("is_active", ""),
+    } for u in members]
+    output({"group_id": group_id, "members": summary})
+
+
+def cmd_create_group(args):
+    gid = rpc_call("createGroup", {"name": args.name})
+    output({"success": bool(gid), "group_id": gid, "name": args.name})
+
+
+def cmd_add_group_member(args):
+    group_id = resolve_group(args.group)
+    user_id = resolve_user(args.user)
+    ok = rpc_call("addGroupMember", {"group_id": group_id, "user_id": user_id})
+    output({"success": bool(ok), "group_id": group_id, "user_id": user_id})
+
+
+def cmd_remove_group_member(args):
+    group_id = resolve_group(args.group)
+    user_id = resolve_user(args.user)
+    ok = rpc_call("removeGroupMember", {"group_id": group_id, "user_id": user_id})
+    result = {"success": bool(ok), "group_id": group_id, "user_id": user_id}
+    if ok:
+        # removeGroupMember wirkt gruppenweit, also in allen Projekten, denen die
+        # Gruppe zugeordnet ist — nicht nur in dem, das gerade gemeint war
+        result["hint"] = ("Entzug wirkt gruppenweit — der User verliert den Zugriff auf "
+                          "alle Projekte, denen diese Gruppe zugeordnet ist.")
+    output(result)
+
+
+def cmd_add_project_group(args):
+    project_id = resolve_project(args.project)
+    group_id = resolve_group(args.group)
+    _check_role(args.role)
+    ok = rpc_call("addProjectGroup", {"project_id": project_id, "group_id": group_id, "role": args.role})
+    output({"success": bool(ok), "project_id": project_id, "group_id": group_id, "role": args.role})
+
+
+def cmd_set_project_group_role(args):
+    project_id = resolve_project(args.project)
+    group_id = resolve_group(args.group)
+    _check_role(args.role)
+    ok = rpc_call("changeProjectGroupRole", {"project_id": project_id, "group_id": group_id, "role": args.role})
+    output({"success": bool(ok), "project_id": project_id, "group_id": group_id, "role": args.role})
+
+
+def cmd_remove_project_group(args):
+    project_id = resolve_project(args.project)
+    group_id = resolve_group(args.group)
+    ok = rpc_call("removeProjectGroup", {"project_id": project_id, "group_id": group_id})
+    output({"success": bool(ok), "project_id": project_id, "group_id": group_id})
+
+
 def cmd_set_project_owner(args):
     project_id = resolve_project(args.project)
     user_id = resolve_user(args.user)
@@ -1280,12 +1369,13 @@ def cmd_setup(args):
         users_raw = rpc_call("getAllUsers")
         users = []
         for u in users_raw:
-            if int(u.get("is_active", 0)) != 1:
-                continue
+            # deaktivierte User bleiben drin, sonst sind sie nicht adressierbar
+            # (remove-project-user trifft fast immer Ausgeschiedene)
             users.append({
                 "id": int(u["id"]),
                 "username": u["username"],
                 "name": u.get("name", ""),
+                "is_active": int(u.get("is_active", 0)),
             })
     else:
         seen_ids = set()
@@ -1628,6 +1718,54 @@ def main():
     p.add_argument("--project", required=True)
     p.add_argument("--user", required=True)
     p.set_defaults(func=cmd_remove_project_user)
+
+    # list-groups
+    p = sub.add_parser("list-groups")
+    p.set_defaults(func=cmd_list_groups)
+
+    # list-group-members
+    p = sub.add_parser("list-group-members")
+    p.add_argument("--group", required=True, help="Gruppenname oder -ID")
+    p.set_defaults(func=cmd_list_group_members)
+
+    # create-group
+    p = sub.add_parser("create-group")
+    p.add_argument("--name", required=True)
+    p.set_defaults(func=cmd_create_group)
+
+    # add-group-member
+    p = sub.add_parser("add-group-member")
+    p.add_argument("--group", required=True, help="Gruppenname oder -ID")
+    p.add_argument("--user", required=True, help="Username oder User-ID")
+    p.set_defaults(func=cmd_add_group_member)
+
+    # remove-group-member
+    p = sub.add_parser("remove-group-member")
+    p.add_argument("--group", required=True, help="Gruppenname oder -ID")
+    p.add_argument("--user", required=True, help="Username oder User-ID")
+    p.set_defaults(func=cmd_remove_group_member)
+
+    # add-project-group
+    p = sub.add_parser("add-project-group")
+    p.add_argument("--project", required=True)
+    p.add_argument("--group", required=True, help="Gruppenname oder -ID")
+    p.add_argument("--role", default="project-member",
+                   help="project-manager | project-member | project-viewer (Default: project-member)")
+    p.set_defaults(func=cmd_add_project_group)
+
+    # set-project-group-role
+    p = sub.add_parser("set-project-group-role")
+    p.add_argument("--project", required=True)
+    p.add_argument("--group", required=True, help="Gruppenname oder -ID")
+    p.add_argument("--role", required=True,
+                   help="project-manager | project-member | project-viewer")
+    p.set_defaults(func=cmd_set_project_group_role)
+
+    # remove-project-group
+    p = sub.add_parser("remove-project-group")
+    p.add_argument("--project", required=True)
+    p.add_argument("--group", required=True, help="Gruppenname oder -ID")
+    p.set_defaults(func=cmd_remove_project_group)
 
     # set-project-owner
     p = sub.add_parser("set-project-owner")
