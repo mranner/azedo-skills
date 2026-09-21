@@ -6,7 +6,7 @@
 # um das alternative-Part gelegt. Bei einer Antwort kommt der Zitatblock aus
 # `imap quote` unter Body und Signatur (Top-Posting), die Threading-Header
 # In-Reply-To und References haengen die Antwort an den bestehenden Thread.
-# version 1.59.4
+# version 1.61.2
 
 import argparse
 import hashlib
