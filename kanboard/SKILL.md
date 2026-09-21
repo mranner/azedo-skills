@@ -186,8 +186,10 @@ Diese fuenf Regeln gelten unabhaengig davon, welche Referenzdatei gelesen wurde:
   bricht es ab, solange Tasks im Projekt liegen.
 - **Rechte-Entzug: erst pruefen, woher der Zugriff kommt.** `remove-project-user`
   entfernt nur **direkte** Mitgliedschaften und bleibt bei gruppenbasiertem
-  Zugriff wirkungslos (Rueckgabe `false`, keine Fehlermeldung). Vorher
-  `list-groups` / `list-group-members` pruefen. `removeGroupMember` wirkt
+  Zugriff wirkungslos (Rueckgabe `false`, dazu ein `hint`). Vorher
+  `list-project-users` lesen: `via_group_candidates` nennt moegliche Gruppen,
+  ist aber ein Verdacht, kein Nachweis — die Zuordnung Projekt->Gruppe ist ueber
+  die API nicht lesbar. `removeGroupMember` wirkt
   umgekehrt **gruppenweit** - vor dem Entzug auflisten, welche Projekte der
   Gruppe zugeordnet sind, sonst verliert der User mehr als gemeint.
 - **Zustandsaendernde Aufrufe einzeln absetzen.** `move-task`, `close-task`,

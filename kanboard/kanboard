@@ -848,17 +848,50 @@ def cmd_remove_project(args):
     output(result)
 
 
+def _group_candidates(member_ids):
+    """Gruppen, die dem Projekt zugeordnet sein koennten, je User.
+
+    getProjectGroupRoles/getProjectGroups gibt es in dieser Kanboard-Version
+    nicht — die Zuordnung Projekt->Gruppe ist nur schreibend erreichbar. Ableitbar
+    ist sie nur indirekt: ist eine Gruppe dem Projekt zugeordnet, sind zwingend
+    alle ihre Mitglieder Projektmitglieder. Die Umkehrung gilt nicht, deshalb
+    bleibt das Ergebnis eine Vermutung (eine Gruppe, deren Mitglieder zufaellig
+    alle direkt im Projekt stehen, wird mitgemeldet).
+    """
+    candidates = {}
+    for g in rpc_try("getAllGroups") or []:
+        gid = int(g["id"])
+        members = rpc_try("getGroupMembers", {"group_id": gid}) or []
+        gmember_ids = {int(u["id"]) for u in members}
+        if not gmember_ids or not gmember_ids <= member_ids:
+            continue
+        for uid in gmember_ids:
+            candidates.setdefault(uid, []).append(g.get("name", str(gid)))
+    return candidates
+
+
 def cmd_list_project_users(args):
     project_id = resolve_project(args.project)
     members = rpc_call("getProjectUsers", {"project_id": project_id})
     users = []
     if isinstance(members, dict):
+        member_ids = {int(uid) for uid in members}
+        candidates = _group_candidates(member_ids)
         for uid, name in members.items():
-            role = rpc_try("getProjectUserRole", {"project_id": project_id, "user_id": int(uid)})
-            users.append({"id": int(uid), "name": name, "role": role})
+            uid = int(uid)
+            role = rpc_try("getProjectUserRole", {"project_id": project_id, "user_id": uid})
+            entry = {"id": uid, "name": name, "role": role}
+            if uid in candidates:
+                entry["via_group_candidates"] = sorted(candidates[uid])
+            users.append(entry)
     proj = rpc_try("getProjectById", {"project_id": project_id})
     owner_id = int(proj.get("owner_id", 0)) if proj else 0
-    output({"project_id": project_id, "owner_id": owner_id, "users": users})
+    result = {"project_id": project_id, "owner_id": owner_id, "users": users}
+    if any("via_group_candidates" in u for u in users):
+        result["hinweis"] = ("via_group_candidates ist eine Vermutung — die Projekt-Gruppen-"
+                             "Zuordnung ist ueber die API nicht lesbar. Ein Entzug ueber "
+                             "remove-project-user greift bei gruppenbasiertem Zugriff nicht.")
+    output(result)
 
 
 def cmd_add_project_user(args):
@@ -881,7 +914,14 @@ def cmd_remove_project_user(args):
     project_id = resolve_project(args.project)
     user_id = resolve_user(args.user)
     ok = rpc_call("removeProjectUser", {"project_id": project_id, "user_id": user_id})
-    output({"success": bool(ok), "project_id": project_id, "user_id": user_id})
+    result = {"success": bool(ok), "project_id": project_id, "user_id": user_id}
+    if not ok:
+        # removeProjectUser trifft nur direkte Mitgliedschaften und meldet einen
+        # gruppenbasierten Zugriff nicht — sonst bleibt der Entzug still wirkungslos
+        result["hint"] = ("keine direkte Mitgliedschaft — der Zugriff stammt "
+                          "moeglicherweise aus einer Gruppe, siehe list-groups / "
+                          "list-project-users")
+    output(result)
 
 
 # Gruppen

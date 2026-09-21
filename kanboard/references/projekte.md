@@ -24,6 +24,7 @@ python3 "$SKILL_DIR/kanboard" create-project --name "<name>" [--owner <username>
 python3 "$SKILL_DIR/kanboard" remove-project --project <name|id> [--force]
 
 # Mitglieder eines Projekts mit Rolle + Owner anzeigen
+# (markiert moegliche Gruppen-Herkunft als via_group_candidates, siehe Gruppen)
 python3 "$SKILL_DIR/kanboard" list-project-users --project <name|id>
 
 # User zum Projekt hinzufuegen (--role Default: project-member)
@@ -87,10 +88,19 @@ python3 "$SKILL_DIR/kanboard" remove-project-group --project <name|id> --group <
   die Gruppe aufteilen.
 - `remove-project-user` entfernt nur **direkte** Mitgliedschaften. Kommt der
   Zugriff aus einer Gruppe, liefert der Aufruf `success: false` und aendert
-  nichts — dann `list-groups` / `list-group-members` pruefen.
-- `getProjectGroupRoles` und `getProjectUserRoles` gibt es in dieser
-  Kanboard-Version nicht (`Method not found`); die Projekt-Gruppen-Zuordnung ist
-  daher nur schreibend erreichbar. `list-project-users` zeigt die effektiven
-  Mitglieder, ohne die Herkunft des Rechts auszuweisen.
+  nichts; die Ausgabe traegt dann einen `hint` mit genau diesem Verdacht. Zum
+  Nachsehen `list-groups` / `list-group-members`.
+- `getProjectGroupRoles`, `getProjectUserRoles`, `getProjectGroups`,
+  `getMemberGroups` und `getGroupsByProject` gibt es in dieser Kanboard-Version
+  **nicht** (`Method not found`, geprueft 2026-09-21); die Projekt-Gruppen-
+  Zuordnung ist daher nur schreibend erreichbar.
+- `list-project-users` naehert die Herkunft deshalb heuristisch an: ist eine
+  Gruppe dem Projekt zugeordnet, sind zwingend **alle** ihre Mitglieder
+  Projektmitglieder. Jede Gruppe, deren Mitglieder vollstaendig im Projekt
+  stehen, erscheint bei diesen Usern als `via_group_candidates`. Die Umkehrung
+  gilt nicht — eine Gruppe, deren Mitglieder zufaellig alle direkt im Projekt
+  sind, wird mitgemeldet. Das Feld ist ein **Verdacht, kein Nachweis**; die
+  Ausgabe sagt das im `hinweis` mit. Verlaesslich ist nur die Gegenprobe: greift
+  `remove-project-user` nicht, war es eine Gruppe.
 - Eine Gruppe **loeschen** kann der Skill nicht (kein `remove-group`) — das
   bleibt dem Kanboard-UI vorbehalten.
