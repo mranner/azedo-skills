@@ -9,3 +9,9 @@ __pycache__/
 
 # Temporaere Arbeitsdateien der Skills (nie ins Repo)
 .tmp/
+
+# Eval-Sets und Workspaces des skill-creator (nie ins Repo)
+# Realistische Testprompts enthalten Kundenkontext, das Repo ist public.
+
+evals/
+*-workspace/
