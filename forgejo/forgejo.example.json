@@ -1,0 +1,19 @@
+{
+  "//": "Kopie nach ~/.claude/forgejo.json - nie ins Repo. Anderer Pfad ueber FORGEJO_CONFIG.",
+  "//_ssh": "Wie die Session root auf dem Forgejo-Host erreicht. Leer lassen, wenn das Script dort schon als root laeuft.",
+  "//_owner": "Default-Organisation fuer adopt/preflight; je Aufruf mit --owner uebersteuerbar.",
+
+  "host": "git.example.org",
+  "forgejo-host": "forge.example.org",
+  "ssh": ["sudo", "ssh", "-C", "root@forge.example.org"],
+
+  "api-user": "",
+  "owner": "",
+
+  "service-user": "git",
+  "binary": "/usr/local/sbin/forgejo",
+  "app-ini": "/usr/local/etc/forgejo/conf/app.ini",
+  "work-path": "/var/db/forgejo",
+  "repo-root": "/var/db/forgejo/forgejo-repositories",
+  "db": "/var/db/forgejo/forgejo.db"
+}

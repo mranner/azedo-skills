@@ -3,6 +3,39 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.62.0
+
+- **Neuer Skill `forgejo`.** Uebernimmt vorhandene Bare-Repos in eine
+  Forgejo-Instanz (`preflight`, `adopt`) und richtet den HTTPS-Zugang dorthin
+  ein (`access-check`, `access-setup`), dazu `api` fuer einzelne Aufrufe.
+  Ausloeser: fuenf Uebernahmen an einem Tag auf vier Installationen, bei denen
+  jedes Fehlerbild auf die falsche Faehrte fuehrte - ein 401 mit korrekt
+  angelegtem Token (fehlender Work-Path beim Generator), ein
+  `could not read Username` ohne Auth-Problem (Credential-Datei ohne URL-Rahmen)
+  und ein `git push`, das ohne TTY stumm auf eine Eingabe wartet. Der Skill
+  macht den Ablauf ausfuehrbar statt ihn zu beschreiben: die Vorpruefung legt
+  Bare-Repo, Arbeitskopie und Zielplatz nebeneinander und nennt ein
+  zurueckliegendes Bare-Repo **vor** dem `mv`, der HEAD wird vor dem Adopt
+  gerichtet statt danach abgeglichen, und `ls-remote` gegen ein noch nicht
+  uebernommenes Repo belegt Authentifizierung und freien Zielplatz in einem
+  Aufruf.
+
+  Zwei Entscheidungen tragen den Umgang mit dem Geheimnis: jeder API-Aufruf
+  stellt einen **Einweg-Token** aus, benutzt ihn und loescht ihn wieder, alles
+  in einem Script auf dem Zielhost - der Wert erreicht die lokale
+  Kommandozeile nie. Und **Zeiger und Wert sind getrennt**: den
+  Credential-Helper setzt der Skill, die Datei mit dem Token schreibt der User
+  in einem eigenen Terminal; geprueft werden danach nur Form, Rechte und
+  Existenz, mit Zaehlern statt Inhalt.
+
+  Bewusst **nicht** im Skill: `git remote set-url` (wird in manchen Sessions
+  verweigert und gehoert dann zurueck an den User, nicht an eine andere
+  Session), Suchen-und-Ersetzen fuer das alte Remote in der Projektdoku (ein
+  `grep` liefert regelmaessig Treffer zu Mailversand und Deployment) und die
+  Ablage der Credential-Datei als Konstante - vier Installationen hatten vier
+  Varianten, das ist ein Parameter. `forgejo dump` fehlt, solange Ablageort und
+  Aufbewahrung nicht entschieden sind.
+
 ### 1.61.2
 
 - **`mail-as-me`: Empfaenger aufloesen statt raten.** `draft` bekommt einen neuen

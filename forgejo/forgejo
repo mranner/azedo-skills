@@ -1,0 +1,623 @@
+#!/usr/bin/env python3
+
+# Forgejo-Helfer - Bare-Repos uebernehmen und den HTTPS-Zugang pruefen
+# stdlib only, keine pip-Abhaengigkeiten. Lauffaehig auf FreeBSD, Linux und macOS.
+# version 1.62.0
+
+import argparse
+import json
+import os
+import re
+import secrets
+import shlex
+import socket
+import subprocess
+import sys
+
+CONFIG_PATH = os.environ.get(
+    "FORGEJO_CONFIG",
+    os.path.join(os.path.expanduser("~"), ".claude", "forgejo.json"),
+)
+
+# Scopes des Einweg-Tokens. Adopt braucht Admin, das Lesen der Repo-Daten nicht;
+# beides in einem Token, weil ein Lauf beides nacheinander macht.
+
+DEFAULT_SCOPES = "write:admin,write:organization,write:repository,write:user"
+
+REQUIRED_KEYS = ("host", "forgejo-host", "api-user")
+
+
+def die(msg, code=1):
+    print(msg, file=sys.stderr)
+    sys.exit(code)
+
+
+def load_config():
+    if not os.path.exists(CONFIG_PATH):
+        die(f"Config fehlt: {CONFIG_PATH}\n"
+            f"Vorlage: forgejo.example.json aus dem Skill-Verzeichnis kopieren und ausfuellen.")
+    with open(CONFIG_PATH) as fh:
+        cfg = json.load(fh)
+    missing = [k for k in REQUIRED_KEYS if not cfg.get(k)]
+    if missing:
+        die(f"{CONFIG_PATH}: leer oder fehlend: {', '.join(missing)}")
+    cfg.setdefault("service-user", "git")
+    cfg.setdefault("binary", "/usr/local/sbin/forgejo")
+    cfg.setdefault("app-ini", "/usr/local/etc/forgejo/conf/app.ini")
+    cfg.setdefault("work-path", "/var/db/forgejo")
+    cfg.setdefault("repo-root", "/var/db/forgejo/forgejo-repositories")
+    cfg.setdefault("db", "/var/db/forgejo/forgejo.db")
+    cfg.setdefault("ssh", [])
+    return cfg
+
+
+# --- Ausfuehrung auf dem Forgejo-Host ---------------------------------------
+
+def is_local(cfg):
+    """Lokal nur, wenn wir auf dem Forgejo-Host UND root sind.
+
+    Auf dem Host als normaler Benutzer zu sitzen genuegt nicht: mv, chown und
+    `su -m git` brauchen root, und ein `sudo <programm>` ist dort haeufig nicht
+    passwortlos freigegeben. In dem Fall ist der Weg ueber `ssh` der richtige,
+    auch wenn er zum selben Rechner zurueckfuehrt.
+    """
+    here = socket.gethostname().split(".")[0]
+    there = str(cfg["forgejo-host"]).split(".")[0]
+    return here == there and hasattr(os, "geteuid") and os.geteuid() == 0
+
+
+def host_sh(cfg, script, check=True):
+    """Script per STDIN an ein `sh` auf dem Forgejo-Host geben.
+
+    STDIN ist ein reiner Bytestrom - keine Zwischen-Shell interpretiert ihn.
+    Damit entfaellt das Quoting-Problem, das `ssh host "sh -c '...'"` hat.
+    """
+    cmd = ["sh"] if is_local(cfg) else list(cfg["ssh"]) + ["sh"]
+    if not is_local(cfg) and not cfg["ssh"]:
+        die("Weder root auf dem Forgejo-Host noch ein `ssh`-Eintrag in der Config.")
+    res = subprocess.run(cmd, input=script, text=True, capture_output=True)
+    if check and res.returncode != 0:
+        die(f"Host-Kommando fehlgeschlagen (Exit {res.returncode}):\n"
+            f"{res.stderr.strip()}\n{res.stdout.strip()}")
+    return res
+
+
+def as_user(cfg, user, command):
+    """`su -m <user> -c '<command>'` - fuer Aufrufe, die dem Eigentuemer gehoeren.
+
+    git verweigert mit `detected dubious ownership`, sobald Aufrufer und
+    Verzeichnis nicht zusammenpassen; `safe.directory` zu setzen waere der
+    falsche Reflex, das aendert dauerhaft Konfiguration, um einmal zu lesen.
+    """
+    return f"su -m {shlex.quote(user)} -c {shlex.quote(command)}"
+
+
+# --- Einweg-Token und API ---------------------------------------------------
+
+def api(cfg, method, path, data=None, scopes=DEFAULT_SCOPES):
+    """Einen API-Aufruf mit einem Einweg-Token fahren.
+
+    Ausstellung, Verwendung und Loeschung passieren in einem Script auf dem
+    Forgejo-Host. Der Wert bleibt damit in einer Shell-Variablen dort und
+    erreicht weder die lokale Kommandozeile noch das Transcript.
+
+    Liefert (http_code, body).
+    """
+    name = "skill-" + secrets.token_hex(4)
+    url = f"https://{cfg['host']}/api/v1/{path.lstrip('/')}"
+
+    gen = (f"{cfg['binary']} admin user generate-access-token"
+           f" -u {shlex.quote(cfg['api-user'])} -t {name}"
+           f" --scopes {scopes}"
+           f" -c {shlex.quote(cfg['app-ini'])}"
+           f" -w {shlex.quote(cfg['work-path'])} --raw")
+
+    # -w ist nicht kosmetisch: ohne Work-Path gibt der Generator vor dem Wert
+    # eine weitere Zeile aus, die mit in die Variable laeuft. Das Ergebnis ist
+    # ein 401 mit einem Token, der in der Datenbank korrekt angelegt ist.
+
+    curl = ["curl", "-sS", "-X", method,
+            '-H', '"Authorization: token $tok"',
+            "-H", '"Content-Type: application/json"',
+            "-w", r"'\n%{http_code}'"]
+    if data is not None:
+        curl += ["--data", shlex.quote(json.dumps(data))]
+    curl += [shlex.quote(url)]
+
+    drop = (f"sqlite3 {shlex.quote(cfg['db'])} "
+            f"\"delete from access_token where name='{name}';\"")
+
+    script = f"""
+tok=`{as_user(cfg, cfg['service-user'], gen)}`
+{' '.join(curl)}
+rc=$?
+{as_user(cfg, cfg['service-user'], drop)}
+exit $rc
+"""
+    # `delete from access_token` als der Dienst-Benutzer, nicht als root:
+    # sonst gehoeren -wal und -shm danach root und der Daemon schreibt nicht mehr.
+
+    res = host_sh(cfg, script, check=False)
+    out = res.stdout.rstrip("\n")
+    if "\n" in out:
+        body, _, code = out.rpartition("\n")
+    else:
+        body, code = "", out
+    if not re.fullmatch(r"\d{3}", code.strip()):
+        die(f"Kein HTTP-Status aus dem Aufruf:\n{res.stdout}\n{res.stderr}")
+    return int(code.strip()), body
+
+
+def explain_code(code):
+    return {
+        401: "nicht angenommen - kein Token oder ein verstuemmelter",
+        403: "abgelehnt - der Token kam an (anonym landet wegen REQUIRE_SIGNIN_VIEW immer hier)",
+        404: "angenommen und Zielplatz frei",
+    }.get(code, "")
+
+
+# --- lokale Git-Aufrufe -----------------------------------------------------
+
+def git(args, cwd=None):
+    env = dict(os.environ, GIT_TERMINAL_PROMPT="0")
+    # Ohne GIT_TERMINAL_PROMPT=0 haengt git ohne TTY stumm auf einer Eingabe,
+    # die nie kommt - statt mit einem Fehler abzubrechen.
+    return subprocess.run(["git"] + args, cwd=cwd, text=True,
+                          capture_output=True, env=env)
+
+
+def clone_url(cfg, owner, name):
+    return f"https://{cfg['host']}/{owner}/{name}.git"
+
+
+def target_state(cfg, owner, name):
+    """Zielplatz pruefen - `ls-remote` statt `curl`.
+
+    Beides belegt Token und Org-Pfad, aber git holt den Wert aus dem Helper,
+    waehrend ein `-H "Authorization: token ..."` ihn in die Kommandozeile und
+    damit in jede Prozessliste schreibt.
+    """
+    res = git(["ls-remote", clone_url(cfg, owner, name)])
+    err = (res.stderr or "").lower()
+    if res.returncode == 0:
+        return "besetzt", res.stdout.strip()
+    if "not found" in err:
+        return "frei", res.stderr.strip()
+    if "could not read username" in err:
+        return "datei-kaputt", res.stderr.strip()
+    if "authentication" in err or "403" in err:
+        return "kein-zugang", res.stderr.strip()
+    return "unklar", res.stderr.strip()
+
+
+# --- preflight --------------------------------------------------------------
+
+def cmd_preflight(cfg, args):
+    owner = args.owner or cfg.get("owner")
+    if not owner:
+        die("Kein Owner - weder --owner noch `owner` in der Config.")
+    blocker = []
+
+    print(f"# preflight {owner}/{args.name}")
+
+    # 1. Bare-Repo auf dem Host
+    bare = args.bare
+    q = shlex.quote(bare)
+    script = f"""
+{as_user(cfg, args.user, f'git -C {q} rev-parse --is-bare-repository')}
+echo '--HEAD--'
+cat {q}/HEAD
+echo '--REFS--'
+{as_user(cfg, args.user, f'git -C {q} for-each-ref --format="%(objectname) %(refname)" refs/heads')}
+"""
+    res = host_sh(cfg, script, check=False)
+    if res.returncode != 0:
+        die(f"Bare-Repo nicht lesbar ({bare}):\n{res.stderr.strip()}")
+    parts = res.stdout.split("--HEAD--")
+    is_bare = parts[0].strip()
+    head_raw, _, refs_raw = parts[1].partition("--REFS--")
+    head = head_raw.strip()
+    bare_refs = {}
+    for line in refs_raw.strip().splitlines():
+        if " " in line:
+            obj, ref = line.split(None, 1)
+            bare_refs[ref.strip().replace("refs/heads/", "")] = obj
+
+    print(f"  bare            : {is_bare}")
+    print(f"  HEAD            : {head}")
+    for b, o in sorted(bare_refs.items()):
+        print(f"  branch          : {b} {o[:7]}")
+
+    head_branch = head.replace("ref: refs/heads/", "").strip() if head.startswith("ref:") else None
+    if head_branch and head_branch not in bare_refs:
+        print(f"  ! HEAD zeigt auf '{head_branch}', diesen Branch gibt es nicht.")
+        print(f"    Vor dem Adopt richten - `adopt --head-branch <branch>` tut genau das.")
+
+    # 2. Arbeitskopie
+    if args.worktree:
+        st = git(["status", "--porcelain"], cwd=args.worktree)
+        if st.returncode != 0:
+            die(f"Arbeitskopie nicht lesbar ({args.worktree}): {st.stderr.strip()}")
+        dirty = [l for l in st.stdout.splitlines() if l.strip()]
+        print(f"  Arbeitskopie    : {'sauber' if not dirty else str(len(dirty)) + ' geaenderte Dateien'}")
+
+        wt = git(["for-each-ref", "--format=%(objectname) %(refname)", "refs/heads"],
+                 cwd=args.worktree)
+        for line in wt.stdout.strip().splitlines():
+            obj, ref = line.split(None, 1)
+            b = ref.strip().replace("refs/heads/", "")
+            have = bare_refs.get(b)
+            if have is None:
+                print(f"  ! Branch '{b}' {obj[:7]} fehlt im Bare-Repo.")
+                blocker.append(f"Branch {b} nur in der Arbeitskopie")
+            elif have != obj:
+                anc = git(["merge-base", "--is-ancestor", obj, have], cwd=args.worktree)
+                if anc.returncode != 0:
+                    print(f"  ! Branch '{b}': Arbeitskopie {obj[:7]}, Bare {have[:7]} - "
+                          f"das Bare-Repo liegt zurueck.")
+                    blocker.append(f"Bare-Repo bei {b} hinter der Arbeitskopie")
+                else:
+                    print(f"  Branch '{b}'    : Bare voraus ({have[:7]} vs {obj[:7]}) - unkritisch")
+
+    # 3. Zielplatz in der Forge
+    state, detail = target_state(cfg, owner, args.name)
+    print(f"  Zielplatz       : {state}")
+    if state == "besetzt":
+        blocker.append(f"{owner}/{args.name} existiert in der Forge bereits")
+    elif state == "kein-zugang":
+        blocker.append("kein authentifizierter Zugriff - erst `access-check`")
+    elif state == "datei-kaputt":
+        blocker.append("Credential-Datei ohne URL-Rahmen - erst `access-setup --fix-file`")
+    elif state == "unklar":
+        print(f"    {detail}")
+
+    print()
+    if blocker:
+        print("BLOCKER:")
+        for b in blocker:
+            print(f"  - {b}")
+        return 1
+    print("Kein Blocker. Naechster Schritt: `adopt` (erst ohne, dann mit --commit).")
+    return 0
+
+
+# --- adopt ------------------------------------------------------------------
+
+def cmd_adopt(cfg, args):
+    owner = args.owner or cfg.get("owner")
+    if not owner:
+        die("Kein Owner - weder --owner noch `owner` in der Config.")
+    src = args.bare
+    ownerdir = os.path.join(cfg["repo-root"], owner)
+    dst = os.path.join(ownerdir, args.name + ".git")
+
+    print(f"# adopt {owner}/{args.name}")
+    print(f"  von             : {src}")
+    print(f"  nach            : {dst}")
+    if args.head_branch:
+        print(f"  HEAD setzen auf : refs/heads/{args.head_branch}")
+
+    before = host_sh(cfg, as_user(cfg, args.user,
+                                  f'git -C {shlex.quote(src)} '
+                                  f'for-each-ref --format="%(objectname) %(refname)" refs/'),
+                     check=False)
+    if before.returncode != 0:
+        die(f"Quell-Repo nicht lesbar ({src}):\n{before.stderr.strip()}")
+    refs_before = sorted(before.stdout.strip().splitlines())
+    print(f"  Refs vorher     : {len(refs_before)}")
+
+    if not args.commit:
+        print("\nTrockenlauf - nichts veraendert. Mit --commit ausfuehren.")
+        return 0
+
+    # Das mv quert bei getrennten Datasets eine Dateisystemgrenze und ist damit
+    # physisches Kopieren, kein atomarer Rename: ein Abbruch mittendrin
+    # hinterlaesst eine Teilkopie. Deshalb die Refs davor und danach vergleichen.
+    # Verschoben wird bewusst, nicht kopiert - ein Push auf den alten Pfad
+    # scheitert danach hoerbar, statt still in ein Repo zu laufen, von dem die
+    # Forge nichts weiss.
+
+    su = cfg["service-user"]
+    head_fix = ""
+    if args.head_branch:
+        head_fix = as_user(cfg, su,
+                           f'git -C {shlex.quote(dst)} symbolic-ref HEAD '
+                           f'refs/heads/{args.head_branch}')
+
+    script = f"""
+set -e
+mkdir -p {shlex.quote(ownerdir)}
+mv {shlex.quote(src)} {shlex.quote(dst)}
+chown -R {su}:{su} {shlex.quote(ownerdir)}
+{head_fix}
+echo '--REFS--'
+{as_user(cfg, su, f'git -C {shlex.quote(dst)} for-each-ref --format="%(objectname) %(refname)" refs/')}
+echo '--HEAD--'
+cat {shlex.quote(dst)}/HEAD
+"""
+    # chown auf das Owner-Verzeichnis, nicht nur auf das Repo: wer nur das Repo
+    # chownt, laesst das Elternverzeichnis bei root stehen.
+
+    res = host_sh(cfg, script)
+    refs_part, _, head_part = res.stdout.partition("--HEAD--")
+    refs_after = sorted(refs_part.split("--REFS--")[-1].strip().splitlines())
+    print(f"  Refs nachher    : {len(refs_after)}")
+    if refs_after != refs_before:
+        die("Refs vor und nach dem Verschieben unterscheiden sich - "
+            "Teilkopie moeglich, nicht adoptieren:\n"
+            f"  vorher : {refs_before}\n  nachher: {refs_after}")
+    print(f"  HEAD            : {head_part.strip()}")
+
+    code, body = api(cfg, "GET", "admin/unadopted")
+    if code != 200:
+        die(f"GET admin/unadopted -> {code} {explain_code(code)}\n{body}")
+    unadopted = json.loads(body) if body.strip() else []
+    entry = f"{owner}/{args.name}"
+    if entry not in unadopted:
+        die(f"'{entry}' steht nicht in unadopted ({unadopted}) - "
+            f"am Dateisystem stimmt etwas nicht, der POST eruebrigt sich.")
+    print(f"  unadopted       : {entry} gefunden")
+
+    code, body = api(cfg, "POST", f"admin/unadopted/{owner}/{args.name}")
+    print(f"  Adopt           : HTTP {code}" + ("" if code == 204 else f" {body}"))
+    if code != 204:
+        return 1
+
+    code, body = api(cfg, "GET", f"repos/{owner}/{args.name}")
+    if code != 200:
+        die(f"Gegenprobe GET repos/{owner}/{args.name} -> {code} {explain_code(code)}")
+    repo = json.loads(body)
+    print(f"  Gegenprobe      : id {repo.get('id')}, default_branch "
+          f"{repo.get('default_branch')}, empty {repo.get('empty')}, "
+          f"private {repo.get('private')}")
+
+    print()
+    print("Offen und bewusst nicht vom Skill erledigt:")
+    print(f"  - `git remote set-url origin {clone_url(cfg, owner, args.name)}` in jeder Arbeitskopie")
+    print(f"  - Treffer auf das alte Remote in der Projektdoku suchen und einzeln pruefen:")
+    print(f"      grep -rn '<alter-remote-pfad>' docs/")
+    return 0
+
+
+# --- access-check / access-setup -------------------------------------------
+
+def helper_scope(cfg, repo):
+    out = []
+    res = git(["config", "--list", "--show-origin"], cwd=repo)
+    for line in res.stdout.splitlines():
+        if "credential" in line.lower():
+            out.append(line)
+    return out
+
+
+def cmd_access_check(cfg, args):
+    repo = args.repo or os.getcwd()
+    url = f"https://{cfg['host']}"
+    rc = 0
+
+    print(f"# access-check {cfg['host']}  (Arbeitsverzeichnis {repo})")
+
+    lines = helper_scope(cfg, repo)
+    print("  credential-Eintraege:")
+    for line in lines or ["    (keine)"]:
+        print(f"    {line}")
+
+    mine = git(["config", "--get-urlmatch", "credential.helper", url], cwd=repo)
+    other = git(["config", "--get-urlmatch", "credential.helper", args.negative_host], cwd=repo)
+    print(f"  fuer {url}: {mine.stdout.strip() or '(keiner)'}")
+    print(f"  fuer {args.negative_host}: {other.stdout.strip() or '(keiner)'}")
+
+    # Der zweite Aufruf ist die Negativprobe und gehoert dazu: er belegt, dass
+    # die Umstellung die uebrigen Hosts nicht angefasst hat. Ohne ihn weiss man
+    # nur, dass der eigene Host geht - nicht, ob der Rest beschaedigt ist.
+
+    if not mine.stdout.strip():
+        print("  ! Kein Helper fuer diesen Host - `access-setup` setzt den Zeiger.")
+        rc = 1
+
+    if args.file:
+        rc = max(rc, check_credential_file(cfg, args.file))
+
+    if args.remote_check:
+        owner, _, name = args.remote_check.partition("/")
+        state, detail = target_state(cfg, owner, name)
+        print(f"  ls-remote {args.remote_check}: {state}")
+        if state in ("kein-zugang", "datei-kaputt", "unklar"):
+            print(f"    {detail}")
+            rc = 1
+    return rc
+
+
+def check_credential_file(cfg, path):
+    """Die Datei pruefen, ohne sie zu lesen - nur Zaehler nach stdout."""
+    rc = 0
+    if not os.path.exists(path):
+        print(f"  Credential-Datei: fehlt ({path})")
+        return 1
+    st = os.stat(path)
+    mode = oct(st.st_mode & 0o777)[2:]
+    pattern = re.compile(r"^https://[^:/]+:[^@/]+@" + re.escape(cfg["host"]) + r"$")
+    form = 0
+    placeholder = 0
+    with open(path) as fh:
+        for line in fh:
+            line = line.strip()
+            if not line:
+                continue
+            if pattern.match(line):
+                form += 1
+            if "<" in line or ">" in line:
+                placeholder += 1
+    print(f"  Credential-Datei: {path}")
+    print(f"    Form passend   : {form}")
+    print(f"    Platzhalter    : {placeholder}")
+    print(f"    Rechte         : {mode}")
+    if form != 1:
+        print("    ! Kein vollstaendiger URL-Rahmen. Ein nackter Tokenwert ergibt "
+              "`fatal: could not read Username` - das liest sich wie ein fehlender "
+              "Zugang und ist eine Datei, die der Helper nicht parsen kann.")
+        rc = 1
+    if placeholder:
+        print("    ! Platzhalter nie ersetzt - scheitert mit derselben Meldung wie "
+              "ein falscher Token.")
+        rc = 1
+    if mode != "600":
+        print("    ! Rechte nicht 0600 - fuer jeden Account auf dem Rechner lesbar.")
+        rc = 1
+    return rc
+
+
+def cmd_access_setup(cfg, args):
+    repo = args.repo or os.getcwd()
+    url = f"https://{cfg['host']}"
+    path = os.path.abspath(os.path.expanduser(args.file))
+    helper = f"store --file={path}"
+
+    if args.fix_file:
+        return fix_credential_file(cfg, path, args)
+
+    scope = args.scope
+    if scope == "repo":
+        base = ["config"]
+    else:
+        base = ["config", "--global"]
+    key = ("credential.helper" if scope == "global"
+           else f"credential.{url}.helper")
+
+    print(f"# access-setup {cfg['host']}")
+    print(f"  Scope           : {scope}")
+    print(f"  Schluessel      : {key}")
+    print(f"  Helper          : {helper}")
+
+    if not args.commit:
+        print("\nTrockenlauf - nichts gesetzt. Mit --commit ausfuehren.")
+        return 0
+
+    # Erst die Liste fuer diesen Host leeren, dann den eigenen Helper eintragen -
+    # sonst reiht er sich hinter einem bereits geltenden ein.
+    if scope != "global":
+        git(base + [key, ""], cwd=repo)
+        res = git(base + ["--add", key, helper], cwd=repo)
+    else:
+        res = git(base + [key, helper], cwd=repo)
+    if res.returncode != 0:
+        die(f"git config fehlgeschlagen: {res.stderr.strip()}\n"
+            f"Wird der Aufruf von aussen verweigert, gehoert er an den User - "
+            f"nicht an eine andere Session.")
+
+    print("  Zeiger gesetzt.")
+    print()
+    print("Der Wert kommt nicht von hier. Die Credential-Datei schreibt der User")
+    print("selbst in einem eigenen Terminal - eine Zeile, danach 0600:")
+    print()
+    print(f"  printf 'https://%s:%s@{cfg['host']}\\n' '<user>' '<token>' > {path}")
+    print(f"  chmod 600 {path}")
+    print()
+    print(f"Geprueft wird danach nur Form, Rechte und Existenz:")
+    print(f"  forgejo access-check --file {path} --remote-check <owner>/<repo>")
+    return 0
+
+
+def fix_credential_file(cfg, path, args):
+    """Vorhandene Datei in Form bringen, ohne den Wert auszugeben."""
+    if not os.path.exists(path):
+        die(f"Datei fehlt: {path} - anzulegen ist sie vom User, nicht von hier.")
+    user = args.user or cfg.get("api-user")
+    with open(path) as fh:
+        raw = fh.read().strip()
+    if not raw:
+        die(f"{path} ist leer.")
+    if "<" in raw or ">" in raw:
+        die(f"{path} enthaelt noch einen Platzhalter - der Wert muss vom User kommen.")
+    if re.match(r"^https://[^:/]+:[^@/]+@" + re.escape(cfg["host"]) + r"$", raw):
+        print("  Form stimmt bereits, nur Rechte gesetzt.")
+    else:
+        if "\n" in raw:
+            die(f"{path} hat mehrere Zeilen - von Hand ansehen, nicht automatisch richten.")
+        if not args.commit:
+            print("  Form unvollstaendig. Mit --commit wird der URL-Rahmen ergaenzt "
+                  "(der Wert geht dabei durch keine Ausgabe).")
+            return 1
+        with open(path, "w") as fh:
+            fh.write(f"https://{user}:{raw}@{cfg['host']}\n")
+        print("  URL-Rahmen ergaenzt.")
+    os.chmod(path, 0o600)
+    print("  Rechte 0600 gesetzt.")
+    return check_credential_file(cfg, path)
+
+
+# --- api (roh) --------------------------------------------------------------
+
+def cmd_api(cfg, args):
+    data = json.loads(args.data) if args.data else None
+    code, body = api(cfg, args.method, args.path, data)
+    note = explain_code(code)
+    print(f"HTTP {code}" + (f"  ({note})" if note else ""))
+    if body.strip():
+        try:
+            print(json.dumps(json.loads(body), indent=2, ensure_ascii=False))
+        except ValueError:
+            print(body)
+    return 0 if 200 <= code < 300 else 1
+
+
+# --- CLI --------------------------------------------------------------------
+
+def main():
+    p = argparse.ArgumentParser(
+        prog="forgejo",
+        description="Bare-Repos nach Forgejo uebernehmen und den HTTPS-Zugang pruefen.")
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    pf = sub.add_parser("preflight", help="Bare-Repo, Arbeitskopie und Zielplatz nebeneinanderlegen")
+    pf.add_argument("name")
+    pf.add_argument("--bare", required=True, help="Pfad des Bare-Repos auf dem Forgejo-Host")
+    pf.add_argument("--user", default="root", help="Unix-Eigentuemer des Bare-Repos (Default root)")
+    pf.add_argument("--worktree", help="Pfad einer lokalen Arbeitskopie")
+    pf.add_argument("--owner", help="Organisation in der Forge")
+
+    ad = sub.add_parser("adopt", help="verschieben, chown, HEAD richten, adoptieren, gegenpruefen")
+    ad.add_argument("name")
+    ad.add_argument("--bare", required=True, help="Pfad des Bare-Repos auf dem Forgejo-Host")
+    ad.add_argument("--user", default="root", help="Unix-Eigentuemer des Bare-Repos (Default root)")
+    ad.add_argument("--owner", help="Organisation in der Forge")
+    ad.add_argument("--head-branch", help="HEAD vor dem Adopt auf diesen Branch setzen")
+    ad.add_argument("--commit", action="store_true", help="ohne dieses Flag nur Trockenlauf")
+
+    ac = sub.add_parser("access-check", help="Helper-Scoping messen, Credential-Datei pruefen")
+    ac.add_argument("--repo", help="Arbeitskopie (Default: aktuelles Verzeichnis)")
+    ac.add_argument("--file", help="Credential-Datei")
+    ac.add_argument("--negative-host", default="https://github.com",
+                    help="Host fuer die Negativprobe (Default https://github.com)")
+    ac.add_argument("--remote-check", metavar="OWNER/REPO",
+                    help="Zugang ueber `git ls-remote` gegen ein bekanntes Repo belegen")
+
+    se = sub.add_parser("access-setup", help="Helper-Zeiger setzen; den Wert schreibt der User")
+    se.add_argument("--file", required=True, help="Credential-Datei, auf die der Helper zeigt")
+    se.add_argument("--scope", choices=("global-host", "global", "repo"), default="global-host",
+                    help="global-host = host-geschachtelt in ~/.gitconfig (Default)")
+    se.add_argument("--repo", help="Arbeitskopie fuer --scope repo")
+    se.add_argument("--user", help="Forgejo-Benutzer im URL-Rahmen (Default: api-user)")
+    se.add_argument("--fix-file", action="store_true",
+                    help="vorhandene Datei in Form bringen und 0600 setzen, ohne sie auszugeben")
+    se.add_argument("--commit", action="store_true", help="ohne dieses Flag nur Trockenlauf")
+
+    ap = sub.add_parser("api", help="einzelner API-Aufruf mit Einweg-Token")
+    ap.add_argument("method", choices=("GET", "POST", "PATCH", "PUT", "DELETE"))
+    ap.add_argument("path", help="Pfad hinter /api/v1/, z.B. admin/unadopted")
+    ap.add_argument("--data", help="JSON-Body")
+
+    args = p.parse_args()
+    cfg = load_config()
+    fn = {
+        "preflight": cmd_preflight,
+        "adopt": cmd_adopt,
+        "access-check": cmd_access_check,
+        "access-setup": cmd_access_setup,
+        "api": cmd_api,
+    }[args.cmd]
+    sys.exit(fn(cfg, args) or 0)
+
+
+if __name__ == "__main__":
+    main()

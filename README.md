@@ -216,6 +216,16 @@ ENVATO_TOKEN=dein-personal-token
 
 **Trigger:** ausschließlich `/envato` (`disable-model-invocation: true`).
 
+### forgejo
+
+Vorhandene **Bare-Repos in eine Forgejo-Instanz uebernehmen** und den HTTPS-Zugang dorthin einrichten: `preflight` (Bare-Repo, Arbeitskopie und Zielplatz nebeneinander - ein zurueckliegendes Bare-Repo faellt **vor** dem `mv` auf), `adopt` (verschieben, `chown` auf das Owner-Verzeichnis, HEAD vor dem Adopt richten, `POST admin/unadopted`, Gegenprobe), `access-check` (Helper-Scoping messen samt Negativprobe gegen einen fremden Host, Credential-Datei auf Form, Platzhalter und Rechte pruefen - nur Zaehler, nie Inhalt), `access-setup` (Helper-Zeiger setzen, Datei mit `--fix-file` in Form bringen, ohne den Wert auszugeben) und `api` fuer einzelne Aufrufe. Schreibende Schritte erst mit `--commit`. Jeder API-Aufruf stellt einen **Einweg-Token** aus, benutzt ihn und loescht ihn im selben Script auf dem Zielhost - der Wert erreicht die lokale Kommandozeile nie. `git remote set-url` und Treffer in der Projektdoku bleiben bewusst beim Menschen.
+
+Config `~/.claude/forgejo.json` (Vorlage `forgejo.example.json`, anderer Pfad ueber `FORGEJO_CONFIG`): `host` (oeffentlicher Name der Forge), `forgejo-host`, `ssh` (Befehl als Liste, der dort root wird), `api-user`, `owner` und die Pfade auf dem Host. Lokal laeuft das Script nur, wenn es auf dem Forgejo-Host **und** als root sitzt - sonst ueber `ssh`, auch zum selben Rechner.
+
+**Voraussetzungen:** Python >= 3.9 (stdlib only); auf dem Forgejo-Host `curl`, `sqlite3` und `git`.
+
+**Trigger:** `/forgejo` oder natuerliche Sprache wie "nimm das Repo in Forgejo auf", "der Push in die Forge haengt", "401 trotz frischem Token".
+
 ### google-analytics
 
 Google Analytics 4 Datenabfrage via Service Account. Python-Script (stdlib only, keine pip-Dependencies). Scope pro Subcommand: lesend `analytics.readonly`, schreibend (Custom Dimensions, Datenaufbewahrung) `analytics.edit`:
@@ -648,18 +658,14 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.61.2
+### 1.62.0
 
-- **`mail-as-me`: Empfaenger aufloesen statt raten.** `draft` bekommt einen neuen
-  Schritt 1 vor dem Entwurf: die Adresse kommt aus `~/.claude/swaks-contacts.tsv`
-  bzw. `imap contacts`/`quote --json`, bei keinem Treffer wird nachgefragt. Die
-  Ausfuehrungszeile fuehrt dafuer ein siebtes Feld `Empfaenger: aus <Quelle>` mit
-  `geraten` als zulaessiger Auspraegung - genau, damit der Fall vor dem Versand
-  sichtbar wird. Der Versand-Abschnitt verweist auf swaks Schritt 11 (Kontakt
-  ergaenzen). Hintergrund: der Skill hat den swaks-Versand weitgehend dupliziert,
-  aber ausgerechnet diese beiden Schritte ausgelassen - wer ueber `mail-as-me`
-  arbeitet, sieht die swaks-Schrittliste nie. Bei einer Mail an Binarium (CR4667)
-  ist deshalb eine Adresse geraten worden; aufgefallen ist es nur durch eine
-  Rueckfrage. Fuer die Antwort war die Aufloesung schon da, nur fuer die neue Mail
-  nicht.
-
+- **Neuer Skill `forgejo`.** Bare-Repos in eine Forgejo-Instanz uebernehmen
+  (`preflight`, `adopt`) und den HTTPS-Zugang dorthin einrichten und pruefen
+  (`access-check`, `access-setup`), dazu `api` fuer einzelne Aufrufe. Ausloeser
+  waren fuenf Uebernahmen an einem Tag auf vier Installationen, bei denen jedes
+  Fehlerbild auf die falsche Faehrte fuehrte. Der Umgang mit dem Geheimnis
+  ruht auf zwei Entscheidungen: ein Einweg-Token je Aufruf, ausgestellt und
+  geloescht im selben Script auf dem Zielhost, und die Trennung von
+  Helper-Zeiger (Skill) und Credential-Datei (User) - geprueft wird sie mit
+  Zaehlern statt mit ihrem Inhalt.
