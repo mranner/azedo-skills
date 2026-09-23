@@ -3,6 +3,16 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.62.2
+
+- **`kanboard` - Kurzform `new`/`neu` und Task nur fuer Handlungen.**
+  `/kanboard new [<projekt>] <text>` legt einen Task direkt an; das erste Wort
+  zaehlt nur als Projekt, wenn es einem bestehenden Projektnamen entspricht,
+  ohne Projekt gilt das des aktiven CR-Kontexts. Neuer Workflow-Schritt 0:
+  ein Task steht fuer eine Handlung, Befunde ohne Folgehandlung gehoeren ins
+  Wiki oder die Projekt-Doku - Ausloeser waren zwei als Ablage angelegte und
+  wieder geloeschte Tasks.
+
 ### 1.62.1
 
 - **`bridge` - Protokollregeln nachgeschaerft.** Neuer Zustand

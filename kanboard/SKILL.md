@@ -201,8 +201,22 @@ Diese fuenf Regeln gelten unabhaengig davon, welche Referenzdatei gelesen wurde:
   Rueckfrage-Regel zu `close-task` traegt nur, wenn beim Schliessen auch stimmt, was
   vorher passiert sein sollte.
 
+## Kurzform: `new` / `neu`
+
+`/kanboard new [<projekt>] <text>` (gleichwertig `neu`) legt einen Task an:
+
+- **Projekt:** Das erste Wort nach `new` ist nur dann das Projekt, wenn es
+  (case-insensitiv) einem Namen aus `list-projects` entspricht - sonst gehört
+  es zum Text. Ohne Projekt gilt das Projekt des aktiven CR-Kontexts. Kein
+  CR-Kontext, oder mehrere CRs aus verschiedenen Projekten: nachfragen.
+- **Titel und Beschreibung:** Titel aus dem Text ableiten (Regeln unter
+  Workflow), der Text selbst geht in die Beschreibung.
+- **Direkt anlegen**, ohne Rückfrage zu Titel oder Beschreibung, dann die URL
+  melden. Korrekturen danach per `update-task`.
+
 ## Workflow
 
+0. **Ist ein Task das richtige Mittel?** Ein Task steht für eine Handlung (Konfigänderung, Quellcodeänderung, Einrichtung, Klärung mit Dritten), nicht für Dokumentation. Folgt aus einem Befund keine Handlung, gehört er ins Wiki (`/wiki`) oder in die Doku des Projekts. Das gilt besonders für Nebenbefunde beim Abschließen eines Tasks: nicht als Ablage in neue Tasks auslagern.
 1. Parameter aus der Nutzeranfrage ableiten (Projekt, Titel, Beschreibung, Zuweisung, Spalte).
 2. **Titel kurz halten** -- max. ~60 Zeichen. Details in die Beschreibung. Klare, allgemein verstaendliche Abkuerzungen sind erlaubt (z.B. "Netzwerk" statt "Netzwerkproblem", "DB" fuer Datenbank). Keine selbst erfundenen oder unueblichen Abkuerzungen.
 3. Wenn nicht eindeutig: nachfragen.

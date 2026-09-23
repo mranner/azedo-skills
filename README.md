@@ -98,7 +98,7 @@ Dann einmalig `setup` ausfuehren (aus dem Arbeitsverzeichnis mit der `.env`):
 python3 ~/.claude/skills/kanboard/kanboard setup --default-user <username>
 ```
 
-**Trigger:** `/kanboard` oder natürliche Sprache wie "leg mir ein Ticket an", "ins Kanboard eintragen".
+**Trigger:** `/kanboard` oder natürliche Sprache wie "leg mir ein Ticket an", "ins Kanboard eintragen". Kurzform zum Anlegen: `/kanboard new [<projekt>] <text>` (auch `neu`).
 
 ### kimai
 
@@ -659,20 +659,12 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.62.1
+### 1.62.2
 
-- **`bridge` - Protokollregeln nachgeschaerft.** Neuer Zustand
-  `[bridge wait=<id>] <was fehlt>` fuer blockierte oder abgelehnte Aufgaben,
-  damit `done` wirklich "erledigt" heisst - Ausloeser war ein `done`, das einen
-  nicht erfolgten Versand meldete. Der Kopf kennt `reply=none` (reine Info),
-  `reply=ack;done=objection` ("Antwort nur bei Einwand"), optional
-  `topic=<CR/Stichwort>` und `decision=relayed` fuer weitergereichte
-  Entscheidungen; `send` setzt sie ueber `--reply`, `--topic` und `--relayed`
-  und passt den Fusstext an. `ack` nimmt mehrere ids (eine Zeile je id) und
-  `--wait`. Die SKILL.md regelt dazu: Gegenfragen und Nachtraege laufen
-  ebenfalls ueber `bridge send`, auf eine Nachricht ohne Kopf wird mit
-  `bridge send` geantwortet, ein vom Auto-Mode blockiertes `ack` ersetzt das
-  folgende `done`, keine weitergereichte Freigabe fuer Versand nach aussen oder
-  Irreversibles, und Befunde tragen "geprueft" oder "abgeleitet".
-  `disable-model-invocation` bleibt gesetzt: `/bridge` wird auf beiden Seiten
-  bewusst aufgerufen.
+- **`kanboard` - Kurzform `new`/`neu` und Task nur fuer Handlungen.**
+  `/kanboard new [<projekt>] <text>` legt einen Task direkt an; das erste Wort
+  zaehlt nur als Projekt, wenn es einem bestehenden Projektnamen entspricht,
+  ohne Projekt gilt das des aktiven CR-Kontexts. Neuer Workflow-Schritt 0:
+  ein Task steht fuer eine Handlung, Befunde ohne Folgehandlung gehoeren ins
+  Wiki oder die Projekt-Doku - Ausloeser waren zwei als Ablage angelegte und
+  wieder geloeschte Tasks.
