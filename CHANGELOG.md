@@ -6,9 +6,10 @@ Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version 
 ### 1.62.2
 
 - **`kanboard` - Kurzform `new`/`neu` und Task nur fuer Handlungen.**
-  `/kanboard new [<projekt>] <text>` legt einen Task direkt an; das erste Wort
-  zaehlt nur als Projekt, wenn es einem bestehenden Projektnamen entspricht,
-  ohne Projekt gilt das des aktiven CR-Kontexts. Neuer Workflow-Schritt 0:
+  `/kanboard new [[<user>@]<projekt>] <text>` legt einen Task direkt an; das
+  erste Wort zaehlt nur als Projekt, wenn es einem bestehenden Projektnamen
+  entspricht, ohne Projekt gilt das des aktiven CR-Kontexts. Das Praefix
+  `<user>@` (Username oder Vorname) setzt den Owner. Neuer Workflow-Schritt 0:
   ein Task steht fuer eine Handlung, Befunde ohne Folgehandlung gehoeren ins
   Wiki oder die Projekt-Doku - Ausloeser waren zwei als Ablage angelegte und
   wieder geloeschte Tasks.

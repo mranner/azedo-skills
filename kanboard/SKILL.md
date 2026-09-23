@@ -203,12 +203,18 @@ Diese fuenf Regeln gelten unabhaengig davon, welche Referenzdatei gelesen wurde:
 
 ## Kurzform: `new` / `neu`
 
-`/kanboard new [<projekt>] <text>` (gleichwertig `neu`) legt einen Task an:
+`/kanboard new [[<user>@]<projekt>] <text>` (gleichwertig `neu`) legt einen Task an,
+z.B. `/kanboard neu dagmar@azedo Text` oder `/kanboard neu dagmar@ Text`:
 
 - **Projekt:** Das erste Wort nach `new` ist nur dann das Projekt, wenn es
   (case-insensitiv) einem Namen aus `list-projects` entspricht - sonst gehört
   es zum Text. Ohne Projekt gilt das Projekt des aktiven CR-Kontexts. Kein
   CR-Kontext, oder mehrere CRs aus verschiedenen Projekten: nachfragen.
+- **User:** Ein Präfix `<user>@` setzt den Owner (`--owner`). Abgleich
+  (case-insensitiv) gegen `list-users`: Username (`dmandl`) oder Vorname aus
+  dem Klarnamen (`dagmar`). Kein oder kein eindeutiger Treffer: nachfragen.
+  Leeres Projekt nach dem `@` (`dagmar@`) heißt Projekt aus dem CR-Kontext.
+  Ohne Präfix gilt der `default_user`.
 - **Titel und Beschreibung:** Titel aus dem Text ableiten (Regeln unter
   Workflow), der Text selbst geht in die Beschreibung.
 - **Direkt anlegen**, ohne Rückfrage zu Titel oder Beschreibung, dann die URL
