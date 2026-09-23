@@ -3,6 +3,16 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.62.4
+
+- **`kanboard` - Progressive Disclosure und description in dritter Person.**
+  Schema von `instance.json` und die `.env`-Reihenfolge stehen jetzt in
+  `references/setup.md`; die Kimai-/Jira-Write-back-Regeln sind in der SKILL.md
+  auf Regel und Aufruf gekuerzt, die Details liegen in `references/task-inhalte.md`.
+  Die `description` beschreibt in der dritten Person und nennt Commit und
+  Zeiterfassung unter einer CR-Nummer als Ausloeser. Geprueft mit 20
+  Trigger-Anfragen (19/20) und 5 Trockenlaeufen der Kurzform `neu` (5/5).
+
 ### 1.62.3
 
 - **`kanboard` und `bridge` - an die Anthropic-Empfehlungen angeglichen.**

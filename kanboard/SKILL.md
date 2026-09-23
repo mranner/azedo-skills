@@ -4,13 +4,12 @@ description: >
   Verwaltet eine Kanboard-Instanz via JSON-RPC API: Tasks (erstellen, anzeigen,
   verschieben, zuweisen, schließen, löschen, kommentieren, Subtasks, Tags, Verknüpfungen,
   Handoff-Feld, Dateien) sowie Projekte inkl. Anlage und Mitglieder-/Rollen-Verwaltung.
-  Nutze diesen Skill wenn der User Tasks oder Projekte verwalten will.
-  Auch aktiv verwenden wenn der User sagt "leg mir ein Ticket an",
-  "mach ein Task draus", "ins Kanboard eintragen", o.ä. - und sobald eine
-  CR-Nummer fällt ("CR4326", "ich arbeite an CR4326", "Commit unter CR"), weil
-  dann Commit- und Kimai-Präfix gelten. Tasks nur für Handlungen; Befunde ohne
-  Folgehandlung gehören ins Wiki, nicht in einen Task.
-  Trigger: /kanboard.
+  Wird verwendet, wenn Tasks oder Projekte verwaltet werden sollen, etwa bei
+  "leg mir ein Ticket an", "mach ein Task draus", "ins Kanboard eintragen". Ebenso,
+  sobald eine CR-Nummer fällt ("CR4326", "ich arbeite an CR4326") - auch bei einem
+  Commit oder einer Zeiterfassung unter einer CR-Nummer, weil dieser Skill das
+  Commit- und Kimai-Präfix festlegt. Tasks stehen nur für Handlungen; Befunde ohne
+  Folgehandlung gehören ins Wiki. Trigger: /kanboard.
 ---
 
 # kanboard -- Kanboard Task-Verwaltung
@@ -33,32 +32,10 @@ Das schreibt `instance.json` ins Skill-Verzeichnis mit allen Projekten, Swimlane
 
 Falls `instance.json` nicht existiert, zuerst `setup` ausführen.
 
-### instance.json — Schema und Zugriff
-
-**`instance.json` NICHT selbst roh parsen** — dafür gibt es die Subcommands
-`list-projects`, `list-columns --project <name|id>` und `list-users` (liefern IDs
-**und** Namen). `get-task` reichert zusätzlich `column_title`,
-`swimlane_name`, `owner_username`/`owner_name` an, sodass keine Quer-Auflösung
-nötig ist.
-
-Falls doch direkt gelesen wird, ist das Schema:
-
-```json
-{
-  "role": "app-admin",
-  "default_user": "mmuster",
-  "projects": [
-    { "id": 1, "name": "azedo",
-      "swimlanes": ["Standard-Swimlane"],   // Liste von STRINGS (nur Namen)
-      "columns":   ["Ideen", "Bereit", "In Arbeit", "Erledigt"] }  // STRINGS
-  ],
-  "users": [ { "id": 4, "username": "musterfrau", "name": "Karin Musterfrau", "is_active": 1 } ]
-  // deaktivierte User stehen mit "is_active": 0 drin, damit sie adressierbar bleiben
-}
-```
-
-Merke: `columns`/`swimlanes` sind **Strings ohne IDs** — die Spalten-ID einer
-Position ergibt sich nicht aus `instance.json`, dafür `list-columns` verwenden.
+`instance.json` **nicht selbst roh parsen** — `list-projects`, `list-columns
+--project <name|id>` und `list-users` liefern IDs und Namen, `get-task` zusätzlich
+Spalte, Swimlane und Owner im Klartext. Schema und Config-Quelle (`.env`-Reihenfolge):
+`references/setup.md`.
 
 ## Subcommands
 
@@ -70,6 +47,7 @@ vollständige Referenz liegt daneben und wird bei Bedarf gelesen:
 | `references/tasks.md` | Task anlegen, anzeigen, ändern, verschieben, schließen, löschen, auflisten, suchen, eigene Tasks |
 | `references/task-inhalte.md` | Kommentare, Anhänge, Teilaufgaben, Verknüpfungen, Tags, Handoff-Feld |
 | `references/projekte.md` | Projekte anlegen und löschen, Mitglieder und Rollen, Gruppen, Spalten und User auflisten |
+| `references/setup.md` | Config-Quelle (`.env`), Schema von `instance.json` |
 
 `python3 "$SKILL_DIR/kanboard" <subcommand> --help` listet die Optionen eines
 Subcommands direkt aus dem Script - schneller als Nachschlagen, und nie veraltet.
@@ -203,19 +181,8 @@ Nach Anlage oder Änderung dem User die URL anzeigen. Die Basis-URL ergibt sich 
 
 ## Hinweise
 
-- **Config-Quelle** (`KANBOARD_URL`, `KANBOARD_TOKEN`) — in dieser Reihenfolge:
-  1. `KANBOARD_ENV` (Environment-Variable, voller Pfad zur Datei)
-  2. `.env` im **aktuellen Arbeitsverzeichnis**, falls vorhanden
-  3. sonst `~/.env`
-
-  Der Home-Fallback ist gewollt: eine Konfiguration reicht für alle Projekte,
-  ein projektlokales `.env` übersteuert sie bei Bedarf. **Achtung:** entschieden
-  wird allein danach, ob die Datei *existiert* — enthält ein projektlokales
-  `.env` die Kanboard-Schlüssel nicht (weil es z.B. nur DB-Zugangsdaten führt),
-  bricht der Aufruf mit `KANBOARD_URL not set in <pfad>` ab, statt auf `~/.env`
-  auszuweichen. Dann `KANBOARD_ENV=~/.env` setzen oder die Schlüssel ergänzen.
-  (Der kimai-Skill prüft an dieser Stelle zusätzlich auf seine Schlüssel und
-  fällt zurück — siehe dortige SKILL.md.)
+- **Config-Quelle:** `KANBOARD_ENV`, sonst `.env` im Arbeitsverzeichnis, sonst
+  `~/.env`. Bei `KANBOARD_URL not set in <pfad>` siehe `references/setup.md`.
 - Dateipfade für `attach-file` müssen absolut sein.
 - Temporäre Dateien (Downloads, Optimierungen etc.) gehören ins Projekt-Verzeichnis `.tmp/`, **nicht** in `$SKILL_DIR/.tmp/`. Das Skill-Verzeichnis darf nicht als Arbeitsverzeichnis verwendet werden.
 - Spaltennamen sind case-insensitiv im Script.
@@ -284,38 +251,26 @@ Wenn ein CR-Kontext aktiv ist und der User Zeit erfasst (via `/kimai`):
 - Beschreibung (`--description`) immer mit `CR{id}: ` präfixen
 - Beispiel: `--description "CR4326: Login-Validierung implementiert"`
 
-**Kimai-Shortcut am Task hinterlegen (Write-back):** Nach einer Kimai-Buchung unter
-aktivem CR den verwendeten Shortcut am Task als Tag `kimai:<shortcut>` ablegen, falls
-noch nicht vorhanden — analog zum Commit-Präfix eine automatische Regel, keine
-Rückfrage nötig:
+**Write-back:** Nach einer Kimai-Buchung unter aktivem CR den verwendeten Shortcut
+am Task ablegen, falls der `kimai:`-Tag fehlt oder abweicht - automatisch, ohne
+Rückfrage. Beim nächsten `cr <id>` steht er dann im Feld `kimai` bereit.
 
 ```bash
 python3 "$SKILL_DIR/kanboard" set-kimai <task_id> --shortcut <shortcut>
 ```
 
-So steht der Shortcut beim nächsten `cr <id>` im Feld `kimai` und die Zeiterfassung
-kann ihn direkt übernehmen, ohne erneut zu suchen. Steht der `kimai:`-Tag bereits und
-passt, entfällt der Aufruf. (Der Tag trägt den Shortcut-**Key** aus
-`.claude/kimai-shortcuts.json`, nicht Projekt-/Aktivitäts-IDs.)
-
 ### Jira-Verknüpfung
 
-Anders als `kimai:` präfixt die Jira-Verknüpfung **nichts** — sie merkt sich nur das
-zum CR gehörende Jira-Issue, damit der `jira`-Skill ohne erneute Key-Angabe darauf
-arbeiten kann. Es gibt daher **keinen** Jira-Commit-Präfix (der CR bleibt der einzige
-Commit-Anker).
-
-**Write-back:** Sobald unter aktivem CR ein Jira-Issue eindeutig zum Task gehört (der
-User nennt es, oder es wird im Zuge der Arbeit angelegt/bearbeitet), den Key am Task als
-Tag `jira:<KEY>` ablegen, falls noch nicht vorhanden:
+Gehört unter aktivem CR ein Jira-Issue **eindeutig** zum Task (der User nennt es,
+oder es wird im Zuge der Arbeit angelegt), den Key am Task ablegen, falls der
+`jira:`-Tag fehlt. Nicht raten, welches Issue gemeint ist. Die Verknüpfung präfixt
+nichts - der CR bleibt der einzige Commit-Anker.
 
 ```bash
 python3 "$SKILL_DIR/kanboard" set-jira <task_id> --key <KEY>
 ```
 
-So erscheint der Key beim nächsten `cr <id>` im Feld `jira`. Steht der `jira:`-Tag schon
-und passt, entfällt der Aufruf. Anders als beim Kimai-Shortcut **nicht ungefragt raten**,
-welches Issue gemeint ist — nur setzen, wenn der Bezug eindeutig ist.
+Details zu beiden Tags: `references/task-inhalte.md`, Abschnitt Tags.
 
 ### Mehrere aktive CRs
 

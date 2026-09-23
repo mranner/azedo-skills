@@ -659,13 +659,12 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.62.3
+### 1.62.4
 
-- **`kanboard` und `bridge` - an die Anthropic-Empfehlungen angeglichen.**
-  kanboard: die `description` nennt CR-Nummern als Ausloeser (dann gelten
-  Commit- und Kimai-Praefix) und die Regel "Task nur fuer Handlungen"; die
-  haeufigsten Aufrufe stehen unter "Subcommands", der CR-Kontext nur noch an
-  einer Stelle; Workflow-Schritt 0 gilt auch fuer die Kurzform `new` (keine
-  Handlung erkennbar: nachfragen statt anlegen); durchgehend Umlaute, keine
-  zeitgebundenen Angaben mehr. bridge: Begruendungsabschnitte gekuerzt,
-  Datums- und Anlassangaben entfernt.
+- **`kanboard` - Progressive Disclosure und description in dritter Person.**
+  Schema von `instance.json` und die `.env`-Reihenfolge stehen jetzt in
+  `references/setup.md`; die Kimai-/Jira-Write-back-Regeln sind in der SKILL.md
+  auf Regel und Aufruf gekuerzt, die Details liegen in `references/task-inhalte.md`.
+  Die `description` beschreibt in der dritten Person und nennt Commit und
+  Zeiterfassung unter einer CR-Nummer als Ausloeser. Geprueft mit 20
+  Trigger-Anfragen (19/20) und 5 Trockenlaeufen der Kurzform `neu` (5/5).
