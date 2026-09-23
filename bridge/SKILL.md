@@ -25,23 +25,16 @@ läuft auf FreeBSD, Linux und macOS.
 
 ## Das Problem, das der Handshake löst
 
-`SendMessage` weckt die Gegenseite nur auf. Es gibt keine Zustellbestätigung, und
-ob die andere Session zurückschreibt, ist eine Entscheidung ihres Modells - ein
-blanker Text wird meist gar nicht als Antwortaufforderung gelesen. Wer eine
-Nachricht abschickt, weiß danach schlicht nicht, ob sie angekommen ist.
+`SendMessage` weckt die Gegenseite nur auf. Die Meldung `accepted by the server …
+not confirmed read` (bzw. `delivery not confirmed`) kommt bei **jedem** Versand,
+auch bei einem, der ankommt: sie betrifft die Annahme durch den Server, nicht das
+Lesen, und ist kein Warnsignal. Ob die Gegenseite antwortet, entscheidet ihr
+Modell - ein blanker Text wird meist nicht als Antwortaufforderung gelesen.
+Klarheit bringen erst `ack` bzw. `done`.
 
-Das Werkzeug sagt das selbst: ein erfolgreicher Versand quittiert mit
-`accepted by the server … not confirmed read`. Der Erfolg bezieht sich also auf die
-Annahme durch den Server, nicht auf Zustellung und schon gar nicht aufs Lesen.
-Wer den Exit-Status für eine Empfangsbestätigung hält, liest mehr hinein, als
-dasteht. Dieselbe Meldung (`delivery not confirmed`) kommt bei **jedem** Versand,
-auch bei einem, der ankommt - sie ist kein Warnsignal. Klarheit bringen erst `ack`
-bzw. `done`.
-
-Deshalb trägt **die Nachricht selbst** die Anweisung zur Quittung. Das ist der
-Kern: die Gegenseite braucht diesen Skill nicht installiert zu haben, sie muss nur
-lesen können. Ein Protokoll, das in der Konfiguration beider Seiten liegen müsste,
-würde genau dann versagen, wenn man es braucht - bei einer fremden Maschine.
+Deshalb trägt **die Nachricht selbst** die Anweisung zur Quittung. Die Gegenseite
+braucht diesen Skill nicht, sie muss nur lesen können - ein Protokoll in der
+Konfiguration beider Seiten versagte genau bei einer fremden Maschine.
 
 ## Das Protokoll
 
@@ -61,8 +54,7 @@ zugestellt wurde.
 
 `done` heißt **erledigt** und nichts anderes. Fehlt eine Freigabe, eine Angabe
 oder ein Recht, oder lehnt die Session die Aufgabe ab, lautet die Antwort
-`wait` samt dem, was fehlt. Anlass: ein `done` meldete einen Mailversand, der nie
-stattgefunden hatte.
+`wait` samt dem, was fehlt.
 
 Der Kopf kennt neben `msg` und `from` diese Felder:
 
@@ -213,17 +205,11 @@ bridge-Session-ID.
 
 ## Warum die bridge-Session-ID und nicht der Name
 
-Die Adressierung über den Anzeigenamen sieht naheliegend aus und trägt nicht:
-
-- **Anzeigenamen sind instabil.** Sie werden bridge-seitig vergeben und ändern sich
-  im laufenden Betrieb. Dieselbe Session hieß am 2026-08-28 innerhalb einer Stunde
-  erst `kappa-azedo-local-effervescent-wave`, dann `Remote control session name` -
-  bei gleichbleibender ID.
+- **Anzeigenamen sind instabil.** Sie werden bridge-seitig vergeben und ändern
+  sich im laufenden Betrieb, bei gleichbleibender ID.
 - **Der Name, unter dem sich eine Session selbst kennt, ist von außen nicht
-  adressierbar.** `SendMessage` an einen solchen Namen antwortet mit
-  „No agent named '…' is reachable."
-- **Refs aus `ListAgents` (`[7ae82d]`) gelten nur innerhalb einer Auflistung**, nicht
-  als dauerhafte Adresse.
+  adressierbar** (`No agent named '…' is reachable.`).
+- **Refs aus `ListAgents` (`[7ae82d]`) gelten nur innerhalb einer Auflistung.**
 
 Stabil ist allein die bridge-Session-ID. Sie steht weder in der `ListAgents`-Ausgabe
 noch in der `SendMessage`-Dokumentation als Adressform - deshalb dieser Skill.
@@ -252,31 +238,24 @@ Adresse.
 Findet das Script im ganzen Prozessbaum keine Session-Datei, läuft der Aufruf
 vermutlich außerhalb einer Claude-Code-Session; Exit-Code 1.
 
-## Einbahnstrassen - gebridgt ist nicht symmetrisch
+## Einbahnstraßen - gebridgt ist nicht symmetrisch
 
 Ob eine Session **senden** kann und ob sie **erreichbar** ist, sind zwei
-verschiedene Dinge. Eine Session ohne verbundenes Remote Control kann eine
-Nachricht beantworten und quittieren; eine Adresse hat sie aber nicht, und ein
-Gespraech von dort aus verlaeuft im Sand:
+verschiedene Dinge. Eine Session ohne verbundenes Remote Control kann antworten
+und quittieren, hat aber keine eigene Adresse:
 
-- Der Versand meldet in dem Fall `one-way: Remote Control is not connected`. Das
-  ist kein Fehler, sondern die Ansage, dass es keinen Rueckweg gibt - und steht nur
-  im Tool-Ergebnis, nicht in der Nachricht
-- Behoben wird es **auf der betroffenen Seite** mit `/remote-control`; danach
-  liefert `who` dort eine Adresse
-- `who` auf der anderen Seite liefert dann keine `address`, sondern den Hinweis,
-  dass die Session nicht gebridgt ist
+- Ihr Versand meldet `one-way: Remote Control is not connected` - kein Fehler,
+  sondern die Ansage, dass es keinen Rückweg gibt; steht nur im Tool-Ergebnis.
+- `who` liefert dort keine `address`, sondern den Hinweis, dass die Session
+  nicht gebridgt ist. Behoben wird es **auf der betroffenen Seite** mit
+  `/remote-control`.
 
-Praktisch heisst das: **die gebridgte Seite muss das Gespraech eroeffnen.** Sie
-gibt ihre Adresse im Kopf mit, und daran haengt die Gegenseite ihre Quittung.
-Umgekehrt kaeme die Antwort nirgends an. Aufgefallen beim ersten echten Testlauf
-(2026-09-17): `ack` und `done` kamen sauber zurueck, obwohl die antwortende
-Session selbst nicht adressierbar war - genau deshalb steht die Rueckadresse im
-Nachrichtentext und nicht nur im Transport.
+Praktisch heißt das: **die gebridgte Seite eröffnet das Gespräch.** Ihre Adresse
+steht im Kopf, daran hängt die Gegenseite ihre Quittung - deshalb steht die
+Rückadresse im Nachrichtentext und nicht nur im Transport.
 
-Erkennbar ist die Richtung vorher nicht: `ListAgents` fuehrt beide Sorten gleich
-auf. Wer wissen will, ob eine Session ansprechbar ist, laesst sich dort `/bridge who`
-aufrufen - oder schickt eine Nachricht und wertet das Ausbleiben der Quittung aus.
+`ListAgents` führt beide Sorten gleich auf. Ob eine Session ansprechbar ist, zeigt
+dort `/bridge who` - oder das Ausbleiben der Quittung.
 
 ## Wenn die Quittung ausbleibt
 

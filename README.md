@@ -659,13 +659,13 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.62.2
+### 1.62.3
 
-- **`kanboard` - Kurzform `new`/`neu` und Task nur fuer Handlungen.**
-  `/kanboard new [[<user>@]<projekt>] <text>` legt einen Task direkt an; das
-  erste Wort zaehlt nur als Projekt, wenn es einem bestehenden Projektnamen
-  entspricht, ohne Projekt gilt das des aktiven CR-Kontexts. Das Praefix
-  `<user>@` (Username oder Vorname) setzt den Owner. Neuer Workflow-Schritt 0:
-  ein Task steht fuer eine Handlung, Befunde ohne Folgehandlung gehoeren ins
-  Wiki oder die Projekt-Doku - Ausloeser waren zwei als Ablage angelegte und
-  wieder geloeschte Tasks.
+- **`kanboard` und `bridge` - an die Anthropic-Empfehlungen angeglichen.**
+  kanboard: die `description` nennt CR-Nummern als Ausloeser (dann gelten
+  Commit- und Kimai-Praefix) und die Regel "Task nur fuer Handlungen"; die
+  haeufigsten Aufrufe stehen unter "Subcommands", der CR-Kontext nur noch an
+  einer Stelle; Workflow-Schritt 0 gilt auch fuer die Kurzform `new` (keine
+  Handlung erkennbar: nachfragen statt anlegen); durchgehend Umlaute, keine
+  zeitgebundenen Angaben mehr. bridge: Begruendungsabschnitte gekuerzt,
+  Datums- und Anlassangaben entfernt.

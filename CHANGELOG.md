@@ -3,6 +3,17 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.62.3
+
+- **`kanboard` und `bridge` - an die Anthropic-Empfehlungen angeglichen.**
+  kanboard: die `description` nennt CR-Nummern als Ausloeser (dann gelten
+  Commit- und Kimai-Praefix) und die Regel "Task nur fuer Handlungen"; die
+  haeufigsten Aufrufe stehen unter "Subcommands", der CR-Kontext nur noch an
+  einer Stelle; Workflow-Schritt 0 gilt auch fuer die Kurzform `new` (keine
+  Handlung erkennbar: nachfragen statt anlegen); durchgehend Umlaute, keine
+  zeitgebundenen Angaben mehr. bridge: Begruendungsabschnitte gekuerzt,
+  Datums- und Anlassangaben entfernt.
+
 ### 1.62.2
 
 - **`kanboard` - Kurzform `new`/`neu` und Task nur fuer Handlungen.**
