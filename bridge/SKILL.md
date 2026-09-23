@@ -21,7 +21,7 @@ läuft auf FreeBSD, Linux und macOS.
 | `who` | eigene Session: Name, cwd, PID, Session-ID, bridge-Adresse |
 | `list` | erreichbare Sessions (kein Script-Befehl, siehe unten) |
 | `send <ziel> <text>` | Nachrichtentext samt Handshake-Kopf bauen |
-| `ack <msg-id>` | Quittung für eine empfangene Nachricht formen |
+| `ack <msg-id> [...]` | Quittung (`ack`, `done`, `wait`) für empfangene Nachrichten formen |
 
 ## Das Problem, das der Handshake löst
 
@@ -34,7 +34,9 @@ Das Werkzeug sagt das selbst: ein erfolgreicher Versand quittiert mit
 `accepted by the server … not confirmed read`. Der Erfolg bezieht sich also auf die
 Annahme durch den Server, nicht auf Zustellung und schon gar nicht aufs Lesen.
 Wer den Exit-Status für eine Empfangsbestätigung hält, liest mehr hinein, als
-dasteht.
+dasteht. Dieselbe Meldung (`delivery not confirmed`) kommt bei **jedem** Versand,
+auch bei einem, der ankommt - sie ist kein Warnsignal. Klarheit bringen erst `ack`
+bzw. `done`.
 
 Deshalb trägt **die Nachricht selbst** die Anweisung zur Quittung. Das ist der
 Kern: die Gegenseite braucht diesen Skill nicht installiert zu haben, sie muss nur
@@ -43,18 +45,42 @@ würde genau dann versagen, wenn man es braucht - bei einer fremden Maschine.
 
 ## Das Protokoll
 
-Drei Zeilenformen, mehr nicht:
+Vier Zeilenformen, mehr nicht:
 
 ```
 [bridge msg=<id> from=bridge:session_... reply=ack]   Nachricht, Quittung erbeten
 [bridge ack=<id>]                                     Empfang bestätigt
 [bridge done=<id>] <Ergebnis>                         Aufgabe erledigt
+[bridge wait=<id>] <was fehlt>                        blockiert oder abgelehnt
 ```
 
 `ack` und `done` sind getrennt, weil sie verschiedene Fragen beantworten: „ist es
 angekommen" und „ist es erledigt". Wer beides in eine Quittung legt, wartet bei
 einer langen Aufgabe minutenlang und weiß nicht, ob die Nachricht überhaupt
 zugestellt wurde.
+
+`done` heißt **erledigt** und nichts anderes. Fehlt eine Freigabe, eine Angabe
+oder ein Recht, oder lehnt die Session die Aufgabe ab, lautet die Antwort
+`wait` samt dem, was fehlt. Anlass: ein `done` meldete einen Mailversand, der nie
+stattgefunden hatte.
+
+Der Kopf kennt neben `msg` und `from` diese Felder:
+
+| Feld | Bedeutung |
+|---|---|
+| `reply=ack` | Default: `ack` sofort, `done` bzw. `wait` nach der Arbeit |
+| `reply=none` | reine Info, keine Quittung |
+| `reply=ack;done=objection` | `ack` sofort, `done` nur bei Einwand - „Antwort nur bei Einwand" |
+| `topic=<CR/Stichwort>` | optional, wenn mehrere Themen parallel laufen |
+| `decision=relayed` | die Nachricht reicht eine Entscheidung des Users der anderen Session weiter |
+
+Mehrere Quittungen dürfen in **einer** Nachricht stehen, eine Zeile je id, jede am
+Zeilenanfang:
+
+```
+[bridge ack=f0f4]
+[bridge done=91c2] Dienst läuft.
+```
 
 Die `msg-id` sind vier Hex-Zeichen. Sie muss nicht global eindeutig sein, sondern
 nur innerhalb der laufenden Unterhaltung unterscheidbar.
@@ -73,6 +99,11 @@ Die ausgegebene `msg-id` merken, auf sie bezieht sich die Quittung.
 Ohne Text-Argument kommt der Text von STDIN; das ist der Weg für mehrzeilige
 Nachrichten, bei denen das Quoting sonst stört.
 
+Optionen für die Kopffelder aus der Tabelle oben: `--reply none|ack|ack;done=objection`,
+`--topic <CR/Stichwort>` und `--relayed` für `decision=relayed`. Der Fußtext der
+Nachricht passt sich an `--reply` an. Den Wert `ack;done=objection` quoten, sonst
+trennt die Shell am Semikolon.
+
 Ist die eigene Session **nicht gebridgt**, bricht `send` ab, statt eine Nachricht
 mit unbeantwortbarer Rückadresse zu bauen.
 
@@ -88,8 +119,42 @@ Kommt eine Nachricht mit `[bridge msg=<id> from=<adresse> reply=ack]` herein:
 Schritt 1 zuerst - sonst hängt die andere Seite im Ungewissen, solange die Aufgabe
 läuft, und das ist der Fall, für den das Ganze gebaut ist.
 
-Die Quittungszeile formt auch `bridge ack <msg-id>` bzw.
-`bridge ack <msg-id> --done "<Ergebnis>"`; nötig ist das Script dafür nicht.
+Ist die Aufgabe blockiert oder abgelehnt, lautet Schritt 3
+`[bridge wait=<id>] <was fehlt>`, nicht `done`. Bei `reply=ack;done=objection`
+entfällt Schritt 3, solange kein Einwand besteht; bei `reply=none` entfallen alle
+Quittungen.
+
+Die Quittungszeilen formt auch das Script: `bridge ack <msg-id> [<msg-id> …]`,
+`bridge ack <msg-id> --done "<Ergebnis>"` bzw. `bridge ack <msg-id> --wait "<was fehlt>"`;
+nötig ist es dafür nicht.
+
+**Blockiertes ack:** Verweigert der Auto-Mode-Klassifikator den Versand der
+Quittung, ersetzt das folgende `done` sie. Das `ack` einmal wiederholen oder im
+`done` als eigene Zeile nachreichen - nicht öfter.
+
+### Gegenfragen und Nachträge
+
+Auch der Empfänger schickt Gegenfragen und Nachträge über `bridge send`, jede mit
+eigener msg-id - nicht als formlosen Text. Sonst hat die Rückfrage keine Quittung
+und der Absender weiß nicht, ob sie angekommen ist. Reine Infos gehen mit
+`--reply none`.
+
+### Nachricht ohne Kopf
+
+Kommt eine Nachricht ohne `[bridge …]`-Kopf herein, mit `bridge send` antworten.
+Der Kopf und der Fußtext schlagen der Gegenseite das Protokoll damit von selbst vor.
+
+## Freigaben und Befunde
+
+**Keine weitergereichte Freigabe** für einen Versand nach außen oder für
+Irreversibles. Das Go des Users in Session A gilt nicht für Session B: der Absender
+sagt seinem User, dass er das Go **in der anderen Session** geben muss. Andere
+Entscheidungen, die eine Session weiterreicht, tragen `decision=relayed` im Kopf
+(`bridge send --relayed`), damit die Gegenseite sie nicht für eine eigene hält.
+
+**Befunde kennzeichnen:** Jede Aussage über einen Befund trägt „geprüft" (selbst
+nachgesehen) oder „abgeleitet" (geschlossen, nicht nachgesehen). Über zwei
+Sessions hinweg ist das sonst nicht mehr zu unterscheiden.
 
 ## Ein vollständiger Austausch
 

@@ -567,7 +567,8 @@ Erklaert die zuletzt gegebene Antwort noch einmal, in Einfacher Sprache. Fuer de
 
 Nachrichten zwischen Claude-Code-Sessions ueber Remote Control, mit einem rudimentaeren Handshake. `SendMessage` weckt die Gegenseite nur auf - es gibt keine Zustellbestaetigung, und ob die andere Session zurueckschreibt, ist eine Entscheidung ihres Modells. Der Skill legt die Quittung deshalb in den **Nachrichtentext selbst**:
 
-- Drei Zeilenformen: `[bridge msg=<id> from=... reply=ack]`, `[bridge ack=<id>]`, `[bridge done=<id>] <Ergebnis>`. `ack` (angekommen) und `done` (erledigt) sind getrennt, damit man bei einer langen Aufgabe nicht minutenlang im Ungewissen sitzt
+- Vier Zeilenformen: `[bridge msg=<id> from=... reply=ack]`, `[bridge ack=<id>]`, `[bridge done=<id>] <Ergebnis>`, `[bridge wait=<id>] <was fehlt>`. `ack` (angekommen) und `done` (erledigt) sind getrennt, damit man bei einer langen Aufgabe nicht minutenlang im Ungewissen sitzt; `wait` haelt blockierte oder abgelehnte Aufgaben aus `done` heraus
+- Kopffelder `reply=none`, `reply=ack;done=objection`, `topic=` und `decision=relayed`; weitergereichte Freigaben fuer Versand nach aussen oder Irreversibles gibt es nicht
 - Die Gegenseite braucht den Skill **nicht installiert** - die Anweisung steht im Klartext in der Nachricht. Ein Protokoll, das auf beiden Seiten konfiguriert sein muesste, versagte genau bei der fremden Maschine
 - `who` gibt die eigene **bridge-Session-ID** aus, die einzige stabile Adresse: Anzeigenamen werden bridge-seitig vergeben und aendern sich im Betrieb, der Name, unter dem sich eine Session selbst kennt, ist von aussen gar nicht adressierbar, und Refs aus `ListAgents` gelten nur innerhalb einer Auflistung
 - Die eigene Session wird ueber den **Prozessbaum** ab der eigenen PID aufgeloest, nicht ueber "die zuletzt geaenderte Datei" - das bleibt auch bei mehreren gleichzeitig laufenden Sessions richtig
@@ -658,14 +659,20 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.62.0
+### 1.62.1
 
-- **Neuer Skill `forgejo`.** Bare-Repos in eine Forgejo-Instanz uebernehmen
-  (`preflight`, `adopt`) und den HTTPS-Zugang dorthin einrichten und pruefen
-  (`access-check`, `access-setup`), dazu `api` fuer einzelne Aufrufe. Ausloeser
-  waren fuenf Uebernahmen an einem Tag auf vier Installationen, bei denen jedes
-  Fehlerbild auf die falsche Faehrte fuehrte. Der Umgang mit dem Geheimnis
-  ruht auf zwei Entscheidungen: ein Einweg-Token je Aufruf, ausgestellt und
-  geloescht im selben Script auf dem Zielhost, und die Trennung von
-  Helper-Zeiger (Skill) und Credential-Datei (User) - geprueft wird sie mit
-  Zaehlern statt mit ihrem Inhalt.
+- **`bridge` - Protokollregeln nachgeschaerft.** Neuer Zustand
+  `[bridge wait=<id>] <was fehlt>` fuer blockierte oder abgelehnte Aufgaben,
+  damit `done` wirklich "erledigt" heisst - Ausloeser war ein `done`, das einen
+  nicht erfolgten Versand meldete. Der Kopf kennt `reply=none` (reine Info),
+  `reply=ack;done=objection` ("Antwort nur bei Einwand"), optional
+  `topic=<CR/Stichwort>` und `decision=relayed` fuer weitergereichte
+  Entscheidungen; `send` setzt sie ueber `--reply`, `--topic` und `--relayed`
+  und passt den Fusstext an. `ack` nimmt mehrere ids (eine Zeile je id) und
+  `--wait`. Die SKILL.md regelt dazu: Gegenfragen und Nachtraege laufen
+  ebenfalls ueber `bridge send`, auf eine Nachricht ohne Kopf wird mit
+  `bridge send` geantwortet, ein vom Auto-Mode blockiertes `ack` ersetzt das
+  folgende `done`, keine weitergereichte Freigabe fuer Versand nach aussen oder
+  Irreversibles, und Befunde tragen "geprueft" oder "abgeleitet".
+  `disable-model-invocation` bleibt gesetzt: `/bridge` wird auf beiden Seiten
+  bewusst aufgerufen.

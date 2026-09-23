@@ -9,7 +9,7 @@
 #
 # Der Handshake liegt im Nachrichtentext selbst, nicht in der Konfiguration der
 # Gegenseite: eine Session ohne installierten Skill kann trotzdem quittieren.
-# version 1.60.3
+# version 1.62.1
 #
 # stdlib only, keine pip-Abhaengigkeiten. Laeuft auf FreeBSD, Linux und macOS.
 
@@ -20,6 +20,7 @@ import subprocess
 import sys
 
 SESSION_DIR = os.path.expanduser("~/.claude/sessions")
+REPLY_OBJECTION = "ack;done=objection"
 
 
 def ppid_of(pid):
@@ -122,12 +123,22 @@ def cmd_send(args):
     body = read_text(args.text)
     msg_id = args.id or os.urandom(2).hex()
 
-    lines = [f"[bridge msg={msg_id} from={address} reply=ack]", "", body, ""]
-    lines.append(
-        f'Quittiere den Empfang als erste Aktion: SendMessage an "{address}" mit dem '
-        f'Text "[bridge ack={msg_id}]". Erst danach die Aufgabe bearbeiten. Das '
-        f"Ergebnis kommt spaeter als \"[bridge done={msg_id}] <Ergebnis>\" an dieselbe "
-        "Adresse.")
+    head = f"[bridge msg={msg_id} from={address} reply={args.reply}"
+    if args.topic:
+        head += f" topic={args.topic}"
+    if args.relayed:
+        head += " decision=relayed"
+    lines = [head + "]", "", body, ""]
+    if args.reply == "none":
+        lines.append("Reine Info, keine Quittung noetig.")
+    else:
+        done = (f"Ein \"[bridge done={msg_id}] <Einwand>\" nur, wenn du Einwaende hast."
+                if args.reply == REPLY_OBJECTION else
+                f"Das Ergebnis kommt spaeter als \"[bridge done={msg_id}] <Ergebnis>\" an "
+                "dieselbe Adresse.")
+        lines.append(
+            f'Quittiere den Empfang als erste Aktion: SendMessage an "{address}" mit dem '
+            f'Text "[bridge ack={msg_id}]". Erst danach die Aufgabe bearbeiten. ' + done)
     message = "\n".join(lines)
 
     if args.json:
@@ -142,11 +153,16 @@ def cmd_send(args):
 
 
 def cmd_ack(args):
-    if args.done is not None:
-        body = read_text(args.done) if args.done == "-" else args.done.strip()
-        print(f"[bridge done={args.msg_id}] {body}")
+    if args.done is not None or args.wait is not None:
+        state, value = ("done", args.done) if args.done is not None else ("wait", args.wait)
+        if len(args.msg_id) > 1:
+            print(f"--{state} gilt fuer genau eine msg-id.", file=sys.stderr)
+            sys.exit(1)
+        body = read_text(None) if value == "-" else value.strip()
+        print(f"[bridge {state}={args.msg_id[0]}] {body}")
     else:
-        print(f"[bridge ack={args.msg_id}]")
+        for msg_id in args.msg_id:
+            print(f"[bridge ack={msg_id}]")
 
 
 def main():
@@ -164,12 +180,21 @@ def main():
     s.add_argument("ziel", help="Adresse der Gegenseite, z.B. bridge:session_...")
     s.add_argument("text", nargs="?", help="Nachrichtentext; ohne Argument aus STDIN")
     s.add_argument("--id", help="feste msg-id statt einer zufaelligen")
+    s.add_argument("--reply", choices=["ack", "none", REPLY_OBJECTION], default="ack",
+                   help="erbetene Antwort: ack (Default), none (reine Info), "
+                        "ack;done=objection (done nur bei Einwand)")
+    s.add_argument("--topic", help="Thema im Kopf, wenn mehrere parallel laufen")
+    s.add_argument("--relayed", action="store_true",
+                   help="weitergereichte Entscheidung kennzeichnen (decision=relayed)")
     s.add_argument("--json", action="store_true", help="Ausgabe als JSON")
     s.set_defaults(func=cmd_send)
 
     a = sub.add_parser("ack", help="Quittung fuer eine empfangene msg-id formen")
-    a.add_argument("msg_id", help="die msg-id aus dem Kopf der empfangenen Nachricht")
-    a.add_argument("--done", help="Ergebnis-Quittung statt Empfangs-Quittung; '-' liest STDIN")
+    a.add_argument("msg_id", nargs="+",
+                   help="msg-id(s) aus dem Kopf; mehrere ergeben eine ack-Zeile je id")
+    g = a.add_mutually_exclusive_group()
+    g.add_argument("--done", help="Ergebnis-Quittung statt Empfangs-Quittung; '-' liest STDIN")
+    g.add_argument("--wait", help="blockiert oder abgelehnt: was fehlt; '-' liest STDIN")
     a.set_defaults(func=cmd_ack)
 
     args = p.parse_args()

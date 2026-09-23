@@ -3,6 +3,24 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.62.1
+
+- **`bridge` - Protokollregeln nachgeschaerft.** Neuer Zustand
+  `[bridge wait=<id>] <was fehlt>` fuer blockierte oder abgelehnte Aufgaben,
+  damit `done` wirklich "erledigt" heisst - Ausloeser war ein `done`, das einen
+  nicht erfolgten Versand meldete. Der Kopf kennt `reply=none` (reine Info),
+  `reply=ack;done=objection` ("Antwort nur bei Einwand"), optional
+  `topic=<CR/Stichwort>` und `decision=relayed` fuer weitergereichte
+  Entscheidungen; `send` setzt sie ueber `--reply`, `--topic` und `--relayed`
+  und passt den Fusstext an. `ack` nimmt mehrere ids (eine Zeile je id) und
+  `--wait`. Die SKILL.md regelt dazu: Gegenfragen und Nachtraege laufen
+  ebenfalls ueber `bridge send`, auf eine Nachricht ohne Kopf wird mit
+  `bridge send` geantwortet, ein vom Auto-Mode blockiertes `ack` ersetzt das
+  folgende `done`, keine weitergereichte Freigabe fuer Versand nach aussen oder
+  Irreversibles, und Befunde tragen "geprueft" oder "abgeleitet".
+  `disable-model-invocation` bleibt gesetzt: `/bridge` wird auf beiden Seiten
+  bewusst aufgerufen.
+
 ### 1.62.0
 
 - **Neuer Skill `forgejo`.** Uebernimmt vorhandene Bare-Repos in eine
