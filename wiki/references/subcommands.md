@@ -201,6 +201,20 @@ Prueft:
 - **Low connectivity**: Artikel mit weniger als 3 Wikilinks
 - **Vertrauensfelder**: Format von `verified` und `stale_after`, abgelaufene Inhalte
   (siehe [Frontmatter-Schemas](frontmatter-schemas.md#optionale-vertrauensfelder))
+- **Frontmatter-Verweise** (optional): Einträge wie `tests:` oder `config:`, die
+  in ihrer Prüfquelle nicht mehr vorkommen - etwa nach dem Umbenennen eines Tests.
+  Nur mit `references` in der `wiki-schema.json`, ohne diesen Eintrag entfällt der Check:
+
+  ```json
+  "references": {
+    "tests":  {"pattern": "def {name}\\b",     "path": "analyzer/tests"},
+    "config": {"pattern": "\"{name}\"\\s*:", "path": "analyzer/data/param_config.json"}
+  }
+  ```
+
+  `path` ist relativ zum Projekt-Root, eine Datei oder ein Verzeichnis (alle Dateien
+  darunter). `{name}` wird durch den Eintrag ersetzt, der Rest ist ein Regex. Ein
+  nicht gefundener Eintrag ist ein Fehler, ebenso eine fehlende Prüfquelle.
 
 #### Schrumpf-Guard (`--check-shrink`)
 

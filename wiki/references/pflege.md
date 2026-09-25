@@ -226,6 +226,8 @@ Zeigt:
 - Anzahl Entities pro Typ
 - Letzte Aenderungen (aus log.md)
 - Offene Lint-Probleme (falls vorhanden)
+- Offene Artikel (`status: offen`) mit Pfad und `date`, ältester zuerst
+  (`grep -rl "^status: offen" <WIKI_ROOT>/wiki/`); gibt es keinen, entfällt der Block
 
 Bei einem **Remote-Wiki** die Quellen per SSH lesen (`ssh <host> "cat/grep …"`, siehe
 [Remote-Wikis](remote-wikis.md#remote-wikis-read-only)); Lint entfaellt (laeuft nur auf lokaler

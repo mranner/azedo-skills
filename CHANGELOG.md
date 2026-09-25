@@ -3,6 +3,16 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.62.5
+
+- **`wiki` - lint prüft Frontmatter-Verweise, status listet offene Artikel.**
+  Optionaler Eintrag `references` in der `wiki-schema.json`: je Feld (z.B.
+  `tests`, `config`) ein Regex mit `{name}` und eine Prüfquelle (Datei oder
+  Verzeichnis, relativ zum Projekt-Root). Ein Eintrag, der dort nicht mehr
+  vorkommt, ist ein Lint-Fehler - etwa nach dem Umbenennen eines Tests. Wikis
+  ohne den Eintrag verhalten sich wie bisher. `status` zeigt zusätzlich die
+  Artikel mit `status: offen`, ältester zuerst.
+
 ### 1.62.4
 
 - **`kanboard` - Progressive Disclosure und description in dritter Person.**

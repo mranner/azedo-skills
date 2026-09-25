@@ -659,12 +659,12 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.62.4
+### 1.62.5
 
-- **`kanboard` - Progressive Disclosure und description in dritter Person.**
-  Schema von `instance.json` und die `.env`-Reihenfolge stehen jetzt in
-  `references/setup.md`; die Kimai-/Jira-Write-back-Regeln sind in der SKILL.md
-  auf Regel und Aufruf gekuerzt, die Details liegen in `references/task-inhalte.md`.
-  Die `description` beschreibt in der dritten Person und nennt Commit und
-  Zeiterfassung unter einer CR-Nummer als Ausloeser. Geprueft mit 20
-  Trigger-Anfragen (19/20) und 5 Trockenlaeufen der Kurzform `neu` (5/5).
+- **`wiki` - lint prüft Frontmatter-Verweise, status listet offene Artikel.**
+  Optionaler Eintrag `references` in der `wiki-schema.json`: je Feld (z.B.
+  `tests`, `config`) ein Regex mit `{name}` und eine Prüfquelle (Datei oder
+  Verzeichnis, relativ zum Projekt-Root). Ein Eintrag, der dort nicht mehr
+  vorkommt, ist ein Lint-Fehler - etwa nach dem Umbenennen eines Tests. Wikis
+  ohne den Eintrag verhalten sich wie bisher. `status` zeigt zusätzlich die
+  Artikel mit `status: offen`, ältester zuerst.

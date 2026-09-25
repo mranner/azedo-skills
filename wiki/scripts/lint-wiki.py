@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # stdlib only, no pip dependencies
-# version 1.61.2
+# version 1.62.5
 
 """
 lint-wiki.py — Strukturpruefung fuer LLM Wikis (Infra + Projekt-Doku).
@@ -14,6 +14,8 @@ Prueft:
 - Verwaiste Seiten (keine eingehenden Links)
 - Datumsangaben in Ueberschriften (Logbuch-Muster, siehe Schreibregeln)
 - Optionale Vertrauensfelder verified/stale_after (Format, Ablauf)
+- Optional: Frontmatter-Verweise (z.B. tests, config) gegen ihre Pruefquelle,
+  konfiguriert unter "references" in wiki-schema.json
 - Mit --check-shrink: was eine Aktualisierung gegenueber git HEAD verloren hat
 
 Praefix-Pointer [[<praefix>:<slug>]] werden in dieser Reihenfolge aufgeloest:
@@ -66,7 +68,8 @@ def load_schema(wiki_root):
     """Laedt das Entity-Modell aus <wiki-root>/wiki-schema.json.
 
     Faellt auf DEFAULT_SCHEMA (Infra-Modell) zurueck, wenn keine Config existiert.
-    Gibt (required_fields_pro_typ, set_der_gueltigen_typen) zurueck.
+    Gibt (required_fields_pro_typ, set_der_gueltigen_typen, references) zurueck;
+    references ist {} ohne Eintrag im Schema.
     """
     schema_file = Path(wiki_root) / "wiki-schema.json"
     if schema_file.exists():
@@ -76,7 +79,37 @@ def load_schema(wiki_root):
 
     common = data.get("required_common", [])
     required = {t: common + extra for t, extra in data["types"].items()}
-    return required, set(required.keys())
+    return required, set(required.keys()), data.get("references", {})
+
+
+def read_reference_source(path):
+    """Text einer Pruefquelle: die Datei, oder alle Dateien darunter. None wenn sie fehlt."""
+    if path.is_file():
+        return path.read_text(encoding="utf-8", errors="replace")
+    if path.is_dir():
+        return "\n".join(f.read_text(encoding="utf-8", errors="replace")
+                         for f in sorted(path.rglob("*")) if f.is_file())
+    return None
+
+
+def check_references(fm, references, sources):
+    """Prueft Frontmatter-Verweise gegen ihre Pruefquelle (references im Schema).
+
+    references: {feld: {"pattern": regex mit {name}, "path": ...}},
+    sources: {feld: Quelltext}. Gibt die Meldungen zu nicht gefundenen Eintraegen zurueck.
+    """
+    found = []
+    for field, spec in references.items():
+        if field not in sources or fm.get(field) is None:
+            continue
+        values = fm[field] if isinstance(fm[field], list) else [fm[field]]
+        for name in values:
+            if not name:
+                continue
+            pattern = spec["pattern"].replace("{name}", re.escape(name))
+            if not re.search(pattern, sources[field], re.M):
+                found.append(f"{field}-Eintrag '{name}' nicht gefunden in {spec['path']}")
+    return found
 
 
 def load_remotes(wiki_root):
@@ -443,7 +476,7 @@ def lint_wiki(wiki_root, check_remotes=False, check_shrink_flag=False):
         return 1
 
     # Entity-Modell pro Wiki laden (Config oder Infra-Default)
-    required_fields, valid_types = load_schema(wiki_root)
+    required_fields, valid_types, references = load_schema(wiki_root)
 
     # Bekannte Ziele fuer [[<praefix>:<slug>]]-Pointer: erst die lokalen
     # Geschwister-Wikis, dann die Remotes.
@@ -452,6 +485,16 @@ def lint_wiki(wiki_root, check_remotes=False, check_shrink_flag=False):
 
     errors = []
     warnings = []
+
+    # Pruefquellen der Frontmatter-Verweise, Pfade relativ zum Projekt-Root
+    project_root = wiki_root.resolve().parent.parent
+    reference_sources = {}
+    for field, spec in references.items():
+        text = read_reference_source(project_root / spec["path"])
+        if text is None:
+            errors.append(f"wiki-schema.json: Pruefquelle fuer '{field}' fehlt: {spec['path']}")
+        else:
+            reference_sources[field] = text
 
     # Alle Wiki-Artikel sammeln
     articles = {}
@@ -506,6 +549,10 @@ def lint_wiki(wiki_root, check_remotes=False, check_shrink_flag=False):
         # Optionale Vertrauensfelder
         for level, msg in check_trust_fields(fm):
             (errors if level == "error" else warnings).append(f"{prefix}: {msg}")
+
+        # Verweise auf Tests, Config usw. (nur mit references im Schema)
+        for msg in check_references(fm, references, reference_sources):
+            errors.append(f"{prefix}: {msg}")
 
         # Wikilinks zaehlen — Frontmatter-Werte + Body
         fm_str = "\n".join(

@@ -3,7 +3,8 @@
 # stdlib only, no pip dependencies
 
 """
-test-lint-wiki.py — Testfaelle fuer die Praefix-Aufloesung in lint-wiki.py.
+test-lint-wiki.py — Testfaelle fuer die Praefix-Aufloesung und die
+Frontmatter-Verweise (references) in lint-wiki.py.
 
 Baut ein Wegwerf-Projekt mit zwei Geschwister-Wikis, einem Verzeichnis ohne
 wiki/-Unterordner und einer wiki-remotes.json, laesst lint-wiki.py darauf laufen
@@ -25,7 +26,15 @@ from pathlib import Path
 
 LINT = Path(__file__).resolve().parent / "lint-wiki.py"
 
-SCHEMA = {"required_common": ["type"], "types": {"artikel": []}}
+SCHEMA = {
+    "required_common": ["type"],
+    "types": {"artikel": []},
+    "references": {
+        "tests": {"pattern": "def {name}\\b", "path": "analyzer/tests"},
+        "config": {"pattern": "\"{name}\"\\s*:", "path": "analyzer/data/param_config.json"},
+        "doku": {"pattern": "{name}", "path": "gibt/es/nicht"},
+    },
+}
 
 
 def write(path, text):
@@ -60,6 +69,12 @@ def build(root, home):
         "geschichte": {"host": "example.org", "path": "/srv/geschichte"},
     }))
 
+    # Pruefquellen fuer die Frontmatter-Verweise
+    write(root / "analyzer/tests/test_regeln.py",
+          "def test_kalium_grenzwert():\n    pass\n\ndef test_kalium_grenzwert_hoch():\n    pass\n")
+    write(root / "analyzer/data/param_config.json",
+          json.dumps({"kalium": {"grenzwert": 5.1}}))
+
     mathe = root / "wiki/mathe"
     write(mathe / "wiki-schema.json", json.dumps(SCHEMA))
     write(mathe / "wiki/schriftliches-dividieren.md",
@@ -71,7 +86,12 @@ def build(root, home):
           "Unbekanntes Praefix: [[fremd:irgendwas]].\n"
           "Bekannter Remote: [[fern:egal]].\n"
           "Remote nur aus dem Home: [[heim:egal]].\n")
-    write(mathe / "index.md", "# Index\n\n- [[schriftliches-dividieren]]\n")
+    write(mathe / "wiki/kalium.md",
+          "---\ntype: artikel\n"
+          "tests: [test_kalium_grenzwert, test_kalium_umbenannt]\n"
+          "config:\n  - grenzwert\n  - entfernt\n"
+          "---\n\nText.\n")
+    write(mathe / "index.md", "# Index\n\n- [[schriftliches-dividieren]]\n- [[kalium]]\n")
     write(mathe / "log.md", "# Log\n\n- [[geschichte:gibt-es-nicht]]\n")
     return mathe
 
@@ -86,6 +106,11 @@ CASES = [
     ("schriftliches-dividieren.md: Toter Wikilink [[notizen:irgendwas]] — Ziel existiert nicht", True),
     ("schriftliches-dividieren.md: Toter Wikilink [[fremd:irgendwas]] — Ziel existiert nicht", True),
     ("log.md: Toter Wikilink [[geschichte:gibt-es-nicht]] — Ziel existiert nicht im Wiki 'geschichte'", True),
+    ("tests-Eintrag 'test_kalium_grenzwert' nicht gefunden", False),
+    ("kalium.md: tests-Eintrag 'test_kalium_umbenannt' nicht gefunden in analyzer/tests", True),
+    ("config-Eintrag 'grenzwert' nicht gefunden", False),
+    ("kalium.md: config-Eintrag 'entfernt' nicht gefunden in analyzer/data/param_config.json", True),
+    ("wiki-schema.json: Pruefquelle fuer 'doku' fehlt: gibt/es/nicht", True),
 ]
 
 
