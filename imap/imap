@@ -2048,6 +2048,60 @@ def cmd_append(args, accounts):
         sys.exit(1)
 
 
+def cmd_empty_trash(args, accounts):
+    """Papierkorb endgueltig leeren. Ohne --force nur zaehlen und mit Exit 1
+    abbrechen - geloeschte Mails sind danach nicht wiederherstellbar."""
+    cfg = pick_account(accounts, args.account)
+
+    with Account(cfg) as a:
+        folder = a.special_folder("trash")
+
+        if not folder:
+            die(f"[{a.alias}] kein Papierkorb gefunden")
+
+        a.select(folder, readonly=not args.force)
+        uids = a.search_uids("ALL")
+
+        result = {"account": a.alias, "folder": folder, "count": len(uids),
+                  "force": args.force}
+
+        if args.force and uids:
+
+            # Nur die gezaehlten UIDs loeschen: was zwischen Zaehlen und
+            # Loeschen hinzukommt, bleibt liegen
+
+            uidset = ",".join(u.decode() if isinstance(u, bytes) else str(u)
+                              for u in uids)
+            typ, data = a.conn.uid("STORE", uidset, "+FLAGS.SILENT", "(\\Deleted)")
+
+            if typ != "OK":
+                die(f"[{a.alias}] STORE fehlgeschlagen: {as_text(data)}")
+
+            if "UIDPLUS" in a.caps:
+                typ, data = a.conn.uid("EXPUNGE", uidset)
+            else:
+                typ, data = a.conn.expunge()
+
+            if typ != "OK":
+                die(f"[{a.alias}] EXPUNGE fehlgeschlagen: {as_text(data)}")
+
+            result["deleted"] = len(uids)
+            result["remaining"] = len(a.search_uids("ALL"))
+
+    if args.json:
+        out_json(result)
+    elif not args.force:
+        print(f"{result['account']}/{result['folder']}: {result['count']} Mails - "
+              "wuerden endgueltig geloescht, mit --force ausfuehren")
+    else:
+        print(f"ok: {result['account']}/{result['folder']} geleert - "
+              f"{result.get('deleted', 0)} Mails geloescht, "
+              f"{result.get('remaining', 0)} verbleiben")
+
+    if not args.force:
+        sys.exit(1)
+
+
 def resolve_target(a, target):
     """Zielordner aufloesen: Sonderrolle (junk/trash/...) oder echter Name."""
     key = target.lower()
@@ -2399,6 +2453,13 @@ def build_parser():
                          "Ordner liegt")
     sp.add_argument("--dry-run", action="store_true")
     sp.set_defaults(func=cmd_append)
+
+    sp = sub.add_parser("empty-trash", parents=[common],
+                        help="Papierkorb endgueltig leeren (ohne --force nur zaehlen)")
+    sp.add_argument("--account", "-a", required=True)
+    sp.add_argument("--force", action="store_true",
+                    help="wirklich loeschen - nicht wiederherstellbar")
+    sp.set_defaults(func=cmd_empty_trash)
 
     sp = sub.add_parser("batch", parents=[common],
                         help="Operationen gebuendelt ausfuehren (ein Login je Konto)")

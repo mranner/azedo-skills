@@ -164,6 +164,7 @@ Posteingang-Triage über mehrere IMAP-Konten — das Gegenstück zu `swaks`. Unt
 - Sonderrollen (`junk`, `trash`, `archive`) statt Ordnernamen, per SPECIAL-USE am Server aufgelöst
 - Kopieren und Verschieben **zwischen** zwei Konten (`APPEND` zuerst, Quelle erst danach)
 - `batch` führt Aktionen mit einem Login je Konto aus, erst nach Freigabe durch den Nutzer
+- `empty-trash -a <konto>` leert den Papierkorb endgültig; ohne `--force` nur Probelauf mit Anzahl
 - `append <datei.eml>` legt eine lokale `.eml` in einen Ordner (Default: Gesendet) — die Ablage, die
   `swaks` selbst nicht vornimmt; `\Seen` als Default-Flag, eine schon vorhandene Message-ID
   verhindert den zweiten Eintrag, nach dem Schreiben wird per Message-ID zurückgelesen
@@ -660,8 +661,8 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.63.2
+### 1.63.3
 
-- **`swaks` - `--file-sent` nur beim Versand im Namen des Nutzers.** Eine Mail vom
-  Default-Absender an den Nutzer selbst wird nicht abgelegt, und nach einem Konto
-  wird dafür nicht gefragt.
+- **`imap` - neuer Befehl `empty-trash`.** Leert den Papierkorb eines Kontos
+  endgültig (`\Deleted` + `UID EXPUNGE`). Ohne `--force` nur Probelauf mit Anzahl
+  und Exit 1, `-a` ist Pflicht. Gelöscht werden nur die beim Aufruf gezählten UIDs.

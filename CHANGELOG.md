@@ -3,6 +3,12 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.63.3
+
+- **`imap` - neuer Befehl `empty-trash`.** Leert den Papierkorb eines Kontos
+  endgültig (`\Deleted` + `UID EXPUNGE`). Ohne `--force` nur Probelauf mit Anzahl
+  und Exit 1, `-a` ist Pflicht. Gelöscht werden nur die beim Aufruf gezählten UIDs.
+
 ### 1.63.2
 
 - **`swaks` - `--file-sent` nur beim Versand im Namen des Nutzers.** Eine Mail vom

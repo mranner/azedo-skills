@@ -134,13 +134,20 @@ gilt unveraendert -- auch mit `--headers`/`--raw` bleibt der Ungelesen-Status.
 | `seen` / `unseen` | Gelesen-Status |
 | `flag` / `unflag` | Markierung |
 | `append <datei.eml>` | eine lokale `.eml` in einen Ordner legen (Default: Gesendet) |
+| `empty-trash -a <konto>` | Papierkorb endgueltig leeren; ohne `--force` nur zaehlen |
 
 Als `-t/--target` sind **Sonderrollen** erlaubt: `junk`, `trash`, `archive`,
 `sent`, `drafts`. Die werden per SPECIAL-USE beim Server aufgeloest, sonst ueber
 eine Namensheuristik. Findet sich nichts, bricht der Aufruf ab, statt einen
 Ordner anzulegen.
 
-Jede schreibende Aktion kennt `--dry-run`.
+Jede schreibende Aktion kennt `--dry-run`. Ausnahme ist `empty-trash`: dort ist
+der Probelauf der Default. Ohne `--force` nennt der Aufruf nur die Anzahl und endet
+mit Exit 1, erst `--force` loescht - **nicht wiederherstellbar**, auch Mails, die
+schon vorher im Papierkorb lagen. `-a` ist Pflicht, das Default-Konto greift hier
+nicht. Geloescht werden nur die beim Aufruf gezaehlten UIDs; was waehrenddessen
+hinzukommt, bleibt liegen. Nur auf ausdrueckliche Anweisung des Nutzers, und
+vorher die Anzahl aus dem Probelauf nennen.
 
 ## Batch -- der Normalfall fuer Aktionen
 
