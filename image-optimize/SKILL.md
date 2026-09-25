@@ -2,10 +2,11 @@
 name: image-optimize
 description: >
   Bereitet Bilder für den Web-Einsatz auf: Dateigröße reduzieren, Auflösung
-  anpassen, Format umwandeln (PNG/WebP nach JPEG inklusive Alpha-Flattening),
-  Dateinamen SEO-freundlich umbenennen.
+  anpassen, auf Zielgröße oder Seitenverhältnis zuschneiden, Format umwandeln
+  (PNG/WebP nach JPEG inklusive Alpha-Flattening), Dateinamen SEO-freundlich
+  umbenennen.
   Auch bei "Bilder für Web optimieren", "Bilder komprimieren", "PNG nach JPG
-  umwandeln", "Dateinamen anpassen".
+  umwandeln", "auf 1920x960 zuschneiden", "Dateinamen anpassen".
   Trigger: /image-optimize.
 ---
 
@@ -23,11 +24,11 @@ Bilder werden ueber das gebundelte Script `image-optimize` (Python >=3.11, im Sk
 |------------------|-----------------------|--------------------|
 | `optipng`        | `pkg install optipng` | PNG-Optimierung    |
 | `jpegoptim`      | `pkg install jpegoptim` | JPEG-Optimierung |
-| `gm`             | `pkg install GraphicsMagick` | Resize, Formatumwandlung, Bildmasse |
+| `gm`             | `pkg install GraphicsMagick` | Resize, Crop, Formatumwandlung, Bildmasse |
 
-`optipng` und `jpegoptim` sind Pflicht. Fuer `resize` und `convert` braucht es
+`optipng` und `jpegoptim` sind Pflicht. Fuer `resize`, `crop` und `convert` braucht es
 einen Bildwandler: **GraphicsMagick (`gm`)** oder ersatzweise **ImageMagick 7
-(`magick`)**. Fehlt beides, brechen diese beiden Subcommands mit klarer Meldung
+(`magick`)**. Fehlt beides, brechen diese Subcommands mit klarer Meldung
 ab - `analyze`, `optimize` und `rename` laufen weiter.
 
 ### Bildmasse: Werkzeug oder eingebauter Parser
@@ -151,6 +152,34 @@ tatsaechlich skalierten Dateien.
 Schlaegt `gm` bei einer Datei fehl, laeuft der Rest weiter, am Ende steht die
 Zahl der Fehlschlaege und der **Exit-Code ist 1**. Ein Durchlauf ohne Meldung und
 mit Exit 0 heisst also wirklich, dass alles geschrieben wurde.
+
+### crop -- auf Groesse oder Seitenverhaeltnis zuschneiden
+
+`resize` behaelt das Seitenverhaeltnis, ein 4:3-Bild wird damit nie 1920x960.
+`crop` fuellt das Ziel aus und schneidet den Ueberstand **mittig** ab. Braucht
+`gm` oder `magick`.
+
+```bash
+# Exakte Zielgroesse: erst auf Deckung skalieren, dann mittig zuschneiden
+python3 "$SKILL_DIR/image-optimize" crop <files-or-dirs...> --size 1920x960 --output .tmp/crop/
+
+# Nur Seitenverhaeltnis: mittig zuschneiden, nicht skalieren
+python3 "$SKILL_DIR/image-optimize" crop <files-or-dirs...> --ratio 2:1 --output .tmp/crop/
+```
+
+| Option       | Beschreibung                          | Default |
+|--------------|---------------------------------------|---------|
+| `--size`     | Exakte Zielgroesse `<b>x<h>`          | -       |
+| `--ratio`    | Seitenverhaeltnis `<b>:<h>`           | -       |
+| `--quality`  | Ausgabe-Qualitaet (1-100)            | 85      |
+| `--output`   | Zielverzeichnis oder Zieldatei (sonst: Original ueberschreiben) | - |
+| `--dry-run`  | Nur anzeigen, nichts aendern         | -       |
+
+Genau eine von `--size` und `--ratio` ist Pflicht. Ist die Quelle kleiner als
+`--size`, wird hochskaliert - die Ausgabe sagt das mit `(upscaled, source is
+smaller)`. Bilder, die schon die Zielmasse haben, werden uebersprungen.
+`--output`, Ueberschreiben der Originale und Exit-Code verhalten sich wie bei
+`resize`.
 
 ### convert -- Format umwandeln
 
@@ -278,7 +307,7 @@ erfolgreich durch und liesse ein zu grosses Bild zurueck.
 - Alle Subcommands akzeptieren sowohl einzelne Dateien als auch Verzeichnisse.
 - JPEG-Optimierung entfernt EXIF-Daten (`--strip-all`).
 - PNG-Optimierung ist verlustfrei.
-- Resize ueberschreibt standardmaessig das Original (`--output <verzeichnis>/` nutzen, um die Originale zu behalten).
+- Resize und Crop ueberschreiben standardmaessig das Original (`--output <verzeichnis>/` nutzen, um die Originale zu behalten).
 - `convert` legt das Ergebnis dagegen **neben** das Original und laesst dieses stehen.
 - Unterstuetzte Formate: PNG, JPEG, GIF, WebP, BMP, TIFF.
 - Von ImageMagick wird `magick` angesprochen, nie das in Version 7 abgekuendigte

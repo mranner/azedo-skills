@@ -2,7 +2,7 @@
 
 # Image optimization for web usage
 # Tools: optipng, jpegoptim, GraphicsMagick (gm) or ImageMagick 7 (magick)
-# version 1.43.0
+# version 1.62.8
 
 import argparse
 import os
@@ -567,6 +567,104 @@ def cmd_resize(args):
         sys.exit(1)
 
 
+def parse_pair(value, sep):
+    """'1920x960' or '2:1' -> (1920, 960); exits on anything else."""
+    parts = value.lower().split(sep)
+    if len(parts) != 2 or not all(p.isdigit() and int(p) > 0 for p in parts):
+        print(f"Error: '{value}' is not of the form <w>{sep}<h>.", file=sys.stderr)
+        sys.exit(2)
+    return int(parts[0]), int(parts[1])
+
+
+def cmd_crop(args):
+    """Fill a target size or aspect ratio, cropping the overhang centered."""
+    tool = find_magick()
+    if not tool:
+        print("Error: no image scaler found (GraphicsMagick or ImageMagick).",
+              file=sys.stderr)
+        print("Install: pkg install GraphicsMagick", file=sys.stderr)
+        sys.exit(1)
+
+    size = parse_pair(args.size, "x") if args.size else None
+    ratio = parse_pair(args.ratio, ":") if args.ratio else None
+
+    files = collect_images(args.files)
+    if not files:
+        print("No image files found.", file=sys.stderr)
+        sys.exit(1)
+
+    mode, outbase = resolve_output_target(args.output, len(files), args.dry_run)
+
+    failures = 0
+
+    for f in files:
+        fpath = Path(f)
+        info = get_image_info(str(fpath))
+        w, h = info["width"], info["height"]
+
+        if w == 0 or h == 0:
+            print(f"SKIP {fpath.name}: cannot determine dimensions")
+            failures += 1
+            continue
+
+        # --size scales to cover the target first; --ratio only cuts away
+        if size:
+            tw, th = size
+        elif w * ratio[1] > h * ratio[0]:
+            tw, th = round(h * ratio[0] / ratio[1]), h
+        else:
+            tw, th = w, round(w * ratio[1] / ratio[0])
+
+        if (w, h) == (tw, th):
+            note = " (not written to output directory)" if mode == "dir" else ""
+            print(f"SKIP {fpath.name}: already {tw}x{th}{note}")
+            continue
+
+        if mode == "dir":
+            outpath = str(outbase / fpath.name)
+        elif mode == "file":
+            outpath = str(outbase)
+        else:
+            outpath = str(fpath)
+
+        geometry = f"{tw}x{th}"
+        upscale = " (upscaled, source is smaller)" if size and (w < tw or h < th) else ""
+        print(f"Cropping: {fpath.name} ({w}x{h}) -> {geometry}{upscale}")
+
+        cmd = magick_convert_cmd(tool) + [str(fpath)]
+        if size:
+            cmd += ["-resize", f"{geometry}^"]
+        cmd += ["-gravity", "center", "-extent", geometry,
+                "-quality", str(args.quality), outpath]
+
+        if args.dry_run:
+            print(f"  DRY RUN: {' '.join(cmd)}")
+            continue
+
+        r = subprocess.run(cmd, capture_output=True, text=True)
+        if r.returncode != 0:
+            sys.stdout.flush()
+            print(f"  ERROR: {r.stderr.strip()}", file=sys.stderr)
+            failures += 1
+            continue
+
+        out = Path(outpath)
+        if not out.exists():
+            sys.stdout.flush()
+            print(f"  ERROR: {outpath} was not written", file=sys.stderr)
+            failures += 1
+            continue
+
+        new_info = get_image_info(outpath)
+        print(f"  -> {outpath} ({new_info['width']}x{new_info['height']}, "
+              f"{filesize_human(out.stat().st_size)})")
+
+    if failures:
+        sys.stdout.flush()
+        print(f"\n{failures} file(s) failed.", file=sys.stderr)
+        sys.exit(1)
+
+
 def cmd_convert(args):
     """Convert images to another format."""
     tool = find_magick()
@@ -886,6 +984,16 @@ def main():
     p_resize.add_argument("--output", help="Output directory (existing or with trailing slash) or single output file (default: overwrite original)")
     p_resize.add_argument("--dry-run", action="store_true", help="Show what would be done")
 
+    # crop
+    p_crop = sub.add_parser("crop", help="Fill a size or aspect ratio, crop centered")
+    p_crop.add_argument("files", nargs="+", help="Image files or directories")
+    target = p_crop.add_mutually_exclusive_group(required=True)
+    target.add_argument("--size", help="Exact target size, e.g. 1920x960 (scales to cover, then crops)")
+    target.add_argument("--ratio", help="Target aspect ratio, e.g. 2:1 (crops only, no scaling)")
+    p_crop.add_argument("--quality", type=int, default=JPEG_QUALITY, help=f"Output quality (default: {JPEG_QUALITY})")
+    p_crop.add_argument("--output", help="Output directory (existing or with trailing slash) or single output file (default: overwrite original)")
+    p_crop.add_argument("--dry-run", action="store_true", help="Show what would be done")
+
     # convert
     p_conv = sub.add_parser("convert", help="Convert images to another format")
     p_conv.add_argument("files", nargs="+", help="Image files or directories")
@@ -923,6 +1031,7 @@ def main():
         "analyze": cmd_analyze,
         "optimize": cmd_optimize,
         "resize": cmd_resize,
+        "crop": cmd_crop,
         "convert": cmd_convert,
         "rename": cmd_rename,
         "web": cmd_web,

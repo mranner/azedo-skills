@@ -3,6 +3,14 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.62.8
+
+- **`image-optimize` - neues Subcommand `crop`.** Schneidet auf eine exakte
+  Größe (`--size 1920x960`: erst auf Deckung skalieren, dann mittig zuschneiden)
+  oder ein Seitenverhältnis (`--ratio 2:1`: nur mittig zuschneiden). Braucht wie
+  `resize` GraphicsMagick oder ImageMagick 7; `--output`, `--dry-run` und
+  Exit-Code wie bei `resize`, Hochskalieren wird in der Ausgabe genannt.
+
 ### 1.62.7
 
 - **`wp-cli` - DB-Export einer Multisite-Subsite.** Hinweis im Multisite-Abschnitt:

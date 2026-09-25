@@ -275,6 +275,7 @@ Optimiert Bilder für Web-Verwendung. Unterstützt:
 - Analyse: Auflösung, Dateigröße und Dateinamen prüfen
 - Optimierung: PNG verlustfrei (optipng), JPEG quality-basiert (jpegoptim), progressiv als Default
 - Resize: Auflösung skalieren via GraphicsMagick (Seitenverhältnis bleibt erhalten)
+- Crop: auf exakte Größe oder Seitenverhältnis zuschneiden (füllen, mittig beschneiden)
 - Convert: Format umwandeln inkl. Alpha-Flattening, damit Transparenz im JPEG nicht schwarz wird
 - Rename: Dateinamen SEO-freundlich umbenennen (Umlaute, Leerzeichen, Sonderzeichen)
 - Web-Pipeline: alle Schritte in einem Durchgang
@@ -283,7 +284,7 @@ Bildmaße kommen von `gm`/`magick`; fehlt beides, liest ein eingebauter Header-P
 (PNG, JPEG, GIF, WebP, BMP, TIFF) sie direkt aus der Datei. `analyze` nennt die
 verwendete Quelle.
 
-**Voraussetzungen:** Python ≥ 3.11, `optipng`, `jpegoptim`, für Resize und Convert
+**Voraussetzungen:** Python ≥ 3.11, `optipng`, `jpegoptim`, für Resize, Crop und Convert
 `GraphicsMagick` (oder ImageMagick 7)
 
 **Trigger:** `/image-optimize` oder natürliche Sprache wie "Bilder für Web optimieren", "Bilder komprimieren".
@@ -659,9 +660,10 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.62.7
+### 1.62.8
 
-- **`wp-cli` - DB-Export einer Multisite-Subsite.** Hinweis im Multisite-Abschnitt:
-  die Tabellenliste mit `--all-tables-with-prefix` bilden, nicht mit
-  `--scope=blog`. Letzteres liefert nur die 15 WP-Kerntabellen und laesst die
-  Plugin-Tabellen der Subsite weg (bei einer Subsite 15 statt 104 Tabellen).
+- **`image-optimize` - neues Subcommand `crop`.** Schneidet auf eine exakte
+  Größe (`--size 1920x960`: erst auf Deckung skalieren, dann mittig zuschneiden)
+  oder ein Seitenverhältnis (`--ratio 2:1`: nur mittig zuschneiden). Braucht wie
+  `resize` GraphicsMagick oder ImageMagick 7; `--output`, `--dry-run` und
+  Exit-Code wie bei `resize`, Hochskalieren wird in der Ausgabe genannt.
