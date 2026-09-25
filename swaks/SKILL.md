@@ -319,6 +319,11 @@ Kontos (Alias aus `imap accounts`) und liest sie per Message-ID zurück. Ein
 zweiter Bau wäre eine andere Mail: Message-ID und `Date` entstehen bei jedem
 Lauf neu.
 
+Abgelegt wird nur, was im Namen des Nutzers rausgeht, das Konto kommt aus
+`send.account` des mail-as-me-Profils. Eine Mail vom Default-Absender an den
+Nutzer selbst ("schick mir das") bekommt kein `--file-sent`: sie liegt ohnehin in
+seinem Posteingang, und nach einem Konto wird dafür nicht gefragt.
+
 | Exit | Bedeutung |
 |---|---|
 | `0` | versendet **und** in „Gesendet" wiedergefunden (`filed.uids`) |
@@ -368,7 +373,7 @@ Die vollstaendige Optionsreferenz liegt daneben und wird bei Bedarf gelesen:
 6. Befehl zusammenbauen und dem Nutzer kurz zeigen; auf Bestätigung warten – außer der Nutzer hat bereits „ja" gesagt oder den Versand klar angeordnet.
 7. **Vor dem Versand prüfen:** `--verify` auf die fertige `.eml`, mit `--expect-sha256` aus der `--sha-file` und einem `--expect-marker` aus dem freigegebenen Entwurf (siehe „Vor dem Versand prüfen"). Exit ≠ 0 heißt: nicht senden.
 8. **Senden:** `python3 $B --send $M/mail.eml --to … --from … --file-sent <konto>` als **eigener Befehl**, und **jedes `--cc`/`--bcc` aus Schritt 3 hier wiederholen** — der Envelope entsteht allein aus diesen Flags, ein vergessenes `--bcc` kostet die stille Kopie, ohne dass der Versand etwas meldet (nicht an die Prüfkette aus Schritt 7 hängen — sonst steht der Versand nicht am Befehlsanfang und ist von keiner Bash-Freigabe erreichbar). `--send` lädt den Versandweg selbst und prüft Exit-Code, `queued as` *und* die `^<.\*`-Zeile. Nur bei Exit `0` „versendet" melden, sonst den Fehlschlag mit Statuscode aus dem JSON nennen.
-9. **Ablegen:** geschieht mit `--file-sent <konto>` im selben Aufruf wie Schritt 8 (siehe „Ablage"). Bei Exit `3` nicht erneut senden, sondern den `retry`-Befehl ausführen.
+9. **Ablegen:** geschieht mit `--file-sent <konto>` im selben Aufruf wie Schritt 8 (siehe „Ablage"). Bei Exit `3` nicht erneut senden, sondern den `retry`-Befehl ausführen. Nur beim Versand im Namen des Nutzers (`send.account` aus dem mail-as-me-Profil); eine Mail vom Default-Absender an den Nutzer wird nicht abgelegt, ohne Rückfrage.
 10. **Erfolgsmeldung:** Queue-ID, übertragene Datei mit sha256 und Größe, Envelope-Empfänger (inkl. Bcc) und die Fundstelle der Kopie nennen (siehe „Was in der Erfolgsmeldung stehen muss").
 11. **Kontakt ergänzen:** Wenn eine neue E-Mail-Adresse verwendet wurde, die noch nicht in `.claude/swaks-contacts.tsv` steht, per `printf` anhängen. Existiert die Datei nicht, entsteht sie dabei — nur für Adressen, die ohne Thread wieder gebraucht werden; Thread-Adressen liefert `imap contacts` jederzeit neu.
 

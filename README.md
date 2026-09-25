@@ -660,11 +660,8 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.63.1
+### 1.63.2
 
-- **`mail-as-me` - Profile aus der Zeit vor 1.63.0.** Fehlt `send.account` oder
-  `draft.account`, zeigt der Skill die Konten aus `imap accounts` zur Auswahl und
-  schreibt die Antwort ins Profil. Ein noch vorhandenes `send.bcc` wird nicht mehr
-  verwendet; der Skill weist einmal darauf hin und bietet an, es zu entfernen.
-- **Hinweis aus 1.63.0:** `/mail-as-me draft` legt die Mail jetzt als Entwurf ab
-  statt sie zu senden; Schreiben und Senden heißt `/mail-as-me write`.
+- **`swaks` - `--file-sent` nur beim Versand im Namen des Nutzers.** Eine Mail vom
+  Default-Absender an den Nutzer selbst wird nicht abgelegt, und nach einem Konto
+  wird dafür nicht gefragt.

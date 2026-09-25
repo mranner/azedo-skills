@@ -3,6 +3,12 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.63.2
+
+- **`swaks` - `--file-sent` nur beim Versand im Namen des Nutzers.** Eine Mail vom
+  Default-Absender an den Nutzer selbst wird nicht abgelegt, und nach einem Konto
+  wird dafür nicht gefragt.
+
 ### 1.63.1
 
 - **`mail-as-me` - Profile aus der Zeit vor 1.63.0.** Fehlt `send.account` oder
