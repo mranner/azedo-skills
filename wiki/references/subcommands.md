@@ -207,8 +207,8 @@ Prueft:
 
   ```json
   "references": {
-    "tests":  {"pattern": "def {name}\\b",     "path": "analyzer/tests"},
-    "config": {"pattern": "\"{name}\"\\s*:", "path": "analyzer/data/param_config.json"}
+    "tests":  {"pattern": "def {name}\\b",     "path": "tests"},
+    "config": {"pattern": "\"{name}\"\\s*:", "path": "config/settings.json"}
   }
   ```
 

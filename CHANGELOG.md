@@ -3,6 +3,16 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.62.10
+
+- **`wiki` - neutrale Beispiele für die Frontmatter-Verweise.** Das Beispiel zu
+  `references` in `references/subcommands.md` und der zugehörige Testfall in
+  `test-lint-wiki.py` verwenden jetzt generische Pfade (`tests`,
+  `config/settings.json`) statt der Struktur eines konkreten Projekts.
+- **Versionsköpfe der Scripts nachgezogen.** Die elf `.py`-Scripts mit
+  `# version` stehen wieder gemeinsam auf der aktuellen Version; seit 1.62.0
+  waren sie nicht mehr mitgezogen worden.
+
 ### 1.62.9
 
 - **`image-optimize` - `resize --dry-run` brach mit `NameError` ab.** Im

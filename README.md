@@ -660,8 +660,12 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.62.9
+### 1.62.10
 
-- **`image-optimize` - `resize --dry-run` brach mit `NameError` ab.** Im
-  Dry-Run-Zweig stand eine aus `convert` kopierte Zeile, die auf eine dort nicht
-  definierte Variable `written` schrieb (seit 1.43.0). Zeile entfernt.
+- **`wiki` - neutrale Beispiele für die Frontmatter-Verweise.** Das Beispiel zu
+  `references` in `references/subcommands.md` und der zugehörige Testfall in
+  `test-lint-wiki.py` verwenden jetzt generische Pfade (`tests`,
+  `config/settings.json`) statt der Struktur eines konkreten Projekts.
+- **Versionsköpfe der Scripts nachgezogen.** Die elf `.py`-Scripts mit
+  `# version` stehen wieder gemeinsam auf der aktuellen Version; seit 1.62.0
+  waren sie nicht mehr mitgezogen worden.

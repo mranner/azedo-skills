@@ -30,8 +30,8 @@ SCHEMA = {
     "required_common": ["type"],
     "types": {"artikel": []},
     "references": {
-        "tests": {"pattern": "def {name}\\b", "path": "analyzer/tests"},
-        "config": {"pattern": "\"{name}\"\\s*:", "path": "analyzer/data/param_config.json"},
+        "tests": {"pattern": "def {name}\\b", "path": "tests"},
+        "config": {"pattern": "\"{name}\"\\s*:", "path": "config/settings.json"},
         "doku": {"pattern": "{name}", "path": "gibt/es/nicht"},
     },
 }
@@ -70,10 +70,10 @@ def build(root, home):
     }))
 
     # Pruefquellen fuer die Frontmatter-Verweise
-    write(root / "analyzer/tests/test_regeln.py",
-          "def test_kalium_grenzwert():\n    pass\n\ndef test_kalium_grenzwert_hoch():\n    pass\n")
-    write(root / "analyzer/data/param_config.json",
-          json.dumps({"kalium": {"grenzwert": 5.1}}))
+    write(root / "tests/test_regeln.py",
+          "def test_grenzwert():\n    pass\n\ndef test_grenzwert_hoch():\n    pass\n")
+    write(root / "config/settings.json",
+          json.dumps({"limits": {"grenzwert": 5.1}}))
 
     mathe = root / "wiki/mathe"
     write(mathe / "wiki-schema.json", json.dumps(SCHEMA))
@@ -86,12 +86,12 @@ def build(root, home):
           "Unbekanntes Praefix: [[fremd:irgendwas]].\n"
           "Bekannter Remote: [[fern:egal]].\n"
           "Remote nur aus dem Home: [[heim:egal]].\n")
-    write(mathe / "wiki/kalium.md",
+    write(mathe / "wiki/grenzwert.md",
           "---\ntype: artikel\n"
-          "tests: [test_kalium_grenzwert, test_kalium_umbenannt]\n"
+          "tests: [test_grenzwert, test_umbenannt]\n"
           "config:\n  - grenzwert\n  - entfernt\n"
           "---\n\nText.\n")
-    write(mathe / "index.md", "# Index\n\n- [[schriftliches-dividieren]]\n- [[kalium]]\n")
+    write(mathe / "index.md", "# Index\n\n- [[schriftliches-dividieren]]\n- [[grenzwert]]\n")
     write(mathe / "log.md", "# Log\n\n- [[geschichte:gibt-es-nicht]]\n")
     return mathe
 
@@ -106,10 +106,10 @@ CASES = [
     ("schriftliches-dividieren.md: Toter Wikilink [[notizen:irgendwas]] — Ziel existiert nicht", True),
     ("schriftliches-dividieren.md: Toter Wikilink [[fremd:irgendwas]] — Ziel existiert nicht", True),
     ("log.md: Toter Wikilink [[geschichte:gibt-es-nicht]] — Ziel existiert nicht im Wiki 'geschichte'", True),
-    ("tests-Eintrag 'test_kalium_grenzwert' nicht gefunden", False),
-    ("kalium.md: tests-Eintrag 'test_kalium_umbenannt' nicht gefunden in analyzer/tests", True),
+    ("tests-Eintrag 'test_grenzwert' nicht gefunden", False),
+    ("grenzwert.md: tests-Eintrag 'test_umbenannt' nicht gefunden in tests", True),
     ("config-Eintrag 'grenzwert' nicht gefunden", False),
-    ("kalium.md: config-Eintrag 'entfernt' nicht gefunden in analyzer/data/param_config.json", True),
+    ("grenzwert.md: config-Eintrag 'entfernt' nicht gefunden in config/settings.json", True),
     ("wiki-schema.json: Pruefquelle fuer 'doku' fehlt: gibt/es/nicht", True),
 ]
 
