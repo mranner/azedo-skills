@@ -3,7 +3,8 @@ name: swaks
 description: >
   Versendet E-Mails über swaks und einen Postfix-Relay: Text- und HTML-Mail
   (multipart/alternative), reiner Text-Body, Dateianhänge jeder Art;
-  Empfänger und Absender als Defaults aus der Config. Zuständig für den
+  Empfänger und Absender als Defaults aus der Config. Legt die versendete
+  Mail per IMAP in "Gesendet" ab oder statt des Versands als Entwurf. Zuständig für den
   Versand, nicht für die Formulierung - soll die Mail nach dem Nutzer
   klingen, vorher mail-as-me den Text schreiben lassen. Auch bei "schick mir
   das", "sende das per Mail", "mail me the result", "send this to X".
@@ -79,8 +80,8 @@ Abweichende Werte übernimmst du aus der Nutzeranfrage.
 
 **Kommt der Entwurf aus `mail-as-me`**, gelten nicht diese Defaults, sondern der
 `send`-Block aus dem Profil (`~/.claude/mail-as-me/<profil>/config.json`): `send.from`
-als Absender (Header **und** Envelope), `send.bcc` als stille Kopie — als `--bcc`
-an **beide** Aufrufe, den Bau *und* den `--send`. Das ist ohne Rückfrage anzuwenden — eine Mail in der Stimme des
+als Absender (Header **und** Envelope), `send.account` als Konto für
+`--file-sent`. Das ist ohne Rückfrage anzuwenden — eine Mail in der Stimme des
 Nutzers, die vom Default-Absender kommt, ist beim Empfänger falsch. Details im
 mail-as-me-Skill, Abschnitt „Versand".
 
@@ -140,10 +141,10 @@ python3 $B \
 Erst wenn dieser Befehl mit Exit `0` durchgelaufen ist, folgt der Versand als **eigener Befehl**:
 
 ```bash
-python3 $B --send $M/mail.eml --to "empfaenger@example.com" --from <absender>
+python3 $B --send $M/mail.eml --to "empfaenger@example.com" --from <absender> --file-sent <konto>
 ```
 
-`--send` lädt den Versandweg selbst, ruft `swaks` auf und prüft das Ergebnis (Exit-Code, `queued as`, abgelehnte Empfänger – siehe „Ergebnis prüfen"). Exit `0` heißt versendet, Exit `1` heißt Fehlschlag; das JSON nennt Queue-ID bzw. Befund, das vollständige swaks-Protokoll steht in `$M/mail.eml.swaks.log`.
+`--send` lädt den Versandweg selbst, ruft `swaks` auf und prüft das Ergebnis (Exit-Code, `queued as`, abgelehnte Empfänger – siehe „Ergebnis prüfen"). Mit `--file-sent` legt es die Datei danach in „Gesendet" ab (siehe „Ablage"). Exit `0` heißt versendet (und abgelegt), Exit `1` heißt nicht versendet, Exit `3` versendet, aber nicht abgelegt; das JSON nennt Queue-ID bzw. Befund, das vollständige swaks-Protokoll steht in `$M/mail.eml.swaks.log`.
 
 **Warum zwei Befehle und nicht eine `&&`-Kette?** Eine Bash-Freigabe greift auf den **Anfang** des Befehls. In einer Kette, die mit `ENV=$(…)` oder `python3 $B --verify …` beginnt, steht der Versand irgendwo in der Mitte und ist von keiner Regel erreichbar – der Versand scheitert dann an der Freigabe, nachdem Recherche, Bau und Prüfung bereits gelaufen sind (CR4613). `python3 $B --send …` steht am Anfang und ist freigebbar. Die Trennung kostet nichts: die Prüfkette davor bricht bei jedem Befund mit Exit ≠ 0 ab, und `--send` prüft die `.eml` nochmals auf Existenz und Größe.
 
@@ -158,7 +159,7 @@ python3 $B --subject … --to a@x --cc cc@x --bcc bcc@x … > $M/mail.eml
 python3 $B --send $M/mail.eml --to a@x --cc cc@x --bcc bcc@x --from <absender>
 ```
 
-  **Fehlt `--bcc` beim `--send`, geht die Kopie nicht raus** — die Mail wird trotzdem zugestellt, der Fehler fällt also nur im eigenen Posteingang auf, wo nichts ankommt (CR4623). Unbekannte Flags lehnt `--send` seit demselben CR mit Exit `2` ab, statt sie still zu schlucken.
+  **Fehlt `--bcc` beim `--send`, geht die stille Kopie nicht raus** — die Mail wird trotzdem zugestellt, ohne Fehlermeldung (CR4623). Unbekannte Flags lehnt `--send` seit demselben CR mit Exit `2` ab, statt sie still zu schlucken. Eine Bcc-Kopie an sich selbst als Ablage ist nicht mehr vorgesehen, dafür gibt es `--file-sent`.
 - **Leerer Body / Bau-Fehler:** `build_mail.py` bricht mit Exit ≠ 0 ab, wenn Text *und* HTML leer sind. Deshalb **nie direkt in `swaks` pipen** — bei einem Bau-Fehler (Exit ≠ 0 oder Interpreter nicht gefunden) läuft `swaks` sonst auf leerem STDIN und sendet seine eingebaute Default-Test-Mail. Immer erst in eine Datei bauen und mit `&& test -s <datei> && swaks … --data @<datei>` absichern. `set -o pipefail` allein genügt **nicht**, da `swaks` in der Pipe trotzdem startet.
 - **`--data` braucht zwingend das `@`:** `swaks --data <datei>` liest die Datei **nicht**, sondern verschickt den **Pfad als Body-Text**. Es gibt keine Fehlermeldung — swaks quittiert mit `250 Ok`, zugestellt wird eine Mail ohne Betreff und ohne die gebauten Header, mit dem Dateinamen als einzigem Inhalt. Beim Empfänger sieht das nach Spam oder kompromittiertem Konto aus, und zurückholen lässt es sich nicht. Immer `--data @<datei>` schreiben. Gegenprobe direkt nach dem Versand: die `size=`-Angabe der Queue-ID im Maillog des Relays gegen die Größe der `.eml` halten — ein paar hundert Bytes statt einiger KB heißt, das `@` hat gefehlt.
 - **HTML-Part:** `--html-file` ist **optional**. Fehlt es, baut der Helper den HTML-Part aus dem Text (Leerzeilen werden `<p>`, einfache Umbrüche `<br>`). **Niemals dieselbe Datei an `--text-file` und `--html-file` geben** — der HTML-Part hätte dann kein einziges Tag und käme beim Empfänger als eine einzige Zeile an („in einer Wurst"), inklusive Tabellen und Kennwortlisten. Der Helper erkennt diesen Fall inzwischen, warnt auf stderr und wandelt um; die Warnung ist trotzdem ein Grund, den Aufruf zu korrigieren.
@@ -303,42 +304,49 @@ die Meldung an den Nutzer gehören deshalb vier Angaben:
 - die **Queue-ID** aus dem swaks-Log,
 - **welche Datei** übertragen wurde (`$M/mail.eml`) mit ihrer **sha256** und Größe,
 - die **Empfänger** des Envelope (inklusive Bcc — die stehen in keinem Header),
-- **wo die Kopie liegt** (siehe unten).
+- **wo die Kopie liegt**: Konto, Ordner und UID aus dem Feld `filed` (siehe unten).
 
 Mit Prüfsumme und Dateiname kann der Nutzer eine Verwechslung überhaupt erst
 erkennen; ohne sie bleibt ihm nur der Betreff, und genau der stimmt im
 Verwechslungsfall.
 
-### Ablage: swaks legt nichts in „Gesendet"
+### Ablage: `--file-sent` und `--draft`
 
 `swaks` spricht SMTP und sonst nichts — es gibt **keine Kopie im Sent-Ordner**.
-Die einzige Spur ist die Bcc-Kopie im Posteingang (`send.bcc` aus dem
-mail-as-me-Profil bzw. eine ausdrücklich gesetzte Bcc-Adresse). Wer die Mail
-später sucht, sucht zuerst im falschen Ordner und verliert Zeit.
+Die holt `--file-sent <konto>` beim `--send` nach: nach erfolgreichem Versand
+legt es **die Datei, die versendet wurde**, per `imap append` in „Gesendet" des
+Kontos (Alias aus `imap accounts`) und liest sie per Message-ID zurück. Ein
+zweiter Bau wäre eine andere Mail: Message-ID und `Date` entstehen bei jedem
+Lauf neu.
 
-Deshalb die Kopie **nach dem erfolgreichen Versand selbst ablegen** — mit
-`imap append`, das genau dafür da ist:
+| Exit | Bedeutung |
+|---|---|
+| `0` | versendet **und** in „Gesendet" wiedergefunden (`filed.uids`) |
+| `1` | nicht versendet — und deshalb auch nicht abgelegt |
+| `3` | versendet, aber **nicht** abgelegt |
+
+**Erst nach dem Versand ablegen, nie davor.** Eine Kopie in „Gesendet" zu einer
+Mail, die der Relay abgewiesen hat, ist eine Falschaussage im Postfach — und zwar
+die unauffälligste Sorte. Bei Exit `3` die Mail **nicht erneut senden**, sondern
+dem Nutzer sagen, dass sie raus ist und nicht abgelegt wurde, und den Befehl aus
+dem Feld `retry` ausführen. `$M/mail.eml` bleibt dafür liegen. Liegt dieselbe
+Message-ID schon im Ordner, schreibt `append` nichts (`duplicate: true`), ein
+wiederholter Lauf legt also keinen zweiten Eintrag an.
+
+Eine Bcc-Kopie an sich selbst als Ablage-Ersatz ist nicht mehr vorgesehen: sie
+belegt nur die Zustellung ins eigene Postfach, ob sie mitgeht, steht beim Versand
+fest, und sie landet zusätzlich zur Ablage in „Gesendet" (CR4714).
+
+**Als Entwurf ablegen statt senden:** mit `--for-draft` bauen, dann
 
 ```bash
-python3 ~/.claude/skills/imap/imap append $M/mail.eml -a <konto>
+python3 $B --draft $M/mail.eml --account <konto>
 ```
 
-Abgelegt wird **die Datei, die versendet wurde** — dieselbe, die an
-`swaks --data @…` ging. Ein zweiter Bau wäre eine andere Mail: Message-ID und
-`Date` entstehen bei jedem Lauf neu. Liegt dieselbe Message-ID schon im Ordner,
-schreibt `append` nichts (`duplicate: true`), ein wiederholter Lauf legt also
-keinen zweiten Eintrag an. Details im imap-Skill, Abschnitt „`append`".
-
-**Erst nach dem Versand ablegen, nicht davor.** Eine Kopie in „Gesendet" zu
-einer Mail, die der Relay abgewiesen hat, ist eine Falschaussage im Postfach —
-und zwar die unauffälligste Sorte.
-
-Geht das nicht (kein IMAP-Konto zur Hand, Ordner nicht auffindbar), dann
-wenigstens **die Fundstelle in der Erfolgsmeldung nennen** — „Kopie liegt im
-Posteingang von `<konto>` (Bcc), nicht in Gesendet". Ist keine Bcc gesetzt, gibt
-es außer dem Maillog des Relays gar keine Spur; dann das ausdrücklich sagen.
-Die lokale `$M/mail.eml` ist die dritte Spur, hält aber nur bis zum nächsten
-Aufräumen.
+Die Mail kommt mit `\Draft` und ungelesen in die Entwürfe und wird zurückgelesen;
+der Nutzer ändert sie dort bei Bedarf und sendet selbst aus seinem Mailclient.
+`--for-draft` schreibt `--bcc`-Adressen in den Header, weil der Mailclient sie
+sonst nicht kennt; `--send` verweigert eine solche `.eml` deshalb.
 
 ## Bausteine und Referenzen
 
@@ -359,8 +367,8 @@ Die vollstaendige Optionsreferenz liegt daneben und wird bei Bedarf gelesen:
 5. Fehlende Angaben aus dem Kontext ableiten (Betreff, Body, Anhänge).
 6. Befehl zusammenbauen und dem Nutzer kurz zeigen; auf Bestätigung warten – außer der Nutzer hat bereits „ja" gesagt oder den Versand klar angeordnet.
 7. **Vor dem Versand prüfen:** `--verify` auf die fertige `.eml`, mit `--expect-sha256` aus der `--sha-file` und einem `--expect-marker` aus dem freigegebenen Entwurf (siehe „Vor dem Versand prüfen"). Exit ≠ 0 heißt: nicht senden.
-8. **Senden:** `python3 $B --send $M/mail.eml --to … --from …` als **eigener Befehl**, und **jedes `--cc`/`--bcc` aus Schritt 3 hier wiederholen** — der Envelope entsteht allein aus diesen Flags, ein vergessenes `--bcc` kostet die Ablage-Kopie, ohne dass der Versand etwas meldet (nicht an die Prüfkette aus Schritt 7 hängen — sonst steht der Versand nicht am Befehlsanfang und ist von keiner Bash-Freigabe erreichbar). `--send` lädt den Versandweg selbst und prüft Exit-Code, `queued as` *und* die `^<.\*`-Zeile. Nur bei Exit `0` „versendet" melden, sonst den Fehlschlag mit Statuscode aus dem JSON nennen.
-9. **Ablegen:** nach erfolgreichem Versand die `.eml` mit `imap append $M/mail.eml -a <konto>` in „Gesendet" legen — swaks tut das nicht (siehe „Ablage").
+8. **Senden:** `python3 $B --send $M/mail.eml --to … --from … --file-sent <konto>` als **eigener Befehl**, und **jedes `--cc`/`--bcc` aus Schritt 3 hier wiederholen** — der Envelope entsteht allein aus diesen Flags, ein vergessenes `--bcc` kostet die stille Kopie, ohne dass der Versand etwas meldet (nicht an die Prüfkette aus Schritt 7 hängen — sonst steht der Versand nicht am Befehlsanfang und ist von keiner Bash-Freigabe erreichbar). `--send` lädt den Versandweg selbst und prüft Exit-Code, `queued as` *und* die `^<.\*`-Zeile. Nur bei Exit `0` „versendet" melden, sonst den Fehlschlag mit Statuscode aus dem JSON nennen.
+9. **Ablegen:** geschieht mit `--file-sent <konto>` im selben Aufruf wie Schritt 8 (siehe „Ablage"). Bei Exit `3` nicht erneut senden, sondern den `retry`-Befehl ausführen.
 10. **Erfolgsmeldung:** Queue-ID, übertragene Datei mit sha256 und Größe, Envelope-Empfänger (inkl. Bcc) und die Fundstelle der Kopie nennen (siehe „Was in der Erfolgsmeldung stehen muss").
 11. **Kontakt ergänzen:** Wenn eine neue E-Mail-Adresse verwendet wurde, die noch nicht in `.claude/swaks-contacts.tsv` steht, per `printf` anhängen. Existiert die Datei nicht, entsteht sie dabei — nur für Adressen, die ohne Thread wieder gebraucht werden; Thread-Adressen liefert `imap contacts` jederzeit neu.
 
@@ -372,4 +380,4 @@ Die vollstaendige Optionsreferenz liegt daneben und wird bei Bedarf gelesen:
 - Erfolg erkennbar an: `250 2.0.0 Ok: queued as <ID>` **bei Exit-Code 0 und ohne `<**`/`<~*`-Zeile**. Alle drei prüfen — bei mehreren Empfängern ist ein einzelner Reject sonst unsichtbar.
 - Zum Ausprobieren einer Route ohne Zustellung: `--quit-after RCPT` — die Verbindung endet vor `DATA`, es geht nichts raus.
 - Ein `250 Ok` sagt nur, dass der Server die Bytes genommen hat. Ob es die **richtigen** Bytes waren (Datei zwischenzeitlich überschrieben) und ob sie beim Empfänger **lesbar** ankommen (HTML-Part ohne Markup), sagt es nicht — dafür gibt es `--verify`.
-- `swaks` legt **keine Kopie in „Gesendet"** ab. Nach erfolgreichem Versand `imap append $M/mail.eml -a <konto>` nachziehen; geht das nicht, wenigstens die Fundstelle (Bcc-Kopie im Posteingang) in der Erfolgsmeldung nennen.
+- `swaks` legt **keine Kopie in „Gesendet"** ab. Das übernimmt `--send … --file-sent <konto>`; Exit `3` heißt versendet, aber nicht abgelegt.

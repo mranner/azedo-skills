@@ -165,8 +165,8 @@ Posteingang-Triage über mehrere IMAP-Konten — das Gegenstück zu `swaks`. Unt
 - Kopieren und Verschieben **zwischen** zwei Konten (`APPEND` zuerst, Quelle erst danach)
 - `batch` führt Aktionen mit einem Login je Konto aus, erst nach Freigabe durch den Nutzer
 - `append <datei.eml>` legt eine lokale `.eml` in einen Ordner (Default: Gesendet) — die Ablage, die
-  `swaks` selbst nicht vornimmt; `\Seen` als Default-Flag, und eine schon vorhandene Message-ID
-  verhindert den zweiten Eintrag
+  `swaks` selbst nicht vornimmt; `\Seen` als Default-Flag, eine schon vorhandene Message-ID
+  verhindert den zweiten Eintrag, nach dem Schreiben wird per Message-ID zurückgelesen
 - Anhänge auflisten (`attachments`) und herausschreiben (`save-attachment`, per `--name`/`--index`/`--all`,
   ohne `--output` nach `.tmp/`) — Dateinamen RFC-2231/2047-dekodiert, Pfadanteile gestrippt, nichts wird
   überschrieben; Inline-Teile per Default ausgeblendet
@@ -660,12 +660,18 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.62.10
+### 1.63.0
 
-- **`wiki` - neutrale Beispiele für die Frontmatter-Verweise.** Das Beispiel zu
-  `references` in `references/subcommands.md` und der zugehörige Testfall in
-  `test-lint-wiki.py` verwenden jetzt generische Pfade (`tests`,
-  `config/settings.json`) statt der Struktur eines konkreten Projekts.
-- **Versionsköpfe der Scripts nachgezogen.** Die elf `.py`-Scripts mit
-  `# version` stehen wieder gemeinsam auf der aktuellen Version; seit 1.62.0
-  waren sie nicht mehr mitgezogen worden.
+- **`swaks` - Versand und Ablage in einem Aufruf.** `--send … --file-sent <konto>`
+  legt die versendete `.eml` nach erfolgreichem Versand in "Gesendet" und liest sie
+  per Message-ID zurück. Exit `0` heißt versendet und abgelegt, `1` nicht versendet,
+  `3` versendet, aber nicht abgelegt (mit `retry`-Befehl im JSON). Der separate
+  `imap append`-Schritt nach dem Versand entfällt.
+- **`swaks` - Entwurf statt Versand.** `--for-draft` beim Bau schreibt `--bcc` in den
+  Header, `--draft <eml> --account <konto>` legt die Mail mit `\Draft` und ungelesen
+  in die Entwürfe. `--send` verweigert eine `.eml` mit Bcc-Header.
+- **`mail-as-me` - `draft` heißt jetzt `write`, neues `draft` legt als Entwurf ab.**
+  Das Profil führt `send.account` und `draft.account` statt `send.bcc`: die
+  Bcc-Kopie an sich selbst entfällt, sie landete zusätzlich zur Ablage in "Gesendet".
+- **`imap` - `append` liest zurück.** Nach dem `APPEND` wird die Mail per Message-ID
+  gesucht; erst der Fund zählt als Erfolg, die UIDs stehen im Feld `uids`.

@@ -2023,6 +2023,19 @@ def cmd_append(args, accounts):
             ok, detail = a.append(folder, raw, flags, internaldate)
             result.update({"ok": ok, "appended": ok, "detail": detail})
 
+            # Das OK des Servers allein ist kein Nachweis der Ablage: erst die
+            # per Message-ID wiedergefundene Mail zaehlt (CR4714).
+
+            if ok and message_id:
+                found = a.find_by_message_id(message_id, folder)
+
+                if found:
+                    result["uids"] = [int(u) for u in found]
+                else:
+                    result.update({"ok": False, "detail": "APPEND meldete OK, "
+                                   "die Mail ist per Message-ID aber nicht "
+                                   "auffindbar"})
+
     if args.json:
         out_json(result)
     else:

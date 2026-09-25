@@ -314,7 +314,7 @@ ok / einzeln anpassen?
 ## Verwandte Skills
 
 - [swaks](../swaks/SKILL.md) -- Versand; dieser Skill ist die Lese-Seite dazu
-  und mit `append` die Ablage danach (swaks legt nichts in "Gesendet" ab)
+  und mit `append` die Ablage danach (ruft swaks mit `--file-sent`/`--draft` selbst auf)
 - [mail-as-me](../mail-as-me/SKILL.md) -- Antworten im eigenen Schreibstil
 - [pushover](../pushover/SKILL.md) -- Zusammenfassung als Push aufs Handy
 - [kanboard](../kanboard/SKILL.md) / [jira](../jira/SKILL.md) -- Ziel fuer

@@ -6,7 +6,7 @@
 # um das alternative-Part gelegt. Bei einer Antwort kommt der Zitatblock aus
 # `imap quote` unter Body und Signatur (Top-Posting), die Threading-Header
 # In-Reply-To und References haengen die Antwort an den bestehenden Thread.
-# version 1.62.10
+# version 1.63.0
 
 import argparse
 import hashlib
@@ -403,6 +403,33 @@ def send_eml(path, recipient, sender):
 
     return report, errors
 
+# --- Ablage per IMAP ----------------------------------------------------------
+
+# swaks und imap werden immer gemeinsam aus azedo-skills eingerichtet, das
+# imap-Script liegt deshalb im Nachbarverzeichnis. Abgelegt wird genau die
+# Datei, die versendet wurde; `imap append` liest sie per Message-ID zurueck.
+
+IMAP_SCRIPT = os.path.normpath(os.path.join(
+    os.path.dirname(os.path.realpath(__file__)), os.pardir, "imap", "imap"))
+
+
+def file_eml(path, account, folder, flags):
+    """Die .eml per `imap append` ablegen. Liefert (report, fehler)."""
+    cmd = [sys.executable, IMAP_SCRIPT, "append", path, "-a", account,
+           "-f", folder, "--flags", flags, "--json"]
+    proc = subprocess.run(cmd, capture_output=True, text=True)
+
+    try:
+        report = json.loads(proc.stdout)
+    except ValueError:
+        report = {"account": account, "folder": folder}
+
+    if proc.returncode != 0 or not report.get("ok") or not report.get("uids"):
+        detail = report.get("detail") or proc.stderr.strip() or "ohne Meldung"
+        return report, [f"Ablage in {account}/{folder} fehlgeschlagen: {detail}"]
+
+    return report, []
+
 # --- Darstellungspruefung: HTML-Part und fertige .eml -------------------------
 
 # Zwei Fehlerklassen, die der Versand selbst nicht bemerkt, weil swaks nur die
@@ -595,6 +622,10 @@ if "--send" in sys.argv[1:]:
                                   "Header, sonst waeren die Empfaenger sichtbar.")
     sp.add_argument("--from", dest="sender",
                     help="Envelope-Absender. Ohne Angabe gilt 'from' aus swaks.json.")
+    sp.add_argument("--file-sent", metavar="KONTO",
+                    help="Nach erfolgreichem Versand die .eml in 'Gesendet' "
+                         "dieses imap-Kontos ablegen und zurueckpruefen. "
+                         "Exit 3, wenn gesendet, aber nicht abgelegt.")
 
     # parse_args statt parse_known_args: ein durchgereichtes --bcc, das still
     # weggefallen ist, kostet die Ablage-Kopie, ohne dass irgendwo ein Fehler
@@ -615,19 +646,62 @@ if "--send" in sys.argv[1:]:
 
     envelope = envelope_recipients(to, sargs.cc, sargs.bcc)
 
+    # Ein Entwurf traegt die Bcc-Adressen im Header. Versendet waeren sie fuer
+    # alle Empfaenger sichtbar.
+
+    if os.path.isfile(sargs.send):
+        with open(sargs.send, "rb") as f:
+            if BytesParser(policy=policy.default).parse(f, headersonly=True)["Bcc"]:
+                sys.exit(f"build_mail.py: Fehler — {sargs.send} hat einen Bcc-Header "
+                         "(mit --for-draft gebaut). Abbruch, kein Versand.")
+
     report, errors = send_eml(sargs.send, envelope, frm)
+    report["ok"] = not errors
+    report["errors"] = errors
+
+    code = 1 if errors else 0
+
+    # Abgelegt wird erst nach dem Versand: eine Kopie in "Gesendet" zu einer
+    # abgewiesenen Mail waere eine Falschaussage im Postfach.
+
+    if not errors and sargs.file_sent:
+        filed, ferrors = file_eml(sargs.send, sargs.file_sent, "sent", "\\Seen")
+        report["filed"] = filed
+
+        if ferrors:
+            report["ok"] = False
+            report["errors"] = ferrors
+            report["retry"] = (f"python3 {IMAP_SCRIPT} append {sargs.send} "
+                               f"-a {sargs.file_sent}")
+            errors = ["GESENDET, aber nicht abgelegt: " + e for e in ferrors]
+            code = 3
+
+    print(json.dumps(report, indent=2, ensure_ascii=False))
+
+    for e in errors:
+        print(f"build_mail.py: Fehler — {e}", file=sys.stderr)
+
+    sys.exit(code)
+
+if "--draft" in sys.argv[1:]:
+    dp = argparse.ArgumentParser(prog="build_mail.py --draft")
+    dp.add_argument("--draft", metavar="EML", required=True,
+                    help="Fertige .eml als Entwurf ablegen statt versenden "
+                         "(\\Draft, ungelesen) und zurueckpruefen.")
+    dp.add_argument("--account", metavar="KONTO", required=True,
+                    help="imap-Konto, in dessen Entwuerfe die Mail kommt.")
+    dargs = dp.parse_args()
+
+    report, errors = file_eml(dargs.draft, dargs.account, "drafts", "\\Draft")
     report["ok"] = not errors
     report["errors"] = errors
 
     print(json.dumps(report, indent=2, ensure_ascii=False))
 
-    if errors:
-        for e in errors:
-            print(f"build_mail.py: Fehler — {e}", file=sys.stderr)
+    for e in errors:
+        print(f"build_mail.py: Fehler — {e}", file=sys.stderr)
 
-        sys.exit(1)
-
-    sys.exit(0)
+    sys.exit(1 if errors else 0)
 
 if "--swaks-env" in sys.argv[1:]:
     print(route_env(resolve_route(config),
@@ -666,6 +740,15 @@ parser.add_argument("--send", metavar="EML",
                          "Queue-ID, abgelehnte Empfaenger). Envelope ueber --to "
                          "und --from. Das Passwort verlaesst dabei den Prozess "
                          "nicht — anders als bei --swaks-env.")
+parser.add_argument("--file-sent", metavar="KONTO",
+                    help="Nur mit --send: nach erfolgreichem Versand in "
+                         "'Gesendet' dieses imap-Kontos ablegen. Exit 3, wenn "
+                         "gesendet, aber nicht abgelegt.")
+parser.add_argument("--draft", metavar="EML",
+                    help="Fertige .eml als Entwurf in --account ablegen statt "
+                         "versenden und beenden.")
+parser.add_argument("--account", metavar="KONTO",
+                    help="Nur mit --draft: imap-Konto fuer den Entwurf.")
 parser.add_argument("--swaks-env", action="store_true",
                     help="Versandweg als SWAKS_OPT_*-Exportzeilen ausgeben und "
                          "beenden — Passwort maskiert. Fuer den Versand ist "
@@ -681,6 +764,10 @@ parser.add_argument("--cc", help="Sichtbarer Cc:-Header (kommasepariert). Fuer d
 parser.add_argument("--bcc", help="Bcc-Empfaenger (kommasepariert). Setzt bewusst KEINEN Header (sonst waeren die Empfaenger sichtbar) — fuer die Zustellung dasselbe --bcc beim --send-Aufruf wiederholen.")
 parser.add_argument("--from", dest="sender",
                     help="Absender. Ohne Angabe gilt 'from' aus swaks.json.")
+parser.add_argument("--for-draft", action="store_true",
+                    help="Fuer die Ablage als Entwurf bauen: --bcc kommt in den "
+                         "Header, damit der Mailclient es beim Senden kennt. "
+                         "--send verweigert eine solche .eml.")
 parser.add_argument("--text-file", required=True)
 parser.add_argument("--html-file",
                     help="HTML-Body. Ohne Angabe wird er aus --text-file "
@@ -852,9 +939,13 @@ if args.cc:
 
 # Bcc bewusst NICHT als Header setzen (wuerde die Empfaenger sichtbar machen).
 # Zustellung erfolgt ausschliesslich ueber den Envelope, den der --send-Aufruf
-# baut — deshalb der Hinweis, das Flag dort zu wiederholen.
+# baut — deshalb der Hinweis, das Flag dort zu wiederholen. Ausnahme ist der
+# Entwurf: den versendet der Mailclient, und der kennt die Adressen nur aus dem
+# Header.
 
-if args.bcc:
+if args.bcc and args.for_draft:
+    msg["Bcc"] = args.bcc
+elif args.bcc:
     print(
         "build_mail.py: Hinweis — Bcc-Adressen erscheinen bewusst NICHT im Header; "
         "'--bcc' beim '--send'-Aufruf wiederholen, sonst stehen sie in keinem "

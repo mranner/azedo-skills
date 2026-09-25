@@ -3,8 +3,9 @@ name: mail-as-me
 description: >
   Entwirft und überarbeitet E-Mails im persönlichen Schreibstil des Nutzers
   (Register, Anrede, Sign-off, Dialekt, Hedging) statt in generischem
-  KI-Deutsch; richtet auch das Stilprofil ein. Auch bei "schreib eine Mail
-  wie ich", "in meinem Stil", "klingt zu sehr nach KI, mach es wie ich".
+  KI-Deutsch; richtet auch das Stilprofil ein. Die fertige Mail geht per
+  swaks raus oder landet als Entwurf im Postfach. Auch bei "schreib eine Mail
+  wie ich", "in meinem Stil", "klingt zu sehr nach KI, mach es wie ich", "leg es mir als Entwurf ab".
   Soll eine Mail nach dem Nutzer klingen, immer zuerst hier den Text
   erzeugen und erst danach mit swaks versenden - nie direkt in swaks texten,
   sonst wird der Stil des Empfängers gespiegelt.
@@ -42,7 +43,8 @@ der Nutzer es **explizit** vorgibt.
   corpus/clean/*.md    # bereinigte Beispiel-Mails (Frontmatter + Eigentext)
   config.json          # Name, Dialekt, Sign-off (+Sonderfaelle), Anrede,
                         # register_map (Domain->Register), Signatur-Pfade,
-                        # send (Absender + Bcc fuer den Versand)
+                        # send (Absender + Konto fuer Gesendet),
+                        # draft (Konto fuer Entwuerfe)
 ```
 
 Profil-Wahl: `--profile <name>`; ohne Angabe das einzige vorhandene bzw. `default`.
@@ -74,15 +76,16 @@ python3 "$SKILL_DIR/extract.py" --input <ordner|datei> \
    - Dialekt (Auto-Detect bestaetigen; z.B. de-AT: „eh", „Jänner", „schlimmster
      Fall"). Achtung Fehlgriffe des Auto-Detects hier wegklicken.
    - Empfaenger/Domain → Register (`register_map`).
-   - Versand-Adressen: eigene Absenderadresse und — falls gewuenscht — eine
-     Bcc-Kopie an sich selbst (`send.from`, `send.bcc`, siehe unten).
+   - Versand-Identitaet: eigene Absenderadresse und die imap-Konten fuer
+     Gesendet und Entwuerfe (`send.from`, `send.account`, `draft.account`,
+     siehe unten).
 4. **Profil schreiben.** `config.json` aus dem Interview, `referenz.md` aus
    `templates/referenz.template.md` mit den abgeleiteten Markern + Beispiel-Index
    fuellen. Re-Run erweitert den Korpus (bestehende `clean/` bleiben).
 
 Einzelne Datei nur pruefen (nichts schreiben): `extract.py --analyze <datei>`.
 
-### draft — Entwurf in der eigenen Stimme
+### write — Mail in der eigenen Stimme
 
 Eingabe: Empfaenger (+ Thema **oder** eine Reply-`.eml`). Ablauf:
 1. **Empfaenger aufloesen -- nicht raten.** Bevor irgendetwas anderes passiert,
@@ -139,13 +142,20 @@ Eingabe: Empfaenger (+ Thema **oder** eine Reply-`.eml`). Ablauf:
    Mail leicht ab und ignorieren `format=flowed` und die Threading-Header. Kein
    Reply-Kontext: der Schritt entfaellt und wird als `kein Reply` ausgewiesen.
 8. Entwurf zeigen, **immer mit der Ausfuehrungszeile** (siehe unten). Optional
-   Versand ueber **swaks** (Text + HTML), Signatur dort; Absender und Bcc kommen
-   aus `config.json.send` (siehe Abschnitt Versand).
+   Versand ueber **swaks** (Text + HTML), Signatur dort; Absender und Konto fuer
+   die Ablage kommen aus `config.json.send` (siehe Abschnitt Versand).
+
+### draft — schreiben und als Entwurf ablegen
+
+Wie `write`, Schritte 1 bis 8 unveraendert. Statt des Versands kommt die Mail nach
+dem Go in die Entwuerfe des Kontos `config.json.draft.account`; der Nutzer liest
+sie dort, aendert bei Bedarf und sendet selbst aus seinem Mailclient. Umsetzung
+siehe Abschnitt Versand, „Als Entwurf ablegen".
 
 ### rewrite — bestehenden Entwurf in-voice bringen
 
 Nimmt einen Entwurf (eigener oder fremder), gleicht ihn an das Profil an und laeuft
-denselben **verbindlichen** humanizer-de-Audit aus Schritt 6 von `draft` sowie -- bei
+denselben **verbindlichen** humanizer-de-Audit aus Schritt 6 von `write` sowie -- bei
 Reply-Kontext -- den **Pflicht-Aufruf** von `imap quote` aus Schritt 7, inklusive
 Ausfuehrungszeile beim Zeigen. Der **Faktencheck** aus Schritt 4 gilt hier genauso:
 ein uebernommener Entwurf bringt seine Zusagen mit, geprueft sind sie deswegen nicht.
@@ -167,7 +177,7 @@ anhaengen — dabei generelle Stilregeln von inhaltlichen Einzelfall-Aenderungen
 So wird jede korrigierte Mail zum Trainingssignal; die Korrekturen pro Mail nehmen mit
 der Zeit ab.
 
-## Ausfuehrungszeile (Pflicht bei draft und rewrite)
+## Ausfuehrungszeile (Pflicht bei write, draft und rewrite)
 
 Jeder gezeigte Entwurf beginnt mit **einer** Zeile, die belegt, welche Schritte
 tatsaechlich gelaufen sind. Sie steht vor dem Entwurf, nicht danach, und wird auch bei
@@ -211,7 +221,7 @@ gelaufen ist, ist eine Falschaussage und schlimmer als gar keine Zeile.
 Die Zeile ist Arbeitsprotokoll fuer den Nutzer und **kein Teil der Mail**: beim Versand
 ueber swaks wird sie nicht mitgeschickt.
 
-## Versand: Absender und Bcc aus dem Profil
+## Versand: Absender und Ablage aus dem Profil
 
 Gesendet wird ueber **swaks** — dessen Defaults (`--from claude@azedo.at`) sind aber
 die von Claude, nicht die des Profils. Eine Mail, die in der eigenen Stimme verfasst
@@ -220,23 +230,23 @@ das nicht bei jedem Versand haendisch nachgezogen werden muss, steht die
 Versand-Identitaet im Profil:
 
 ```json
-"send": {
-  "from": "ich@example.org",
-  "bcc": "ich@example.org"
-}
+"send":  { "from": "ich@example.org", "account": "<imap-konto>" },
+"draft": { "account": "<imap-konto>" }
 ```
 
-Beide Felder sind optional: fehlt `from`, gilt der swaks-Default; fehlt `bcc` (oder
-ist es leer), geht keine Kopie raus. Mehrere Bcc-Adressen kommasepariert.
+`send.from` ist der Absender (fehlt er, gilt der swaks-Default). `send.account` und
+`draft.account` sind Aliase aus `imap accounts`: dort landet die Mail in "Gesendet"
+bzw. in den Entwuerfen. Eine Bcc-Kopie an sich selbst gibt es nicht mehr: ob die
+Mail raus ist, belegt die Queue-ID, ob sie abgelegt ist, das Zuruecklesen nach der
+Ablage (CR4714). Ein Bcc an Dritte, das der Nutzer im Auftrag nennt, geht weiterhin
+mit.
 
-**Regel:** Wird ein Entwurf aus `draft`/`rewrite` versendet, wird `send` aus dem
+**Regel:** Wird ein Entwurf aus `write`/`rewrite` versendet, wird `send` aus dem
 geladenen Profil gelesen und angewendet — ohne Rueckfrage, wie die Signatur. Eine
 Angabe des Nutzers im Auftrag ("schick das von X") hat Vorrang.
 
-Umsetzung: `from` und `bcc` gehen an **beide** Aufrufe -- den Bau und den Versand.
-Beim Bau setzt `--from` den Header und `--bcc` bewusst **keinen** (sonst waere die
-Kopie fuer die Empfaenger sichtbar), beim `--send` bilden dieselben Werte den
-Envelope. Gebaut und geprueft wird in einem Befehl, gesendet im naechsten:
+Umsetzung: `from` geht an **beide** Aufrufe -- den Bau und den Versand. Gebaut und
+geprueft wird in einem Befehl, gesendet und abgelegt im naechsten:
 
 ```bash
 M=$(mktemp -d .tmp/mail.XXXXXX)
@@ -246,7 +256,6 @@ python3 $B \
   --subject "Betreff" \
   --to "empfaenger@example.com" \
   --from ich@example.org \
-  --bcc ich@example.org \
   --text-file $M/body.txt \
   --html-file $M/body.html \
   --sha-file $M/mail.sha256 \
@@ -261,8 +270,14 @@ python3 $B \
 python3 $B --send $M/mail.eml \
   --to "empfaenger@example.com" \
   --from ich@example.org \
-  --bcc ich@example.org
+  --file-sent <send.account>
 ```
+
+`--file-sent` legt die versendete Datei nach erfolgreichem Versand in "Gesendet"
+und liest sie per Message-ID zurueck. Exit `0` heisst gesendet **und** abgelegt,
+`1` nicht gesendet (und nichts abgelegt), `3` gesendet, aber nicht abgelegt. Bei
+`3` dem Nutzer genau das sagen und den Befehl aus dem Feld `retry` nennen;
+`$M/mail.eml` bleibt dafuer liegen. Details im swaks-Skill, Abschnitt „Ablage".
 
 **Kein fester Pfad wie `.tmp/mail.eml`, und die `--verify`-Zeile gehoert dazu.**
 Eine parallel laufende Session schreibt sonst dieselbe Datei, und der Versand
@@ -273,17 +288,6 @@ Stueck aus dem freigegebenen Entwurf; `--verify` dekodiert den Text-Part und
 sucht es dort (ein `grep` auf die rohe `.eml` findet es nicht, der Body ist
 quoted-printable kodiert). Details im swaks-Skill, Abschnitt "Vor dem Versand
 pruefen".
-
-**Nach dem Versand ablegen.** swaks legt keine Kopie in "Gesendet" ab; das holt
-`imap append` nach, mit genau der Datei, die versendet wurde:
-
-```bash
-python3 ~/.claude/skills/imap/imap append $M/mail.eml -a <konto>
-```
-
-Erst nach dem erfolgreichen Versand, nie davor -- eine Kopie in "Gesendet" zu
-einer abgewiesenen Mail ist eine Falschaussage im Postfach. Ein wiederholter
-Lauf legt keinen zweiten Eintrag an (gleiche Message-ID).
 
 **Kontakt ergaenzen (swaks Schritt 11).** Stand die Adresse nicht in
 `~/.claude/swaks-contacts.tsv`, wird sie nach dem Versand dort angehaengt -- sonst
@@ -296,14 +300,35 @@ Textdatei ein zweites Mal angeben. Ein HTML-Part aus rohem Text hat kein
 einziges Tag und kommt beim Empfaenger in einer einzigen Zeile an -- Aufzaehlung,
 Tabelle und Zugangsdaten inklusive.
 
-`--bcc` beim Bau setzt bewusst **keinen** Header; zugestellt wird die Kopie allein
-ueber den Envelope, und den baut der `--send`-Aufruf. **Fehlt `--bcc` dort, geht die
-Mail an den Empfaenger raus und die Kopie nicht** -- ohne Fehlermeldung, denn der
-Versand selbst ist gelungen. Genau so blieb eine Ablage-Kopie aus (CR4623); seither
-lehnt `--send` unbekannte Flags mit Exit `2` ab, statt sie stillschweigend zu
-verwerfen. Die Signatur bleibt beim eigenen Absender aus `send.from` dran (die globale
+Die Signatur bleibt beim eigenen Absender aus `send.from` dran (die globale
 Signatur ist die eigene, siehe swaks-Skill) — der Wechsel des Absenders ist **kein**
 Ausschlussgrund.
+
+### Als Entwurf ablegen (`draft`)
+
+Gebaut wird wie oben, mit zwei Unterschieden: `--for-draft` beim Bau und statt
+`--send` die Ablage in die Entwuerfe. Eine Bcc-Kopie an sich selbst entfaellt
+auch hier. Ein Bcc an Dritte steht im Entwurf als Header, sonst kennt der
+Mailclient es beim Senden nicht; `--send` verweigert eine solche `.eml` deshalb.
+
+```bash
+python3 $B --for-draft --subject "Betreff" --to "empfaenger@example.com" \
+  --from ich@example.org --text-file $M/body.txt --html-file $M/body.html \
+  --sha-file $M/mail.sha256 > $M/mail.eml \
+  && test -s $M/mail.eml \
+  && python3 $B --verify $M/mail.eml --expect-sha256 "$(cat $M/mail.sha256)" \
+      --expect-marker "<woertliches Stueck aus dem freigegebenen Entwurf>"
+```
+
+```bash
+python3 $B --draft $M/mail.eml --account <draft.account>
+```
+
+Abgelegt wird mit `\Draft` und ungelesen, danach per Message-ID zurueckgelesen;
+Exit `0` heisst: liegt in den Entwuerfen, das JSON nennt Ordner und UID. Bei einer
+Antwort gehoeren Zitat und Threading-Header genauso dazu wie beim Versand. Der
+Kontakt wird erst ergaenzt, wenn der Nutzer den Entwurf abgeschickt hat -- das
+sieht dieser Skill nicht, deshalb entfaellt der Schritt hier.
 
 ## Antworten: Zitat und Threading
 
@@ -371,7 +396,6 @@ python3 $B \
   --subject "$SUBJ" \
   --to "$TO" \
   --from ich@example.org \
-  --bcc ich@example.org \
   --text-file $Q/body.txt \
   --html-file $Q/body.html \
   --quote-text-file $Q/quote.txt \
@@ -385,10 +409,9 @@ python3 $B \
       --expect-sha256 "$(cat $Q/mail.sha256)" \
       --expect-marker "<woertliches Stueck aus dem Entwurf>"
 
-# 5. Versand als eigener Befehl -- --bcc gehoert hier noch einmal hin,
-#    sonst entsteht kein Envelope-Eintrag fuer die Ablage-Kopie.
+# 5. Versand als eigener Befehl, mit Ablage in Gesendet
 python3 $B --send $Q/mail.eml \
-  --to "$TO" --from ich@example.org --bcc ich@example.org
+  --to "$TO" --from ich@example.org --file-sent <send.account>
 ```
 
 Zum Betreff: `Re: ` wird **einmal** vorangestellt. Traegt der Originalbetreff bereits
@@ -419,7 +442,7 @@ Bezug; diese Checkliste ist die **Ergaenzung** zum Skill-Lauf, nicht sein Ersatz
 
 ## Integration
 
-- **humanizer-de** - verbindlicher KI-Tell-Audit in Schritt 6 von `draft`/`rewrite`,
+- **humanizer-de** - verbindlicher KI-Tell-Audit in Schritt 6 von `write`/`draft`/`rewrite`,
   kein optionaler Self-Check; Ergebnis gehoert in die Ausfuehrungszeile.
 - **imap** - `quote` erzeugt bei jeder Antwort den Zitatblock und die
   Threading-Header (Schritt 7) und liefert Betreff und Empfaenger gleich mit.
@@ -428,12 +451,12 @@ Bezug; diese Checkliste ist die **Ergaenzung** zum Skill-Lauf, nicht sein Ersatz
   Mail), loest `imap quote -m` bzw. `imap find -m` sie zu Konto, Ordner und UID
   auf -- der Handabgleich ueber `folders` + `list` entfaellt.
 - **swaks** — Versand (`mail-as-me` schreibt, `swaks` sendet; Signatur kommt aus
-  swaks, Absender und Bcc aus `config.json.send` des Profils). Dessen Schritt 1
+  swaks, Absender und Ablagekonto aus `config.json.send` des Profils). Dessen Schritt 1
   (Empfaenger aufloesen) und Schritt 11 (Kontakt ergaenzen) gelten mit -- sie sind
-  hier als Schritt 1 von `draft` und als Absatz im Versand-Abschnitt abgebildet,
+  hier als Schritt 1 von `write` und als Absatz im Versand-Abschnitt abgebildet,
   weil die swaks-Schrittliste beim Weg ueber `mail-as-me` nie zu sehen ist.
-- **imap** — `quote` fuer Zitat und Threading vor dem Versand, `append` fuer die
-  Ablage in "Gesendet" danach.
+- **imap** — `quote` fuer Zitat und Threading vor dem Versand; die Ablage in
+  "Gesendet" bzw. den Entwuerfen ruft swaks selbst auf (`--file-sent`, `--draft`).
 - **kanboard/handoff** — optional CR-Kontext fuer den `learn`-Loop.
 
 ## Hinweise

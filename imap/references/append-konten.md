@@ -30,6 +30,11 @@ Abgelegt wird **genau die Datei, die versendet wurde** -- dieselbe, die an
 ungelesen. Ohne das Flag steht der Eintrag fett im Ordner und sieht nach
 eingegangener Post aus.
 
+**Zurueckgelesen:** nach dem `APPEND` wird die Mail per Message-ID im Ordner
+gesucht; erst der Fund zaehlt als Erfolg, die UIDs stehen im Feld `uids`. Ein
+`OK` des Servers ohne Fund endet mit `ok: false`. swaks ruft `append` so auf
+(`--send … --file-sent`, `--draft`), siehe dort.
+
 **Wiederholbar:** liegt im Zielordner bereits eine Mail mit derselben
 Message-ID, schreibt `append` **nichts** und meldet `duplicate: true`. Der
 Abbruch eines Laufs zwischen Versand und Ablage ist der haeufige Fall, ein
