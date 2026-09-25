@@ -60,9 +60,10 @@ Der Kopf kennt neben `msg` und `from` diese Felder:
 
 | Feld | Bedeutung |
 |---|---|
-| `reply=ack` | Default: `ack` sofort, `done` bzw. `wait` nach der Arbeit |
+| `reply=ack` | `ack` sofort, `done` bzw. `wait` nach der Arbeit |
 | `reply=none` | reine Info, keine Quittung |
 | `reply=ack;done=objection` | `ack` sofort, `done` nur bei Einwand - „Antwort nur bei Einwand" |
+| `re=<id>` | Nachtrag zu einer früheren msg-id, in der Regel mit `reply=none` |
 | `topic=<CR/Stichwort>` | optional, wenn mehrere Themen parallel laufen |
 | `decision=relayed` | die Nachricht reicht eine Entscheidung des Users der anderen Session weiter |
 
@@ -80,8 +81,8 @@ nur innerhalb der laufenden Unterhaltung unterscheidbar.
 ## Senden
 
 ```bash
-python3 "$SKILL_DIR/bridge" send bridge:session_01Abc... "Prüf bitte, ob der Dienst läuft."
-python3 "$SKILL_DIR/bridge" send bridge:session_01Abc... < nachricht.txt
+python3 "$SKILL_DIR/bridge" send bridge:session_01Abc... --reply ack "Prüf bitte, ob der Dienst läuft."
+python3 "$SKILL_DIR/bridge" send bridge:session_01Abc... --reply none < nachricht.txt
 ```
 
 Das Script baut nur den **Text**. Verschickt wird er danach mit dem Tool
@@ -91,10 +92,21 @@ Die ausgegebene `msg-id` merken, auf sie bezieht sich die Quittung.
 Ohne Text-Argument kommt der Text von STDIN; das ist der Weg für mehrzeilige
 Nachrichten, bei denen das Quoting sonst stört.
 
-Optionen für die Kopffelder aus der Tabelle oben: `--reply none|ack|ack;done=objection`,
-`--topic <CR/Stichwort>` und `--relayed` für `decision=relayed`. Der Fußtext der
-Nachricht passt sich an `--reply` an. Den Wert `ack;done=objection` quoten, sonst
-trennt die Shell am Semikolon.
+**`--reply` ist Pflicht** und hat keinen Default: `ack` für eine Aufgabe oder
+Frage, `none` für eine reine Info, `ack;done=objection` für „Antwort nur bei
+Einwand". Fehlt es, bricht `send` ab. Den Wert `ack;done=objection` quoten, sonst
+trennt die Shell am Semikolon. Der Fußtext der Nachricht passt sich an `--reply` an.
+
+**Nachträge** zu einer eigenen Nachricht gehen mit `--re <msg-id>`: der Kopf trägt
+`re=<id>` und `reply=none`, ein ausdrückliches `--reply` hat Vorrang. Auch ein
+kleiner Nachtrag geht so und nicht als formloser Text per `SendMessage` - sonst
+fehlt ihm der Bezug.
+
+**Weitergereichte Entscheidungen** des Users tragen `--relayed` (`decision=relayed`),
+siehe [Freigaben und Befunde](#freigaben-und-befunde). Das gilt für jede Nachricht,
+die eine Entscheidung weitergibt, nicht für den bloßen Bericht darüber.
+
+`--topic <CR/Stichwort>` setzt das Thema im Kopf.
 
 Ist die eigene Session **nicht gebridgt**, bricht `send` ab, statt eine Nachricht
 mit unbeantwortbarer Rückadresse zu bauen.
@@ -106,7 +118,9 @@ Kommt eine Nachricht mit `[bridge msg=<id> from=<adresse> reply=ack]` herein:
 1. **Sofort** quittieren, vor jeder inhaltlichen Arbeit:
    `SendMessage(to="<adresse>", message="[bridge ack=<id>]")`
 2. Die Aufgabe bearbeiten.
-3. Das Ergebnis zurückschicken: `[bridge done=<id>] <Ergebnis>`
+3. Das Ergebnis zurückschicken: `[bridge done=<id>] <Ergebnis>`. `done` enthält
+   **nur** das Ergebnis. Rückfragen und Bitten gehen als eigene Nachricht über
+   `bridge send` - in einer Quittung haben sie keine msg-id, und niemand quittiert sie.
 
 Schritt 1 zuerst - sonst hängt die andere Seite im Ungewissen, solange die Aufgabe
 läuft, und das ist der Fall, für den das Ganze gebaut ist.
@@ -129,7 +143,15 @@ Quittung, ersetzt das folgende `done` sie. Das `ack` einmal wiederholen oder im
 Auch der Empfänger schickt Gegenfragen und Nachträge über `bridge send`, jede mit
 eigener msg-id - nicht als formlosen Text. Sonst hat die Rückfrage keine Quittung
 und der Absender weiß nicht, ob sie angekommen ist. Reine Infos gehen mit
-`--reply none`.
+`--reply none`, Nachträge zu einer früheren Nachricht mit `--re <msg-id>`.
+
+### Unbekannte msg-id
+
+Hinter derselben bridge-Adresse kann der Kontext wechseln - erkennbar an einem
+anderen Anzeigenamen und an msg-ids, die die eigene Session nicht kennt. Eine
+Nachricht oder Quittung, die sich auf eine **unbekannte** msg-id bezieht, wird mit
+`[bridge wait=<id>] msg-id unbekannt` beantwortet, nicht übergangen. Die Gegenseite
+weiß dann, dass ihr bisheriger Stand hier nicht angekommen ist.
 
 ### Nachricht ohne Kopf
 
@@ -156,7 +178,7 @@ gebridgt und eröffnet, Session B arbeitet und meldet zurück.
 **A baut den Text:**
 
 ```
-$ python3 "$SKILL_DIR/bridge" send bridge:session_01Bbb... "Prüf bitte, ob der Dienst auf dem Testhost läuft."
+$ python3 "$SKILL_DIR/bridge" send bridge:session_01Bbb... --reply ack "Prüf bitte, ob der Dienst auf dem Testhost läuft."
 msg-id: f0f4
 Senden mit: SendMessage(to="bridge:session_01Bbb...", message=<Text unten>)
 

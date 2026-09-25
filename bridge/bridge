@@ -9,7 +9,7 @@
 #
 # Der Handshake liegt im Nachrichtentext selbst, nicht in der Konfiguration der
 # Gegenseite: eine Session ohne installierten Skill kann trotzdem quittieren.
-# version 1.62.1
+# version 1.62.6
 #
 # stdlib only, keine pip-Abhaengigkeiten. Laeuft auf FreeBSD, Linux und macOS.
 
@@ -120,20 +120,31 @@ def cmd_send(args):
               file=sys.stderr)
         sys.exit(2)
 
+    # Keine stille Vorgabe: ein vergessenes --reply machte bisher jede Info zu
+    # einer Runde aus ack und wait. Ein Nachtrag (--re) ist reine Info.
+    reply = args.reply or ("none" if args.re else None)
+    if reply is None:
+        print(f"--reply fehlt: ack (Quittung erbeten), none (reine Info) oder "
+              f"'{REPLY_OBJECTION}' (done nur bei Einwand).", file=sys.stderr)
+        sys.exit(1)
+
     body = read_text(args.text)
     msg_id = args.id or os.urandom(2).hex()
 
-    head = f"[bridge msg={msg_id} from={address} reply={args.reply}"
+    head = f"[bridge msg={msg_id} from={address} reply={reply}"
+    if args.re:
+        head += f" re={args.re}"
     if args.topic:
         head += f" topic={args.topic}"
     if args.relayed:
         head += " decision=relayed"
     lines = [head + "]", "", body, ""]
-    if args.reply == "none":
-        lines.append("Reine Info, keine Quittung noetig.")
+    if reply == "none":
+        lines.append(f"Nachtrag zu {args.re}, reine Info, keine Quittung noetig."
+                     if args.re else "Reine Info, keine Quittung noetig.")
     else:
         done = (f"Ein \"[bridge done={msg_id}] <Einwand>\" nur, wenn du Einwaende hast."
-                if args.reply == REPLY_OBJECTION else
+                if reply == REPLY_OBJECTION else
                 f"Das Ergebnis kommt spaeter als \"[bridge done={msg_id}] <Ergebnis>\" an "
                 "dieselbe Adresse.")
         lines.append(
@@ -180,9 +191,11 @@ def main():
     s.add_argument("ziel", help="Adresse der Gegenseite, z.B. bridge:session_...")
     s.add_argument("text", nargs="?", help="Nachrichtentext; ohne Argument aus STDIN")
     s.add_argument("--id", help="feste msg-id statt einer zufaelligen")
-    s.add_argument("--reply", choices=["ack", "none", REPLY_OBJECTION], default="ack",
-                   help="erbetene Antwort: ack (Default), none (reine Info), "
+    s.add_argument("--reply", choices=["ack", "none", REPLY_OBJECTION],
+                   help="Pflicht (ausser mit --re): ack, none (reine Info), "
                         "ack;done=objection (done nur bei Einwand)")
+    s.add_argument("--re", metavar="MSG_ID",
+                   help="Nachtrag zu einer frueheren msg-id (re=<id>, reply=none)")
     s.add_argument("--topic", help="Thema im Kopf, wenn mehrere parallel laufen")
     s.add_argument("--relayed", action="store_true",
                    help="weitergereichte Entscheidung kennzeichnen (decision=relayed)")

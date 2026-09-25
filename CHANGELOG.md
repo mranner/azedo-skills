@@ -3,6 +3,17 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.62.6
+
+- **`bridge` - Protokolltreue beim Senden.** `send` hat für `--reply` keinen
+  Default mehr und bricht ab, wenn der Wert fehlt. Bisher ging jede vergessene
+  Angabe als `reply=ack` hinaus und löste eine Runde aus ack und wait aus. Neu
+  ist `--re <msg-id>` für Nachträge: Kopf mit `re=<id>` und `reply=none`. In der
+  SKILL.md: `done` enthält nur das Ergebnis, Rückfragen gehen als eigene
+  Nachricht; eine unbekannte msg-id (Kontextwechsel hinter derselben Adresse)
+  wird mit `wait` und „msg-id unbekannt" beantwortet; `--relayed` steht als
+  eigener Absatz unter „Senden".
+
 ### 1.62.5
 
 - **`wiki` - lint prüft Frontmatter-Verweise, status listet offene Artikel.**

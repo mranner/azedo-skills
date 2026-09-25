@@ -568,7 +568,7 @@ Erklaert die zuletzt gegebene Antwort noch einmal, in Einfacher Sprache. Fuer de
 Nachrichten zwischen Claude-Code-Sessions ueber Remote Control, mit einem rudimentaeren Handshake. `SendMessage` weckt die Gegenseite nur auf - es gibt keine Zustellbestaetigung, und ob die andere Session zurueckschreibt, ist eine Entscheidung ihres Modells. Der Skill legt die Quittung deshalb in den **Nachrichtentext selbst**:
 
 - Vier Zeilenformen: `[bridge msg=<id> from=... reply=ack]`, `[bridge ack=<id>]`, `[bridge done=<id>] <Ergebnis>`, `[bridge wait=<id>] <was fehlt>`. `ack` (angekommen) und `done` (erledigt) sind getrennt, damit man bei einer langen Aufgabe nicht minutenlang im Ungewissen sitzt; `wait` haelt blockierte oder abgelehnte Aufgaben aus `done` heraus
-- Kopffelder `reply=none`, `reply=ack;done=objection`, `topic=` und `decision=relayed`; weitergereichte Freigaben fuer Versand nach aussen oder Irreversibles gibt es nicht
+- Kopffelder `reply=none`, `reply=ack;done=objection`, `re=` (Nachtrag), `topic=` und `decision=relayed`; `--reply` ist beim Senden Pflicht; weitergereichte Freigaben fuer Versand nach aussen oder Irreversibles gibt es nicht
 - Die Gegenseite braucht den Skill **nicht installiert** - die Anweisung steht im Klartext in der Nachricht. Ein Protokoll, das auf beiden Seiten konfiguriert sein muesste, versagte genau bei der fremden Maschine
 - `who` gibt die eigene **bridge-Session-ID** aus, die einzige stabile Adresse: Anzeigenamen werden bridge-seitig vergeben und aendern sich im Betrieb, der Name, unter dem sich eine Session selbst kennt, ist von aussen gar nicht adressierbar, und Refs aus `ListAgents` gelten nur innerhalb einer Auflistung
 - Die eigene Session wird ueber den **Prozessbaum** ab der eigenen PID aufgeloest, nicht ueber "die zuletzt geaenderte Datei" - das bleibt auch bei mehreren gleichzeitig laufenden Sessions richtig
@@ -659,12 +659,13 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.62.5
+### 1.62.6
 
-- **`wiki` - lint prüft Frontmatter-Verweise, status listet offene Artikel.**
-  Optionaler Eintrag `references` in der `wiki-schema.json`: je Feld (z.B.
-  `tests`, `config`) ein Regex mit `{name}` und eine Prüfquelle (Datei oder
-  Verzeichnis, relativ zum Projekt-Root). Ein Eintrag, der dort nicht mehr
-  vorkommt, ist ein Lint-Fehler - etwa nach dem Umbenennen eines Tests. Wikis
-  ohne den Eintrag verhalten sich wie bisher. `status` zeigt zusätzlich die
-  Artikel mit `status: offen`, ältester zuerst.
+- **`bridge` - Protokolltreue beim Senden.** `send` hat für `--reply` keinen
+  Default mehr und bricht ab, wenn der Wert fehlt. Bisher ging jede vergessene
+  Angabe als `reply=ack` hinaus und löste eine Runde aus ack und wait aus. Neu
+  ist `--re <msg-id>` für Nachträge: Kopf mit `re=<id>` und `reply=none`. In der
+  SKILL.md: `done` enthält nur das Ergebnis, Rückfragen gehen als eigene
+  Nachricht; eine unbekannte msg-id (Kontextwechsel hinter derselben Adresse)
+  wird mit `wait` und „msg-id unbekannt" beantwortet; `--relayed` steht als
+  eigener Absatz unter „Senden".
