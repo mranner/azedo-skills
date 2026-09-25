@@ -2,7 +2,7 @@
 
 # Image optimization for web usage
 # Tools: optipng, jpegoptim, GraphicsMagick (gm) or ImageMagick 7 (magick)
-# version 1.62.8
+# version 1.62.9
 
 import argparse
 import os
@@ -540,7 +540,6 @@ def cmd_resize(args):
 
         if args.dry_run:
             print(f"  DRY RUN: {' '.join(cmd)}")
-            written[outpath] = fpath.name
             continue
 
         r = subprocess.run(cmd, capture_output=True, text=True)

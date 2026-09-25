@@ -660,10 +660,8 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.62.8
+### 1.62.9
 
-- **`image-optimize` - neues Subcommand `crop`.** Schneidet auf eine exakte
-  Größe (`--size 1920x960`: erst auf Deckung skalieren, dann mittig zuschneiden)
-  oder ein Seitenverhältnis (`--ratio 2:1`: nur mittig zuschneiden). Braucht wie
-  `resize` GraphicsMagick oder ImageMagick 7; `--output`, `--dry-run` und
-  Exit-Code wie bei `resize`, Hochskalieren wird in der Ausgabe genannt.
+- **`image-optimize` - `resize --dry-run` brach mit `NameError` ab.** Im
+  Dry-Run-Zweig stand eine aus `convert` kopierte Zeile, die auf eine dort nicht
+  definierte Variable `written` schrieb (seit 1.43.0). Zeile entfernt.

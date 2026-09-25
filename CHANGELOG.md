@@ -3,6 +3,12 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.62.9
+
+- **`image-optimize` - `resize --dry-run` brach mit `NameError` ab.** Im
+  Dry-Run-Zweig stand eine aus `convert` kopierte Zeile, die auf eine dort nicht
+  definierte Variable `written` schrieb (seit 1.43.0). Zeile entfernt.
+
 ### 1.62.8
 
 - **`image-optimize` - neues Subcommand `crop`.** Schneidet auf eine exakte
