@@ -3,6 +3,13 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.62.7
+
+- **`wp-cli` - DB-Export einer Multisite-Subsite.** Hinweis im Multisite-Abschnitt:
+  die Tabellenliste mit `--all-tables-with-prefix` bilden, nicht mit
+  `--scope=blog`. Letzteres liefert nur die 15 WP-Kerntabellen und laesst die
+  Plugin-Tabellen der Subsite weg (bei einer Subsite 15 statt 104 Tabellen).
+
 ### 1.62.6
 
 - **`bridge` - Protokolltreue beim Senden.** `send` hat für `--reply` keinen

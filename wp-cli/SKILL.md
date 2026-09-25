@@ -391,6 +391,21 @@ wp search-replace 'alt' 'neu' --url=sub.example.com
 wp search-replace 'alt' 'neu' --all-tables
 ```
 
+**DB-Export einer Subsite:** Die Tabellenliste mit `--all-tables-with-prefix`
+bilden, nicht mit `--scope=blog`. `--scope=blog` liefert nur die WP-Kerntabellen
+der Subsite und laesst alle Plugin-Tabellen mit ihrem Prefix weg (WPML, Ninja
+Forms, Smart Slider, ...) - das Backup sieht vollstaendig aus und ist es nicht.
+Bei einer Subsite mit vielen Plugins standen 15 Tabellen gegen 104.
+
+```sh
+# FALSCH — nur die 15 Kerntabellen:
+wp db tables --url=sub.example.com --scope=blog
+
+# RICHTIG — alle Tabellen mit dem Prefix der Subsite (wp_5_*):
+wp db export /tmp/sub-$(date +%Y%m%d).sql \
+    --tables=$(wp db tables --url=sub.example.com --all-tables-with-prefix --format=csv)
+```
+
 ---
 
 ## 7. Performance-Flags

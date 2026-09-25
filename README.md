@@ -659,13 +659,9 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.62.6
+### 1.62.7
 
-- **`bridge` - Protokolltreue beim Senden.** `send` hat für `--reply` keinen
-  Default mehr und bricht ab, wenn der Wert fehlt. Bisher ging jede vergessene
-  Angabe als `reply=ack` hinaus und löste eine Runde aus ack und wait aus. Neu
-  ist `--re <msg-id>` für Nachträge: Kopf mit `re=<id>` und `reply=none`. In der
-  SKILL.md: `done` enthält nur das Ergebnis, Rückfragen gehen als eigene
-  Nachricht; eine unbekannte msg-id (Kontextwechsel hinter derselben Adresse)
-  wird mit `wait` und „msg-id unbekannt" beantwortet; `--relayed` steht als
-  eigener Absatz unter „Senden".
+- **`wp-cli` - DB-Export einer Multisite-Subsite.** Hinweis im Multisite-Abschnitt:
+  die Tabellenliste mit `--all-tables-with-prefix` bilden, nicht mit
+  `--scope=blog`. Letzteres liefert nur die 15 WP-Kerntabellen und laesst die
+  Plugin-Tabellen der Subsite weg (bei einer Subsite 15 statt 104 Tabellen).
