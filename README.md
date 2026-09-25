@@ -660,18 +660,11 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.63.0
+### 1.63.1
 
-- **`swaks` - Versand und Ablage in einem Aufruf.** `--send … --file-sent <konto>`
-  legt die versendete `.eml` nach erfolgreichem Versand in "Gesendet" und liest sie
-  per Message-ID zurück. Exit `0` heißt versendet und abgelegt, `1` nicht versendet,
-  `3` versendet, aber nicht abgelegt (mit `retry`-Befehl im JSON). Der separate
-  `imap append`-Schritt nach dem Versand entfällt.
-- **`swaks` - Entwurf statt Versand.** `--for-draft` beim Bau schreibt `--bcc` in den
-  Header, `--draft <eml> --account <konto>` legt die Mail mit `\Draft` und ungelesen
-  in die Entwürfe. `--send` verweigert eine `.eml` mit Bcc-Header.
-- **`mail-as-me` - `draft` heißt jetzt `write`, neues `draft` legt als Entwurf ab.**
-  Das Profil führt `send.account` und `draft.account` statt `send.bcc`: die
-  Bcc-Kopie an sich selbst entfällt, sie landete zusätzlich zur Ablage in "Gesendet".
-- **`imap` - `append` liest zurück.** Nach dem `APPEND` wird die Mail per Message-ID
-  gesucht; erst der Fund zählt als Erfolg, die UIDs stehen im Feld `uids`.
+- **`mail-as-me` - Profile aus der Zeit vor 1.63.0.** Fehlt `send.account` oder
+  `draft.account`, zeigt der Skill die Konten aus `imap accounts` zur Auswahl und
+  schreibt die Antwort ins Profil. Ein noch vorhandenes `send.bcc` wird nicht mehr
+  verwendet; der Skill weist einmal darauf hin und bietet an, es zu entfernen.
+- **Hinweis aus 1.63.0:** `/mail-as-me draft` legt die Mail jetzt als Entwurf ab
+  statt sie zu senden; Schreiben und Senden heißt `/mail-as-me write`.

@@ -241,6 +241,13 @@ Mail raus ist, belegt die Queue-ID, ob sie abgelegt ist, das Zuruecklesen nach d
 Ablage (CR4714). Ein Bcc an Dritte, das der Nutzer im Auftrag nennt, geht weiterhin
 mit.
 
+**Fehlt `send.account` bzw. `draft.account`**, nicht raten: die Konten aus
+`imap accounts` zur Auswahl zeigen und die Antwort ins Profil schreiben, damit die
+Frage nur einmal kommt. **Steht noch `send.bcc` im Profil** (aus der Zeit vor
+1.63.0), wird es nicht verwendet: einmal darauf hinweisen und anbieten, den
+Eintrag zu entfernen. Mitgeschickt landete die Kopie zusaetzlich zur Ablage in
+"Gesendet".
+
 **Regel:** Wird ein Entwurf aus `write`/`rewrite` versendet, wird `send` aus dem
 geladenen Profil gelesen und angewendet — ohne Rueckfrage, wie die Signatur. Eine
 Angabe des Nutzers im Auftrag ("schick das von X") hat Vorrang.

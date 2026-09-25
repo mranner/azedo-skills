@@ -3,6 +3,15 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.63.1
+
+- **`mail-as-me` - Profile aus der Zeit vor 1.63.0.** Fehlt `send.account` oder
+  `draft.account`, zeigt der Skill die Konten aus `imap accounts` zur Auswahl und
+  schreibt die Antwort ins Profil. Ein noch vorhandenes `send.bcc` wird nicht mehr
+  verwendet; der Skill weist einmal darauf hin und bietet an, es zu entfernen.
+- **Hinweis aus 1.63.0:** `/mail-as-me draft` legt die Mail jetzt als Entwurf ab
+  statt sie zu senden; Schreiben und Senden heißt `/mail-as-me write`.
+
 ### 1.63.0
 
 - **`swaks` - Versand und Ablage in einem Aufruf.** `--send … --file-sent <konto>`
@@ -13,7 +22,9 @@ Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version 
 - **`swaks` - Entwurf statt Versand.** `--for-draft` beim Bau schreibt `--bcc` in den
   Header, `--draft <eml> --account <konto>` legt die Mail mit `\Draft` und ungelesen
   in die Entwürfe. `--send` verweigert eine `.eml` mit Bcc-Header.
-- **`mail-as-me` - `draft` heißt jetzt `write`, neues `draft` legt als Entwurf ab.**
+- **`mail-as-me` - Verhaltensänderung: `draft` heißt jetzt `write`, neues `draft`
+  legt als Entwurf ab.** Wer bisher `/mail-as-me draft` zum Schreiben und Senden
+  verwendet hat, bekommt jetzt einen Entwurf im Postfach statt eines Versands.
   Das Profil führt `send.account` und `draft.account` statt `send.bcc`: die
   Bcc-Kopie an sich selbst entfällt, sie landete zusätzlich zur Ablage in "Gesendet".
 - **`imap` - `append` liest zurück.** Nach dem `APPEND` wird die Mail per Message-ID
