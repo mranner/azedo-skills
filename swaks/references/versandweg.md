@@ -1,5 +1,7 @@
 # swaks - Versandweg, Kontakte, Signatur
 
+**Inhalt:** Versandweg und Authentifizierung (Zugangsdaten, Fallback ohne muttrc) · Kontakte (`imap contacts`, `swaks-contacts.tsv`) · Signatur · Encoding
+
 Woher die Zugangsdaten kommen, Kontaktaufloesung, Signatur, Encoding.
 
 ## Versandweg und Authentifizierung

@@ -8,7 +8,7 @@ description: >
   messen und die Credential-Datei auf Form und Rechte pruefen, ohne sie
   auszugeben. Nutze diesen Skill wenn ein Git-Repo in die eigene Forge soll
   oder ein Push dorthin nicht funktioniert. Auch bei "nimm das Repo in Forgejo
-  auf", "adopt", "git.<domain> geht nicht", "could not read Username", "401
+  auf", "adopt", "git.DOMAIN geht nicht", "could not read Username", "401
   trotz frischem Token", "der Push haengt". Nicht zustaendig fuer GitHub und
   nicht fuer Issues oder Pull Requests - dafuer gibt es `fj` bzw. die
   Weboberflaeche. Trigger: /forgejo.

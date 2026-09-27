@@ -7,7 +7,7 @@ description: >
   zuweisen, Beschreibungen setzen, Unteraufgaben anlegen, Dateien anhängen,
   auflisten und herunterladen. Mehrere Instanzen über benannte Profile, der
   Issue-Key wählt die Instanz. Auch bei "schau in Jira", "welchen Status hat
-  <KEY>-123", "kommentier das Ticket", "setz das Issue auf ...".
+  KEY-123", "kommentier das Ticket", "setz das Issue auf ...".
   Trigger: /jira.
 ---
 

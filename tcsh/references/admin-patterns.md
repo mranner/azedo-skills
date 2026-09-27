@@ -1,5 +1,7 @@
 # tcsh - FreeBSD-Admin-Patterns
 
+**Inhalt:** Service-Management · Package-Management (pkg) · Log-Analyse · Netzwerk-Diagnose · Firewall (ipfw / pf) · Jail-Verwaltung · Disk / ZFS
+
 Fertige Befehlsmuster fuer die haeufigen Admin-Aufgaben.
 
 ### Service-Management

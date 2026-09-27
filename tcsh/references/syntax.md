@@ -1,5 +1,7 @@
 # tcsh - Syntax-Kurzreferenz
 
+**Inhalt:** tcsh-Syntax-Kurzreferenz (Variablen, Arithmetic, Redirection, Kontrollstrukturen, File-Tests, Vergleichsoperatoren, Aliases) · Bash → tcsh Uebersetzungstabelle
+
 Was in tcsh anders geschrieben wird als in bash.
 
 ## tcsh-Syntax-Kurzreferenz

@@ -5,7 +5,7 @@ description: >
   aus Claude Code, Loops und cron-Jobs. Nur ausgehend, keine Rückantwort -
   soll auf eine Antwort gewartet werden, ist telegram gemeint. Prioritäten,
   Sounds, Zusatz-Link, Bildanhang; Empfänger als benannte Aliase statt
-  Roh-Key. Auch bei "push mir eine Nachricht", "push <alias> eine Nachricht",
+  Roh-Key. Auch bei "push mir eine Nachricht", "push ALIAS eine Nachricht",
   "Push aufs Handy", "Alert nach Pushover".
   Trigger: /pushover, sowie natürlichsprachlich "push ...".
 ---

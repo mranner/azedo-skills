@@ -1,5 +1,7 @@
 # Projekte und Mitglieder - Subcommands
 
+**Inhalt:** Projekte, Spalten, User auflisten · Projekt-Verwaltung (Anlegen, Mitglieder, Owner) · Gruppen
+
 Projekte anlegen und löschen, Mitglieder und Rollen verwalten, Spalten und User auflisten.
 Aufruf durchgehend `python3 "$SKILL_DIR/kanboard" <subcommand>`.
 

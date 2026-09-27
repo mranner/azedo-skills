@@ -1,5 +1,7 @@
 # Preflight/Verify
 
+**Inhalt:** Drift ueber alle vier Ablagen — plus Zuordnung (Preflight-Script `nf-preflight.php`, fuenfte Pruefgroesse `parent_id` und Feldzahl)
+
 Das Ausfuehrungsrezept zur Verifikationsregel aus Abschnitt 2 der
 [SKILL.md](../SKILL.md): vor jedem Write und nach jedem Write laufen lassen.
 

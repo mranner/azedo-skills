@@ -3,6 +3,17 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.63.6
+
+- **Mehrere Skills - Aufbau nach Anthropics Skill-Leitfaden.** Elf Referenzdateien
+  über 100 Zeilen haben oben eine Inhaltszeile: `einfache-sprache` (drei),
+  `humanizer-de/decision-tables.md`, `imap/quote.md`, `kanboard/projekte.md`,
+  `kimai/stammdaten.md`, `swaks/versandweg.md`, `tcsh` (zwei) und
+  `wp-nf/preflight.md`. `humanizer-de/patterns.md` behält seine Kurzreferenz-Tabelle
+  als Einstieg. In den `description`-Feldern von `forgejo`, `jira` und `pushover`
+  stehen Platzhalter ohne spitze Klammern (`git.DOMAIN`, `KEY-123`, `ALIAS`), weil
+  der Leitfaden dort keine Tags zulässt.
+
 ### 1.63.5
 
 - **`wiki` - Aufbau nach Anthropics Skill-Leitfaden.** `compilation-guide.md` und

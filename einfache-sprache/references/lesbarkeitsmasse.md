@@ -1,5 +1,7 @@
 # Lesbarkeitsmaße: Formeln, Einordnung, Grenzen
 
+**Inhalt:** Was diese Formeln messen · Wiener Sachtextformel (WSTF) · LIX · Flesch-Reading-Ease (Amstad) · Die Silbenzählung ist eine Heuristik · Kurze Texte · Was der Skill zusätzlich misst · Vergleichsmessung
+
 ## Was diese Formeln messen - und was nicht
 
 Alle hier verwendeten Indizes rechnen mit denselben drei Größen: Satzlänge,

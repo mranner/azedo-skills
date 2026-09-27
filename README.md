@@ -661,11 +661,13 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.63.5
+### 1.63.6
 
-- **`wiki` - Aufbau nach Anthropics Skill-Leitfaden.** `compilation-guide.md` und
-  `frontmatter-schemas.md` stehen jetzt direkt in der Referenztabelle der
-  `SKILL.md`, statt nur über `subcommands.md` erreichbar zu sein. Die
-  `@datei.md`-Verweise dort sind normale Links, weil die Import-Syntax der
-  `CLAUDE.md` in Skill-Dateien nichts lädt. Alle fünf Referenzdateien haben oben
-  eine Inhaltszeile, damit auch ein Teil-Lesen den Umfang erkennt.
+- **Mehrere Skills - Aufbau nach Anthropics Skill-Leitfaden.** Elf Referenzdateien
+  über 100 Zeilen haben oben eine Inhaltszeile: `einfache-sprache` (drei),
+  `humanizer-de/decision-tables.md`, `imap/quote.md`, `kanboard/projekte.md`,
+  `kimai/stammdaten.md`, `swaks/versandweg.md`, `tcsh` (zwei) und
+  `wp-nf/preflight.md`. `humanizer-de/patterns.md` behält seine Kurzreferenz-Tabelle
+  als Einstieg. In den `description`-Feldern von `forgejo`, `jira` und `pushover`
+  stehen Platzhalter ohne spitze Klammern (`git.DOMAIN`, `KEY-123`, `ALIAS`), weil
+  der Leitfaden dort keine Tags zulässt.

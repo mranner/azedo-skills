@@ -1,5 +1,7 @@
 # Stammdaten — Subcommand-Referenz
 
+**Inhalt:** Projekte · Aktivitaeten · Stundensaetze (Rates, Vererbung) · Kunden · Benutzer · Tags · Teams
+
 Projekte, Aktivitaeten, Kunden, Benutzer, Tags und Teams.
 
 ## Projekte

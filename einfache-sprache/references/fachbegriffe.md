@@ -1,5 +1,7 @@
 # Fachbegriffe: behalten und erklären
 
+**Inhalt:** Vier Muster (Apposition, Definition vorweg, Klammer, Glossar) · Was wo hingehört · Rechtsbegriffe: die Fallen · Technische Begriffe: die andere Falle · Was nicht zählt
+
 Die naheliegende Vereinfachung ist, den Fachbegriff durch ein Alltagswort zu
 ersetzen. Das ist meistens falsch.
 

@@ -1,5 +1,7 @@
 # Normen, Rechtsrahmen, Abgrenzung
 
+**Inhalt:** Die drei Dokumente · Die vier Grundsätze der DIN ISO 24495-1 · Was DIN 8581-1 regelt · Abgrenzung zur Leichten Sprache · Rechtsrahmen (Deutschland) · Warum das für die Textarbeit zählt
+
 ## Die drei Dokumente
 
 | Dokument | Stand | Gegenstand |

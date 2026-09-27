@@ -1,5 +1,7 @@
 # imap - quote
 
+**Inhalt:** `quote` -- Zitatblock fuer eine Antwort (`--message-id` statt UID, `format=flowed`, `--format html`, `--json`)
+
 Zitatblock im Thunderbird-Format samt Threading-Headern.
 
 ## `quote` -- Zitatblock fuer eine Antwort
