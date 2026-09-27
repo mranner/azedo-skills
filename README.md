@@ -661,8 +661,9 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.63.3
+### 1.63.4
 
-- **`imap` - neuer Befehl `empty-trash`.** Leert den Papierkorb eines Kontos
-  endgültig (`\Deleted` + `UID EXPUNGE`). Ohne `--force` nur Probelauf mit Anzahl
-  und Exit 1, `-a` ist Pflicht. Gelöscht werden nur die beim Aufruf gezählten UIDs.
+- **`wiki` - Position neuer `log.md`-Einträge.** Die Schreibregeln verweisen auf
+  den Kopf von `log.md`, der die Sortierung festlegt. Bisher hieß es in `ingest`
+  und `compile` nur „Eintrag in `log.md` schreiben", und neue Einträge landeten
+  in einem absteigend sortierten Log am Dateiende.

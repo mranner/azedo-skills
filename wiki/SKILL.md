@@ -123,6 +123,10 @@ Gelten für **jedes** Schreiben ins Wiki (`compile`, `refactor`) und für `log.m
 in jedem Wiki. „Gegenstand" ist das, was der Artikel beschreibt - ein Server, ein
 Modul, eine Schnittstelle, ein Ablauf.
 
+**Wohin ein Eintrag in `log.md` gehört, steht im Kopf der Datei** - vor dem
+Schreiben lesen, nicht blind ans Ende hängen. Ist das Log „neueste zuerst"
+sortiert, landet ein angehängter Eintrag unter dem ältesten Tag.
+
 ### Aufnahmefilter: gehört das überhaupt hinein?
 
 Vier Fragen, **alle** müssen mit Ja beantwortet sein:

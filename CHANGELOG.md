@@ -3,6 +3,13 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.63.4
+
+- **`wiki` - Position neuer `log.md`-Einträge.** Die Schreibregeln verweisen auf
+  den Kopf von `log.md`, der die Sortierung festlegt. Bisher hieß es in `ingest`
+  und `compile` nur „Eintrag in `log.md` schreiben", und neue Einträge landeten
+  in einem absteigend sortierten Log am Dateiende.
+
 ### 1.63.3
 
 - **`imap` - neuer Befehl `empty-trash`.** Leert den Papierkorb eines Kontos
