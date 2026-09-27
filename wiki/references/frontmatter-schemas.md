@@ -2,6 +2,8 @@
 
 Vorlagen fuer alle Wiki-Entity-Typen. Beim Anlegen neuer Entities diese Templates verwenden.
 
+**Inhalt:** server · service · access · site · procedure · Pflichtfelder pro Typ · Optionale Vertrauensfelder (`verified`, `stale_after`, Abweichungen zur OKF-Referenz)
+
 Der Abschnitt `## Quellen` in den Vorlagen ist **optional**: er nimmt nur echte
 Rohquellen auf - die Datei unter `raw/`, ein externes Dokument, ein Ticket. Gibt
 es keine, faellt er ersatzlos weg. Keine Liste der eigenen Sessions und keine

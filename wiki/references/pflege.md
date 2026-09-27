@@ -2,6 +2,8 @@
 
 Aufgeblaehte Artikel finden und entflechten, Status, Handoff.
 
+**Inhalt:** audit · refactor (Zerlegen statt kürzen, Verdichten statt verschieben) · verified / stale_after setzen · status · handoff
+
 ### audit
 
 Das ganze Wiki nach aufgeblähten und historienlastigen Artikeln durchsuchen.

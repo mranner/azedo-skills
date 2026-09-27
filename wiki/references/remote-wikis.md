@@ -2,6 +2,8 @@
 
 Wikis anderer Hosts per SSH abfragen.
 
+**Inhalt:** Konfiguration `wiki-remotes.json` · Remotes anzeigen und eintragen · Lesen ueber SSH · Read-only erzwungen · Auf Entities anderer Wikis verweisen (Hints)
+
 ## Remote-Wikis (read-only)
 
 Ein Wiki, das auf einem **anderen Host** liegt, kann read-only abgefragt werden —

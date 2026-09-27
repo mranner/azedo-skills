@@ -2,6 +2,8 @@
 
 Anlegen, Einlesen, Kompilieren, Ernten, Abfragen, Pruefen.
 
+**Inhalt:** init · ingest · compile · harvest · query · lint (mit Schrumpf-Guard `--check-shrink`)
+
 ### init
 
 Neues Wiki-Unterverzeichnis anlegen.
@@ -83,9 +85,9 @@ Workflow:
 **Vor Schritt 2 gelten die [Schreibregeln](../SKILL.md#schreibregeln)** - Aufnahmefilter
 (gehört es überhaupt hinein), Dichtegebot und „aktualisieren heisst ersetzen".
 
-Detaillierte Compile-Regeln (Cross-Referencing, Compile-Checkliste): @compilation-guide.md
+Detaillierte Compile-Regeln (Cross-Referencing, Compile-Checkliste): [compilation-guide.md](compilation-guide.md)
 
-Entity-Templates (Infra-Modell; fuer Projekt-Wikis gilt deren `<WIKI_ROOT>/CLAUDE.md`): @frontmatter-schemas.md
+Entity-Templates (Infra-Modell; fuer Projekt-Wikis gilt deren `<WIKI_ROOT>/CLAUDE.md`): [frontmatter-schemas.md](frontmatter-schemas.md)
 
 ### harvest
 

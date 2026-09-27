@@ -115,6 +115,8 @@ Vollstaendige Referenz daneben, bei Bedarf lesen:
 |---|---|
 | `references/subcommands.md` | `init`, `ingest`, `compile`, `harvest`, `query`, `lint` |
 | `references/pflege.md` | `audit` (aufgeblaehte Artikel finden), `refactor` (Entity umbauen, verdichten statt verschieben), `status`, `handoff` |
+| `references/compilation-guide.md` | Compile-Regeln: Source-first, Entity-Extraktion, Duplikate, Cross-Referencing, Widersprüche, Compile-Checkliste |
+| `references/frontmatter-schemas.md` | Entity-Templates und Pflichtfelder je Typ (Infra-Modell), `verified`/`stale_after` |
 | `references/remote-wikis.md` | Wikis anderer Hosts read-only per SSH abfragen, Konfiguration, Hints auf Entities anderer Wikis (Nachbar-Wiki wie Remote) |
 
 ## Schreibregeln

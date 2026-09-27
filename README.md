@@ -661,9 +661,11 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.63.4
+### 1.63.5
 
-- **`wiki` - Position neuer `log.md`-Einträge.** Die Schreibregeln verweisen auf
-  den Kopf von `log.md`, der die Sortierung festlegt. Bisher hieß es in `ingest`
-  und `compile` nur „Eintrag in `log.md` schreiben", und neue Einträge landeten
-  in einem absteigend sortierten Log am Dateiende.
+- **`wiki` - Aufbau nach Anthropics Skill-Leitfaden.** `compilation-guide.md` und
+  `frontmatter-schemas.md` stehen jetzt direkt in der Referenztabelle der
+  `SKILL.md`, statt nur über `subcommands.md` erreichbar zu sein. Die
+  `@datei.md`-Verweise dort sind normale Links, weil die Import-Syntax der
+  `CLAUDE.md` in Skill-Dateien nichts lädt. Alle fünf Referenzdateien haben oben
+  eine Inhaltszeile, damit auch ein Teil-Lesen den Umfang erkennt.

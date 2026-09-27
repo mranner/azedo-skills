@@ -3,6 +3,15 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.63.5
+
+- **`wiki` - Aufbau nach Anthropics Skill-Leitfaden.** `compilation-guide.md` und
+  `frontmatter-schemas.md` stehen jetzt direkt in der Referenztabelle der
+  `SKILL.md`, statt nur über `subcommands.md` erreichbar zu sein. Die
+  `@datei.md`-Verweise dort sind normale Links, weil die Import-Syntax der
+  `CLAUDE.md` in Skill-Dateien nichts lädt. Alle fünf Referenzdateien haben oben
+  eine Inhaltszeile, damit auch ein Teil-Lesen den Umfang erkennt.
+
 ### 1.63.4
 
 - **`wiki` - Position neuer `log.md`-Einträge.** Die Schreibregeln verweisen auf

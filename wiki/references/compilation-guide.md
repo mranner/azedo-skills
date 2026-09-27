@@ -2,6 +2,8 @@
 
 Regeln fuer das Kompilieren von Quellen zu Wiki-Entities.
 
+**Inhalt:** Grundprinzipien · Entity-Extraktion · Duplikat-Pruefung · Cross-Referencing (Wikilinks, Backlink-Audit, Verlinkungsmuster) · Widersprueche · Index-Aktualisierung · Compile-Checkliste · Einträge in `log.md`
+
 ## Grundprinzipien
 
 1. **Source-first**: Jede Aussage im Wiki muss auf eine Quelle in `raw/` zurueckfuehrbar sein
