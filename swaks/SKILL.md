@@ -81,9 +81,10 @@ Abweichende Werte übernimmst du aus der Nutzeranfrage.
 **Kommt der Entwurf aus `mail-as-me`**, gelten nicht diese Defaults, sondern der
 `send`-Block aus dem Profil (`~/.claude/mail-as-me/<profil>/config.json`): `send.from`
 als Absender (Header **und** Envelope), `send.account` als Konto für
-`--file-sent`. Das ist ohne Rückfrage anzuwenden — eine Mail in der Stimme des
-Nutzers, die vom Default-Absender kommt, ist beim Empfänger falsch. Details im
-mail-as-me-Skill, Abschnitt „Versand".
+`--file-sent` (fehlt es, `send.bcc` als Bcc an beide Aufrufe, siehe „Ablage").
+Das ist ohne Rückfrage anzuwenden — eine Mail in der Stimme des Nutzers, die vom
+Default-Absender kommt, ist beim Empfänger falsch. Details im mail-as-me-Skill,
+Abschnitt „Versand".
 
 ## Arbeitsverzeichnis: pro Versand ein eigenes
 
@@ -159,7 +160,7 @@ python3 $B --subject … --to a@x --cc cc@x --bcc bcc@x … > $M/mail.eml
 python3 $B --send $M/mail.eml --to a@x --cc cc@x --bcc bcc@x --from <absender>
 ```
 
-  **Fehlt `--bcc` beim `--send`, geht die stille Kopie nicht raus** — die Mail wird trotzdem zugestellt, ohne Fehlermeldung (CR4623). Unbekannte Flags lehnt `--send` seit demselben CR mit Exit `2` ab, statt sie still zu schlucken. Eine Bcc-Kopie an sich selbst als Ablage ist nicht mehr vorgesehen, dafür gibt es `--file-sent`.
+  **Fehlt `--bcc` beim `--send`, geht die stille Kopie nicht raus** — die Mail wird trotzdem zugestellt, ohne Fehlermeldung (CR4623). Unbekannte Flags lehnt `--send` seit demselben CR mit Exit `2` ab, statt sie still zu schlucken. Eine Bcc-Kopie an sich selbst als Ablage ist nur noch der Fallback ohne IMAP-Konto, sonst gibt es dafür `--file-sent` (siehe „Ablage").
 - **Leerer Body / Bau-Fehler:** `build_mail.py` bricht mit Exit ≠ 0 ab, wenn Text *und* HTML leer sind. Deshalb **nie direkt in `swaks` pipen** — bei einem Bau-Fehler (Exit ≠ 0 oder Interpreter nicht gefunden) läuft `swaks` sonst auf leerem STDIN und sendet seine eingebaute Default-Test-Mail. Immer erst in eine Datei bauen und mit `&& test -s <datei> && swaks … --data @<datei>` absichern. `set -o pipefail` allein genügt **nicht**, da `swaks` in der Pipe trotzdem startet.
 - **`--data` braucht zwingend das `@`:** `swaks --data <datei>` liest die Datei **nicht**, sondern verschickt den **Pfad als Body-Text**. Es gibt keine Fehlermeldung — swaks quittiert mit `250 Ok`, zugestellt wird eine Mail ohne Betreff und ohne die gebauten Header, mit dem Dateinamen als einzigem Inhalt. Beim Empfänger sieht das nach Spam oder kompromittiertem Konto aus, und zurückholen lässt es sich nicht. Immer `--data @<datei>` schreiben. Gegenprobe direkt nach dem Versand: die `size=`-Angabe der Queue-ID im Maillog des Relays gegen die Größe der `.eml` halten — ein paar hundert Bytes statt einiger KB heißt, das `@` hat gefehlt.
 - **HTML-Part:** `--html-file` ist **optional**. Fehlt es, baut der Helper den HTML-Part aus dem Text (Leerzeilen werden `<p>`, einfache Umbrüche `<br>`). **Niemals dieselbe Datei an `--text-file` und `--html-file` geben** — der HTML-Part hätte dann kein einziges Tag und käme beim Empfänger als eine einzige Zeile an („in einer Wurst"), inklusive Tabellen und Kennwortlisten. Der Helper erkennt diesen Fall inzwischen, warnt auf stderr und wandelt um; die Warnung ist trotzdem ein Grund, den Aufruf zu korrigieren.
@@ -338,9 +339,13 @@ dem Feld `retry` ausführen. `$M/mail.eml` bleibt dafür liegen. Liegt dieselbe
 Message-ID schon im Ordner, schreibt `append` nichts (`duplicate: true`), ein
 wiederholter Lauf legt also keinen zweiten Eintrag an.
 
-Eine Bcc-Kopie an sich selbst als Ablage-Ersatz ist nicht mehr vorgesehen: sie
-belegt nur die Zustellung ins eigene Postfach, ob sie mitgeht, steht beim Versand
-fest, und sie landet zusätzlich zur Ablage in „Gesendet" (CR4714).
+Eine Bcc-Kopie an sich selbst als Ablage-Ersatz ist nur noch der Fallback, wenn
+das Profil kein `send.account` hat, etwa auf Rechnern ohne eingerichtete
+IMAP-Konten: dann geht `--bcc <send.bcc>` an **beide** Aufrufe, ohne Rückfrage.
+Neben `--file-sent` hat sie nichts verloren: sie belegt nur die Zustellung ins
+eigene Postfach, ob sie mitgeht, steht beim Versand fest, und sie landet
+zusätzlich zur Ablage in „Gesendet" (CR4714). Die Reihenfolge im Detail steht im
+mail-as-me-Skill, Abschnitt „write".
 
 **Als Entwurf ablegen statt senden:** mit `--for-draft` bauen, dann
 
@@ -373,7 +378,7 @@ Die vollstaendige Optionsreferenz liegt daneben und wird bei Bedarf gelesen:
 6. Befehl zusammenbauen und dem Nutzer kurz zeigen; auf Bestätigung warten – außer der Nutzer hat bereits „ja" gesagt oder den Versand klar angeordnet.
 7. **Vor dem Versand prüfen:** `--verify` auf die fertige `.eml`, mit `--expect-sha256` aus der `--sha-file` und einem `--expect-marker` aus dem freigegebenen Entwurf (siehe „Vor dem Versand prüfen"). Exit ≠ 0 heißt: nicht senden.
 8. **Senden:** `python3 $B --send $M/mail.eml --to … --from … --file-sent <konto>` als **eigener Befehl**, und **jedes `--cc`/`--bcc` aus Schritt 3 hier wiederholen** — der Envelope entsteht allein aus diesen Flags, ein vergessenes `--bcc` kostet die stille Kopie, ohne dass der Versand etwas meldet (nicht an die Prüfkette aus Schritt 7 hängen — sonst steht der Versand nicht am Befehlsanfang und ist von keiner Bash-Freigabe erreichbar). `--send` lädt den Versandweg selbst und prüft Exit-Code, `queued as` *und* die `^<.\*`-Zeile. Nur bei Exit `0` „versendet" melden, sonst den Fehlschlag mit Statuscode aus dem JSON nennen.
-9. **Ablegen:** geschieht mit `--file-sent <konto>` im selben Aufruf wie Schritt 8 (siehe „Ablage"). Bei Exit `3` nicht erneut senden, sondern den `retry`-Befehl ausführen. Nur beim Versand im Namen des Nutzers (`send.account` aus dem mail-as-me-Profil); eine Mail vom Default-Absender an den Nutzer wird nicht abgelegt, ohne Rückfrage.
+9. **Ablegen:** geschieht mit `--file-sent <konto>` im selben Aufruf wie Schritt 8 (siehe „Ablage"). Bei Exit `3` nicht erneut senden, sondern den `retry`-Befehl ausführen. Nur beim Versand im Namen des Nutzers (`send.account` aus dem mail-as-me-Profil; fehlt es, ersetzt `--bcc <send.bcc>` an Bau und Schritt 8 die Ablage); eine Mail vom Default-Absender an den Nutzer wird nicht abgelegt, ohne Rückfrage.
 10. **Erfolgsmeldung:** Queue-ID, übertragene Datei mit sha256 und Größe, Envelope-Empfänger (inkl. Bcc) und die Fundstelle der Kopie nennen (siehe „Was in der Erfolgsmeldung stehen muss").
 11. **Kontakt ergänzen:** Wenn eine neue E-Mail-Adresse verwendet wurde, die noch nicht in `.claude/swaks-contacts.tsv` steht, per `printf` anhängen. Existiert die Datei nicht, entsteht sie dabei — nur für Adressen, die ohne Thread wieder gebraucht werden; Thread-Adressen liefert `imap contacts` jederzeit neu.
 

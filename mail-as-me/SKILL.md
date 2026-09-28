@@ -77,8 +77,8 @@ python3 "$SKILL_DIR/extract.py" --input <ordner|datei> \
      Fall"). Achtung Fehlgriffe des Auto-Detects hier wegklicken.
    - Empfaenger/Domain → Register (`register_map`).
    - Versand-Identitaet: eigene Absenderadresse und die imap-Konten fuer
-     Gesendet und Entwuerfe (`send.from`, `send.account`, `draft.account`,
-     siehe unten).
+     Gesendet und Entwuerfe (`send.from`, `send.account`, `draft.account`;
+     ohne IMAP-Konto `send.bcc`, siehe unten).
 4. **Profil schreiben.** `config.json` aus dem Interview, `referenz.md` aus
    `templates/referenz.template.md` mit den abgeleiteten Markern + Beispiel-Index
    fuellen. Re-Run erweitert den Korpus (bestehende `clean/` bleiben).
@@ -236,17 +236,27 @@ Versand-Identitaet im Profil:
 
 `send.from` ist der Absender (fehlt er, gilt der swaks-Default). `send.account` und
 `draft.account` sind Aliase aus `imap accounts`: dort landet die Mail in "Gesendet"
-bzw. in den Entwuerfen. Eine Bcc-Kopie an sich selbst gibt es nicht mehr: ob die
-Mail raus ist, belegt die Queue-ID, ob sie abgelegt ist, das Zuruecklesen nach der
-Ablage (CR4714). Ein Bcc an Dritte, das der Nutzer im Auftrag nennt, geht weiterhin
-mit.
+bzw. in den Entwuerfen. Eine Bcc-Kopie an sich selbst gibt es nur noch als
+Fallback ohne IMAP-Konto (siehe unten): ob die Mail raus ist, belegt die Queue-ID,
+ob sie abgelegt ist, das Zuruecklesen nach der Ablage (CR4714). Ein Bcc an Dritte,
+das der Nutzer im Auftrag nennt, geht weiterhin mit.
 
-**Fehlt `send.account` bzw. `draft.account`**, nicht raten: die Konten aus
-`imap accounts` zur Auswahl zeigen und die Antwort ins Profil schreiben, damit die
-Frage nur einmal kommt. **Steht noch `send.bcc` im Profil** (aus der Zeit vor
-1.63.0), wird es nicht verwendet: einmal darauf hinweisen und anbieten, den
-Eintrag zu entfernen. Mitgeschickt landete die Kopie zusaetzlich zur Ablage in
-"Gesendet".
+Welche Kopie der versendeten Mail entsteht, entscheidet das Profil in dieser
+Reihenfolge:
+
+1. **`send.account` gesetzt:** `--file-sent <send.account>`. Steht daneben noch
+   `send.bcc` im Profil (aus der Zeit vor 1.63.0), wird es nicht verwendet: einmal
+   darauf hinweisen und anbieten, den Eintrag zu entfernen. Mitgeschickt landete
+   die Kopie zusaetzlich zur Ablage in "Gesendet".
+2. **Kein `send.account`, aber `send.bcc`:** Bcc an die Adresse aus `send.bcc`, an
+   **beide** Aufrufe (Bau und `--send`), ohne Rueckfrage. Das ist der Weg auf
+   Rechnern ohne eingerichtete IMAP-Konten (`imap accounts` leer).
+3. **Weder noch:** nicht raten. Liefert `imap accounts` Konten, sie zur Auswahl
+   zeigen und die Antwort als `send.account` ins Profil schreiben, damit die Frage
+   nur einmal kommt. Ist die Liste leer, nach einer Adresse fuer `send.bcc` fragen.
+
+Fehlt `draft.account`, gilt Schritt 3 sinngemaess; ohne IMAP-Konto gibt es keine
+Entwurfsablage.
 
 **Regel:** Wird ein Entwurf aus `write`/`rewrite` versendet, wird `send` aus dem
 geladenen Profil gelesen und angewendet — ohne Rueckfrage, wie die Signatur. Eine
@@ -285,6 +295,9 @@ und liest sie per Message-ID zurueck. Exit `0` heisst gesendet **und** abgelegt,
 `1` nicht gesendet (und nichts abgelegt), `3` gesendet, aber nicht abgelegt. Bei
 `3` dem Nutzer genau das sagen und den Befehl aus dem Feld `retry` nennen;
 `$M/mail.eml` bleibt dafuer liegen. Details im swaks-Skill, Abschnitt „Ablage".
+
+Ohne `send.account` (Fallback `send.bcc`, siehe oben) statt `--file-sent` an
+beide Aufrufe `--bcc <send.bcc>` haengen; Exit `3` gibt es dann nicht.
 
 **Kein fester Pfad wie `.tmp/mail.eml`, und die `--verify`-Zeile gehoert dazu.**
 Eine parallel laufende Session schreibt sonst dieselbe Datei, und der Versand

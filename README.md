@@ -661,13 +661,11 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.63.6
+### 1.63.7
 
-- **Mehrere Skills - Aufbau nach Anthropics Skill-Leitfaden.** Elf Referenzdateien
-  über 100 Zeilen haben oben eine Inhaltszeile: `einfache-sprache` (drei),
-  `humanizer-de/decision-tables.md`, `imap/quote.md`, `kanboard/projekte.md`,
-  `kimai/stammdaten.md`, `swaks/versandweg.md`, `tcsh` (zwei) und
-  `wp-nf/preflight.md`. `humanizer-de/patterns.md` behält seine Kurzreferenz-Tabelle
-  als Einstieg. In den `description`-Feldern von `forgejo`, `jira` und `pushover`
-  stehen Platzhalter ohne spitze Klammern (`git.DOMAIN`, `KEY-123`, `ALIAS`), weil
-  der Leitfaden dort keine Tags zulässt.
+- **`mail-as-me`, `swaks` - `send.bcc` als Fallback ohne IMAP-Konto.** Hat das
+  Profil kein `send.account`, geht die Kopie der versendeten Mail wieder als Bcc
+  an die Adresse aus `send.bcc`, an Bau und `--send`, ohne Rückfrage. Seit 1.63.0
+  fiel auf Rechnern ohne eingerichtete IMAP-Konten jede Kopie weg, und der Skill
+  fragte nach einem Konto, das es nicht gibt. Neben `send.account` bleibt
+  `send.bcc` ungenutzt.
