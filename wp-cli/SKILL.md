@@ -86,32 +86,8 @@ sudo ssh -C root@<server> "jexec <JID> sudo -u <wwwuser> wp --path=/www/home/<ww
 
 ### wp db (braucht MySQL-Client im Jail)
 
-```sh
-# Export (immer mit Dateiname + Datum)
-wp db export /tmp/backup-$(date +%Y%m%d-%H%M%S).sql
-
-# Import
-wp db export /tmp/backup-before-import.sql   # IMMER zuerst Backup
-wp db import dump.sql
-
-# SQL-Query ausfuehren
-wp db query "SELECT option_value FROM wp_options WHERE option_name = 'siteurl'"
-
-# Tabellen anzeigen
-wp db tables
-
-# Suche in der Datenbank
-wp db search "suchbegriff" --all-tables
-
-# Regex-Suche
-wp db search "pattern" --regex
-
-# Datenbank optimieren
-wp db optimize
-
-# Datenbank reparieren
-wp db repair
-```
+Vor `wp db import` immer zuerst `wp db export` mit Datum im Dateinamen. Die
+uebrigen `wp db`-Befehle stehen in `references/befehle.md`.
 
 ### Kein MySQL-Client? → wp eval als Workaround
 
@@ -152,37 +128,11 @@ wp cache flush
 
 ## 3. Code-Ausfuehrung im WordPress-Kontext
 
-### wp eval — PHP-Einzeiler
-
-WordPress ist vollstaendig geladen (Plugins, Theme, alle Hooks).
-
-```sh
-# Option abfragen
-wp eval 'echo get_option("siteurl");'
-
-# Aktives Theme
-wp eval 'echo wp_get_theme()->get("Name");'
-
-# Anzahl veroeffentlichter Posts
-wp eval 'echo wp_count_posts()->publish;'
-
-# Transient loeschen
-wp eval 'delete_transient("mein_transient");'
-
-# Alle User mit Rolle administrator auflisten
-wp eval '$users = get_users(["role" => "administrator"]); foreach($users as $u) echo $u->user_login . " - " . $u->user_email . "\n";'
-```
-
-### wp eval-file — PHP-Datei ausfuehren
-
-Fuer komplexere Logik. Die Datei wird mit geladenem WordPress ausgefuehrt.
-
-```sh
-# Datei auf den Server uebertragen, dann ausfuehren
-wp eval-file /tmp/mein-script.php
-```
-
-Typische Anwendung: Daten-Migration, Bulk-Updates, Debugging von Plugin-Problemen.
+`wp eval '<php>'` und `wp eval-file <datei>` laufen mit vollstaendig geladenem
+WordPress. Komplexe Ausdruecke als Datei ablegen und per `wp eval-file`
+ausfuehren, statt sie durch drei Quoting-Ebenen zu schicken. Beispiele und die
+Ausgabe-Flags (`--format`, `--fields`, `--skip-plugins`) stehen in
+`references/befehle.md`.
 
 ### wp shell — Interaktive REPL
 
@@ -194,22 +144,7 @@ wp shell
 
 ---
 
-## 4. Performance-Flags
-
-| Flag | Wirkung |
-|------|---------|
-| `--format=json` | Maschinenlesbare Ausgabe (fuer Weiterverarbeitung mit `jq`) |
-| `--format=ids` | Nur IDs ausgeben (fuer Piping) |
-| `--format=csv` | CSV-Ausgabe (fuer Export) |
-| `--format=table` | Tabelle (Default, gut lesbar) |
-| `--fields=ID,user_login` | Nur bestimmte Spalten |
-| `--skip-plugins` | Plugins nicht laden (schneller, umgeht fatale Fehler) |
-| `--skip-themes` | Themes nicht laden |
-| `--quiet` | Keine Info-Ausgabe |
-
----
-
-## 5. Safety
+## 4. Safety
 
 1. **Backup vor destruktiven Operationen** — Immer `wp db export` ausfuehren vor: `wp db import`, `wp search-replace` (ohne --dry-run), `wp core update`, Bulk-Loeschungen
 2. **Dry-Run zuerst** — `wp search-replace` immer zuerst mit `--dry-run` ausfuehren, Ergebnis dem User zeigen, erst nach Bestaetigung ohne `--dry-run`
@@ -219,9 +154,9 @@ wp shell
 
 ---
 
-## 6. Workflow
+## 5. Workflow
 
-1. **Server und Jail ermitteln** — Aus dem Kontext oder beim User nachfragen: Server (z.B. `webhost1.example.at`), Jail-Typ (ezjail/iocage), Jail-ID/Name, wwwuser, Domain/Pfad. Siehe `server/overview.md` fuer Details
+1. **Server und Jail ermitteln** — Aus dem Kontext oder beim User nachfragen: Server (z.B. `webhost1.example.at`), Jail-Typ (ezjail/iocage), Jail-ID/Name, wwwuser, Domain/Pfad.
 2. **Befehl zusammenbauen** — Mit dem passenden Zugriffs-Template (ezjail/iocage) aus Abschnitt 1
 3. **Bei destruktiven Operationen** — Befehl dem User zeigen und Bestaetigung abwarten
 4. **Ausfuehren** — Befehl via Bash ausfuehren
@@ -229,13 +164,13 @@ wp shell
 
 ---
 
-## 7. Referenzen
+## 6. Referenzen
 
 Bei Bedarf lesen:
 
 | Datei | Inhalt |
 |---|---|
-| `references/befehle.md` | Befehle nach Bereich (Plugins, Themes, Users, Options, Cache, Cron, Core, Wartung, Posts) und Bulk-Operationen |
+| `references/befehle.md` | Befehle nach Bereich (Datenbank, Plugins, Themes, Users, Options, Cache, Cron, Core, Wartung, Posts), Bulk-Operationen, `wp eval`-Beispiele, Ausgabe-Flags |
 | `references/multisite.md` | Multisite: `--url`, Optionen in `sitemeta`, Custom-Tabellen, DB-Export einer Subsite |
 | `references/troubleshooting.md` | typische Fehlermeldungen mit Ursache und Loesung |
 

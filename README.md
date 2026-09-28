@@ -661,13 +661,11 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.63.10
+### 1.63.11
 
-- **`wp-cli` - Aufbau nach Anthropics Skill-Leitfaden.** Die iocage-Vorlage und
-  ihr Beispiel lauten jetzt `iocage exec -U <wwwuser> <jail> -- wp …`; die
-  bisherige Form mit `sudo -u` hinter dem Jail-Namen verlor das `-u <wwwuser>`
-  an `iocage exec`. Befehlsreferenz und Bulk-Operationen stehen in
-  `references/befehle.md`, Multisite in `references/multisite.md`,
-  Troubleshooting in `references/troubleshooting.md`; die SKILL.md fällt von 457
-  auf 246 Zeilen. Ein neuer Abschnitt „Referenzen" nennt die Dateien und
-  verlangt bei einer Multisite, `multisite.md` vor dem ersten Befehl zu lesen.
+- **`wp-cli` - allgemeines wp-cli-Wissen in die Referenz.** Die `wp db`-Befehle,
+  die `wp eval`-Beispiele und die Ausgabe-Flags stehen jetzt in
+  `references/befehle.md`; in der SKILL.md bleibt, was die Jail-Umgebung betrifft
+  (Backup vor Import, `eval-file` statt drei Quoting-Ebenen, `wp shell` nur per
+  Konsole). Der Workflow verweist nicht mehr auf die nicht vorhandene
+  `server/overview.md`. Die SKILL.md fällt von 246 auf 181 Zeilen.

@@ -3,6 +3,15 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.63.11
+
+- **`wp-cli` - allgemeines wp-cli-Wissen in die Referenz.** Die `wp db`-Befehle,
+  die `wp eval`-Beispiele und die Ausgabe-Flags stehen jetzt in
+  `references/befehle.md`; in der SKILL.md bleibt, was die Jail-Umgebung betrifft
+  (Backup vor Import, `eval-file` statt drei Quoting-Ebenen, `wp shell` nur per
+  Konsole). Der Workflow verweist nicht mehr auf die nicht vorhandene
+  `server/overview.md`. Die SKILL.md fällt von 246 auf 181 Zeilen.
+
 ### 1.63.10
 
 - **`wp-cli` - Aufbau nach Anthropics Skill-Leitfaden.** Die iocage-Vorlage und

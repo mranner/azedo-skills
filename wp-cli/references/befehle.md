@@ -2,6 +2,35 @@
 
 Allgemeine WP-CLI-Befehle nach Bereich. Aufruf im Jail immer mit dem Zugriffs-Template aus SKILL.md, Abschnitt 1.
 
+## Datenbank (wp db)
+
+```sh
+# Export (immer mit Dateiname + Datum)
+wp db export /tmp/backup-$(date +%Y%m%d-%H%M%S).sql
+
+# Import
+wp db export /tmp/backup-before-import.sql   # IMMER zuerst Backup
+wp db import dump.sql
+
+# SQL-Query ausfuehren
+wp db query "SELECT option_value FROM wp_options WHERE option_name = 'siteurl'"
+
+# Tabellen anzeigen
+wp db tables
+
+# Suche in der Datenbank
+wp db search "suchbegriff" --all-tables
+
+# Regex-Suche
+wp db search "pattern" --regex
+
+# Datenbank optimieren
+wp db optimize
+
+# Datenbank reparieren
+wp db repair
+```
+
 ## Plugins
 
 ```sh
@@ -131,3 +160,48 @@ wp comment delete $(wp comment list --status=spam --format=ids) --force
 # Alle Transients loeschen (Performance-Probleme)
 wp transient delete --all
 ```
+
+## wp eval — PHP-Einzeiler
+
+WordPress ist vollstaendig geladen (Plugins, Theme, alle Hooks).
+
+```sh
+# Option abfragen
+wp eval 'echo get_option("siteurl");'
+
+# Aktives Theme
+wp eval 'echo wp_get_theme()->get("Name");'
+
+# Anzahl veroeffentlichter Posts
+wp eval 'echo wp_count_posts()->publish;'
+
+# Transient loeschen
+wp eval 'delete_transient("mein_transient");'
+
+# Alle User mit Rolle administrator auflisten
+wp eval '$users = get_users(["role" => "administrator"]); foreach($users as $u) echo $u->user_login . " - " . $u->user_email . "\n";'
+```
+
+## wp eval-file — PHP-Datei ausfuehren
+
+Fuer komplexere Logik. Die Datei wird mit geladenem WordPress ausgefuehrt.
+
+```sh
+# Datei auf den Server uebertragen, dann ausfuehren
+wp eval-file /tmp/mein-script.php
+```
+
+Typische Anwendung: Daten-Migration, Bulk-Updates, Debugging von Plugin-Problemen.
+
+## Performance-Flags
+
+| Flag | Wirkung |
+|---|---|
+| `--format=json` | Maschinenlesbare Ausgabe (fuer Weiterverarbeitung mit `jq`) |
+| `--format=ids` | Nur IDs ausgeben (fuer Piping) |
+| `--format=csv` | CSV-Ausgabe (fuer Export) |
+| `--format=table` | Tabelle (Default, gut lesbar) |
+| `--fields=ID,user_login` | Nur bestimmte Spalten |
+| `--skip-plugins` | Plugins nicht laden (schneller, umgeht fatale Fehler) |
+| `--skip-themes` | Themes nicht laden |
+| `--quiet` | Keine Info-Ausgabe |
