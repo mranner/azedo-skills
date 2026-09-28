@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # stdlib only, no pip dependencies
-# version 1.63.11
+# version 1.63.12
 
 """
 lint-wiki.py — Strukturpruefung fuer LLM Wikis (Infra + Projekt-Doku).
@@ -16,6 +16,7 @@ Prueft:
 - Optionale Vertrauensfelder verified/stale_after (Format, Ablauf)
 - Optional: Frontmatter-Verweise (z.B. tests, config) gegen ihre Pruefquelle,
   konfiguriert unter "references" in wiki-schema.json
+- Abschnittsverweise ([[x]], Abschnitt Y / Y-Abschnitt): gibt es Y in x noch?
 - Mit --check-shrink: was eine Aktualisierung gegenueber git HEAD verloren hat
 
 Praefix-Pointer [[<praefix>:<slug>]] werden in dieser Reihenfolge aufgeloest:
@@ -208,6 +209,46 @@ def find_headings(text):
         if m:
             out.append(m.group(1))
     return out
+
+
+# Verweis auf einen Abschnitt eines anderen Artikels. Formen im Bestand:
+#   [[x]], Abschnitt Double-Hop      [[x]], Abschnitt „Lokale UCEPROTECT-Mirrors"
+#   [[x]] (Double-Hop-Abschnitt)
+# Ein Name in Anfuehrungszeichen darf ueber den Zeilenumbruch laufen, ein
+# nackter endet am Satzzeichen. Beschreibende Nennungen ("Abschnitt zu
+# `localhost` in Jails") sind keine Namen und werden nicht geprueft.
+SECTION_REF_PATTERNS = (
+    re.compile(r"\[\[([^\]|]+?)\]\],?\s*\(?Abschnitt\s+[„\"»]([^\"“«]+)[\"“«]"),
+    re.compile(r"\[\[([^\]|]+?)\]\],?\s*\(?Abschnitt\s+(?!(?:zu|zum|zur|über|ueber|oben|unten)\b)([^.,;:)\n\"„“«»]+)"),
+    re.compile(r"\[\[([^\]|]+?)\]\]\s*\(([^()\n]+?)-Abschnitt\)"),
+)
+
+
+def normalize_heading(text):
+    """Ueberschrift oder Abschnittsnennung ohne Markup, klein geschrieben."""
+    return re.sub(r"[`*„“\"»«]", "", text).strip().lower()
+
+
+def find_section_refs(text):
+    """(ziel, abschnitt) fuer jeden Abschnittsverweis im Fliesstext."""
+    # Nur Codebloecke entfernen: Inline-Code gehoert oft zum Abschnittsnamen.
+    prose = CODE_FENCE_PATTERN.sub("", text)
+    refs = set()
+    for pattern in SECTION_REF_PATTERNS:
+        for m in pattern.finditer(prose):
+            refs.add((m.group(1), " ".join(m.group(2).split())))
+    return sorted(refs)
+
+
+def section_exists(section, headings):
+    """Nennt eine Ueberschrift des Ziels den Abschnitt?
+
+    Genannt wird oft eine Kurzform ("Double-Hop" fuer "Double-Hop: SSH ueber
+    Gateway ..."), deshalb reicht es, wenn alle Woerter der Nennung in einer
+    Ueberschrift stehen.
+    """
+    words = [w for w in re.split(r"[\s/]+", normalize_heading(section)) if w]
+    return any(all(w in normalize_heading(h) for w in words) for h in headings)
 
 
 def find_dated_headings(text):
@@ -430,6 +471,29 @@ def git_show(repo_root, ref, rel_path):
     return res.stdout if res.returncode == 0 else None
 
 
+def repointed_links(old_body, new_body):
+    """Links, die an ihrer Stelle durch einen anderen Link ersetzt wurden.
+
+    Beim Zerlegen eines Artikels werden eingehende Verweise umgehaengt: aus
+    "siehe [[a]]" wird "siehe [[b]]". Das ist kein Verlust, sondern der Zweck.
+    Erkannt wird es zeilenweise: steht in einem geaenderten Zeilenblock ein Link
+    weniger und dafuer ein neuer, gilt der alte als umgehaengt.
+    """
+    import difflib
+    old_lines = strip_code(old_body).splitlines()
+    new_lines = strip_code(new_body).splitlines()
+    moved = set()
+    matcher = difflib.SequenceMatcher(None, old_lines, new_lines, autojunk=False)
+    for op, i1, i2, j1, j2 in matcher.get_opcodes():
+        if op != "replace":
+            continue
+        before = set(WIKILINK_PATTERN.findall("\n".join(old_lines[i1:i2])))
+        after = set(WIKILINK_PATTERN.findall("\n".join(new_lines[j1:j2])))
+        if after - before:
+            moved |= before - after
+    return moved
+
+
 def check_shrink(old_text, new_text):
     """Was eine Aktualisierung an Inventar verloren hat.
 
@@ -456,7 +520,10 @@ def check_shrink(old_text, new_text):
         more = f" (und {len(lost_headings) - 5} weitere)" if len(lost_headings) > 5 else ""
         found.append(f"Abschnitt entfernt: {shown}{more}")
 
-    lost_links = sorted(set(find_wikilinks(old_body)) - set(find_wikilinks(new_body)))
+    lost_links = sorted(
+        set(find_wikilinks(old_body)) - set(find_wikilinks(new_body))
+        - repointed_links(old_body, new_body)
+    )
     if lost_links:
         shown = ", ".join(f"[[{t}]]" for t in lost_links[:5])
         more = f" (und {len(lost_links) - 5} weitere)" if len(lost_links) > 5 else ""
@@ -595,6 +662,20 @@ def lint_wiki(wiki_root, check_remotes=False, check_shrink_flag=False):
                 remote_pointers.append((slug, rp[0], rp[1]))
                 continue
             errors.append(f"{articles[slug]['rel_path']}: Toter Wikilink [[{target}]] — Ziel existiert nicht")
+
+    # Abschnittsverweise: das Ziel existiert, der genannte Abschnitt vielleicht
+    # nicht mehr. Nach dem Zerlegen eines Sammelartikels zeigen solche Verweise
+    # weiter auf den Rumpf, waehrend das Thema laengst in einem neuen Artikel
+    # steht - der Link selbst ist nicht tot und faellt deshalb sonst nicht auf.
+    for slug, info in articles.items():
+        for target, section in find_section_refs(info["body"]):
+            if target not in articles:
+                continue
+            if not section_exists(section, find_headings(articles[target]["body"])):
+                warnings.append(
+                    f"{info['rel_path']}: Abschnittsverweis [[{target}]] \"{section}\" — "
+                    f"diesen Abschnitt gibt es dort nicht (mehr); Verweis auf den neuen Ort umhaengen"
+                )
 
     # Tote Links in log.md und index.md. Beide liegen eine Ebene ueber wiki/ und
     # sind damit nicht in der Sammlung oben — sie stehen aber voller Wikilinks.

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # stdlib only, no pip dependencies
-# version 1.63.11
+# version 1.63.12
 
 """
 audit-wiki.py — misst Aufblähung und überholte Historie in LLM-Wikis.
@@ -14,8 +14,10 @@ einem Aufrufproblem (2).
 Gemessen wird je Artikel:
 - Zeilen relativ zum p90 des eigenen Entity-Typs (eine access-Entity mit 90
   Zeilen ist auffällig, eine procedure mit 90 Zeilen ist normal)
-- Historie-Dichte: Datumsangaben, "Session", CR-Nummern — im ganzen Artikel,
-  "## Quellen" eingeschlossen
+- Historie-Dichte: Datumsangaben, "Session", "inzwischen" u.ae. — im ganzen
+  Artikel, "## Quellen" eingeschlossen. Nicht gezaehlt werden Belege (Datum
+  neben "verifiziert", "gemessen" ...), Ticket- und Revisionsnummern sowie
+  Codebloecke und Tabellen, wo Daten Beispiel- oder Fixture-Werte sind
 - Logbuch: datierte Aufzaehlungspunkte unter "## Quellen". Dort gehoert die
   Rohquelle hin, nicht die Chronologie der eigenen Sessions
 - typfremder Inhalt: Codeblöcke und FALSCH/RICHTIG-Rezepte in server-, service-,
@@ -26,10 +28,13 @@ Gemessen wird je Artikel:
   Artikel — Hinweis darauf, dass hier mehrere Gegenstaende unter einem Namen
   stehen und nicht ein Gegenstand zu ausfuehrlich beschrieben ist
 - Strukturtiefe: Anzahl H3 und Verschachtelung ab H4 (Punkte nur mit Befund)
+- Personendaten: persoenliche E-Mail-Adressen (vorname.nachname@) und
+  Benutzernamen-Literale, die im Wiki durch eine Rolle ersetzt gehoeren
 
 Zusätzlich schlägt das Script je auffälligem Artikel bestehende Procedures als
-Verschiebeziel vor (Wortüberlappung Überschrift ↔ Procedure-Slug). Das ist ein
-Hinweis für die anschliessende Handarbeit, keine Entscheidung.
+Verschiebeziel vor (Wortüberlappung Überschrift ↔ Procedure-Slug, mit den
+gemeinsamen Wörtern in der Ausgabe). Das ist ein Hinweis für die anschliessende
+Handarbeit, keine Entscheidung.
 
 Aufruf: python3 audit-wiki.py [--type <typ>] [--path <teilpfad>]
                               [--top <n>] [--all] [--json] <wiki-root>
@@ -69,10 +74,22 @@ DATE_PATTERN = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
 HISTORY_PATTERN = re.compile(
     # "Session" zaehlt nur als Logbuch-Marke, also mit anhaengendem Datum.
     # Blank getroffen wuerde sonst jeder Artikel ueber SSH, Shells oder Jails,
-    # wo "Session" schlicht Fachvokabular ist.
-    r"\b\d{4}-\d{2}-\d{2}\b|\bSession\s+\d{4}-\d{2}-\d{2}|\bCR\d{3,5}\b|\bseit\s+\d{4}\b|\binzwischen\b|\bfrüher\b|\bmittlerweile\b|\bdamals\b",
+    # wo "Session" schlicht Fachvokabular ist. Ticket- (CR####) und
+    # Revisionsnummern (r#####) zaehlen nicht: sie sind der Beleg zu einer
+    # Aussage, keine Chronologie - im CRIS-Wiki machten sie die Haelfte der
+    # Top-Befunde zu Fehlalarmen.
+    r"\b\d{4}-\d{2}-\d{2}\b|\bSession\s+\d{4}-\d{2}-\d{2}|\bseit\s+\d{4}\b|\binzwischen\b|\bfrüher\b|\bmittlerweile\b|\bdamals\b",
     re.I,
 )
+
+# Ein Datum direkt nach einem dieser Woerter ist ein Beleg ("verifiziert
+# 2026-07-28 auf fry") - die Schreibregeln verlangen genau diese Form. Es
+# beschreibt keinen Zustand, der veralten kann, und zaehlt deshalb nicht.
+EVIDENCE_PATTERN = re.compile(
+    r"(verifiziert|gemessen|entschieden|bestätigt|bestaetigt|geprüft|geprueft|getestet)\W+(?:\w+\W+){0,3}$",
+    re.I,
+)
+EVIDENCE_WINDOW = 45
 RECIPE_PATTERN = re.compile(r"^#\s*(FALSCH|RICHTIG|WIRKUNGSLOS|GEFÄHRLICH|GEFAEHRLICH)\b", re.M)
 QUELLEN_PATTERN = re.compile(r"^##+\s+Quellen\s*$", re.M | re.I)
 
@@ -97,6 +114,26 @@ PATH_PATTERN = re.compile(r"\S*/\S*")
 
 # Woerter, die in fast jeder Ueberschrift stehen und deshalb keine Aussage ueber
 # das Thema treffen — beim Abgleich Ueberschrift <-> Procedure-Slug ignoriert.
+# Persoenliche E-Mail-Adressen: vorname.nachname@ oder v.nachname@. Funktions-
+# adressen (hostmaster@, double-bounce@, abteilung-ort@) und Platzhalter (<user>@,
+# example.*) bleiben aussen vor. Dazu Benutzernamen als Literal in Zuweisungen
+# (username: mmuster); der Wert muss klein beginnen, sonst trifft "login: Error".
+PERSONAL_MAIL_PATTERN = re.compile(r"(?<![\w.-])[a-z]+\.[a-z]{2,}@([a-z0-9-]+\.)+[a-z]{2,}\b", re.I)
+EXAMPLE_DOMAIN_PATTERN = re.compile(r"@(example|beispiel|domain|firma)\.", re.I)
+USERNAME_LITERAL_PATTERN = re.compile(
+    r"(?<![\w-])(?i:user_?name|user_login|login)\s*[:=]\s*[\"']?([a-z][a-z0-9._-]{2,})\b"
+)
+
+# Entity-Typen, deren Bauform gleichrangige H2 sind: eine API-Referenz hat einen
+# Abschnitt je Endpunktgruppe. MEHRTHEMIG waere dort Fehlalarm.
+MULTI_TOPIC_EXEMPT = {"reference"}
+
+# Mindestzahl seltener Woerter (in hoechstens 3 % der Artikel), die ein
+# Abschnitt mit einer Procedure teilen muss, damit ein einzelnes gemeinsames
+# Ueberschriftswort als Verschiebeziel gilt.
+RARE_OVERLAP_MIN = 3
+RARE_SHARE = 0.03
+
 STOPWORDS = {
     "der", "die", "das", "und", "oder", "mit", "ohne", "fuer", "für", "auf",
     "vom", "von", "den", "dem", "des", "ein", "eine", "einer", "einem", "als",
@@ -148,6 +185,49 @@ def count_logbuch(quellen):
     return hits
 
 
+def strip_examples(text):
+    """Codebloecke und Tabellenzeilen entfernen.
+
+    Daten dort sind Fixture-, Beispiel- oder Messwerte, keine Chronologie des
+    Artikels. Die Zeilenzahl bleibt erhalten, damit die Dichte je 100 Zeilen
+    sich auf denselben Artikel bezieht.
+    """
+    out = []
+    in_fence = False
+    for line in text.splitlines():
+        if FENCE_PATTERN.match(line.lstrip()):
+            in_fence = not in_fence
+            out.append("")
+            continue
+        out.append("" if in_fence or line.lstrip().startswith("|") else line)
+    return "\n".join(out)
+
+
+def history_markers(text):
+    """Historie-Marker ohne Belege; zurueck kommt die Liste der Treffer."""
+    prose = strip_examples(text)
+    hits = []
+    for m in HISTORY_PATTERN.finditer(prose):
+        before = prose[max(0, m.start() - EVIDENCE_WINDOW):m.start()]
+        if DATE_PATTERN.fullmatch(m.group(0)) and EVIDENCE_PATTERN.search(before):
+            continue
+        hits.append(m.group(0))
+    return hits
+
+
+def personal_data(text):
+    """Persoenliche E-Mail-Adressen und Benutzernamen-Literale, dedupliziert."""
+    found = set()
+    for m in PERSONAL_MAIL_PATTERN.finditer(text):
+        if not EXAMPLE_DOMAIN_PATTERN.search(m.group(0)):
+            found.add(m.group(0).lower())
+    # Benutzernamen nur im Fliesstext: in Codebloecken steht "username = a.address"
+    # als SQL, "always-allow-password-login=yes" als Geraete-Option.
+    for m in USERNAME_LITERAL_PATTERN.finditer(strip_examples(text)):
+        found.add(m.group(1))
+    return sorted(found)
+
+
 def split_quellen(text):
     """Trennt den Artikel in Fliesstext und den Abschnitt '## Quellen'.
 
@@ -158,6 +238,24 @@ def split_quellen(text):
     if not m:
         return text, ""
     return text[:m.start()], text[m.start():]
+
+
+def section_texts(text):
+    """Text je H2/H3-Abschnitt, Schluessel ist die Ueberschrift."""
+    out = {}
+    title = None
+    buf = []
+    for line in text.splitlines():
+        m = re.match(r"^#{2,3}\s+(.*)$", line)
+        if m:
+            if title is not None:
+                out[title] = "\n".join(buf)
+            title, buf = m.group(1).strip(), []
+        elif title is not None:
+            buf.append(line)
+    if title is not None:
+        out[title] = "\n".join(buf)
+    return out
 
 
 def section_sizes(text):
@@ -184,6 +282,12 @@ def tokenize(text):
     """Sinntragende Woerter einer Ueberschrift oder eines Slugs."""
     words = re.split(r"[^0-9a-zäöüß]+", text.lower())
     return {w for w in words if len(w) > 3 and w not in STOPWORDS}
+
+
+def content_tokens(text):
+    """Inhaltswoerter eines Textes (ab fuenf Zeichen, ohne Stoppwoerter)."""
+    words = re.split(r"[^0-9a-zäöüß]+", text.lower())
+    return {w for w in words if len(w) > 4 and w not in STOPWORDS}
 
 
 def collect_topics(sections):
@@ -227,14 +331,16 @@ def collect(wiki_root):
         biggest = max(sections, key=lambda s: s[2]) if sections else (0, "", 0)
         topics, h2_share = collect_topics(sections)
 
+        hist = history_markers(text)
         articles.append({
             "rel_path": str(path.relative_to(root)),
             "slug": path.stem,
             "type": parse_type(text) or "unbekannt",
             "lines": lines,
-            "hist_hits": len(HISTORY_PATTERN.findall(text)),
-            "hist_per_100": len(HISTORY_PATTERN.findall(text)) * 100.0 / lines,
-            "oldest_date": min(DATE_PATTERN.findall(text), default=None),
+            "hist_hits": len(hist),
+            "hist_per_100": len(hist) * 100.0 / lines,
+            "oldest_date": min((h for h in hist if DATE_PATTERN.fullmatch(h)), default=None),
+            "personal": personal_data(text),
             "logbuch_hits": count_logbuch(quellen),
             "fences": len(FENCE_PATTERN.findall(text)) // 2,
             "recipes": len(RECIPE_PATTERN.findall(text)),
@@ -245,6 +351,8 @@ def collect(wiki_root):
             "topics": topics,
             "h2_share": h2_share,
             "sections": sections,
+            "section_text": section_texts(text),
+            "content": content_tokens(text),
         })
     return articles
 
@@ -335,7 +443,8 @@ def score(article, p90_by_type):
     # genau freebsd-shell-pitfalls (811 Zeilen, fuenf Themen, in vier eigene
     # Procedures zerlegt) und sonst keinen.
     topics = article["topics"]
-    if is_long and len(topics) >= 8 and article["h2_share"] >= 0.6:
+    if (is_long and typ not in MULTI_TOPIC_EXEMPT
+            and len(topics) >= 8 and article["h2_share"] >= 0.6):
         findings.append(
             f"MEHRTHEMIG ({len(topics)} gleichrangige H2-Themen, "
             f"{article['h2_share']*100:.0f}% der Gliederung auf H2-Ebene)"
@@ -351,36 +460,56 @@ def score(article, p90_by_type):
         findings.append(f"TIEF ({article['h3']}x H3, {article['deep']}x H4+)")
         points += 10 * clamp(article["h3"] / 25.0)
 
+    # Personendaten: unabhaengig von Umfang und Historie ein eigener Mangel -
+    # Namen und private Adressen gehoeren durch eine Rolle ersetzt (Schreibregeln,
+    # Aufnahmefilter). Wenige Punkte, damit der Befund sichtbar wird, ohne die
+    # Rangfolge der Umbaukandidaten zu verschieben.
+    personal = article["personal"]
+    if personal:
+        shown = ", ".join(personal[:3]) + (f" (+{len(personal) - 3})" if len(personal) > 3 else "")
+        findings.append(f"PERSONENDATEN ({shown})")
+        points += 5
+
     article["score"] = round(points, 1)
     article["findings"] = findings
     return article
 
 
-def suggest_targets(article, procedures, token_df):
+def suggest_targets(article, procedures, token_df, rare_words):
     """Bestehende Procedures, die zu grossen Abschnitten des Artikels passen.
 
     Wortueberlappung Ueberschrift <-> Procedure-Slug, entschaerft gegen zwei
     Rauschquellen: Woerter, die in drei oder mehr Procedure-Slugs vorkommen
     ("diagnose", "wp"), taugen nicht zur Unterscheidung und fliegen raus; ein
-    einzelnes gemeinsames Wort zaehlt nur ab sechs Zeichen, sonst braucht es
-    zwei. Bleibt ein Hinweis fuer die Handarbeit, keine Zuordnung.
+    einzelnes gemeinsames Wort reicht nur, wenn Abschnitt und Procedure
+    zusaetzlich mindestens RARE_OVERLAP_MIN seltene Woerter teilen - also
+    dasselbe Thema behandeln und nicht bloss ein Wort der Ueberschrift. Ohne
+    diese Bedingung trafen "schleife", "leeren" und "lokale" Procedures aus
+    fremden Themen (wp-permalink, wp-cache, rspamd), die mit dem Abschnitt kein
+    einziges seltenes Wort gemeinsam hatten; die zutreffenden Vorschlaege
+    teilten fuenf und mehr. Bleibt ein Hinweis fuer die Handarbeit.
     """
     hits = defaultdict(set)
+    words = defaultdict(set)
     for level, title, size in article["sections"]:
         if size < 20:
             continue
         tokens = tokenize(title)
-        for slug, slug_tokens in procedures:
+        for slug, slug_tokens, proc_content in procedures:
             if slug == article["slug"]:
                 continue
             common = {t for t in tokens & slug_tokens if token_df.get(t, 0) < 3}
             if not common:
                 continue
-            if len(common) == 1 and max(len(t) for t in common) < 6:
-                continue
+            if len(common) == 1:
+                (word,) = common
+                section = rare_words(content_tokens(article["section_text"].get(title, "")))
+                if len(word) < 6 or len(section & proc_content) < RARE_OVERLAP_MIN:
+                    continue
             hits[slug].add(title)
+            words[slug] |= common
     ranked = sorted(hits.items(), key=lambda kv: -len(kv[1]))
-    return ranked[:3]
+    return [(slug, titles, words[slug]) for slug, titles in ranked[:3]]
 
 
 def audit(wiki_root, type_filter=None, path_filter=None, top=10, show_all=False,
@@ -396,15 +525,26 @@ def audit(wiki_root, type_filter=None, path_filter=None, top=10, show_all=False,
         by_type[a["type"]].append(a["lines"])
     p90_by_type = {t: percentile(v, 0.90) for t, v in by_type.items()}
 
+    # Seltene Woerter: in hoechstens RARE_SHARE der Artikel. Sie tragen das
+    # Thema, haeufige Woerter ("server", "config") tun es nicht.
+    content_df = defaultdict(int)
+    for a in articles:
+        for t in a["content"]:
+            content_df[t] += 1
+    rare_limit = max(1, len(articles) * RARE_SHARE)
+
+    def rare_words(tokens):
+        return {t for t in tokens if content_df[t] <= rare_limit}
+
     procedures = [
-        (a["slug"], tokenize(a["slug"]))
+        (a["slug"], tokenize(a["slug"]), rare_words(a["content"]))
         for a in articles if a["type"] == "procedure"
     ]
 
     # Wie viele Procedure-Slugs enthalten ein Wort — Grundlage fuer den
     # Rausch-Filter in suggest_targets()
     token_df = defaultdict(int)
-    for _, slug_tokens in procedures:
+    for _, slug_tokens, _ in procedures:
         for t in slug_tokens:
             token_df[t] += 1
 
@@ -433,7 +573,7 @@ def audit(wiki_root, type_filter=None, path_filter=None, top=10, show_all=False,
                     "rel_path", "slug", "type", "lines", "baseline", "ratio", "score",
                     "hist_hits", "hist_per_100", "oldest_date", "fences", "recipes",
                     "h3", "deep", "big_section", "big_share", "findings", "logbuch_hits",
-                    "h2_share", "topic_titles",
+                    "h2_share", "topic_titles", "personal",
                 )
             }
             for a in shown
@@ -466,12 +606,12 @@ def audit(wiki_root, type_filter=None, path_filter=None, top=10, show_all=False,
         print(f"{rank}. [{a['score']:>5.1f}] {a['rel_path']}   ({a['type']}, {a['lines']} Zeilen)")
         for f in a["findings"]:
             print(f"     • {f}")
-        targets = suggest_targets(a, procedures, token_df)
+        targets = suggest_targets(a, procedures, token_df, rare_words)
         if targets:
             print("     Verschiebeziele (Wortüberlappung, ungeprüft):")
-            for slug, titles in targets:
+            for slug, titles, common in targets:
                 sample = "; ".join(sorted(titles)[:2])
-                print(f"       → [[{slug}]]  ({sample})")
+                print(f"       → [[{slug}]]  ({sample})  [gemeinsam: {', '.join(sorted(common))}]")
 
     if not shown:
         print("\nKeine auffälligen Artikel in der Auswahl.")

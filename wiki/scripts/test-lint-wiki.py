@@ -3,8 +3,9 @@
 # stdlib only, no pip dependencies
 
 """
-test-lint-wiki.py — Testfaelle fuer die Praefix-Aufloesung und die
-Frontmatter-Verweise (references) in lint-wiki.py.
+test-lint-wiki.py — Testfaelle fuer die Praefix-Aufloesung, die
+Frontmatter-Verweise (references), die Abschnittsverweise und den
+Schrumpf-Guard (umgehaengte Links) in lint-wiki.py.
 
 Baut ein Wegwerf-Projekt mit zwei Geschwister-Wikis, einem Verzeichnis ohne
 wiki/-Unterordner und einer wiki-remotes.json, laesst lint-wiki.py darauf laufen
@@ -85,12 +86,16 @@ def build(root, home):
           "Kein Wiki-Verzeichnis: [[notizen:irgendwas]].\n"
           "Unbekanntes Praefix: [[fremd:irgendwas]].\n"
           "Bekannter Remote: [[fern:egal]].\n"
-          "Remote nur aus dem Home: [[heim:egal]].\n")
+          "Remote nur aus dem Home: [[heim:egal]].\n"
+          "Kurzform eines Abschnitts: [[grenzwert]], Abschnitt Epsilon.\n"
+          "Umbrochener Name: [[grenzwert]], Abschnitt „Folgen\nund Reihen\".\n"
+          "Nachgestellte Form: [[grenzwert]] (Delta-Abschnitt).\n"
+          "Beschreibend, nicht geprueft: [[grenzwert]], Abschnitt zu `lim` in Folgen.\n")
     write(mathe / "wiki/grenzwert.md",
           "---\ntype: artikel\n"
           "tests: [test_grenzwert, test_umbenannt]\n"
           "config:\n  - grenzwert\n  - entfernt\n"
-          "---\n\nText.\n")
+          "---\n\nText.\n\n## Epsilon-Umgebung\n\nText.\n")
     write(mathe / "index.md", "# Index\n\n- [[schriftliches-dividieren]]\n- [[grenzwert]]\n")
     write(mathe / "log.md", "# Log\n\n- [[geschichte:gibt-es-nicht]]\n")
     return mathe
@@ -111,7 +116,28 @@ CASES = [
     ("config-Eintrag 'grenzwert' nicht gefunden", False),
     ("grenzwert.md: config-Eintrag 'entfernt' nicht gefunden in config/settings.json", True),
     ("wiki-schema.json: Pruefquelle fuer 'doku' fehlt: gibt/es/nicht", True),
+    ("Abschnittsverweis [[grenzwert]] \"Epsilon\"", False),
+    ("schriftliches-dividieren.md: Abschnittsverweis [[grenzwert]] \"Folgen und Reihen\"", True),
+    ("schriftliches-dividieren.md: Abschnittsverweis [[grenzwert]] \"Delta\"", True),
+    ("Abschnittsverweis [[grenzwert]] \"zu", False),
 ]
+
+
+def shrink_cases():
+    """Schrumpf-Guard direkt: umgehaengter Link still, geloeschter gemeldet."""
+    sys.path.insert(0, str(LINT.parent))
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("lint_wiki", LINT)
+    lint = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(lint)
+
+    old = "---\ntype: artikel\n---\n\nSiehe [[alt]].\n\nAuch [[weg]].\n"
+    new = "---\ntype: artikel\n---\n\nSiehe [[neu]].\n\nAuch nichts.\n"
+    out = " ".join(lint.check_shrink(old, new))
+    return [
+        ("Schrumpf-Guard: umgehaengter Link [[alt]] -> [[neu]] nicht gemeldet", "[[alt]]" not in out),
+        ("Schrumpf-Guard: ersatzlos entfernter Link [[weg]] gemeldet", "[[weg]]" in out),
+    ]
 
 
 def main():
@@ -133,11 +159,18 @@ def main():
         wanted = "erwartet" if expected else "nicht erwartet"
         print(f"{verdict} [{wanted}] {needle}")
 
+    extra = shrink_cases()
+    for label, ok in extra:
+        if not ok:
+            failed += 1
+        print(f"{'OK  ' if ok else 'FAIL'} {label}")
+
+    total = len(CASES) + len(extra)
     if failed:
-        print(f"\n{failed} von {len(CASES)} Faellen abweichend. Lint-Ausgabe:\n{out}")
+        print(f"\n{failed} von {total} Faellen abweichend. Lint-Ausgabe:\n{out}")
         return 1
 
-    print(f"\nAlle {len(CASES)} Faelle erfuellt.")
+    print(f"\nAlle {total} Faelle erfuellt.")
     return 0
 
 

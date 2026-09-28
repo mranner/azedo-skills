@@ -661,11 +661,18 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.63.11
+### 1.63.12
 
-- **`wp-cli` - allgemeines wp-cli-Wissen in die Referenz.** Die `wp db`-Befehle,
-  die `wp eval`-Beispiele und die Ausgabe-Flags stehen jetzt in
-  `references/befehle.md`; in der SKILL.md bleibt, was die Jail-Umgebung betrifft
-  (Backup vor Import, `eval-file` statt drei Quoting-Ebenen, `wp shell` nur per
-  Konsole). Der Workflow verweist nicht mehr auf die nicht vorhandene
-  `server/overview.md`. Die SKILL.md fällt von 246 auf 181 Zeilen.
+- **`wiki` - refactor und audit nachgeschärft.** `refactor` prüft Duplikate auch
+  gegen Rohquelle und Code, verifiziert eine Aussage vor dem Streichen, klärt
+  unbekannte Kürzel statt sie zu ersetzen und greppt gestrichene oder geänderte
+  Kernbegriffe wiki-weit; beim Zerlegen werden auch Verweise geprüft, die schon
+  vor dem Umbau falsch waren. `audit-wiki.py` zählt bei HISTORIE keine Belege
+  (Datum nach „verifiziert" u.ä.), keine Ticket- und Revisionsnummern und nichts
+  aus Codeblöcken und Tabellen; MEHRTHEMIG entfällt bei `type: reference`; neuer
+  Befund PERSONENDATEN (persönliche Mailadressen, Benutzernamen-Literale);
+  Verschiebeziele mit nur einem gemeinsamen Wort brauchen zusätzlich gemeinsame
+  seltene Wörter und nennen die Treffer. `lint-wiki.py` prüft Abschnittsverweise
+  (`[[x]], Abschnitt Y`) gegen die Überschriften des Ziels, und der
+  Schrumpf-Guard meldet umgehängte Links nicht mehr als Verlust. Neue Testfälle
+  in `test-lint-wiki.py`.

@@ -201,6 +201,13 @@ Prueft:
 - **Missing index entries**: Artikel die nicht in index.md gelistet sind
 - **Naming violations**: Dateinamen die nicht der Konvention entsprechen
 - **Low connectivity**: Artikel mit weniger als 3 Wikilinks
+- **Abschnittsverweise**: `[[x]], Abschnitt Y`, `[[x]], Abschnitt „Y"` und
+  `[[x]] (Y-Abschnitt)` - steht Y noch in einer Überschrift von `x`? Eine
+  Kurzform reicht, wenn alle ihre Wörter in einer Überschrift vorkommen.
+  Beschreibende Nennungen („Abschnitt zu `localhost` in Jails") prüft der Lint
+  nicht. Nach dem Zerlegen eines Artikels ist der Link selbst nicht tot, zeigt
+  aber auf den Rumpf, während das Thema längst woanders steht - diese Warnung
+  ist der einzige Hinweis darauf
 - **Vertrauensfelder**: Format von `verified` und `stale_after`, abgelaufene Inhalte
   (siehe [Frontmatter-Schemas](frontmatter-schemas.md#optionale-vertrauensfelder))
 - **Frontmatter-Verweise** (optional): Einträge wie `tests:` oder `config:`, die
@@ -229,7 +236,10 @@ python3 "$SKILL_DIR/scripts/lint-wiki.py" --check-shrink <WIKI_ROOT>
 Vergleicht jeden geaenderten Artikel mit seiner Fassung in `git HEAD` und meldet,
 was verschwunden ist: ein Frontmatter-Feld, ein `##`-Abschnitt, ein Wikilink auf
 eine andere Entity. Ungetrackte Artikel und unveraenderte Dateien bleiben still,
-ohne git-Repo entfaellt die Pruefung mit einem Hinweis.
+ohne git-Repo entfaellt die Pruefung mit einem Hinweis. Ein **umgehängter** Link
+zählt nicht als Verlust: steht in einem geänderten Zeilenblock statt `[[a]]` ein
+neuer Link, gilt `[[a]]` als ersetzt. Beim Zerlegen eines Artikels kämen sonst
+Dutzende Warnungen, die alle Absicht sind.
 
 Gemeint ist **nicht** die Laenge - Verdichten ist erwuenscht, siehe
 [Schreibregeln](../SKILL.md#kürzen-heisst-wörter-streichen-nicht-sachverhalte).

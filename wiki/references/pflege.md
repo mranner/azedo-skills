@@ -28,8 +28,12 @@ Gemessen wird je Artikel:
 - **LANG** — Zeilen relativ zum p90 des **eigenen Entity-Typs**, nicht absolut.
   Eine access-Entity mit 90 Zeilen ist auffällig, eine procedure mit 90 nicht.
   Untergrenzen je Typ verhindern Fehlalarme in einem jungen Wiki.
-- **HISTORIE** — Dichte von Datumsangaben, „Session", CR-Nummern und Wörtern wie
-  „inzwischen"/„früher", über den ganzen Artikel gerechnet.
+- **HISTORIE** — Dichte von Datumsangaben, „Session <Datum>" und Wörtern wie
+  „inzwischen"/„früher", über den ganzen Artikel gerechnet. Nicht gezählt werden
+  Belege (ein Datum nach „verifiziert", „gemessen", „entschieden", „bestätigt",
+  „geprüft"), Ticket- und Revisionsnummern (`CR####`, `r#####`) sowie alles in
+  Codeblöcken und Tabellen - dort sind Daten Fixture- oder Beispielwerte. Ohne
+  diese Ausnahmen war im CRIS-Wiki die Hälfte der Top-Befunde Fehlalarm.
 - **LOGBUCH** — datierte Aufzählungspunkte unter `## Quellen`, ab dem dritten.
   Dorthin gehört die Rohquelle, nicht die Chronologie der eigenen Sessions.
 - **PROZEDURAL** — Codeblöcke und FALSCH/RICHTIG-Rezepte in einer server-,
@@ -45,7 +49,13 @@ Gemessen wird je Artikel:
   Grund gemeldet; eine flache Gliederung allein ist die Bauform kurzer Artikel.
   Gezählt werden H2 ab 15 Zeilen, ohne Schrittnummern („## 6. Datenbank") und
   ohne Verwaltungsabschnitte - ein nummerierter Ablauf ist ein Gegenstand, kein
-  Sammelbecken.
+  Sammelbecken. Entfällt bei `type: reference`: eine API-Referenz hat
+  bauartbedingt einen H2 je Endpunktgruppe.
+- **PERSONENDATEN** — persönliche E-Mail-Adressen (`vorname.nachname@`) und
+  Benutzernamen als Literal im Fließtext (`username: mmuster`). Funktions-
+  adressen (`hostmaster@`, `double-bounce@`) und Beispieldomains bleiben
+  außen vor. Behandlung nach dem Aufnahmefilter: Rolle oder Datensatz-ID statt
+  Name.
 - **TIEF** — viele H3 oder Verschachtelung ab H4. Punktet nur, wenn der Befund
   auch gemeldet wird; ein Signal, das die Rangfolge verschiebt, ohne in der
   Ausgabe zu stehen, ist nicht nachvollziehbar. In einem flach gegliederten Wiki
@@ -53,8 +63,11 @@ Gemessen wird je Artikel:
 
 Die Ausgabe zeigt **Rohwerte, nicht nur einen Score** — der Score ordnet nur die
 Rangfolge, entschieden wird an den Rohwerten. Zu jedem auffälligen Artikel nennt
-das Script bestehende Procedures als mögliche Verschiebeziele (Wortüberlappung
-Überschrift ↔ Slug, ausdrücklich **ungeprüft**).
+das Script bestehende Procedures als mögliche Verschiebeziele, samt den
+gemeinsamen Wörtern (`[gemeinsam: …]`). Ein einzelnes gemeinsames Wort zählt
+nur, wenn Abschnitt und Procedure zusätzlich seltene Wörter teilen - sonst
+schlug „Schleife" eine WordPress-Procedure für ein SSH-Thema vor. Die
+Vorschläge bleiben **ungeprüft**: vor dem Verschieben die Procedure lesen.
 
 Bei einem **Remote-Wiki** entfällt `audit` — es läuft nur auf einer lokalen Kopie.
 
@@ -75,7 +88,12 @@ Ablauf:
 1. `<WIKI_ROOT>/CLAUDE.md` und den Artikel **vollständig** lesen.
 2. `audit` für diesen Artikel laufen lassen (`--json`), um die Befunde und die
    vorgeschlagenen Verschiebeziele zu haben.
-3. Genannte Ziel-Procedures lesen — steht der Inhalt dort schon?
+3. Genannte Ziel-Procedures lesen — steht der Inhalt dort schon? Hat der
+   Artikel eine **Rohquelle** (`raw/`, `docs/`, eine Spezifikation) oder spiegelt
+   er Konstanten aus dem Code, jeden Abschnitt auch dagegen halten: was dort
+   steht, wird Verweis statt Nacherzählung (`DUPLIKAT`). Eine API-Beschreibung,
+   die Pagination und Meldungskatalog aus der Spezifikation abschreibt, veraltet
+   mit der nächsten Änderung dort, ohne dass es jemand merkt.
 4. **Jeden** H2/H3-Abschnitt in genau eine Kategorie einordnen:
 
    | Kategorie | Bedeutung | Aktion im Vorschlag |
@@ -95,6 +113,12 @@ Ablauf:
 7. Erst **nach Freigabe** umsetzen, und dann vollständig: Zielartikel anlegen
    bzw. ergänzen, Wikilink im Restartikel setzen, `index.md` ergänzen,
    Frontmatter-Datum aktualisieren, Zeile in `log.md`, danach `/wiki lint`.
+8. **Gestrichene und geänderte Kernbegriffe wiki-weit greppen** - nicht nur
+   beim Zerlegen. Wer eine Konstante, eine Schwelle oder einen offenen Punkt
+   streicht oder ändert, lässt sonst andere Artikel zurück, die ihn weiter
+   zitieren: einen Verweis auf den gestrichenen Punkt, eine „Toleranz 5 %", die
+   hier inzwischen 3 % heisst. Der Lint findet tote Links und Verweise auf
+   verschwundene Abschnitte, aber keine inhaltlich veralteten Sätze.
 
 #### Zerlegen statt kürzen
 
@@ -129,7 +153,11 @@ Beim Umsetzen kommt zu Schritt 7 dazu:
 
 - **Eingehende Verweise umhängen.** `grep -rn "\[\[<slug>\]\]" <WIKI_ROOT>`
   vor dem Teilen: jeder Verweis zeigt auf *ein* Thema, und nach dem Teilen
-  meistens auf das falsche. Beim Zerlegen von `freebsd-shell-pitfalls` waren 38
+  meistens auf das falsche. Dabei auch Verweise prüfen, die schon **vor**
+  diesem Umbau falsch waren: wurde der Artikel früher bereits zerlegt, zeigen
+  oft noch Links auf Themen, die längst anderswo stehen (beim zweiten Zerlegen
+  von `freebsd-shell-pitfalls` 14 von 75). `log.md` und `raw/` bleiben
+  unverändert, ihre Einträge sind historisch. Beim Zerlegen von `freebsd-shell-pitfalls` waren 38
   von 62 Verweisen umzuhängen - das ist die eigentliche Arbeit, nicht das
   Verschieben des Textes.
 - **Der Rumpf behält eine Verweisliste** („Weitere Pitfalls in eigenen
@@ -180,6 +208,18 @@ Ein datierter Beleg („verifiziert 2026-07-28 auf [[fry-azedo-at]]") ist eine
 zeitlose Begründung und **bleibt** — er sieht nur aus wie Historie. Gestrichen
 wird ein beschriebener Zustand, den es so nicht mehr gibt. Im Zweifel: der
 Vorschlag markiert den Abschnitt als unklar und fragt, statt ihn einzuordnen.
+
+**„Unklar" ist keine Streichfreigabe.** Ein Satz wie „X ist noch nicht
+umgesetzt" sieht nach Zwischenstand aus und kann trotzdem stimmen. Vor dem
+Streichen an der Quelle prüfen - Code, Config, laufendes System -, ob die
+Aussage noch gilt. Stimmt sie, bleibt sie; ist sie nicht prüfbar, bleibt sie
+im Vorschlag als Frage an den User stehen.
+
+**Namen und Kürzel erst klären, dann ersetzen.** Ein unbekanntes Kürzel in
+Großbuchstaben kann ein Mitarbeiterkürzel sein, das durch eine Rolle ersetzt
+gehört, oder ein Firmen- oder Produktname, der stehen bleiben muss. Im
+Vorschlag als „unklar - Person oder Firma?" führen, nicht auf Verdacht
+ersetzen.
 
 Ein überholter Zustand wird gelöscht, nicht umgelagert - `## Quellen` nimmt nur
 echte Rohquellen auf (Datei unter `raw/`, externes Dokument, Ticket) und ist
