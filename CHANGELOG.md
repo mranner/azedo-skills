@@ -3,6 +3,19 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.63.8
+
+- **`mail-as-me`, `swaks` - Aufbau nach Anthropics Skill-Leitfaden.** Der
+  Abschnitt zu Antworten (Zitat, Threading, Betreff, Empfänger) aus `mail-as-me`
+  steht jetzt in `mail-as-me/references/antworten.md`; die SKILL.md fällt von 491
+  auf 401 Zeilen. In `swaks` beschreibt „Ergebnis prüfen" nur noch, was `--send`
+  prüft; der Aufruf von Hand samt nachgebauten Prüfungen steht in
+  `references/antworten.md`. CR-Nummern und Versionsangaben sind aus dem Fließtext
+  beider Skills entfernt, `swaks` ruft `build_mail.py` über `$SKILL_DIR` auf, und
+  der Pfad zu `swaks-contacts.tsv` lautet in beiden Skills gleich. Der Verweis auf
+  die Ablage-Reihenfolge nennt den richtigen mail-as-me-Abschnitt, und `imap`
+  steht unter „Integration" nur noch einmal.
+
 ### 1.63.7
 
 - **`mail-as-me`, `swaks` - `send.bcc` als Fallback ohne IMAP-Konto.** Hat das

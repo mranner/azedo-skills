@@ -10,7 +10,7 @@ Zwei Zeilen stehen vor jedem Beispiel und werden dort nicht wiederholt:
 
 ```bash
 M=$(mktemp -d .tmp/mail.XXXXXX)
-B=~/.claude/skills/swaks/build_mail.py
+B="$SKILL_DIR/build_mail.py"
 ```
 
 Was früher als `--header "Content-Type: …"` und
@@ -92,8 +92,8 @@ python3 $B --send $M/mail.eml \
 
 Fehlt das `--bcc` beim `--send`, geht die Mail an alle sichtbaren Empfänger
 raus und die stille Kopie nicht - ohne Fehlermeldung, weil der Versand selbst
-gelungen ist. Genau so blieb eine Ablage-Kopie aus (CR4623); seither lehnt
-`--send` auch unbekannte Flags mit Exit `2` ab, statt sie zu ignorieren.
+gelungen ist. Unbekannte Flags lehnt `--send` deshalb mit Exit `2` ab, statt
+sie zu ignorieren.
 
 ## HTML-Body
 

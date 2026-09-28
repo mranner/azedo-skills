@@ -21,7 +21,7 @@ von Hand aufzurufen ist kein zweiter, gleichwertiger Weg: die Zugangsdaten gibt
 der Helper bewusst nicht heraus — `--show-config` und `--swaks-env` zeigen das
 Passwort maskiert als `<gesetzt>`. Wer diesen Literalstring als Passwort
 weiterreicht, bekommt vom Relay `535 5.7.8 Error: authentication failed`, und es
-geht keine Mail raus (CR4621). Auch die einfacheren Fälle in
+geht keine Mail raus. Auch die einfacheren Fälle in
 `references/bausteine.md` gehen über den Helper - einen zweiten Versandweg gibt
 es nicht.
 
@@ -84,7 +84,7 @@ als Absender (Header **und** Envelope), `send.account` als Konto für
 `--file-sent` (fehlt es, `send.bcc` als Bcc an beide Aufrufe, siehe „Ablage").
 Das ist ohne Rückfrage anzuwenden — eine Mail in der Stimme des Nutzers, die vom
 Default-Absender kommt, ist beim Empfänger falsch. Details im mail-as-me-Skill,
-Abschnitt „Versand".
+Abschnitt „Versand: Absender und Ablage aus dem Profil".
 
 ## Arbeitsverzeichnis: pro Versand ein eigenes
 
@@ -121,7 +121,7 @@ Ablauf: `build_mail.py` baut die MIME-DATA (korrekte Boundaries/Encoding, hängt
 
 ```bash
 M=$(mktemp -d .tmp/mail.XXXXXX)
-B=~/.claude/skills/swaks/build_mail.py
+B="$SKILL_DIR/build_mail.py"
 
 # Bodies nach $M/body.txt und $M/body.html schreiben, dann:
 
@@ -147,7 +147,7 @@ python3 $B --send $M/mail.eml --to "empfaenger@example.com" --from <absender> --
 
 `--send` lädt den Versandweg selbst, ruft `swaks` auf und prüft das Ergebnis (Exit-Code, `queued as`, abgelehnte Empfänger – siehe „Ergebnis prüfen"). Mit `--file-sent` legt es die Datei danach in „Gesendet" ab (siehe „Ablage"). Exit `0` heißt versendet (und abgelegt), Exit `1` heißt nicht versendet, Exit `3` versendet, aber nicht abgelegt; das JSON nennt Queue-ID bzw. Befund, das vollständige swaks-Protokoll steht in `$M/mail.eml.swaks.log`.
 
-**Warum zwei Befehle und nicht eine `&&`-Kette?** Eine Bash-Freigabe greift auf den **Anfang** des Befehls. In einer Kette, die mit `ENV=$(…)` oder `python3 $B --verify …` beginnt, steht der Versand irgendwo in der Mitte und ist von keiner Regel erreichbar – der Versand scheitert dann an der Freigabe, nachdem Recherche, Bau und Prüfung bereits gelaufen sind (CR4613). `python3 $B --send …` steht am Anfang und ist freigebbar. Die Trennung kostet nichts: die Prüfkette davor bricht bei jedem Befund mit Exit ≠ 0 ab, und `--send` prüft die `.eml` nochmals auf Existenz und Größe.
+**Warum zwei Befehle und nicht eine `&&`-Kette?** Eine Bash-Freigabe greift auf den **Anfang** des Befehls. In einer Kette, die mit `ENV=$(…)` oder `python3 $B --verify …` beginnt, steht der Versand irgendwo in der Mitte und ist von keiner Regel erreichbar – der Versand scheitert dann an der Freigabe, nachdem Recherche, Bau und Prüfung bereits gelaufen sind. `python3 $B --send …` steht am Anfang und ist freigebbar. Die Trennung kostet nichts: die Prüfkette davor bricht bei jedem Befund mit Exit ≠ 0 ab, und `--send` prüft die `.eml` nochmals auf Existenz und Größe.
 
 Die Prüfung am Ende ist **kein Beiwerk** – ohne sie geht ein Reject als Erfolg durch (siehe „Ergebnis prüfen").
 
@@ -160,10 +160,10 @@ python3 $B --subject … --to a@x --cc cc@x --bcc bcc@x … > $M/mail.eml
 python3 $B --send $M/mail.eml --to a@x --cc cc@x --bcc bcc@x --from <absender>
 ```
 
-  **Fehlt `--bcc` beim `--send`, geht die stille Kopie nicht raus** — die Mail wird trotzdem zugestellt, ohne Fehlermeldung (CR4623). Unbekannte Flags lehnt `--send` seit demselben CR mit Exit `2` ab, statt sie still zu schlucken. Eine Bcc-Kopie an sich selbst als Ablage ist nur noch der Fallback ohne IMAP-Konto, sonst gibt es dafür `--file-sent` (siehe „Ablage").
+  **Fehlt `--bcc` beim `--send`, geht die stille Kopie nicht raus** — die Mail wird trotzdem zugestellt, ohne Fehlermeldung. Unbekannte Flags lehnt `--send` mit Exit `2` ab, statt sie still zu schlucken. Eine Bcc-Kopie an sich selbst als Ablage ist nur noch der Fallback ohne IMAP-Konto, sonst gibt es dafür `--file-sent` (siehe „Ablage").
 - **Leerer Body / Bau-Fehler:** `build_mail.py` bricht mit Exit ≠ 0 ab, wenn Text *und* HTML leer sind. Deshalb **nie direkt in `swaks` pipen** — bei einem Bau-Fehler (Exit ≠ 0 oder Interpreter nicht gefunden) läuft `swaks` sonst auf leerem STDIN und sendet seine eingebaute Default-Test-Mail. Immer erst in eine Datei bauen und mit `&& test -s <datei> && swaks … --data @<datei>` absichern. `set -o pipefail` allein genügt **nicht**, da `swaks` in der Pipe trotzdem startet.
 - **`--data` braucht zwingend das `@`:** `swaks --data <datei>` liest die Datei **nicht**, sondern verschickt den **Pfad als Body-Text**. Es gibt keine Fehlermeldung — swaks quittiert mit `250 Ok`, zugestellt wird eine Mail ohne Betreff und ohne die gebauten Header, mit dem Dateinamen als einzigem Inhalt. Beim Empfänger sieht das nach Spam oder kompromittiertem Konto aus, und zurückholen lässt es sich nicht. Immer `--data @<datei>` schreiben. Gegenprobe direkt nach dem Versand: die `size=`-Angabe der Queue-ID im Maillog des Relays gegen die Größe der `.eml` halten — ein paar hundert Bytes statt einiger KB heißt, das `@` hat gefehlt.
-- **HTML-Part:** `--html-file` ist **optional**. Fehlt es, baut der Helper den HTML-Part aus dem Text (Leerzeilen werden `<p>`, einfache Umbrüche `<br>`). **Niemals dieselbe Datei an `--text-file` und `--html-file` geben** — der HTML-Part hätte dann kein einziges Tag und käme beim Empfänger als eine einzige Zeile an („in einer Wurst"), inklusive Tabellen und Kennwortlisten. Der Helper erkennt diesen Fall inzwischen, warnt auf stderr und wandelt um; die Warnung ist trotzdem ein Grund, den Aufruf zu korrigieren.
+- **HTML-Part:** `--html-file` ist **optional**. Fehlt es, baut der Helper den HTML-Part aus dem Text (Leerzeilen werden `<p>`, einfache Umbrüche `<br>`). **Niemals dieselbe Datei an `--text-file` und `--html-file` geben** — der HTML-Part hätte dann kein einziges Tag und käme beim Empfänger als eine einzige Zeile an („in einer Wurst"), inklusive Tabellen und Kennwortlisten. Der Helper erkennt diesen Fall, warnt auf stderr und wandelt um; die Warnung ist trotzdem ein Grund, den Aufruf zu korrigieren.
 - **Signatur:** wird automatisch aus `~/.claude/swaks-signature.*` (bzw. projektlokal `.claude/`) aufgelöst – die `--sig-*-file`-Zeilen sind **optional** und nur als expliziter Override nötig. Ganz weglassen: `--no-sig`.
 - **Antwort auf eine Mail:** `--quote-text-file` / `--quote-html-file` hängen den Zitatblock **unter** Body und Signatur an (Top-Posting), `--in-reply-to` / `--references` setzen die Threading-Header. Der Quote wird **nicht getippt**, sondern mit `imap quote` erzeugt — siehe eigener Abschnitt unten.
 - **Anhänge:** pro Datei ein `--attach <pfad>` an `build_mail.py` – dann wird `multipart/mixed` um das Text+HTML-Part gelegt (MIME-Type wird automatisch erraten):
@@ -244,57 +244,23 @@ nennt den Befund im JSON und auf stderr:
 python3 $B --send $M/mail.eml --to "empfänger@example.com" --from <absender>
 ```
 
-**Ein Handaufruf ist dafür kein Ersatz.** Er ist in keiner der Referenzdateien
-mehr vorgesehen; wo er trotzdem unumgänglich wird, sind dieselben drei Prüfungen
-von Hand nachzubauen, und der Versandweg muss vorher in der Umgebung stehen:
-`$ENV` stammt **ausschliesslich** aus
-`build_mail.py --swaks-env --reveal-password`. Das maskierte
-`auth_password: "<gesetzt>"` aus `--show-config` ist eine Anzeige und kein
-Passwort — als solches weitergereicht endet die Sitzung mit
-`535 5.7.8 Error: authentication failed`, ohne dass Mail rausgeht (CR4621).
-
-```bash
-( eval "$ENV"; swaks --to "empfänger@example.com" --from <absender> \
-    --data @.tmp/mail.eml ) > .tmp/swaks.log 2>&1
-RC=$?
-
-test $RC -eq 0 && grep -q "queued as" .tmp/swaks.log && ! grep -qE '^<.\*' .tmp/swaks.log \
-  && echo "OK — versendet" \
-  || { echo "FEHLGESCHLAGEN (rc=$RC) — siehe .tmp/swaks.log"; grep -E '^<.\*' .tmp/swaks.log; }
-```
-
-**Alle drei Bedingungen prüfen, nicht eine davon.** Jede deckt einen Fall ab,
-den die anderen durchlassen:
-
 | Prüfung | fängt |
 |---|---|
 | `rc -eq 0` | Verbindungs-, TLS-, Auth- und Totalablehnungen |
 | `queued as` | „`@` bei `--data` vergessen" — swaks quittiert mit `250 Ok`, verschickt aber den Pfad als Body |
 | kein `^<.\*` | **abgelehnte einzelne Empfänger** bei mehreren Adressen |
 
-Der dritte Punkt ist der Fall aus CR4519 und der unauffälligste: stehen im
-Envelope mehrere Empfänger und der Relay lehnt nur **einen** ab, läuft swaks
-trotzdem in die DATA-Phase, bekommt für die übrigen ein `250 … queued as` und
-endet mit **Exit-Code 0**. Nachgestellt mit einem simulierten Gegenüber
-(ein Empfänger angenommen, einer mit `454` abgelehnt): `EXIT=0`, Queue-ID
-vorhanden — die ersten beiden Prüfungen melden Erfolg, obwohl die Mail einen
-Teil ihrer Empfänger nie erreicht.
-
-Genau so verschwanden die beiden Mails, die dem CR zugrunde liegen: der eigene
-Kopie-Empfänger wurde angenommen, der externe abgewiesen. Die Kopie landete
-im Postfach und sah aus wie ein erfolgreicher Versand.
-
-`swaks` markiert jede abgelehnte Antwort mit einem `*` an dritter Stelle des
-Zeilenpräfixes — unverschlüsselt `<**`, innerhalb einer TLS-Sitzung `<~*`.
-Beide trifft `^<.\*`. Im Erfolgsfall ist die Zeilenzahl null (verifiziert).
+Die dritte Prüfung ist die unauffälligste: lehnt der Relay von mehreren
+Empfängern nur **einen** ab, endet swaks trotzdem mit Exit `0` und Queue-ID.
+Nur die `^<.\*`-Zeile zeigt dann, dass ein Empfänger die Mail nie bekommt.
 
 **Fehlschlag heißt: die Mail ist nicht raus.** Das dem Nutzer so sagen, mit dem
 Statuscode aus dem Log. Nie „versendet" melden, ohne die Queue-ID gesehen zu
 haben — der Empfänger merkt den Ausfall sonst, der Absender nicht.
 
-Bei Erfolg zusätzlich die Gegenprobe auf das fehlende `@`: die `size=`-Angabe
-zur Queue-ID im Maillog gegen die Größe der `.eml` halten. Ein paar hundert
-Bytes statt einiger KB heißt, es ging der Dateiname statt der Mail raus.
+Ein Aufruf von `swaks` ohne `--send` ist dafür kein Ersatz. Wo er unumgänglich
+wird, stehen die nachzubauenden Prüfungen in `references/antworten.md`, Abschnitt
+„Handaufruf: Prüfungen nachbauen".
 
 ### Was in der Erfolgsmeldung stehen muss
 
@@ -344,8 +310,8 @@ das Profil kein `send.account` hat, etwa auf Rechnern ohne eingerichtete
 IMAP-Konten: dann geht `--bcc <send.bcc>` an **beide** Aufrufe, ohne Rückfrage.
 Neben `--file-sent` hat sie nichts verloren: sie belegt nur die Zustellung ins
 eigene Postfach, ob sie mitgeht, steht beim Versand fest, und sie landet
-zusätzlich zur Ablage in „Gesendet" (CR4714). Die Reihenfolge im Detail steht im
-mail-as-me-Skill, Abschnitt „write".
+zusätzlich zur Ablage in „Gesendet". Die Reihenfolge im Detail steht im
+mail-as-me-Skill, Abschnitt „Versand: Absender und Ablage aus dem Profil".
 
 **Als Entwurf ablegen statt senden:** mit `--for-draft` bauen, dann
 
@@ -365,7 +331,7 @@ Die vollstaendige Optionsreferenz liegt daneben und wird bei Bedarf gelesen:
 | Datei | Inhalt |
 |---|---|
 | `references/bausteine.md` | Grundbefehl, Body, mehrere Empfaenger, HTML-Body, Dateianhaenge - alle ueber `--send` |
-| `references/antworten.md` | Antwort auf eine Mail (Zitat + Threading), warum der Versandweg nicht von Hand nachgebaut wird |
+| `references/antworten.md` | Antwort auf eine Mail (Zitat + Threading), warum der Versandweg nicht von Hand nachgebaut wird, Prüfungen für einen Handaufruf |
 | `references/versandweg.md` | Versandweg und Authentifizierung, Kontakte, Signatur, Encoding |
 
 ## Ablauf
@@ -384,9 +350,9 @@ Die vollstaendige Optionsreferenz liegt daneben und wird bei Bedarf gelesen:
 
 ## Hinweise
 
-- **`--subject` gilt für `build_mail.py`, nicht für `swaks`.** Der Helper verlangt `--subject` **zwingend** (ohne bricht der Bau mit Exit 2 ab); `swaks` selbst kennt die Option in dieser Version **nicht** — bei einem Handaufruf ginge das nur über `--header "Subject: ..."`. Beim Weg über `build_mail.py` steht der Betreff ohnehin schon in der gebauten `.eml` und gehört nicht ein zweites Mal an `swaks`.
+- **`--subject` gilt für `build_mail.py`, nicht für `swaks`.** Der Helper verlangt `--subject` **zwingend** (ohne bricht der Bau mit Exit 2 ab); `swaks` selbst kennt die Option **nicht** — bei einem Handaufruf ginge das nur über `--header "Subject: ..."`. Beim Weg über `build_mail.py` steht der Betreff ohnehin schon in der gebauten `.eml` und gehört nicht ein zweites Mal an `swaks`.
 - MX-Routing ist nicht verfügbar (Net::DNS fehlt). Ohne geladenen Versandweg nimmt swaks deshalb **stillschweigend `localhost:25`** — kein Fehler, aber der falsche Weg. `--send` lädt den Weg selbst; beim Aufruf von Hand erst `eval "$ENV"` mit `--swaks-env --reveal-password`.
-- **`--swaks-env` und `--show-config` maskieren das Passwort** (`auth_password: "<gesetzt>"`) — beides ist Anzeige, keine Passwortquelle; der Platzhalter als Passwort quittiert der Relay mit `535 5.7.8 Error: authentication failed` (CR4621). Der Klartext kommt nur aus `--swaks-env --reveal-password`, und dessen Ausgabe **nie ungefiltert anzeigen** — sie landet sonst in Transcript und Shell-History (CR4613).
+- **`--swaks-env` und `--show-config` maskieren das Passwort** (`auth_password: "<gesetzt>"`) — beides ist Anzeige, keine Passwortquelle; der Platzhalter als Passwort quittiert der Relay mit `535 5.7.8 Error: authentication failed`. Der Klartext kommt nur aus `--swaks-env --reveal-password`, und dessen Ausgabe **nie ungefiltert anzeigen** — sie landet sonst in Transcript und Shell-History.
 - Erfolg erkennbar an: `250 2.0.0 Ok: queued as <ID>` **bei Exit-Code 0 und ohne `<**`/`<~*`-Zeile**. Alle drei prüfen — bei mehreren Empfängern ist ein einzelner Reject sonst unsichtbar.
 - Zum Ausprobieren einer Route ohne Zustellung: `--quit-after RCPT` — die Verbindung endet vor `DATA`, es geht nichts raus.
 - Ein `250 Ok` sagt nur, dass der Server die Bytes genommen hat. Ob es die **richtigen** Bytes waren (Datei zwischenzeitlich überschrieben) und ob sie beim Empfänger **lesbar** ankommen (HTML-Part ohne Markup), sagt es nicht — dafür gibt es `--verify`.

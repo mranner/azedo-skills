@@ -92,8 +92,8 @@ Eingabe: Empfaenger (+ Thema **oder** eine Reply-`.eml`). Ablauf:
    steht fest, an welche Adresse die Mail geht und woher diese Adresse stammt.
    Bei einer **Antwort** kommen die Adressen aus `imap quote --json` bzw.
    `imap contacts` (siehe Abschnitt „Antworten: Zitat und Threading"), bei einer
-   **neuen Mail an einen Namen** aus `grep -i <name> ~/.claude/swaks-contacts.tsv`
-   (auch `.claude/` im Projekt; die Datei ist optional). Kein Treffer, keine Datei
+   **neuen Mail an einen Namen** aus `grep -i <name> .claude/swaks-contacts.tsv`
+   (auch `~/.claude/`; die Datei ist optional). Kein Treffer, keine Datei
    oder ein unklarer Kreis: **nachfragen**. Eine aus Domain und Vornamen
    zusammengebaute Adresse ist geraten, auch wenn sie plausibel aussieht -- sie
    faellt weder beim Bau noch beim Versand auf, sondern erst beim Bounce oder
@@ -238,16 +238,16 @@ Versand-Identitaet im Profil:
 `draft.account` sind Aliase aus `imap accounts`: dort landet die Mail in "Gesendet"
 bzw. in den Entwuerfen. Eine Bcc-Kopie an sich selbst gibt es nur noch als
 Fallback ohne IMAP-Konto (siehe unten): ob die Mail raus ist, belegt die Queue-ID,
-ob sie abgelegt ist, das Zuruecklesen nach der Ablage (CR4714). Ein Bcc an Dritte,
+ob sie abgelegt ist, das Zuruecklesen nach der Ablage. Ein Bcc an Dritte,
 das der Nutzer im Auftrag nennt, geht weiterhin mit.
 
 Welche Kopie der versendeten Mail entsteht, entscheidet das Profil in dieser
 Reihenfolge:
 
 1. **`send.account` gesetzt:** `--file-sent <send.account>`. Steht daneben noch
-   `send.bcc` im Profil (aus der Zeit vor 1.63.0), wird es nicht verwendet: einmal
-   darauf hinweisen und anbieten, den Eintrag zu entfernen. Mitgeschickt landete
-   die Kopie zusaetzlich zur Ablage in "Gesendet".
+   `send.bcc` im Profil, wird es nicht verwendet: einmal darauf hinweisen und
+   anbieten, den Eintrag zu entfernen. Mitgeschickt landete die Kopie zusaetzlich
+   zur Ablage in "Gesendet".
 2. **Kein `send.account`, aber `send.bcc`:** Bcc an die Adresse aus `send.bcc`, an
    **beide** Aufrufe (Bau und `--send`), ohne Rueckfrage. Das ist der Weg auf
    Rechnern ohne eingerichtete IMAP-Konten (`imap accounts` leer).
@@ -310,7 +310,7 @@ quoted-printable kodiert). Details im swaks-Skill, Abschnitt "Vor dem Versand
 pruefen".
 
 **Kontakt ergaenzen (swaks Schritt 11).** Stand die Adresse nicht in
-`~/.claude/swaks-contacts.tsv`, wird sie nach dem Versand dort angehaengt -- sonst
+`.claude/swaks-contacts.tsv` (bzw. `~/.claude/`), wird sie nach dem Versand dort angehaengt -- sonst
 ist die naechste Mail an dieselbe Person wieder ein Ratespiel. Nur fuer Adressen,
 die ohne Thread wieder gebraucht werden; Thread-Adressen liefert `imap contacts`
 jederzeit neu. Details im swaks-Skill.
@@ -354,102 +354,13 @@ sieht dieser Skill nicht, deshalb entfaellt der Schritt hier.
 
 Bei einer Antwort kommen fuenf Dinge nicht aus dem Entwurf, sondern aus `imap quote`:
 der **Text-Quote**, der **HTML-Quote**, die beiden **Threading-Header**, der **Betreff**
-und die **Empfaenger**. Der Grund ist derselbe wie beim humanizer-de-Audit: was das
-Modell selbst tippt, weicht bei jeder Mail leicht ab. Das alles ist Formatarbeit, keine
-Formulierungsarbeit.
+und die **Empfaenger**. Was das Modell selbst tippt, weicht bei jeder Mail leicht ab.
+Antwort oben, Zitat unten; der Entwurf selbst enthaelt **kein** Zitat, das haengt
+`build_mail.py` an.
 
-**Betreff und Empfaenger stehen in `quote --json` bereits drin** (`subject`, `from`,
-`to`, `cc`) -- sie werden von dort uebernommen, nicht abgeschrieben und nicht aus dem
-Auftrag rekonstruiert:
-
-- **Betreff** = `subject` plus ein vorangestelltes `Re: `. Ein abgetippter Betreff
-  verliert genau die Zeichen, an denen der Mailclient den Thread erkennt: eine
-  Ticketnummer in eckigen Klammern, ein `AW:` der Gegenseite, ein Umlaut aus einer
-  RFC-2047-Kodierung.
-- **Empfaenger** = `from`; bei Reply-All zusaetzlich `to` und `cc`, **abzueglich der
-  eigenen Adressen** aus `config.json.send`. Aus dem Auftrag kommt hoechstens eine
-  ausdrueckliche Abweichung ("nur an X"), nicht die Standardbesetzung.
-
-Wer die Empfaenger aus dem Auftrag statt aus den Kopfdaten nimmt, verliert still den
-Mitleser im `Cc` -- fuer den Absender sieht die Antwort vollstaendig aus.
-
-**Position: Antwort oben, Zitat unten** (Top-Posting). Die Reihenfolge im fertigen
-Text-Part ist Antwort -> Signatur -> Zitat; `build_mail.py` setzt sie so zusammen,
-solange der Quote ueber `--quote-text-file`/`--quote-html-file` hereinkommt. Der Entwurf
-selbst enthaelt also **kein** Zitat.
-
-```bash
-Q=$(mktemp -d .tmp/reply.XXXXXX)
-IMAP=~/.claude/skills/imap/imap
-B=~/.claude/skills/swaks/build_mail.py
-
-# 1. Zitat und Threading erzeugen -- nicht tippen.
-#    -f gehoert dazu, sobald die Mail nicht in der INBOX liegt (UIDs sind
-#    ordner-lokal); alternativ -m "<message-id>" statt uid/-a/-f.
-python3 $IMAP quote <uid> -a <konto> -f <ordner> > $Q/quote.txt
-python3 $IMAP quote <uid> -a <konto> -f <ordner> --format html > $Q/quote.html
-python3 $IMAP quote <uid> -a <konto> -f <ordner> --json > $Q/quote.json
-
-# 2. Threading-Header abgreifen (Feld `reply`, nicht die Header der Originalmail)
-IRT=$(python3 -c "import json;print(json.load(open('$Q/quote.json'))['reply']['in_reply_to'])")
-REF=$(python3 -c "import json;print(json.load(open('$Q/quote.json'))['reply']['references'])")
-
-# 3. Betreff und Empfaenger aus denselben Kopfdaten -- nicht abschreiben.
-#    Re: nur, wenn nicht schon ein Re:/AW: dransteht; Reply-All ist
-#    from + to + cc minus der eigenen Adressen aus config.json.send.
-SUBJ=$(python3 -c "
-import json,re
-s=json.load(open('$Q/quote.json'))['subject']
-print(s if re.match(r'^(re|aw|wg|fwd)\s*:', s, re.I) else 'Re: '+s)")
-TO=$(python3 -c "
-import json,email.utils
-q=json.load(open('$Q/quote.json'))
-mine={'ich@example.org'}
-addrs=email.utils.getaddresses([q['from'], q['to'], q['cc']])
-seen=[]
-for _,a in addrs:
-    if a and a.lower() not in mine and a.lower() not in seen: seen.append(a.lower())
-print(','.join(seen))")
-
-# 4. Mail bauen -- Body ohne Zitat, der Helper haengt es unter die Signatur
-python3 $B \
-  --subject "$SUBJ" \
-  --to "$TO" \
-  --from ich@example.org \
-  --text-file $Q/body.txt \
-  --html-file $Q/body.html \
-  --quote-text-file $Q/quote.txt \
-  --quote-html-file $Q/quote.html \
-  --in-reply-to "$IRT" \
-  --references "$REF" \
-  --sha-file $Q/mail.sha256 \
-  > $Q/mail.eml \
-  && test -s $Q/mail.eml \
-  && python3 $B --verify $Q/mail.eml \
-      --expect-sha256 "$(cat $Q/mail.sha256)" \
-      --expect-marker "<woertliches Stueck aus dem Entwurf>"
-
-# 5. Versand als eigener Befehl, mit Ablage in Gesendet
-python3 $B --send $Q/mail.eml \
-  --to "$TO" --from ich@example.org --file-sent <send.account>
-```
-
-Zum Betreff: `Re: ` wird **einmal** vorangestellt. Traegt der Originalbetreff bereits
-ein `Re:` (oder das deutsche `AW:`), bleibt es bei dem vorhandenen Praefix -- `Re: AW:
-Re: ...` ist ein sicheres Zeichen dafuer, dass der Betreff zusammengetippt statt
-uebernommen wurde. Die Fallunterscheidung steckt deshalb im Snippet oben und nicht im
-Kopf des Modells.
-
-**Warum die Threading-Header nicht optional sind:** ohne `In-Reply-To` und `References`
-startet die Antwort im Mailclient des Empfaengers einen **neuen** Thread. Das faellt
-beim Versand nicht auf, sondern erst beim Gegenueber -- und dort auch nur als
-diffuses "die Antwort ist irgendwo untergegangen". Es ist genau der Fehler, der zuletzt
-nachtraeglich in die fertige `.eml` gepatcht werden musste.
-
-**Liegt die Mail als `.eml` statt im Postfach**, gibt es keine UID -- dann bleibt nur
-der handgebaute Weg (Betreff und Empfaenger kommen dort aus den Kopfzeilen der `.eml`,
-ebenfalls nicht aus dem Auftrag). Das ist der einzige Fall, in dem das Zitat nicht aus `imap quote`
-kommt; in der Ausfuehrungszeile steht dann `Quote: aus .eml` statt einer UID.
+Den vollstaendigen Ablauf mit allen Befehlen, die Regeln fuer Betreff und
+Reply-All und den Sonderfall einer Antwort auf eine `.eml` enthaelt
+[references/antworten.md](references/antworten.md). **Vor jeder Antwort lesen.**
 
 ## Anti-Patterns / KI-Tells → humanizer-de
 
@@ -469,14 +380,13 @@ Bezug; diese Checkliste ist die **Ergaenzung** zum Skill-Lauf, nicht sein Ersatz
   Ebenfalls ein Aufruf, kein Nachbauen; Ergebnis gehoert als letztes Feld in die
   Ausfuehrungszeile. Ist statt der UID nur die Message-ID bekannt (einkopierte
   Mail), loest `imap quote -m` bzw. `imap find -m` sie zu Konto, Ordner und UID
-  auf -- der Handabgleich ueber `folders` + `list` entfaellt.
+  auf -- der Handabgleich ueber `folders` + `list` entfaellt. Die Ablage in
+  "Gesendet" bzw. den Entwuerfen ruft swaks selbst auf (`--file-sent`, `--draft`).
 - **swaks** — Versand (`mail-as-me` schreibt, `swaks` sendet; Signatur kommt aus
   swaks, Absender und Ablagekonto aus `config.json.send` des Profils). Dessen Schritt 1
   (Empfaenger aufloesen) und Schritt 11 (Kontakt ergaenzen) gelten mit -- sie sind
   hier als Schritt 1 von `write` und als Absatz im Versand-Abschnitt abgebildet,
   weil die swaks-Schrittliste beim Weg ueber `mail-as-me` nie zu sehen ist.
-- **imap** — `quote` fuer Zitat und Threading vor dem Versand; die Ablage in
-  "Gesendet" bzw. den Entwuerfen ruft swaks selbst auf (`--file-sent`, `--draft`).
 - **kanboard/handoff** — optional CR-Kontext fuer den `learn`-Loop.
 
 ## Hinweise

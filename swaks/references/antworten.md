@@ -1,6 +1,6 @@
 # swaks - Antworten und Versandweg
 
-Zitat und Threading, und warum der Versandweg nicht von Hand nachgebaut wird.
+Zitat und Threading, warum der Versandweg nicht von Hand nachgebaut wird, und die Prüfungen für einen Handaufruf.
 
 ## Antwort auf eine Mail (Zitat + Threading)
 
@@ -11,7 +11,7 @@ ignorieren `format=flowed`.
 
 ```bash
 Q=$(mktemp -d .tmp/reply.XXXXXX)
-B=~/.claude/skills/swaks/build_mail.py
+B="$SKILL_DIR/build_mail.py"
 
 python3 ~/.claude/skills/imap/imap quote <uid> -a <konto> > $Q/quote.txt
 python3 ~/.claude/skills/imap/imap quote <uid> -a <konto> --format html > $Q/quote.html
@@ -76,6 +76,37 @@ Ergebnis.
 
 Das Passwort für den richtigen Weg gibt der Helper nicht heraus: `--show-config`
 und `--swaks-env` maskieren es als `<gesetzt>`, und dieser Literalstring endet am
-Relay mit `535 5.7.8 Error: authentication failed` (CR4621). `--send` ist deshalb
+Relay mit `535 5.7.8 Error: authentication failed`. `--send` ist deshalb
 nicht nur bequemer, sondern der einzige Weg, der ohne Umgang mit dem Klartext
 auskommt.
+
+### Handaufruf: Prüfungen nachbauen
+
+Wird `swaks` doch einmal ohne `--send` aufgerufen, sind die drei Prüfungen aus
+der SKILL.md („Ergebnis prüfen") von Hand nachzubauen, und der Versandweg muss
+vorher in der Umgebung stehen: `$ENV` stammt **ausschließlich** aus
+`build_mail.py --swaks-env --reveal-password`, dessen Ausgabe nie ungefiltert
+angezeigt wird. Das maskierte `auth_password: "<gesetzt>"` aus `--show-config`
+ist kein Passwort.
+
+```bash
+( eval "$ENV"; swaks --to "empfänger@example.com" --from <absender> \
+    --data @.tmp/mail.eml ) > .tmp/swaks.log 2>&1
+RC=$?
+
+test $RC -eq 0 && grep -q "queued as" .tmp/swaks.log && ! grep -qE '^<.\*' .tmp/swaks.log \
+  && echo "OK — versendet" \
+  || { echo "FEHLGESCHLAGEN (rc=$RC) — siehe .tmp/swaks.log"; grep -E '^<.\*' .tmp/swaks.log; }
+```
+
+**Alle drei Bedingungen prüfen, nicht eine davon.** Bei mehreren Empfängern, von
+denen der Relay nur einen ablehnt (z.B. mit `454`), liefert swaks `EXIT=0` und eine
+Queue-ID; nur die dritte Prüfung schlägt an.
+
+`swaks` markiert jede abgelehnte Antwort mit einem `*` an dritter Stelle des
+Zeilenpräfixes — unverschlüsselt `<**`, innerhalb einer TLS-Sitzung `<~*`.
+Beide trifft `^<.\*`. Im Erfolgsfall ist die Zeilenzahl null.
+
+Bei Erfolg zusätzlich die Gegenprobe auf das fehlende `@`: die `size=`-Angabe
+zur Queue-ID im Maillog gegen die Größe der `.eml` halten. Ein paar hundert
+Bytes statt einiger KB heißt, es ging der Dateiname statt der Mail raus.

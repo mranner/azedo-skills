@@ -13,7 +13,7 @@ Woher die Zugangsdaten kommen, Kontaktaufloesung, Signatur, Encoding.
 Ergebnis. Das Passwort verlässt den Prozess dabei nicht.
 
 ```bash
-python3 ~/.claude/skills/swaks/build_mail.py --send $M/mail.eml \
+python3 "$SKILL_DIR/build_mail.py" --send $M/mail.eml \
   --to "empfaenger@example.com" --from <absender>
 ```
 
@@ -23,7 +23,7 @@ Kommandozeile, wo jedes `ps` sie mitliest. Damit die Zeilen per `eval` taugen,
 braucht es `--reveal-password`:
 
 ```bash
-ENV=$(python3 ~/.claude/skills/swaks/build_mail.py --swaks-env --reveal-password) \
+ENV=$(python3 "$SKILL_DIR/build_mail.py" --swaks-env --reveal-password) \
   && test -n "$ENV" \
   && eval "$ENV"
 ```
@@ -38,7 +38,7 @@ es geht keine Mail raus.
 Zur Kontrolle des Weges ist `--show-config` da (Passwort ebenfalls maskiert):
 
 ```bash
-python3 ~/.claude/skills/swaks/build_mail.py --show-config
+python3 "$SKILL_DIR/build_mail.py" --show-config
 ```
 
 ### Woher die Zugangsdaten kommen
@@ -92,8 +92,8 @@ python3 ~/.claude/skills/imap/imap contacts <uid> -a <konto> [-f <ordner>]
 Das ist kein Komfort, sondern der Unterschied zwischen vollständig und fast
 vollständig: eine Adresse aus dem Verteiler steht oft nur in einer einzigen
 älteren Mail, und die eigenen Antworten liegen im „Gesendet" eines anderen
-Kontos. Von Hand ist das ein Abklappern der Kette mit je einem Aufruf pro Mail
-(CR4613). Die eigene Adresse steht mit in der Liste und gehört beim Envelope in
+Kontos. Von Hand ist das ein Abklappern der Kette mit je einem Aufruf pro Mail.
+Die eigene Adresse steht mit in der Liste und gehört beim Envelope in
 der Regel heraus.
 
 Details: `references/contacts.md` im `imap`-Skill.

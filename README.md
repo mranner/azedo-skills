@@ -661,11 +661,15 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.63.7
+### 1.63.8
 
-- **`mail-as-me`, `swaks` - `send.bcc` als Fallback ohne IMAP-Konto.** Hat das
-  Profil kein `send.account`, geht die Kopie der versendeten Mail wieder als Bcc
-  an die Adresse aus `send.bcc`, an Bau und `--send`, ohne Rückfrage. Seit 1.63.0
-  fiel auf Rechnern ohne eingerichtete IMAP-Konten jede Kopie weg, und der Skill
-  fragte nach einem Konto, das es nicht gibt. Neben `send.account` bleibt
-  `send.bcc` ungenutzt.
+- **`mail-as-me`, `swaks` - Aufbau nach Anthropics Skill-Leitfaden.** Der
+  Abschnitt zu Antworten (Zitat, Threading, Betreff, Empfänger) aus `mail-as-me`
+  steht jetzt in `mail-as-me/references/antworten.md`; die SKILL.md fällt von 491
+  auf 401 Zeilen. In `swaks` beschreibt „Ergebnis prüfen" nur noch, was `--send`
+  prüft; der Aufruf von Hand samt nachgebauten Prüfungen steht in
+  `references/antworten.md`. CR-Nummern und Versionsangaben sind aus dem Fließtext
+  beider Skills entfernt, `swaks` ruft `build_mail.py` über `$SKILL_DIR` auf, und
+  der Pfad zu `swaks-contacts.tsv` lautet in beiden Skills gleich. Der Verweis auf
+  die Ablage-Reihenfolge nennt den richtigen mail-as-me-Abschnitt, und `imap`
+  steht unter „Integration" nur noch einmal.
