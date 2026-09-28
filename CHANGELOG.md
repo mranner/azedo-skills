@@ -3,6 +3,14 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.63.9
+
+- **`wp-cli` - `iocage exec` entfernt eigene Optionen hinter dem Jail-Namen.**
+  `--force`/`-f`, `-p`, `--help` und `-U`/`-u` samt Wert kommen nicht beim
+  Befehl im Jail an; `-U` führt ihn sogar als anderer User aus. Der Abschnitt
+  iocage empfiehlt jetzt `--` nach dem Jail-Namen, `sh -c` nur noch für Pipes
+  und Redirects, und `-U <wwwuser>` statt `sudo -u`.
+
 ### 1.63.8
 
 - **`mail-as-me`, `swaks` - Aufbau nach Anthropics Skill-Leitfaden.** Der

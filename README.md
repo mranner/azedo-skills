@@ -661,15 +661,10 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.63.8
+### 1.63.9
 
-- **`mail-as-me`, `swaks` - Aufbau nach Anthropics Skill-Leitfaden.** Der
-  Abschnitt zu Antworten (Zitat, Threading, Betreff, Empfänger) aus `mail-as-me`
-  steht jetzt in `mail-as-me/references/antworten.md`; die SKILL.md fällt von 491
-  auf 401 Zeilen. In `swaks` beschreibt „Ergebnis prüfen" nur noch, was `--send`
-  prüft; der Aufruf von Hand samt nachgebauten Prüfungen steht in
-  `references/antworten.md`. CR-Nummern und Versionsangaben sind aus dem Fließtext
-  beider Skills entfernt, `swaks` ruft `build_mail.py` über `$SKILL_DIR` auf, und
-  der Pfad zu `swaks-contacts.tsv` lautet in beiden Skills gleich. Der Verweis auf
-  die Ablage-Reihenfolge nennt den richtigen mail-as-me-Abschnitt, und `imap`
-  steht unter „Integration" nur noch einmal.
+- **`wp-cli` - `iocage exec` entfernt eigene Optionen hinter dem Jail-Namen.**
+  `--force`/`-f`, `-p`, `--help` und `-U`/`-u` samt Wert kommen nicht beim
+  Befehl im Jail an; `-U` führt ihn sogar als anderer User aus. Der Abschnitt
+  iocage empfiehlt jetzt `--` nach dem Jail-Namen, `sh -c` nur noch für Pipes
+  und Redirects, und `-U <wwwuser>` statt `sudo -u`.
