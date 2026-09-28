@@ -3,6 +3,14 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.63.13
+
+- **`wiki` - `pflege.md` ohne zeitgebundene Fallgeschichten.** Zeilen- und
+  Verweiszahlen einzelner Umbauten und Fehlalarmquoten sind gestrichen, die
+  Regeln stehen mit ihrem Grund, nicht mit ihrer Entstehung. Dabei einen beim
+  letzten Release zerbrochenen Satz im Abschnitt „Eingehende Verweise
+  umhängen" repariert.
+
 ### 1.63.12
 
 - **`wiki` - refactor und audit nachgeschärft.** `refactor` prüft Duplikate auch

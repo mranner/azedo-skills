@@ -32,8 +32,7 @@ Gemessen wird je Artikel:
   „inzwischen"/„früher", über den ganzen Artikel gerechnet. Nicht gezählt werden
   Belege (ein Datum nach „verifiziert", „gemessen", „entschieden", „bestätigt",
   „geprüft"), Ticket- und Revisionsnummern (`CR####`, `r#####`) sowie alles in
-  Codeblöcken und Tabellen - dort sind Daten Fixture- oder Beispielwerte. Ohne
-  diese Ausnahmen war im CRIS-Wiki die Hälfte der Top-Befunde Fehlalarm.
+  Codeblöcken und Tabellen - dort sind Daten Fixture- oder Beispielwerte.
 - **LOGBUCH** — datierte Aufzählungspunkte unter `## Quellen`, ab dem dritten.
   Dorthin gehört die Rohquelle, nicht die Chronologie der eigenen Sessions.
 - **PROZEDURAL** — Codeblöcke und FALSCH/RICHTIG-Rezepte in einer server-,
@@ -65,8 +64,8 @@ Die Ausgabe zeigt **Rohwerte, nicht nur einen Score** — der Score ordnet nur d
 Rangfolge, entschieden wird an den Rohwerten. Zu jedem auffälligen Artikel nennt
 das Script bestehende Procedures als mögliche Verschiebeziele, samt den
 gemeinsamen Wörtern (`[gemeinsam: …]`). Ein einzelnes gemeinsames Wort zählt
-nur, wenn Abschnitt und Procedure zusätzlich seltene Wörter teilen - sonst
-schlug „Schleife" eine WordPress-Procedure für ein SSH-Thema vor. Die
+nur, wenn Abschnitt und Procedure zusätzlich seltene Wörter teilen - ein
+einzelnes Wort der Überschrift trifft sonst Procedures aus fremden Themen. Die
 Vorschläge bleiben **ungeprüft**: vor dem Verschieben die Procedure lesen.
 
 Bei einem **Remote-Wiki** entfällt `audit` — es läuft nur auf einer lokalen Kopie.
@@ -125,9 +124,7 @@ Ablauf:
 Der häufigste Grund für einen zu langen Artikel ist Fülle - manchmal ist es
 aber die Sammlung. Ein Artikel, dessen Name ein Thema verspricht und der fünf
 enthält, wird durch Kürzen nicht besser: er bleibt an der falschen Stelle
-auffindbar. `freebsd-shell-pitfalls` hatte 811 Zeilen und war kein verrotteter
-Artikel, sondern ein Sammelbecken; vier der fünf Themen sind heute eigene
-Procedures, der Rumpf hat 241 Zeilen.
+auffindbar.
 
 `→ EIGENER ARTIKEL` bekommt ein Abschnitt, wenn **alle drei** zutreffen:
 
@@ -153,13 +150,11 @@ Beim Umsetzen kommt zu Schritt 7 dazu:
 
 - **Eingehende Verweise umhängen.** `grep -rn "\[\[<slug>\]\]" <WIKI_ROOT>`
   vor dem Teilen: jeder Verweis zeigt auf *ein* Thema, und nach dem Teilen
-  meistens auf das falsche. Dabei auch Verweise prüfen, die schon **vor**
-  diesem Umbau falsch waren: wurde der Artikel früher bereits zerlegt, zeigen
-  oft noch Links auf Themen, die längst anderswo stehen (beim zweiten Zerlegen
-  von `freebsd-shell-pitfalls` 14 von 75). `log.md` und `raw/` bleiben
-  unverändert, ihre Einträge sind historisch. Beim Zerlegen von `freebsd-shell-pitfalls` waren 38
-  von 62 Verweisen umzuhängen - das ist die eigentliche Arbeit, nicht das
-  Verschieben des Textes.
+  meistens auf das falsche. Das Umhängen ist die eigentliche Arbeit, nicht das
+  Verschieben des Textes. Dabei auch Verweise prüfen, die schon **vor** diesem
+  Umbau falsch waren: wurde der Artikel früher bereits zerlegt, zeigen oft noch
+  Links auf Themen, die längst anderswo stehen. `log.md` und `raw/` bleiben
+  unverändert, ihre Einträge sind historisch.
 - **Der Rumpf behält eine Verweisliste** („Weitere Pitfalls in eigenen
   Artikeln") mit einem Halbsatz je Ziel, damit der Weg vom bekannten Namen zum
   ausgelagerten Thema bestehen bleibt.

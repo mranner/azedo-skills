@@ -661,18 +661,10 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.63.12
+### 1.63.13
 
-- **`wiki` - refactor und audit nachgeschärft.** `refactor` prüft Duplikate auch
-  gegen Rohquelle und Code, verifiziert eine Aussage vor dem Streichen, klärt
-  unbekannte Kürzel statt sie zu ersetzen und greppt gestrichene oder geänderte
-  Kernbegriffe wiki-weit; beim Zerlegen werden auch Verweise geprüft, die schon
-  vor dem Umbau falsch waren. `audit-wiki.py` zählt bei HISTORIE keine Belege
-  (Datum nach „verifiziert" u.ä.), keine Ticket- und Revisionsnummern und nichts
-  aus Codeblöcken und Tabellen; MEHRTHEMIG entfällt bei `type: reference`; neuer
-  Befund PERSONENDATEN (persönliche Mailadressen, Benutzernamen-Literale);
-  Verschiebeziele mit nur einem gemeinsamen Wort brauchen zusätzlich gemeinsame
-  seltene Wörter und nennen die Treffer. `lint-wiki.py` prüft Abschnittsverweise
-  (`[[x]], Abschnitt Y`) gegen die Überschriften des Ziels, und der
-  Schrumpf-Guard meldet umgehängte Links nicht mehr als Verlust. Neue Testfälle
-  in `test-lint-wiki.py`.
+- **`wiki` - `pflege.md` ohne zeitgebundene Fallgeschichten.** Zeilen- und
+  Verweiszahlen einzelner Umbauten und Fehlalarmquoten sind gestrichen, die
+  Regeln stehen mit ihrem Grund, nicht mit ihrer Entstehung. Dabei einen beim
+  letzten Release zerbrochenen Satz im Abschnitt „Eingehende Verweise
+  umhängen" repariert.
