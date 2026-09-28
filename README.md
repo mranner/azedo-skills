@@ -661,10 +661,13 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.63.9
+### 1.63.10
 
-- **`wp-cli` - `iocage exec` entfernt eigene Optionen hinter dem Jail-Namen.**
-  `--force`/`-f`, `-p`, `--help` und `-U`/`-u` samt Wert kommen nicht beim
-  Befehl im Jail an; `-U` führt ihn sogar als anderer User aus. Der Abschnitt
-  iocage empfiehlt jetzt `--` nach dem Jail-Namen, `sh -c` nur noch für Pipes
-  und Redirects, und `-U <wwwuser>` statt `sudo -u`.
+- **`wp-cli` - Aufbau nach Anthropics Skill-Leitfaden.** Die iocage-Vorlage und
+  ihr Beispiel lauten jetzt `iocage exec -U <wwwuser> <jail> -- wp …`; die
+  bisherige Form mit `sudo -u` hinter dem Jail-Namen verlor das `-u <wwwuser>`
+  an `iocage exec`. Befehlsreferenz und Bulk-Operationen stehen in
+  `references/befehle.md`, Multisite in `references/multisite.md`,
+  Troubleshooting in `references/troubleshooting.md`; die SKILL.md fällt von 457
+  auf 246 Zeilen. Ein neuer Abschnitt „Referenzen" nennt die Dateien und
+  verlangt bei einer Multisite, `multisite.md` vor dem ersten Befehl zu lesen.

@@ -3,6 +3,17 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.63.10
+
+- **`wp-cli` - Aufbau nach Anthropics Skill-Leitfaden.** Die iocage-Vorlage und
+  ihr Beispiel lauten jetzt `iocage exec -U <wwwuser> <jail> -- wp …`; die
+  bisherige Form mit `sudo -u` hinter dem Jail-Namen verlor das `-u <wwwuser>`
+  an `iocage exec`. Befehlsreferenz und Bulk-Operationen stehen in
+  `references/befehle.md`, Multisite in `references/multisite.md`,
+  Troubleshooting in `references/troubleshooting.md`; die SKILL.md fällt von 457
+  auf 246 Zeilen. Ein neuer Abschnitt „Referenzen" nennt die Dateien und
+  verlangt bei einer Multisite, `multisite.md` vor dem ersten Befehl zu lesen.
+
 ### 1.63.9
 
 - **`wp-cli` - `iocage exec` entfernt eigene Optionen hinter dem Jail-Namen.**

@@ -23,10 +23,10 @@ Ergaenzt den **wordpress-pro** Skill (Entwicklung: Themes, Plugins, Gutenberg) u
 
 WordPress-Installationen liegen unter `/www/home/<wwwuser>/<domain>/`.
 
-WP-User haben Shell `/usr/bin/true` — daher `sudo -u <wwwuser>` verwenden, nicht `su -l`.
+WP-User haben Shell `/usr/bin/true` — daher `sudo -u <wwwuser>` (jexec) bzw. `iocage exec -U <wwwuser>` verwenden, nicht `su -l`.
 
 > **Nie `--allow-root` / nie als root ausführen.** WP-CLI als root triggert u. a.
-> den WPML/WP_Filesystem-FTP-Fatal. Immer `sudo -u <wwwuser>`.
+> den WPML/WP_Filesystem-FTP-Fatal. Immer als `<wwwuser>`.
 
 ### ezjail (jexec)
 
@@ -45,13 +45,13 @@ sudo ssh -C root@webhost1.example.at "jexec 2 sudo -u wwwexample wp --path=/www/
 ### iocage (iocage exec)
 
 ```sh
-sudo ssh -C root@<server> "iocage exec <jailname> sudo -u <wwwuser> wp --path=/www/home/<wwwuser>/<domain> <command>"
+sudo ssh -C root@<server> "iocage exec -U <wwwuser> <jailname> -- wp --path=/www/home/<wwwuser>/<domain> <command>"
 ```
 
 Beispiel (jailer1, apache1.example.com):
 
 ```sh
-sudo ssh -C root@jailer1.example.at "iocage exec apache1.example.com sudo -u wwwexample wp --path=/www/home/wwwexample/www.example.com core version"
+sudo ssh -C root@jailer1.example.at "iocage exec -U wwwexample apache1.example.com -- wp --path=/www/home/wwwexample/www.example.com core version"
 ```
 
 **Immer `--` nach dem Jail-Namen.** `iocage exec` wertet seine eigenen Optionen auch hinter dem Jail-Namen aus und entfernt sie still: `--force`/`-f`, `-p`, `--help`, und `-U`/`-u` samt Wert - letzteres führt den Befehl sogar als anderer User aus. Ergebnis ist eine wp-cli-Warnung statt der Aktion, oder eine Aktion mit falschen Rechten. Deshalb `iocage exec -U <wwwuser> <jail> -- wp … --force`. `sh -c '…'` nur, wenn im Jail Pipes oder Redirects nötig sind. `-U <wwwuser>` statt `sudo -u`, weil `sudo` im Jail ein Passwort verlangen kann.
@@ -194,223 +194,7 @@ wp shell
 
 ---
 
-## 4. Quick Reference
-
-### Plugins
-
-```sh
-wp plugin list                              # Alle Plugins mit Status
-wp plugin list --status=active              # Nur aktive
-wp plugin list --format=json                # JSON-Ausgabe
-wp plugin install <slug> --activate         # Installieren + aktivieren
-wp plugin activate <slug>                   # Aktivieren
-wp plugin deactivate <slug>                 # Deaktivieren
-wp plugin update <slug>                     # Einzelnes Plugin updaten
-wp plugin update --all                      # Alle Plugins updaten
-wp plugin delete <slug>                     # Plugin loeschen
-wp plugin search <term>                     # Im Repository suchen
-wp plugin verify-checksums --all            # Integritaet pruefen
-```
-
-> **Plugin-eigene CLI-Befehle:** Manche Plugins registrieren eigene WP-CLI-Subcommands.
-> Ninja Forms z.B. bringt `wp ninja-forms` mit (`list`/`get`/`form`/`delete`/`info`) —
-> Formular-Auslesen/-Aendern, Settings (`element_class`) und Export/Import deckt der
-> Skill [[wp-nf]] ab.
-
-### Themes
-
-```sh
-wp theme list                               # Alle Themes mit Status
-wp theme activate <slug>                    # Theme aktivieren
-wp theme install <slug>                     # Theme installieren
-wp theme update --all                       # Alle Themes updaten
-wp theme delete <slug>                      # Theme loeschen
-```
-
-### Users
-
-```sh
-wp user list                                # Alle User
-wp user list --role=administrator           # Nur Admins
-wp user get <id|login|email>                # User-Details
-wp user create <login> <email> --role=editor  # User erstellen
-wp user update <id> --user_pass=<pw>        # Passwort aendern
-wp user delete <id> --reassign=<other_id>   # User loeschen (Posts umhaengen!)
-wp user add-role <id> <role>                # Rolle hinzufuegen
-wp user remove-role <id> <role>             # Rolle entfernen
-```
-
-**Wichtig:** Bei `wp user delete` immer `--reassign=<id>` angeben, um Posts einem anderen User zuzuweisen. Ohne `--reassign` werden alle Posts geloescht.
-
-### Options (wp_options)
-
-```sh
-wp option get <name>                        # Wert lesen
-wp option get <name> --format=json          # Als JSON (fuer Arrays/Objekte)
-wp option update <name> <value>             # Wert setzen
-wp option update <name> --format=json < data.json  # JSON-Wert setzen
-wp option delete <name>                     # Option loeschen
-wp option list --search="*woo*"             # Options durchsuchen
-```
-
-**Bei Multisite zuerst pruefen, ob die Option ueberhaupt in `wp_options` liegt.**
-Eine Reihe von Einstellungen kommt dort aus `wp_sitemeta`; `wp option get` liefert
-trotzdem einen Wert, nur steuert der nichts. Siehe Abschnitt 6, „Optionen liegen bei
-Multisite in `sitemeta`".
-
-### Cache
-
-```sh
-wp cache flush                              # Object Cache leeren
-wp transient delete --all                   # Alle Transients loeschen
-wp transient delete --expired               # Nur abgelaufene Transients
-wp rewrite flush                            # Rewrite-Rules neu generieren
-```
-
-### Cron
-
-```sh
-wp cron event list                          # Geplante Events anzeigen
-wp cron event run --all                     # Alle faelligen Events ausfuehren
-wp cron event run <hook>                    # Einzelnen Event ausfuehren
-wp cron event delete <hook>                 # Event loeschen
-wp cron schedule list                       # Cron-Intervalle anzeigen
-wp cron test                                # WP-Cron-URL testen
-```
-
-### Core
-
-```sh
-wp core version                             # WordPress-Version
-wp core check-update                        # Verfuegbare Updates pruefen
-wp core update                              # WordPress updaten (Backup zuerst!)
-wp core verify-checksums                    # Core-Integritaet pruefen
-```
-
-### Wartung
-
-```sh
-wp maintenance-mode activate                # Wartungsmodus ein
-wp maintenance-mode deactivate              # Wartungsmodus aus
-wp maintenance-mode status                  # Status pruefen
-wp config shuffle-salts                     # Neue Salts generieren
-```
-
-### Posts und Seiten
-
-```sh
-wp post list --post_type=post               # Alle Posts
-wp post list --post_type=page               # Alle Seiten
-wp post list --post_status=draft            # Entwuerfe
-wp post get <id>                            # Post-Details
-wp post delete <id>                         # Post in Papierkorb
-wp post delete <id> --force                 # Post endgueltig loeschen
-```
-
----
-
-## 5. Bulk-Operationen
-
-```sh
-# Alle Plugins + Themes updaten
-wp plugin update --all && wp theme update --all
-
-# Alle User als CSV exportieren
-wp user list --format=csv > users.csv
-
-# Posts eines Typs als IDs (zum Weiterverarbeiten)
-wp post list --post_type=product --format=ids
-
-# Alle Spam-Kommentare loeschen
-wp comment delete $(wp comment list --status=spam --format=ids) --force
-
-# Alle Transients loeschen (Performance-Probleme)
-wp transient delete --all
-```
-
----
-
-## 6. Multisite
-
-```sh
-# Alle Sites im Netzwerk
-wp site list
-
-# Befehl auf bestimmter Site ausfuehren
-wp --url=sub.example.com plugin list
-
-# Super-Admins verwalten
-wp super-admin list
-wp super-admin add <user>
-wp super-admin remove <user>
-
-# Plugin netzwerkweit aktivieren
-wp plugin activate <slug> --network
-```
-
-Bei Multisite-Installationen **immer** `--url=<site>` angeben, sonst wirkt der Befehl nur auf die Haupt-Site.
-
-### Optionen liegen bei Multisite in `sitemeta`
-
-Bei einer Multisite liest WordPress eine Reihe von Einstellungen ueber
-`get_site_option()`, also aus `wp_sitemeta` statt aus `wp_options` der einzelnen
-Site. `wp option get` antwortet dort trotzdem mit einem Wert -- der Aufruf schlaegt
-nicht fehl, er antwortet **falsch**. Betroffen sind unter anderem
-`auto_update_plugins`, `auto_update_core_major` und `auto_update_core_minor`.
-
-Beide Ebenen koennen gleichzeitig existieren und sich widersprechen. Wer nur
-`option get` fragt, dokumentiert den falschen Zustand und aendert anschliessend an
-der wirkungslosen Stelle, ohne dass etwas auffaellt.
-
-```sh
-# Erst pruefen, ob Multisite (Exit-Code 1, wenn die Konstante fehlt):
-wp config get MULTISITE
-
-# FALSCH bei Multisite -- Wert existiert, ist aber wirkungslos:
-wp option get auto_update_plugins --format=json
-
-# RICHTIG -- Netzwerk-Ebene:
-wp network meta get 1 auto_update_plugins --format=json
-wp network meta update 1 auto_update_core_major disabled
-```
-
-Die `1` ist die Network-ID; bei einer einzelnen Multisite-Installation ist das immer
-`1` (`wp network list` zeigt sie).
-
-**Regel:** Vor jedem `option get`/`option update` auf `MULTISITE` pruefen und bei
-einer Multisite auf `network meta get|update 1 <option>` verzweigen. Bei einer
-Erhebung ueber mehrere Installationen gilt das ausnahmslos. Ein Plugin mit Status
-`active-network` in `wp plugin list` ist ein zuverlaessiges Indiz fuer eine
-Multisite.
-
-**Achtung:** `--url` filtert nur auf Standard-WordPress-Tabellen (mit Site-Prefix). Custom-Tabellen wie `wp_*_icl_strings` (WPML) oder andere Plugin-Tabellen ohne Site-Prefix werden von `--url` **nicht** erfasst. Fuer Operationen auf solchen Tabellen `--all-tables` verwenden:
-
-```sh
-# FALSCH — findet Custom-Tabellen nicht:
-wp search-replace 'alt' 'neu' --url=sub.example.com
-
-# RICHTIG — alle Tabellen einschliessen:
-wp search-replace 'alt' 'neu' --all-tables
-```
-
-**DB-Export einer Subsite:** Die Tabellenliste mit `--all-tables-with-prefix`
-bilden, nicht mit `--scope=blog`. `--scope=blog` liefert nur die WP-Kerntabellen
-der Subsite und laesst alle Plugin-Tabellen mit ihrem Prefix weg (WPML, Ninja
-Forms, Smart Slider, ...) - das Backup sieht vollstaendig aus und ist es nicht.
-Bei einer Subsite mit vielen Plugins standen 15 Tabellen gegen 104.
-
-```sh
-# FALSCH — nur die 15 Kerntabellen:
-wp db tables --url=sub.example.com --scope=blog
-
-# RICHTIG — alle Tabellen mit dem Prefix der Subsite (wp_5_*):
-wp db export /tmp/sub-$(date +%Y%m%d).sql \
-    --tables=$(wp db tables --url=sub.example.com --all-tables-with-prefix --format=csv)
-```
-
----
-
-## 7. Performance-Flags
+## 4. Performance-Flags
 
 | Flag | Wirkung |
 |------|---------|
@@ -425,7 +209,7 @@ wp db export /tmp/sub-$(date +%Y%m%d).sql \
 
 ---
 
-## 8. Safety
+## 5. Safety
 
 1. **Backup vor destruktiven Operationen** — Immer `wp db export` ausfuehren vor: `wp db import`, `wp search-replace` (ohne --dry-run), `wp core update`, Bulk-Loeschungen
 2. **Dry-Run zuerst** — `wp search-replace` immer zuerst mit `--dry-run` ausfuehren, Ergebnis dem User zeigen, erst nach Bestaetigung ohne `--dry-run`
@@ -435,7 +219,7 @@ wp db export /tmp/sub-$(date +%Y%m%d).sql \
 
 ---
 
-## 9. Workflow
+## 6. Workflow
 
 1. **Server und Jail ermitteln** — Aus dem Kontext oder beim User nachfragen: Server (z.B. `webhost1.example.at`), Jail-Typ (ezjail/iocage), Jail-ID/Name, wwwuser, Domain/Pfad. Siehe `server/overview.md` fuer Details
 2. **Befehl zusammenbauen** — Mit dem passenden Zugriffs-Template (ezjail/iocage) aus Abschnitt 1
@@ -445,13 +229,18 @@ wp db export /tmp/sub-$(date +%Y%m%d).sql \
 
 ---
 
-## 10. Troubleshooting
+## 7. Referenzen
 
-| Problem | Ursache | Loesung |
-|---------|---------|---------|
-| `wp db` schlaegt fehl: "mysql: not found" | MySQL-Client nicht im Jail installiert | `wp eval` mit `$wpdb` als Workaround (siehe Abschnitt 2) |
-| "Error: This does not appear to be a WordPress install" | Falscher `--path` | Pfad pruefen: `ls /www/home/<wwwuser>/<domain>/wp-config.php` |
-| Permission denied | Falscher wwwuser | `ls -la /www/home/` im Jail pruefen, korrekten User verwenden |
-| Quoting-Fehler | Verschachtelte Anfuehrungszeichen | Quoting vereinfachen oder `wp eval-file` mit externer Datei verwenden |
-| Timeout bei grossen Operationen | Lange DB-Queries oder Bulk-Ops | `--quiet` verwenden, bei Search-Replace einzelne Tabellen angeben |
-| Plugin-Fehler beim Laden | Fehlerhaftes Plugin | `--skip-plugins` verwenden, dann gezielt debuggen |
+Bei Bedarf lesen:
+
+| Datei | Inhalt |
+|---|---|
+| `references/befehle.md` | Befehle nach Bereich (Plugins, Themes, Users, Options, Cache, Cron, Core, Wartung, Posts) und Bulk-Operationen |
+| `references/multisite.md` | Multisite: `--url`, Optionen in `sitemeta`, Custom-Tabellen, DB-Export einer Subsite |
+| `references/troubleshooting.md` | typische Fehlermeldungen mit Ursache und Loesung |
+
+Bei einer Multisite **vor** dem ersten Befehl `references/multisite.md` lesen: ohne
+`--url=<site>` wirkt ein Befehl nur auf die Haupt-Site, und `wp option get` liefert
+fuer Netzwerk-Einstellungen einen Wert, der nichts steuert.
+
+Plugin-eigene Subcommands (z.B. `wp ninja-forms`) deckt der Skill [[wp-nf]] ab.
