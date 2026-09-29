@@ -661,8 +661,9 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.63.14
+### 1.63.15
 
-- **`wp-cli` - Glob-Argumente quoten.** Der Abschnitt Quoting verlangt fuer
-  Glob-Argumente wie `--search='relevanssi_*'` einfache Anfuehrungszeichen, sonst
-  expandiert die Shell auf dem Jail-Host das Muster, bevor wp-cli es sieht.
+- **`kanboard` - `set-handoff` lehnt leere Eingabe ab.** Eine leere oder nur aus
+  Leerzeichen bestehende Eingabe (`--file` mit leerer Datei, `--value ""`)
+  ueberschrieb den Handoff bisher still mit nichts. Jetzt bricht der Aufruf mit
+  Exit-Code 1 ab; geloescht wird nur per `remove-handoff`.

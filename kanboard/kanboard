@@ -557,6 +557,11 @@ def cmd_set_handoff(args):
     else:
         content = args.value
 
+    if not content.strip():
+        print("Error: empty handoff content, not saved (use remove-handoff to delete)",
+              file=sys.stderr)
+        sys.exit(1)
+
     result = rpc_call("saveTaskHandoff", {
         "task_id": int(args.task_id),
         "content": content,

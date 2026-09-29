@@ -81,6 +81,9 @@ auf der Task-Seite (Spalte `content` als `LONGTEXT`, keine Laengengrenze — and
 Task-Metadata mit `VARCHAR(255)`). Der Handoff ist **nicht** die Beschreibung, **nicht** ein
 Kommentar und **nicht** ein Anhang, sondern ein eigenes Feld. Ein Handoff pro Task (erneutes
 `set-handoff` ueberschreibt).
+Eine leere Eingabe lehnt `set-handoff` mit Exit-Code 1 ab, geloescht wird nur per
+`remove-handoff`. Zum Aendern den Handoff per `get-handoff` lesen - `get-task`
+liefert das Feld nicht.
 
 ```bash
 # Handoff setzen (Text aus Datei ODER direkt)
