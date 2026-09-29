@@ -1,5 +1,7 @@
 # Task-Inhalte - Subcommands
 
+**Inhalt:** Datei anhängen · Kommentare (lesen, hinzufügen, ändern, löschen) · Anhänge (auflisten, herunterladen, löschen) · Handoff-Feld · Teilaufgaben · Task-Verbindungen · Tags (Kimai- und Jira-Verknüpfung)
+
 Kommentare, Anhänge, Teilaufgaben, Verknüpfungen, Tags und das Handoff-Feld.
 Aufruf durchgehend `python3 "$SKILL_DIR/kanboard" <subcommand>`.
 

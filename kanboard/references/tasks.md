@@ -1,5 +1,7 @@
 # Tasks - Subcommands
 
+**Inhalt:** Erstellen · Anzeigen · Ändern · Datumsfelder · Verschieben (Spalte, anderes Projekt) · Öffnen/Schließen · Löschen · Auflisten · Suchen (Feld-Filter, `--anywhere`/`--in`) · Eigene Tasks
+
 Anlegen, Anzeigen, Ändern, Verschieben, Schließen, Löschen, Auflisten, Suchen.
 Aufruf durchgehend `python3 "$SKILL_DIR/kanboard" <subcommand>`.
 

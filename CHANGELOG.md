@@ -3,6 +3,12 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.63.16
+
+- **`kanboard` - Inhaltszeile in `tasks.md` und `task-inhalte.md`.** Beide
+  Referenzdateien liegen über 100 Zeilen und nennen ihre Abschnitte jetzt oben,
+  wie `projekte.md`.
+
 ### 1.63.15
 
 - **`kanboard` - `set-handoff` lehnt leere Eingabe ab.** Eine leere oder nur aus

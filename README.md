@@ -661,9 +661,8 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.63.15
+### 1.63.16
 
-- **`kanboard` - `set-handoff` lehnt leere Eingabe ab.** Eine leere oder nur aus
-  Leerzeichen bestehende Eingabe (`--file` mit leerer Datei, `--value ""`)
-  ueberschrieb den Handoff bisher still mit nichts. Jetzt bricht der Aufruf mit
-  Exit-Code 1 ab; geloescht wird nur per `remove-handoff`.
+- **`kanboard` - Inhaltszeile in `tasks.md` und `task-inhalte.md`.** Beide
+  Referenzdateien liegen über 100 Zeilen und nennen ihre Abschnitte jetzt oben,
+  wie `projekte.md`.
