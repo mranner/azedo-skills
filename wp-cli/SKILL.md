@@ -63,6 +63,7 @@ SSH → jexec/iocage exec → sudo ergibt drei Quoting-Ebenen. Regeln:
 - Aeussere Ebene (SSH): doppelte Anfuehrungszeichen
 - Innere Werte: einfache Anfuehrungszeichen oder Escaping mit `\"`
 - Komplexe PHP-Ausdruecke: besser in eine Datei schreiben und `wp eval-file` verwenden
+- Glob-Argumente in einfache Anfuehrungszeichen: `--search='relevanssi_*'` statt `--search=relevanssi_*`, sonst expandiert die Shell auf dem Jail-Host das Muster, bevor wp-cli es sieht
 
 ```sh
 # Einfach — keine inneren Quotes noetig
@@ -70,6 +71,9 @@ sudo ssh -C root@server "jexec 2 sudo -u wwwuser wp --path=/www/home/wwwuser/dom
 
 # Mit einfachen Quotes im Wert
 sudo ssh -C root@server "jexec 2 sudo -u wwwuser wp --path=/www/home/wwwuser/domain option update blogdescription 'Neue Beschreibung'"
+
+# Glob-Argument — einfach gequotet
+sudo ssh -C root@server "jexec 2 sudo -u wwwuser wp --path=/www/home/wwwuser/domain option list --search='relevanssi_*'"
 ```
 
 ### Preflight

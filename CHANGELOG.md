@@ -3,6 +3,12 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.63.14
+
+- **`wp-cli` - Glob-Argumente quoten.** Der Abschnitt Quoting verlangt fuer
+  Glob-Argumente wie `--search='relevanssi_*'` einfache Anfuehrungszeichen, sonst
+  expandiert die Shell auf dem Jail-Host das Muster, bevor wp-cli es sieht.
+
 ### 1.63.13
 
 - **`wiki` - `pflege.md` ohne zeitgebundene Fallgeschichten.** Zeilen- und

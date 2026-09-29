@@ -661,10 +661,8 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.63.13
+### 1.63.14
 
-- **`wiki` - `pflege.md` ohne zeitgebundene Fallgeschichten.** Zeilen- und
-  Verweiszahlen einzelner Umbauten und Fehlalarmquoten sind gestrichen, die
-  Regeln stehen mit ihrem Grund, nicht mit ihrer Entstehung. Dabei einen beim
-  letzten Release zerbrochenen Satz im Abschnitt „Eingehende Verweise
-  umhängen" repariert.
+- **`wp-cli` - Glob-Argumente quoten.** Der Abschnitt Quoting verlangt fuer
+  Glob-Argumente wie `--search='relevanssi_*'` einfache Anfuehrungszeichen, sonst
+  expandiert die Shell auf dem Jail-Host das Muster, bevor wp-cli es sieht.
