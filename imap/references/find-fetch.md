@@ -28,6 +28,15 @@ einem Header-Auszug kopiert sein.
 Sweep ueber ein gewachsenes Postfach dauert dabei durchaus eine Minute (je
 Ordner ein SELECT und ein SEARCH); `-a` und `-f` kuerzen das entsprechend ab.
 
+**Als `\Deleted` markierte Treffer zählen nicht als erster Treffer.** Nach einem
+Verschieben ohne EXPUNGE bleibt im Quellordner eine Kopie mit `\Deleted` zurück.
+Sie verschwindet beim nächsten EXPUNGE, und ein `quote` auf ihre UID scheitert
+dann mit „uid nicht gefunden“. `find` sucht deshalb nach so einem Treffer weiter
+und stellt ihn hinter die übrigen; `quote -m` und `contacts -m` nehmen damit die
+gültige Mail. Der Treffer trägt in der Textausgabe `[\Deleted]`, im `--json` das
+Feld `deleted: true`. Gibt es nur solche Treffer, weist `find` auf stderr darauf
+hin.
+
 **Kein Treffer ist hier ein Fehler** (Exit-Code 1), anders als bei einer leeren
 Inbox: gesucht wird nach einer bestimmten Mail, die es geben soll. Ohne diesen
 Exit-Code liefe eine Pipeline still mit fehlendem Zitat weiter.

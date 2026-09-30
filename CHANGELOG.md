@@ -3,6 +3,15 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.63.19
+
+- **`imap` - `find` überspringt `\Deleted`-Treffer.** Eine nach dem Verschieben
+  ohne EXPUNGE zurückgebliebene Kopie beendete die Suche als erster Treffer; ein
+  `quote` auf ihre UID scheiterte, sobald sie expunged war. Solche Treffer zählen
+  jetzt nicht mehr als erster Treffer, stehen hinter den übrigen und sind markiert
+  (`[\Deleted]`, im JSON `deleted: true`). Gibt es nur solche, kommt ein Hinweis
+  auf stderr. `quote -m` und `contacts -m` greifen damit auf die gültige Mail.
+
 ### 1.63.18
 
 - **`wp-cli` - Sicherung einer Multisite-Subsite.** `references/multisite.md` hat

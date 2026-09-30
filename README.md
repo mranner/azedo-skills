@@ -661,12 +661,11 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.63.18
+### 1.63.19
 
-- **`wp-cli` - Sicherung einer Multisite-Subsite.** `references/multisite.md` hat
-  jetzt ein vollständiges Rezept: Tabellenliste per `--all-tables-with-prefix`,
-  Export nach stdout und gzip auf dem Host (kein beschreibbares Verzeichnis im
-  Jail nötig), Prüfung mit `gzip -t`, sha256 und dem Vergleich der Zahl der
-  `CREATE TABLE` mit der Tabellenzahl. Dazu die Regel zum Aufräumen: Sicherung
-  lokal holen und die sha256 vergleichen, remote nur die eigenen Dateien löschen,
-  fremde Reste melden.
+- **`imap` - `find` überspringt `\Deleted`-Treffer.** Eine nach dem Verschieben
+  ohne EXPUNGE zurückgebliebene Kopie beendete die Suche als erster Treffer; ein
+  `quote` auf ihre UID scheiterte, sobald sie expunged war. Solche Treffer zählen
+  jetzt nicht mehr als erster Treffer, stehen hinter den übrigen und sind markiert
+  (`[\Deleted]`, im JSON `deleted: true`). Gibt es nur solche, kommt ein Hinweis
+  auf stderr. `quote -m` und `contacts -m` greifen damit auf die gültige Mail.

@@ -1291,10 +1291,17 @@ def locate_message_id(accounts, message_id, account=None, folder=None,
         with Account(cfg) as a:
             for name in ([folder] if folder else selectable_folders(a)):
                 found = a.scan_message_id(message_id, name)
+                for m in found:
+                    m["deleted"] = any(f.lower() == "\\deleted" for f in m["flags"])
                 hits.extend(found)
-                if found and stop_at_first:
-                    return hits
-    return hits
+
+                # Eine als \Deleted markierte Kopie bleibt nach einem Verschieben
+                # ohne EXPUNGE zurueck und verschwindet beim naechsten - die
+                # gueltige Mail liegt in einem anderen Ordner, also weitersuchen
+
+                if stop_at_first and any(not m["deleted"] for m in found):
+                    return sorted(hits, key=lambda m: m["deleted"])
+    return sorted(hits, key=lambda m: m["deleted"])
 
 
 def out_json(obj):
@@ -1386,11 +1393,15 @@ def cmd_find(args, accounts):
         out_json(hits)
     else:
         for m in hits:
+            mark = "  [\\Deleted]" if m["deleted"] else ""
             print(f"{m['account']}/{m['folder']}/{m['uid']}  "
                   f"{short(sender_short(m['from']), 26):<26} "
-                  f"{short(m['subject'], 58)}")
+                  f"{short(m['subject'], 58)}{mark}")
         if not hits:
             print(f"keine Mail mit Message-ID {mid} gefunden", file=sys.stderr)
+    if hits and all(m["deleted"] for m in hits):
+        print("nur als \\Deleted markierte Treffer - die Kopie verschwindet beim "
+              "naechsten EXPUNGE, die Mail wurde vermutlich verschoben", file=sys.stderr)
 
     # Nicht gefunden ist hier ein Fehler, kein leeres Ergebnis: gesucht wird
     # nach einer konkreten Mail, die es geben soll. Ein Exit-Code 0 wuerde in
