@@ -661,12 +661,12 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.63.23
+### 1.63.24
 
-- **`kimai` - `import-hours` rundet je Projekt, kaufmännisch.** Bisher wurde
-  jeder Eintrag einzeln umgerechnet und aufgerundet, bei `beide` jede Hälfte
-  für sich - viele kleine Einträge blähten die Kimai-Stunden dadurch auf. Jetzt
-  werden die tatsächlichen Stunden je Projekt summiert (50:50-Hälften
-  ungerundet) und erst die Summe umgerechnet und kaufmännisch gerundet
-  (`floor(x + 0.5)`, nicht Pythons Banker's Rounding). Die Vorschauzeile heißt
-  „Differenz durch Rundung“, `references/import-hours.md` ist angepasst.
+- **`kimai` - Abgleich mit Anthropics Skill-Richtlinien.** Das Script bricht bei
+  einem nicht erreichbaren oder hängenden Kimai-Host mit klarer Meldung ab statt
+  mit Traceback bzw. ohne Ende (`NET_TIMEOUT` 30 s); `MAX_PER_DAY` ist
+  begründet. SKILL.md und `references/` sind zeitlos formuliert, die Migration
+  des alten Shortcut-Formats steht beim Dateiformat statt als Workflow-Schritt,
+  das doppelte `log`-Beispiel ist entfallen. Der ganze Skill schreibt echte
+  Umlaute; der JSON-Schlüssel `eintraege` bleibt unverändert.

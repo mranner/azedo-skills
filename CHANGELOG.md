@@ -3,6 +3,16 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.63.24
+
+- **`kimai` - Abgleich mit Anthropics Skill-Richtlinien.** Das Script bricht bei
+  einem nicht erreichbaren oder hängenden Kimai-Host mit klarer Meldung ab statt
+  mit Traceback bzw. ohne Ende (`NET_TIMEOUT` 30 s); `MAX_PER_DAY` ist
+  begründet. SKILL.md und `references/` sind zeitlos formuliert, die Migration
+  des alten Shortcut-Formats steht beim Dateiformat statt als Workflow-Schritt,
+  das doppelte `log`-Beispiel ist entfallen. Der ganze Skill schreibt echte
+  Umlaute; der JSON-Schlüssel `eintraege` bleibt unverändert.
+
 ### 1.63.23
 
 - **`kimai` - `import-hours` rundet je Projekt, kaufmännisch.** Bisher wurde

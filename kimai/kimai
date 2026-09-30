@@ -39,7 +39,13 @@ ENV_FILE = _find_env()
 
 _config = None
 
+# Höchstens ein Arbeitstag mit Pausen, mehr je Tag wäre für einen Externen unplausibel
+
 MAX_PER_DAY = 7
+
+# Hängender Server bricht den Aufruf ab, statt ihn unbegrenzt zu blockieren
+
+NET_TIMEOUT = 30
 
 
 def load_env():
@@ -92,7 +98,7 @@ def api_call(method, path, data=None, params=None):
     )
 
     try:
-        with urllib.request.urlopen(req) as resp:
+        with urllib.request.urlopen(req, timeout=NET_TIMEOUT) as resp:
             raw = resp.read()
             if not raw:
                 return None
@@ -100,6 +106,12 @@ def api_call(method, path, data=None, params=None):
     except urllib.error.HTTPError as e:
         err_body = e.read().decode("utf-8", errors="replace")
         print(f"API error {e.code}: {err_body}", file=sys.stderr)
+        sys.exit(1)
+    except urllib.error.URLError as e:
+        print(f"Connection to {config['KIMAI_HOST']} failed: {e.reason}", file=sys.stderr)
+        sys.exit(1)
+    except TimeoutError:
+        print(f"No response from {config['KIMAI_HOST']} within {NET_TIMEOUT}s", file=sys.stderr)
         sys.exit(1)
 
 
@@ -447,7 +459,7 @@ def cmd_create_project(args):
     if args.billable is not None:
         data["billable"] = args.billable == "1"
 
-    # Default: globale Aktivitaeten erlauben, damit instanzweite Aktivitaeten
+    # Default: globale Aktivitäten erlauben, damit instanzweite Aktivitäten
     # (z.B. IT-Support) sofort buchbar sind
     if args.global_activities is not None:
         data["globalActivities"] = args.global_activities == "1"
@@ -1304,7 +1316,7 @@ def main():
     p.add_argument("--exported", help="Exported status (0 or 1)")
     p.add_argument("--billable", help="Billable (0 or 1)")
     p.add_argument("--hourly-rate", dest="hourly_rate",
-                   help="Stundensatz dieses Eintrags (ueberschreibt den geerbten Satz)")
+                   help="Stundensatz dieses Eintrags (überschreibt den geerbten Satz)")
     p.add_argument("--fixed-rate", dest="fixed_rate",
                    help="Festbetrag dieses Eintrags statt Stundensatz")
     p.set_defaults(func=cmd_update_timesheet)
@@ -1407,7 +1419,7 @@ def main():
     p.add_argument("activity_id")
     p.set_defaults(func=cmd_delete_activity)
 
-    # ── rates (Stundensaetze an Aktivitaet, Projekt oder Kunde) ──
+    # ── rates (Stundensätze an Aktivität, Projekt oder Kunde) ──
 
     for name, func, extra in (
         ("list-rates", cmd_list_rates, None),
@@ -1424,7 +1436,7 @@ def main():
                            help="Festbetrag statt Stundensatz")
             p.add_argument("--internal-rate", dest="internal_rate",
                            help="interner Satz (optional)")
-            p.add_argument("--user", help="User ID - Satz gilt nur fuer diesen Benutzer")
+            p.add_argument("--user", help="User ID - Satz gilt nur für diesen Benutzer")
         if extra == "delete":
             p.add_argument("rate_id")
         p.set_defaults(func=func)

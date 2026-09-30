@@ -1,7 +1,7 @@
 # Timesheets — Subcommand-Referenz
 
 Die Zeitregeln (Anker, Viertelstunden-Raster, Overlap-Guard) stehen in der
-SKILL.md, Abschnitt "Zeitregeln" — sie gelten fuer jeden Befehl auf dieser Seite.
+SKILL.md, Abschnitt "Zeitregeln" — sie gelten für jeden Befehl auf dieser Seite.
 
 ```bash
 # Auflisten (mit Filtern)
@@ -21,28 +21,28 @@ python3 "$SKILL_DIR/kimai" create-timesheet \
   [--tags "tag1,tag2"] [--billable <0|1>] [--no-snap]
 ```
 
-`--begin` wird auf die naechste Viertelstunde aufgerundet, `--end` um dieselbe Differenz
+`--begin` wird auf die nächste Viertelstunde aufgerundet, `--end` um dieselbe Differenz
 mitverschoben (die Dauer bleibt also erhalten); die Verschiebung wird auf stderr gemeldet.
-`--no-snap` bucht die Rohzeiten. Der **Anker** fuer `--begin` ist Sache des Aufrufers —
+`--no-snap` bucht die Rohzeiten. Der **Anker** für `--begin` ist Sache des Aufrufers —
 siehe Zeitregeln in der SKILL.md.
 
 ```bash
-# Eintrag aendern
+# Eintrag ändern
 python3 "$SKILL_DIR/kimai" update-timesheet <id> \
   [--begin <iso>] [--end <iso>] [--project <id>] [--activity <id>] \
   [--description "<text>"] [--user <id>] [--tags "tag1,tag2"] \
   [--exported <0|1>] [--billable <0|1>] \
   [--hourly-rate <betrag>] [--fixed-rate <betrag>]
 
-# Hinweis: `--hourly-rate` setzt den Satz dieses Eintrags. Noetig, wenn eine Rate
+# Hinweis: `--hourly-rate` setzt den Satz dieses Eintrags. Nötig, wenn eine Rate
 # erst nach dem Buchen gesetzt wurde - Kimai schreibt den Satz beim Anlegen fest,
-# ein Umhaengen per --activity zieht ihn nicht nach. Siehe references/stammdaten.md,
-# Abschnitt Stundensaetze.
+# ein Umhängen per --activity zieht ihn nicht nach. Siehe references/stammdaten.md,
+# Abschnitt Stundensätze.
 
-# Eintrag loeschen
+# Eintrag löschen
 python3 "$SKILL_DIR/kimai" delete-timesheet <id>
 
-# Letzte Eintraege (expandiert, mit User/Projekt-Details)
+# Letzte Einträge (expandiert, mit User/Projekt-Details)
 python3 "$SKILL_DIR/kimai" recent-timesheets [--user <id>] [--begin <iso>] [--size <n>]
 
 # Aktive Timer

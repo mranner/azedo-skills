@@ -1,13 +1,13 @@
 # Externe Stunden importieren
 
-Ersetzt das fruehere `kimai_stunden.py`. Liest eine JSON-Eingabedatei und verteilt die Stunden gleichmaessig auf Werktage (oesterreichische Feiertage beruecksichtigt).
+Liest eine JSON-Eingabedatei und verteilt die Stunden gleichmäßig auf Werktage (österreichische Feiertage berücksichtigt).
 
 ```bash
 python3 "$SKILL_DIR/kimai" import-hours <datei.json>
 python3 "$SKILL_DIR/kimai" import-hours <datei.json> --execute
 ```
 
-Ohne `--execute` wird nur eine Vorschau angezeigt. Mit `--execute` werden die Eintraege in Kimai angelegt.
+Ohne `--execute` wird nur eine Vorschau angezeigt. Mit `--execute` werden die Einträge in Kimai angelegt.
 
 **JSON-Format:**
 ```json
@@ -27,13 +27,13 @@ Ohne `--execute` wird nur eine Vorschau angezeigt. Mit `--execute` werden die Ei
 }
 ```
 
-Die Konfiguration steht vollstaendig in der Eingabedatei — der Skill kennt weder Projekte
+Die Konfiguration steht vollständig in der Eingabedatei — der Skill kennt weder Projekte
 noch Raten noch Mitarbeiter:
 
-- `user` — Username (wird ueber `instance.json` aufgeloest) oder numerische User-ID.
+- `user` — Username (wird über `instance.json` aufgelöst) oder numerische User-ID.
 - `raten.extern` — was der externe Mitarbeiter verrechnet, `raten.kimai` — der Kimai-Stundensatz.
-- `projekte` — frei waehlbare Schluessel; `name` ist optional (Default: der Schluessel).
-  `beide` ist reserviert und kann nicht als Projektschluessel verwendet werden.
+- `projekte` — frei wählbare Schlüssel; `name` ist optional (Default: der Schlüssel).
+  `beide` ist reserviert und kann nicht als Projektschlüssel verwendet werden.
 
-Schluessel `projekt` in `eintraege`: einer der Schluessel aus `projekte` oder `beide` (50:50-Split).
+Schlüssel `projekt` in `eintraege`: einer der Schlüssel aus `projekte` oder `beide` (50:50-Split).
 Stundensatz-Konversion: Summe der tatsächlichen Stunden je Projekt (50:50-Hälften ungerundet) `× raten.extern / raten.kimai`, kaufmännisch gerundet, max 7h/Tag.

@@ -1,8 +1,8 @@
 # Stammdaten — Subcommand-Referenz
 
-**Inhalt:** Projekte · Aktivitaeten · Stundensaetze (Rates, Vererbung) · Kunden · Benutzer · Tags · Teams
+**Inhalt:** Projekte · Aktivitäten · Stundensätze (Rates, Vererbung) · Kunden · Benutzer · Tags · Teams
 
-Projekte, Aktivitaeten, Kunden, Benutzer, Tags und Teams.
+Projekte, Aktivitäten, Kunden, Benutzer, Tags und Teams.
 
 ## Projekte
 
@@ -18,12 +18,12 @@ python3 "$SKILL_DIR/kimai" update-project <id> \
 python3 "$SKILL_DIR/kimai" delete-project <id>
 ```
 
-`--global-activities` steuert, ob die instanzweiten (globalen) Aktivitaeten
+`--global-activities` steuert, ob die instanzweiten (globalen) Aktivitäten
 — z.B. *IT-Support (SP90)* — im Projekt buchbar sind. Bei `create-project` ist
-der **Default `1`**; ohne globale Aktivitaeten schlaegt `create-timesheet` mit
-einer globalen Aktivitaet sonst mit `400 activity … invalid choice` fehl.
+der **Default `1`**; ohne globale Aktivitäten schlägt `create-timesheet` mit
+einer globalen Aktivität sonst mit `400 activity … invalid choice` fehl.
 
-## Aktivitaeten
+## Aktivitäten
 
 ```bash
 python3 "$SKILL_DIR/kimai" list-activities [--project <id>]
@@ -37,10 +37,10 @@ python3 "$SKILL_DIR/kimai" update-activity <id> \
 python3 "$SKILL_DIR/kimai" delete-activity <id>
 ```
 
-## Stundensaetze (Rates)
+## Stundensätze (Rates)
 
 Der Stundensatz steht **nicht** im Feld `budget` - das ist ein Geldbudget. Er
-haengt als eigener Datensatz an Aktivitaet, Projekt oder Kunde:
+hängt als eigener Datensatz an Aktivität, Projekt oder Kunde:
 
 ```bash
 python3 "$SKILL_DIR/kimai" list-rates   (--activity | --project | --customer) <id>
@@ -51,21 +51,21 @@ python3 "$SKILL_DIR/kimai" delete-rate  (--activity | --project | --customer) <i
 
 Genau **ein** Scope ist anzugeben; ohne oder mit mehreren bricht der Aufruf ab.
 `--fixed` macht aus dem Satz einen Festbetrag je Eintrag, `--user` begrenzt ihn
-auf einen Benutzer (ohne gilt er fuer alle).
+auf einen Benutzer (ohne gilt er für alle).
 
-**Fuer Benutzer gibt es keine Rates ueber diesen Weg** - `/api/users/<id>/rates`
+**Für Benutzer gibt es keine Rates über diesen Weg** - `/api/users/<id>/rates`
 antwortet mit 404. Nur die drei Scopes oben existieren.
 
-### Vererbung und warum ein neuer Satz alte Eintraege nicht aendert
+### Vererbung und warum ein neuer Satz alte Einträge nicht ändert
 
-Der engste gesetzte Satz gewinnt: Aktivitaet vor Projekt vor Kunde. Traegt die
-Aktivitaet keinen, erbt der Eintrag den des Projekts - eine neu angelegte
-Aktivitaet rechnet deshalb sofort mit einem Satz, den niemand an ihr gesetzt hat.
+Der engste gesetzte Satz gewinnt: Aktivität vor Projekt vor Kunde. Trägt die
+Aktivität keinen, erbt der Eintrag den des Projekts - eine neu angelegte
+Aktivität rechnet deshalb sofort mit einem Satz, den niemand an ihr gesetzt hat.
 
 Beim Buchen schreibt Kimai den ermittelten Satz **in den Timesheet-Eintrag**
-(`hourlyRate`). Eine spaeter gesetzte oder geaenderte Rate wirkt damit nur auf
-**neue** Eintraege; bestehende behalten ihren Wert, auch wenn sie per
-`update-timesheet --activity` auf die neue Aktivitaet umgehaengt werden. Wer sie
+(`hourlyRate`). Eine später gesetzte oder geänderte Rate wirkt damit nur auf
+**neue** Einträge; bestehende behalten ihren Wert, auch wenn sie per
+`update-timesheet --activity` auf die neue Aktivität umgehängt werden. Wer sie
 nachziehen will, setzt den Satz am Eintrag selbst:
 
 ```bash
