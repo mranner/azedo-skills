@@ -11,24 +11,24 @@ description: >
   Trigger: /privatebin.
 ---
 
-# privatebin -- verschluesselte Pastes teilen
+# privatebin -- verschlüsselte Pastes teilen
 
-Alles laeuft ueber das gebundelte Script `privatebin` (Python >= 3.9, stdlib plus
-`cryptography`). Kein Browser, kein Server-Prozess: jeder Aufruf verschluesselt
+Alles läuft über das gebündelte Script `privatebin` (Python >= 3.9, stdlib plus
+`cryptography`). Kein Browser, kein Server-Prozess: jeder Aufruf verschlüsselt
 lokal und spricht die JSON-API der Instanz an.
 
 **Aufruf:** `python3 "$SKILL_DIR/privatebin" <subcommand> [options]`
 
 `$SKILL_DIR` ist das Base Directory dieses Skills (dort wo diese SKILL.md liegt).
 
-## Wofuer
+## Wofür
 
-Ein Paste ist der richtige Weg, wenn Inhalt **zu gross, zu sensibel oder zu
-formatiert** fuer den direkten Weg ist: ein 400-Zeilen-Log, eine Config mit
-Passwoertern, ein Fehler-Stacktrace fuer einen Kollegen, Zugangsdaten, die nicht
-dauerhaft in einem Ticket stehen sollen. Der Empfaenger braucht nur den Link.
+Ein Paste ist der richtige Weg, wenn Inhalt **zu groß, zu sensibel oder zu
+formatiert** für den direkten Weg ist: ein 400-Zeilen-Log, eine Config mit
+Passwörtern, ein Fehler-Stacktrace für einen Kollegen, Zugangsdaten, die nicht
+dauerhaft in einem Ticket stehen sollen. Der Empfänger braucht nur den Link.
 
-Der Schluessel steckt im `#`-Fragment der URL. Browser senden Fragmente nicht mit,
+Der Schlüssel steckt im `#`-Fragment der URL. Browser senden Fragmente nicht mit,
 die Instanz sieht also nur Chiffrat. **Wer den Link hat, hat den Inhalt** -- ein
 Link im falschen Chat ist genauso schlimm wie der Klartext dort.
 
@@ -51,7 +51,7 @@ Anderer Pfad per `--config` oder `PRIVATEBIN_CONFIG`.
 ```
 
 `user`/`password` nur setzen, wenn die Instanz das Anlegen hinter Basic-Auth legt;
-sie werden dann preemptiv mitgeschickt. Mehrere Instanzen sind moeglich, die Wahl
+sie werden dann preemptiv mitgeschickt. Mehrere Instanzen sind möglich, die Wahl
 trifft `--instance <name>`.
 
 ## create -- Paste anlegen
@@ -72,17 +72,17 @@ Datensatz inklusive Delete-Token.
 | Option | Wirkung |
 |---|---|
 | `--expire` | `5min` `10min` `1hour` `1day` `1week` `1month` `1year` `never` (Default aus Config) |
-| `--burn` | Paste loescht sich beim ersten Abruf |
-| `--discussion` | Kommentare erlauben (schliesst `--burn` aus) |
-| `--password` | zusaetzliches Passwort, muss separat uebermittelt werden |
+| `--burn` | Paste löscht sich beim ersten Abruf |
+| `--discussion` | Kommentare erlauben (schließt `--burn` aus) |
+| `--password` | zusätzliches Passwort, muss separat übermittelt werden |
 | `--format` | `plaintext`, `markdown`, `syntaxhighlighting` |
-| `--attach DATEI` | Datei als verschluesselten Anhang, `--name` benennt sie um |
+| `--attach DATEI` | Datei als verschlüsselten Anhang, `--name` benennt sie um |
 | `--no-history` | Link nicht lokal mitschreiben |
 
 Die **Ausgabe im Chat** ist die URL, nichts weiter -- kein Vorspann, keine
 Wiederholung des Inhalts, der ja gerade nicht im Klartext stehen soll.
 
-## read -- Paste entschluesseln
+## read -- Paste entschlüsseln
 
 ```sh
 python3 "$SKILL_DIR/privatebin" read "https://example.org/privatebin/?abc123#Base58Key"
@@ -90,19 +90,19 @@ python3 "$SKILL_DIR/privatebin" read "<url>" --password geheim
 python3 "$SKILL_DIR/privatebin" read "<url>" --save-attachment ./ordner/
 ```
 
-Nimmt eine vollstaendige Paste-URL (inklusive `#`-Fragment) und funktioniert auch
+Nimmt eine vollständige Paste-URL (inklusive `#`-Fragment) und funktioniert auch
 bei **fremden Instanzen** -- die URL bestimmt den Server. Passt sie auf eine
 konfigurierte Instanz, kommen deren Zugangsdaten dazu. Fehlt das Fragment, hilft
 `--key`; bei einer eigenen, noch in der History stehenden Paste findet der Skill
-den Schluessel selbst.
+den Schlüssel selbst.
 
-`read` laeuft auch **ohne Config**: die vollstaendige URL genuegt. Eine fehlende
-`privatebin.json` ist dafuer kein Grund, nachzufragen oder eine anzulegen.
+`read` läuft auch **ohne Config**: die vollständige URL genügt. Eine fehlende
+`privatebin.json` ist dafür kein Grund, nachzufragen oder eine anzulegen.
 
 Ohne `--save-attachment` wird ein vorhandener Anhang nur gemeldet, nicht
-geschrieben. Anhaenge in ein Verzeichnis speichern uebernimmt den Originalnamen.
+geschrieben. Anhänge in ein Verzeichnis speichern übernimmt den Originalnamen.
 
-## delete -- Paste zuruecknehmen
+## delete -- Paste zurücknehmen
 
 ```sh
 python3 "$SKILL_DIR/privatebin" delete "<url oder paste-id>"
@@ -110,7 +110,7 @@ python3 "$SKILL_DIR/privatebin" delete <paste-id> --token <deletetoken>
 ```
 
 Das Delete-Token kommt aus der lokalen History; ist der Eintrag herausgerollt,
-muss `--token` es liefern. Nach dem Loeschen faellt der History-Eintrag weg.
+muss `--token` es liefern. Nach dem Löschen fällt der History-Eintrag weg.
 
 ## history -- was zuletzt geteilt wurde
 
@@ -120,27 +120,27 @@ python3 "$SKILL_DIR/privatebin" history -n 5 --json
 ```
 
 Die History liegt per Default in `~/.claude/privatebin-pastes.log`, ist auf 25
-Eintraege begrenzt und wird mit Modus `0600` geschrieben. Sie enthaelt die
-**vollstaendigen URLs samt Schluessel und die Delete-Tokens** -- das ist der Preis
-dafuer, dass ein Link nachgereicht und eine Paste zurueckgenommen werden kann.
+Einträge begrenzt und wird mit Modus `0600` geschrieben. Sie enthält die
+**vollständigen URLs samt Schlüssel und die Delete-Tokens** -- das ist der Preis
+dafür, dass ein Link nachgereicht und eine Paste zurückgenommen werden kann.
 Wer das nicht will, legt einzelne Pastes mit `--no-history` an.
 
 ## Fallstricke
 
 - **Rate-Limit.** Instanzen erzwingen typischerweise 10 Sekunden Abstand zwischen
-  zwei Pastes derselben IP. Der Skill wartet einmal selbsttaetig ab und wiederholt;
-  eine Serie von Pastes dauert deshalb entsprechend laenger.
-- **Groessenlimit.** Es gilt fuer das **Chiffrat**, und ein Anhang wird vor der
-  Verschluesselung Base64-kodiert -- rechne mit rund einem Drittel Aufschlag. Bei
-  10 MB Limit passen also ungefaehr 7 MB Datei. Der Skill prueft das vorab.
-- **Dateiupload kann serverseitig aus sein.** Ein Anhang laesst sich per API auch
+  zwei Pastes derselben IP. Der Skill wartet einmal selbsttätig ab und wiederholt;
+  eine Serie von Pastes dauert deshalb entsprechend länger.
+- **Größenlimit.** Es gilt für das **Chiffrat**, und ein Anhang wird vor der
+  Verschlüsselung Base64-kodiert -- rechne mit rund einem Drittel Aufschlag. Bei
+  10 MB Limit passen also ungefähr 7 MB Datei. Der Skill prüft das vorab.
+- **Dateiupload kann serverseitig aus sein.** Ein Anhang lässt sich per API auch
   dann anlegen, wenn `fileupload = false` gesetzt ist -- im Browser bleibt er aber
   unerreichbar: das Template rendert den `#attachment`-Container samt Download-Link
-  nur bei aktiviertem Upload. Vor dem ersten Anhang die Instanz pruefen.
+  nur bei aktiviertem Upload. Vor dem ersten Anhang die Instanz prüfen.
 - **burn-after-reading und Link-Vorschauen.** Ein Messenger, der Links automatisch
-  aufloest, verbrennt die Paste, bevor der Empfaenger sie sieht. Fuer Chat-Wege
+  auflöst, verbrennt die Paste, bevor der Empfänger sie sieht. Für Chat-Wege
   lieber kurzer Ablauf statt `--burn`.
-- **Format v2 only.** Pastes von Instanzen aelter als PrivateBin 1.3 (Format v1,
-  AES-CBC/SJCL) kann `read` nicht entschluesseln.
-- **Passwoerter gehen nicht im selben Kanal mit.** Sonst ist der Passwortschutz
+- **Format v2 only.** Pastes von Instanzen älter als PrivateBin 1.3 (Format v1,
+  AES-CBC/SJCL) kann `read` nicht entschlüsseln.
+- **Passwörter gehen nicht im selben Kanal mit.** Sonst ist der Passwortschutz
   reine Dekoration.
