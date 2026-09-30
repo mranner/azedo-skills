@@ -120,7 +120,7 @@ Wahl bei MIME-Problemen. In der Textausgabe ersetzt `--raw` die Aufbereitung; pe
 Pipe an `less`/`grep` ist das der uebliche Weg.
 
 Beides kostet **keinen** zusaetzlichen IMAP-Roundtrip: `BODY.PEEK[]` holt ohnehin
-die vollstaendige Rohnachricht, sie wurde bisher nur weggefiltert. `BODY.PEEK`
+die vollstaendige Rohnachricht; `--headers`/`--raw` geben nur mehr davon aus. `BODY.PEEK`
 gilt unveraendert -- auch mit `--headers`/`--raw` bleibt der Ungelesen-Status.
 
 ## Schreibende Befehle
@@ -222,7 +222,7 @@ Was sie typischerweise festlegt:
 - **Gegenchecks** vor einem Alarm (siehe naechster Abschnitt).
 
 Widerspricht die Datei einer Regel hier, gewinnt die Datei -- ausser bei den
-Sicherheitszusagen des Skripts (`BODY.PEEK`, `delete` = Papierkorb, nie
+Sicherheitszusagen des Scripts (`BODY.PEEK`, `delete` = Papierkorb, nie
 `expunge`).
 
 ## Alert-Mails gegenpruefen, nicht weiterreichen
@@ -274,7 +274,7 @@ Loeschen → office/8819
 ok / einzeln anpassen?
 ```
 
-5. **Warten.** Nichts ausfuehren, bevor der User zugestimmt hat.
+5. **Warten.** Nichts ausfuehren, bevor der Nutzer zugestimmt hat.
 6. Nach Freigabe: Aktionsliste als Datei schreiben, mit `--dry-run` gegenlesen,
    dann ausfuehren -- drei eigenstaendige Befehle (siehe [Batch](#batch----der-normalfall-fuer-aktionen)).
    Der Probelauf zeigt, wohin die Sonderrollen tatsaechlich aufloesen (`-> Trash`,

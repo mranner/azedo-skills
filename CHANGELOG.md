@@ -3,6 +3,14 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.63.21
+
+- **`imap` - Abgleich mit Anthropics Skill-Regeln.** Zeitlose Formulierung statt
+  „wurde bisher nur weggefiltert“ in SKILL.md und `anhaenge.md`; einheitlich
+  „Script“ und „Nutzer“. Die Konstanten im Script sind begründet, die beiden
+  Timeouts laufen über `NET_TIMEOUT`. Der Kommentar zu `imaplib._MAXLINE` nannte
+  einen veralteten Default von 10 KB und ist korrigiert.
+
 ### 1.63.20
 
 - **`wp-cli` - Abgleich mit Anthropics Skill-Regeln.** `befehle.md` und

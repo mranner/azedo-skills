@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # stdlib only, no pip dependencies
-# version 1.63.20
+# version 1.63.21
 
 """
 audit-wiki.py — misst Aufblähung und überholte Historie in LLM-Wikis.

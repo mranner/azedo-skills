@@ -95,7 +95,7 @@ ausdruecklich kein weicher Umbruch und bleibt stehen.
 Der HTML-Part der Originalmail wird uebernommen und in
 `<blockquote type="cite">` gewickelt -- Formatierung, Links und Listen bleiben
 damit erhalten, verschachtelte Zitate der Vorgeschichte ebenso. Genommen wird
-nur der Inhalt von `<body>`; `<head>`, Skripte und Stylesheets fallen weg, sie
+nur der Inhalt von `<body>`; `<head>`, Scripts und Stylesheets fallen weg, sie
 gehoeren zur Darstellung der Originalmail und nicht zum zitierten Inhalt.
 
 Eine Ausnahme braucht dabei Outlook: es setzt jede Zeile -- und jede

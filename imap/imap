@@ -22,8 +22,18 @@ import time
 
 DEFAULT_MUTTRC = os.path.expanduser("~/.muttrc")
 
+# list ist eine Uebersicht, kein Export: 50 Zeilen passen in eine Triage-Runde,
+# mehr per -n. read kuerzt den Body auf 4000 Zeichen, damit eine lange Mail den
+# Kontext nicht fuellt; mehr per --max-chars
+
 DEFAULT_LIMIT = 50
 DEFAULT_MAX_CHARS = 4000
+
+# Obergrenze fuer IMAP-Connect und das Passwort-Kommando aus der muttrc: ein
+# haengender Server oder ein wartender Passwort-Agent bricht den Aufruf ab,
+# statt ihn unbegrenzt zu blockieren
+
+NET_TIMEOUT = 30
 
 # Zeilenlaenge des Zitatblocks inkl. '> '-Praefix; unterhalb von
 # MIN_QUOTE_TEXT nutzbaren Zeichen wird nicht mehr umgebrochen, sonst
@@ -37,7 +47,9 @@ MIN_QUOTE_TEXT = 20
 
 FETCH_CHUNK = 50
 
-# IMAP erlaubt Literale bis 10 KB im Default; grosse Mailboxen brauchen mehr
+# Laengste zulaessige Antwortzeile: ein SEARCH ueber einen gewachsenen Ordner
+# liefert alle UIDs in einer Zeile. 1 MB entspricht dem Default von Python 3.12,
+# fest gesetzt, damit eine kleinere Grenze anderer Versionen nicht greift
 
 imaplib._MAXLINE = 1000000
 
@@ -76,7 +88,7 @@ def backtick(cmd):
     """Backtick-Substitution wie mutt sie macht."""
     try:
         out = subprocess.run(
-            cmd, shell=True, capture_output=True, text=True, timeout=30
+            cmd, shell=True, capture_output=True, text=True, timeout=NET_TIMEOUT
         )
     except subprocess.TimeoutExpired:
         die(f"Backtick-Befehl lief in einen Timeout: {cmd}")
@@ -241,7 +253,7 @@ class Account:
 
     def __enter__(self):
         try:
-            self.conn = imaplib.IMAP4_SSL(self.host, self.cfg["port"], timeout=30)
+            self.conn = imaplib.IMAP4_SSL(self.host, self.cfg["port"], timeout=NET_TIMEOUT)
         except Exception as e:
             die(f"[{self.alias}] Verbindung zu {self.host} fehlgeschlagen: {e}")
         try:

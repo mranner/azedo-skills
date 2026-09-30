@@ -661,10 +661,10 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.63.20
+### 1.63.21
 
-- **`wp-cli` - Abgleich mit Anthropics Skill-Regeln.** `befehle.md` und
-  `multisite.md` nennen ihre Abschnitte oben. Einheitliche Begriffe: Nutzer für den
-  Menschen, wwwuser für das System-Konto, WP-Benutzer für den WordPress-Account;
-  „Ausgabe-Flags“ statt „Performance-Flags“. `befehle.md` verwendet Backticks statt
-  `$(…)`, das über `sudo ssh` an der tcsh bricht.
+- **`imap` - Abgleich mit Anthropics Skill-Regeln.** Zeitlose Formulierung statt
+  „wurde bisher nur weggefiltert“ in SKILL.md und `anhaenge.md`; einheitlich
+  „Script“ und „Nutzer“. Die Konstanten im Script sind begründet, die beiden
+  Timeouts laufen über `NET_TIMEOUT`. Der Kommentar zu `imaplib._MAXLINE` nannte
+  einen veralteten Default von 10 KB und ist korrigiert.

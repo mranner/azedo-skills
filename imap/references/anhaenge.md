@@ -45,7 +45,7 @@ angehaengte Mails (`message/rfc822`) werden als `.eml` geschrieben.
 
 Gelesen wird mit `BODY.PEEK` -- auch das Speichern eines Anhangs setzt `\Seen`
 **nicht**. Ein zusaetzlicher Roundtrip entsteht nicht: `BODY.PEEK[]` holt die
-Nachricht ohnehin vollstaendig, die Anhaenge wurden bisher nur weggefiltert
+Nachricht ohnehin vollstaendig, `attachments` schreibt nur ihre Anhaenge heraus
 (gleiche Argumentation wie bei `--headers`/`--raw`).
 
 ### Rezept: Anhang aus einer Mail an einen Kanboard-Task
