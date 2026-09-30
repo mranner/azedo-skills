@@ -128,6 +128,11 @@ Eingabe: Empfaenger (+ Thema **oder** eine Reply-`.eml`). Ablauf:
    Einstieg, Abstraktum statt konkretem Sachverhalt, Nebenbefunde ohne
    Handlungsrelevanz, doppeltes Hedging, "Rueckfall" fuer Software).
    Beides ist noetig, keines ersetzt das andere.
+   Ein Partikel-Befund (`particles_outside_locker`) fuer ein Wort, das `referenz.md`
+   als Stilmarker fuehrt (z.B. "eh", "eben", "einfach"), wird verworfen: Modus
+   Sachlich kennt das Profil nicht. In der Ausfuehrungszeile steht er als
+   `profilkonform verworfen`, nicht stillschweigend weg. Gehaeuft (mehr als einer
+   pro Absatz) oder ausserhalb der Marker bleibt er ein Befund.
 7. **Pflicht-Aufruf `imap quote` bei jedem Reply.** Liegt ein Reply-Kontext vor
    (eine Mail, auf die geantwortet wird -- UID im Postfach oder eine `.eml`), wird
    der Zitatblock **nicht getippt, sondern erzeugt**:

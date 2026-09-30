@@ -3,6 +3,14 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.63.22
+
+- **`mail-as-me` - Partikel-Befund im Audit.** humanizer-de meldet in Modus
+  Sachlich `particles_outside_locker` auch für „eh“, „eben“ oder „einfach“, die
+  `referenz.md` als Stilmarker führt. Schritt 6 verwirft solche Befunde jetzt
+  ausdrücklich und weist sie in der Ausführungszeile als `profilkonform
+  verworfen` aus; gehäuft oder außerhalb der Marker bleiben sie ein Befund.
+
 ### 1.63.21
 
 - **`imap` - Abgleich mit Anthropics Skill-Regeln.** Zeitlose Formulierung statt
