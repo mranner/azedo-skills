@@ -31,10 +31,10 @@ def cryptography_hint():
         return "  pkg install %s-cryptography" % version
 
     if sys.platform == "darwin":
-        return ("  python3 -m pip install --user cryptography\n"
-                "  Bricht das mit 'externally-managed-environment' ab (Homebrew-Python),\n"
-                "  ein venv anlegen und das Script daraus aufrufen:\n"
-                "    python3 -m venv ~/.claude/venv ; ~/.claude/venv/bin/pip install cryptography")
+        return ("  python3 -m venv ~/.claude/venv ; ~/.claude/venv/bin/pip install cryptography\n"
+                "  und das Script mit ~/.claude/venv/bin/python3 aufrufen.\n"
+                "  Ohne Homebrew-Python (dort sperrt PEP 668 pip --user) geht auch:\n"
+                "    python3 -m pip install --user cryptography")
 
     return "  python3 -m pip install --user cryptography"
 
@@ -101,10 +101,12 @@ def b58decode(text):
 
 # --- Config -----------------------------------------------------------------
 
-def load_config(path=None):
+def load_config(path=None, required=True):
     path = path or os.environ.get("PRIVATEBIN_CONFIG") or DEFAULT_CONFIG
 
     if not os.path.exists(path):
+        if not required:
+            return {"instances": {}}
         sys.exit(
             "Config fehlt: %s\n"
             "Vorlage: cp <skill>/privatebin.json.example %s" % (path, path)
@@ -121,6 +123,10 @@ def load_config(path=None):
 
 def pick_instance(cfg, name=None):
     instances = cfg["instances"]
+
+    if not instances:
+        sys.exit("Keine Config - ohne sie braucht read eine vollstaendige Paste-URL.")
+
     name = name or cfg.get("default_instance") or next(iter(instances))
 
     if name not in instances:
@@ -562,7 +568,10 @@ def build_parser():
 
 def main():
     args = build_parser().parse_args()
-    cfg = load_config(args.config)
+    # read braucht keine Config: die URL bestimmt den Server, das Fragment den
+    # Schluessel. Ist sie da, liefert sie Zugangsdaten und History.
+
+    cfg = load_config(args.config, required=args.func is not cmd_read or bool(args.config))
 
     return args.func(args, cfg)
 

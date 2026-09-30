@@ -3,6 +3,17 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.63.17
+
+- **`privatebin` - `read` ohne Config.** Die Config wurde vor jedem Subcommand
+  geladen, ohne `privatebin.json` brach damit auch `read` ab, obwohl dort die URL
+  den Server und das Fragment den Schluessel liefert. Jetzt liest `read` ohne
+  Config; ist sie da, kommen Zugangsdaten und History dazu. `create`, `delete`,
+  `history` und ein ausdrueckliches `--config` verlangen sie weiterhin.
+- **`privatebin` - Hinweis bei fehlendem `cryptography` auf macOS.** Das venv steht
+  jetzt zuerst; `pip install --user` scheitert bei Homebrew-Python an PEP 668 und
+  kommt nur noch als Alternative.
+
 ### 1.63.16
 
 - **`kanboard` - Inhaltszeile in `tasks.md` und `task-inhalte.md`.** Beide

@@ -661,8 +661,13 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.63.16
+### 1.63.17
 
-- **`kanboard` - Inhaltszeile in `tasks.md` und `task-inhalte.md`.** Beide
-  Referenzdateien liegen über 100 Zeilen und nennen ihre Abschnitte jetzt oben,
-  wie `projekte.md`.
+- **`privatebin` - `read` ohne Config.** Die Config wurde vor jedem Subcommand
+  geladen, ohne `privatebin.json` brach damit auch `read` ab, obwohl dort die URL
+  den Server und das Fragment den Schluessel liefert. Jetzt liest `read` ohne
+  Config; ist sie da, kommen Zugangsdaten und History dazu. `create`, `delete`,
+  `history` und ein ausdrueckliches `--config` verlangen sie weiterhin.
+- **`privatebin` - Hinweis bei fehlendem `cryptography` auf macOS.** Das venv steht
+  jetzt zuerst; `pip install --user` scheitert bei Homebrew-Python an PEP 668 und
+  kommt nur noch als Alternative.

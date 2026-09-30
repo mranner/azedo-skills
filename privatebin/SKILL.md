@@ -96,6 +96,9 @@ konfigurierte Instanz, kommen deren Zugangsdaten dazu. Fehlt das Fragment, hilft
 `--key`; bei einer eigenen, noch in der History stehenden Paste findet der Skill
 den Schluessel selbst.
 
+`read` laeuft auch **ohne Config**: die vollstaendige URL genuegt. Eine fehlende
+`privatebin.json` ist dafuer kein Grund, nachzufragen oder eine anzulegen.
+
 Ohne `--save-attachment` wird ein vorhandener Anhang nur gemeldet, nicht
 geschrieben. Anhaenge in ein Verzeichnis speichern uebernimmt den Originalnamen.
 
