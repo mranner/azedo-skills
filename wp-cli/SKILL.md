@@ -2,7 +2,7 @@
 name: wp-cli
 description: >
   WordPress-Administration per WP-CLI in FreeBSD-Jails: Datenbank exportieren
-  und importieren, PHP-Code ausführen (wp eval), Plugins, Themes, Users,
+  und importieren, PHP-Code ausführen (wp eval), Plugins, Themes, WP-Benutzer,
   Options, Cache und Cron verwalten, search-replace. Der Basis-Skill für
   WP-CLI-Aufrufe - für Ninja Forms, PixelYourSite oder ein Security-Audit
   gibt es eigene Skills. Auch bei "exportiere die Datenbank", "lösche den
@@ -23,7 +23,7 @@ Ergaenzt den **wordpress-pro** Skill (Entwicklung: Themes, Plugins, Gutenberg) u
 
 WordPress-Installationen liegen unter `/www/home/<wwwuser>/<domain>/`.
 
-WP-User haben Shell `/usr/bin/true` — daher `sudo -u <wwwuser>` (jexec) bzw. `iocage exec -U <wwwuser>` verwenden, nicht `su -l`.
+Die wwwuser haben Shell `/usr/bin/true` — daher `sudo -u <wwwuser>` (jexec) bzw. `iocage exec -U <wwwuser>` verwenden, nicht `su -l`.
 
 > **Nie `--allow-root` / nie als root ausführen.** WP-CLI als root triggert u. a.
 > den WPML/WP_Filesystem-FTP-Fatal. Immer als `<wwwuser>`.
@@ -54,7 +54,7 @@ Beispiel (jailer1, apache1.example.com):
 sudo ssh -C root@jailer1.example.at "iocage exec -U wwwexample apache1.example.com -- wp --path=/www/home/wwwexample/www.example.com core version"
 ```
 
-**Immer `--` nach dem Jail-Namen.** `iocage exec` wertet seine eigenen Optionen auch hinter dem Jail-Namen aus und entfernt sie still: `--force`/`-f`, `-p`, `--help`, und `-U`/`-u` samt Wert - letzteres führt den Befehl sogar als anderer User aus. Ergebnis ist eine wp-cli-Warnung statt der Aktion, oder eine Aktion mit falschen Rechten. Deshalb `iocage exec -U <wwwuser> <jail> -- wp … --force`. `sh -c '…'` nur, wenn im Jail Pipes oder Redirects nötig sind. `-U <wwwuser>` statt `sudo -u`, weil `sudo` im Jail ein Passwort verlangen kann.
+**Immer `--` nach dem Jail-Namen.** `iocage exec` wertet seine eigenen Optionen auch hinter dem Jail-Namen aus und entfernt sie still: `--force`/`-f`, `-p`, `--help`, und `-U`/`-u` samt Wert - letzteres führt den Befehl sogar als anderer wwwuser aus. Ergebnis ist eine wp-cli-Warnung statt der Aktion, oder eine Aktion mit falschen Rechten. Deshalb `iocage exec -U <wwwuser> <jail> -- wp … --force`. `sh -c '…'` nur, wenn im Jail Pipes oder Redirects nötig sind. `-U <wwwuser>` statt `sudo -u`, weil `sudo` im Jail ein Passwort verlangen kann.
 
 ### Quoting
 
@@ -119,7 +119,7 @@ wp db export /tmp/backup-before-sr.sql
 # 2. Dry-Run — zeigt betroffene Tabellen und Anzahl der Ersetzungen
 wp search-replace 'https://alte-domain.at' 'https://neue-domain.at' --dry-run --all-tables
 
-# 3. Ausfuehren (erst nach Bestaetigung durch den User)
+# 3. Ausfuehren (erst nach Bestaetigung durch den Nutzer)
 wp search-replace 'https://alte-domain.at' 'https://neue-domain.at' --all-tables
 
 # 4. Cache leeren
@@ -151,20 +151,20 @@ wp shell
 ## 4. Safety
 
 1. **Backup vor destruktiven Operationen** — Immer `wp db export` ausfuehren vor: `wp db import`, `wp search-replace` (ohne --dry-run), `wp core update`, Bulk-Loeschungen
-2. **Dry-Run zuerst** — `wp search-replace` immer zuerst mit `--dry-run` ausfuehren, Ergebnis dem User zeigen, erst nach Bestaetigung ohne `--dry-run`
-3. **User-Loeschung mit --reassign** — `wp user delete` immer mit `--reassign=<id>` ausfuehren
+2. **Dry-Run zuerst** — `wp search-replace` immer zuerst mit `--dry-run` ausfuehren, Ergebnis dem Nutzer zeigen, erst nach Bestaetigung ohne `--dry-run`
+3. **WP-Benutzer nur mit --reassign loeschen** — `wp user delete` immer mit `--reassign=<id>` ausfuehren
 4. **Serialisierte Daten** — Fuer URL-Aenderungen immer `wp search-replace` verwenden, nie rohes SQL (zerstoert serialisierte Arrays in wp_options)
-5. **Core-Updates** — Nie `wp core update` ohne vorheriges Backup und Bestaetigung durch den User
+5. **Core-Updates** — Nie `wp core update` ohne vorheriges Backup und Bestaetigung durch den Nutzer
 
 ---
 
 ## 5. Workflow
 
-1. **Server und Jail ermitteln** — Aus dem Kontext oder beim User nachfragen: Server (z.B. `webhost1.example.at`), Jail-Typ (ezjail/iocage), Jail-ID/Name, wwwuser, Domain/Pfad.
+1. **Server und Jail ermitteln** — Aus dem Kontext oder beim Nutzer nachfragen: Server (z.B. `webhost1.example.at`), Jail-Typ (ezjail/iocage), Jail-ID/Name, wwwuser, Domain/Pfad.
 2. **Befehl zusammenbauen** — Mit dem passenden Zugriffs-Template (ezjail/iocage) aus Abschnitt 1
-3. **Bei destruktiven Operationen** — Befehl dem User zeigen und Bestaetigung abwarten
+3. **Bei destruktiven Operationen** — Befehl dem Nutzer zeigen und Bestaetigung abwarten
 4. **Ausfuehren** — Befehl via Bash ausfuehren
-5. **Ergebnis melden** — Ausgabe zusammenfassen und dem User praesentieren
+5. **Ergebnis melden** — Ausgabe zusammenfassen und dem Nutzer praesentieren
 
 ---
 
@@ -174,7 +174,7 @@ Bei Bedarf lesen:
 
 | Datei | Inhalt |
 |---|---|
-| `references/befehle.md` | Befehle nach Bereich (Datenbank, Plugins, Themes, Users, Options, Cache, Cron, Core, Wartung, Posts), Bulk-Operationen, `wp eval`-Beispiele, Ausgabe-Flags |
+| `references/befehle.md` | Befehle nach Bereich (Datenbank, Plugins, Themes, WP-Benutzer, Options, Cache, Cron, Core, Wartung, Posts), Bulk-Operationen, `wp eval`-Beispiele, Ausgabe-Flags |
 | `references/multisite.md` | Multisite: `--url`, Optionen in `sitemeta`, Custom-Tabellen, Sicherung einer Subsite samt Aufräumen |
 | `references/troubleshooting.md` | typische Fehlermeldungen mit Ursache und Loesung |
 

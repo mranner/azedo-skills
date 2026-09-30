@@ -661,11 +661,10 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.63.19
+### 1.63.20
 
-- **`imap` - `find` überspringt `\Deleted`-Treffer.** Eine nach dem Verschieben
-  ohne EXPUNGE zurückgebliebene Kopie beendete die Suche als erster Treffer; ein
-  `quote` auf ihre UID scheiterte, sobald sie expunged war. Solche Treffer zählen
-  jetzt nicht mehr als erster Treffer, stehen hinter den übrigen und sind markiert
-  (`[\Deleted]`, im JSON `deleted: true`). Gibt es nur solche, kommt ein Hinweis
-  auf stderr. `quote -m` und `contacts -m` greifen damit auf die gültige Mail.
+- **`wp-cli` - Abgleich mit Anthropics Skill-Regeln.** `befehle.md` und
+  `multisite.md` nennen ihre Abschnitte oben. Einheitliche Begriffe: Nutzer für den
+  Menschen, wwwuser für das System-Konto, WP-Benutzer für den WordPress-Account;
+  „Ausgabe-Flags“ statt „Performance-Flags“. `befehle.md` verwendet Backticks statt
+  `$(…)`, das über `sudo ssh` an der tcsh bricht.

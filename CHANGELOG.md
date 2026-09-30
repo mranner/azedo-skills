@@ -3,6 +3,14 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.63.20
+
+- **`wp-cli` - Abgleich mit Anthropics Skill-Regeln.** `befehle.md` und
+  `multisite.md` nennen ihre Abschnitte oben. Einheitliche Begriffe: Nutzer für den
+  Menschen, wwwuser für das System-Konto, WP-Benutzer für den WordPress-Account;
+  „Ausgabe-Flags“ statt „Performance-Flags“. `befehle.md` verwendet Backticks statt
+  `$(…)`, das über `sudo ssh` an der tcsh bricht.
+
 ### 1.63.19
 
 - **`imap` - `find` überspringt `\Deleted`-Treffer.** Eine nach dem Verschieben

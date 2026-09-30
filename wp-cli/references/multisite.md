@@ -1,5 +1,7 @@
 # wp-cli - Multisite
 
+Inhalt: Befehle, Optionen in `sitemeta`, Custom-Tabellen, Sicherung einer Subsite, Aufräumen.
+
 ```sh
 # Alle Sites im Netzwerk
 wp site list

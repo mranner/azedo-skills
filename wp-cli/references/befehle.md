@@ -2,11 +2,14 @@
 
 Allgemeine WP-CLI-Befehle nach Bereich. Aufruf im Jail immer mit dem Zugriffs-Template aus SKILL.md, Abschnitt 1.
 
+Inhalt: Datenbank, Plugins, Themes, WP-Benutzer, Options, Cache, Cron, Core,
+Wartung, Posts und Seiten, Bulk-Operationen, wp eval, wp eval-file, Ausgabe-Flags.
+
 ## Datenbank (wp db)
 
 ```sh
 # Export (immer mit Dateiname + Datum)
-wp db export /tmp/backup-$(date +%Y%m%d-%H%M%S).sql
+wp db export /tmp/backup-`date +%Y%m%d-%H%M%S`.sql
 
 # Import
 wp db export /tmp/backup-before-import.sql   # IMMER zuerst Backup
@@ -62,20 +65,20 @@ wp theme update --all                       # Alle Themes updaten
 wp theme delete <slug>                      # Theme loeschen
 ```
 
-## Users
+## WP-Benutzer (wp user)
 
 ```sh
-wp user list                                # Alle User
+wp user list                                # Alle WP-Benutzer
 wp user list --role=administrator           # Nur Admins
-wp user get <id|login|email>                # User-Details
-wp user create <login> <email> --role=editor  # User erstellen
+wp user get <id|login|email>                # WP-Benutzer-Details
+wp user create <login> <email> --role=editor  # WP-Benutzer erstellen
 wp user update <id> --user_pass=<pw>        # Passwort aendern
-wp user delete <id> --reassign=<other_id>   # User loeschen (Posts umhaengen!)
+wp user delete <id> --reassign=<other_id>   # WP-Benutzer loeschen (Posts umhaengen!)
 wp user add-role <id> <role>                # Rolle hinzufuegen
 wp user remove-role <id> <role>             # Rolle entfernen
 ```
 
-**Wichtig:** Bei `wp user delete` immer `--reassign=<id>` angeben, um Posts einem anderen User zuzuweisen. Ohne `--reassign` werden alle Posts geloescht.
+**Wichtig:** Bei `wp user delete` immer `--reassign=<id>` angeben, um Posts einem anderen WP-Benutzer zuzuweisen. Ohne `--reassign` werden alle Posts geloescht.
 
 ## Options (wp_options)
 
@@ -148,14 +151,14 @@ wp post delete <id> --force                 # Post endgueltig loeschen
 # Alle Plugins + Themes updaten
 wp plugin update --all && wp theme update --all
 
-# Alle User als CSV exportieren
+# Alle WP-Benutzer als CSV exportieren
 wp user list --format=csv > users.csv
 
 # Posts eines Typs als IDs (zum Weiterverarbeiten)
 wp post list --post_type=product --format=ids
 
 # Alle Spam-Kommentare loeschen
-wp comment delete $(wp comment list --status=spam --format=ids) --force
+wp comment delete `wp comment list --status=spam --format=ids` --force
 
 # Alle Transients loeschen (Performance-Probleme)
 wp transient delete --all
@@ -178,7 +181,7 @@ wp eval 'echo wp_count_posts()->publish;'
 # Transient loeschen
 wp eval 'delete_transient("mein_transient");'
 
-# Alle User mit Rolle administrator auflisten
+# Alle WP-Benutzer mit Rolle administrator auflisten
 wp eval '$users = get_users(["role" => "administrator"]); foreach($users as $u) echo $u->user_login . " - " . $u->user_email . "\n";'
 ```
 
@@ -193,7 +196,7 @@ wp eval-file /tmp/mein-script.php
 
 Typische Anwendung: Daten-Migration, Bulk-Updates, Debugging von Plugin-Problemen.
 
-## Performance-Flags
+## Ausgabe-Flags
 
 | Flag | Wirkung |
 |---|---|
