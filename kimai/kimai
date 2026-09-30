@@ -207,8 +207,8 @@ def working_days(year, month):
 
 
 def to_kimai_hours(actual_h, rate_extern, rate_kimai):
-    """Konvertiert tatsächliche Stunden in Kimai-Stunden (aufgerundet)."""
-    return math.ceil(actual_h * rate_extern / rate_kimai)
+    """Konvertiert tatsächliche Stunden in Kimai-Stunden (kaufmännisch gerundet)."""
+    return math.floor(actual_h * rate_extern / rate_kimai + 0.5)
 
 
 def distribute_hours(total, num_days):
@@ -927,7 +927,6 @@ def cmd_import_hours(args):
     wdays = working_days(year, month)
 
     # Einträge aufbereiten
-    proj_kimai = {pk: 0 for pk in PROJEKTE}
     proj_actual = {pk: 0.0 for pk in PROJEKTE}
     proj_descs = {pk: [] for pk in PROJEKTE}
 
@@ -939,15 +938,15 @@ def cmd_import_hours(args):
             half = h / 2
             for pk in PROJEKTE:
                 proj_actual[pk] += half
-                proj_kimai[pk] += to_kimai_hours(half, rate_extern, rate_kimai)
                 proj_descs[pk].append(desc)
         elif proj in PROJEKTE:
             proj_actual[proj] += h
-            proj_kimai[proj] += to_kimai_hours(h, rate_extern, rate_kimai)
             proj_descs[proj].append(desc)
         else:
             sys.exit(f"Unbekanntes Projekt: {proj!r}  (erlaubt: {', '.join(PROJEKTE)}, beide)")
 
+    # Rundung erst auf die Summe je Projekt
+    proj_kimai = {pk: to_kimai_hours(h, rate_extern, rate_kimai) for pk, h in proj_actual.items()}
     active = {pk: h for pk, h in proj_kimai.items() if h > 0}
 
     # Tage je Projekt
@@ -1008,7 +1007,7 @@ def cmd_import_hours(args):
 
     print(f"  {'─' * 32}  {'─' * 6}  {'─' * 7}  {'─' * 8}  {'─' * 7}")
     print(f"  {'Gesamt':<32} {g_actual:>6.1f}  {g_kimai:>7}  {fmt(g_eur_k):>8}  {fmt(g_eur_kh):>7}")
-    print(f"  Differenz durch Aufrundung: € {fmt(g_eur_k - g_eur_kh)}")
+    print(f"  Differenz durch Rundung: € {fmt(g_eur_k - g_eur_kh)}")
     print()
 
     print(f"  {'Datum':<12} {'Zeit':<13} {'h':>2}  Projekt")

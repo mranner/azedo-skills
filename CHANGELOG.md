@@ -3,6 +3,16 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.63.23
+
+- **`kimai` - `import-hours` rundet je Projekt, kaufmännisch.** Bisher wurde
+  jeder Eintrag einzeln umgerechnet und aufgerundet, bei `beide` jede Hälfte
+  für sich - viele kleine Einträge blähten die Kimai-Stunden dadurch auf. Jetzt
+  werden die tatsächlichen Stunden je Projekt summiert (50:50-Hälften
+  ungerundet) und erst die Summe umgerechnet und kaufmännisch gerundet
+  (`floor(x + 0.5)`, nicht Pythons Banker's Rounding). Die Vorschauzeile heißt
+  „Differenz durch Rundung“, `references/import-hours.md` ist angepasst.
+
 ### 1.63.22
 
 - **`mail-as-me` - Partikel-Befund im Audit.** humanizer-de meldet in Modus

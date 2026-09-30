@@ -36,4 +36,4 @@ noch Raten noch Mitarbeiter:
   `beide` ist reserviert und kann nicht als Projektschluessel verwendet werden.
 
 Schluessel `projekt` in `eintraege`: einer der Schluessel aus `projekte` oder `beide` (50:50-Split).
-Stundensatz-Konversion: `ceil(stunden * raten.extern / raten.kimai)` pro Eintrag, max 7h/Tag.
+Stundensatz-Konversion: Summe der tatsächlichen Stunden je Projekt (50:50-Hälften ungerundet) `× raten.extern / raten.kimai`, kaufmännisch gerundet, max 7h/Tag.

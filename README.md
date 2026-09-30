@@ -661,10 +661,12 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.63.22
+### 1.63.23
 
-- **`mail-as-me` - Partikel-Befund im Audit.** humanizer-de meldet in Modus
-  Sachlich `particles_outside_locker` auch für „eh“, „eben“ oder „einfach“, die
-  `referenz.md` als Stilmarker führt. Schritt 6 verwirft solche Befunde jetzt
-  ausdrücklich und weist sie in der Ausführungszeile als `profilkonform
-  verworfen` aus; gehäuft oder außerhalb der Marker bleiben sie ein Befund.
+- **`kimai` - `import-hours` rundet je Projekt, kaufmännisch.** Bisher wurde
+  jeder Eintrag einzeln umgerechnet und aufgerundet, bei `beide` jede Hälfte
+  für sich - viele kleine Einträge blähten die Kimai-Stunden dadurch auf. Jetzt
+  werden die tatsächlichen Stunden je Projekt summiert (50:50-Hälften
+  ungerundet) und erst die Summe umgerechnet und kaufmännisch gerundet
+  (`floor(x + 0.5)`, nicht Pythons Banker's Rounding). Die Vorschauzeile heißt
+  „Differenz durch Rundung“, `references/import-hours.md` ist angepasst.

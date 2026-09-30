@@ -4,7 +4,7 @@
 # Satzlaenge, Nebensatzdichte, Passiv, Konjunktiv, Genitivketten,
 # weite Verbklammer, doppelte Verneinung und Einschuebe.
 # Alle Muster sind Heuristiken auf Wortformen - Befunde sind Verdacht.
-# version 1.63.22
+# version 1.63.23
 
 import argparse
 import re
