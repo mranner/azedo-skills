@@ -175,7 +175,7 @@ Bei Bedarf lesen:
 | Datei | Inhalt |
 |---|---|
 | `references/befehle.md` | Befehle nach Bereich (Datenbank, Plugins, Themes, Users, Options, Cache, Cron, Core, Wartung, Posts), Bulk-Operationen, `wp eval`-Beispiele, Ausgabe-Flags |
-| `references/multisite.md` | Multisite: `--url`, Optionen in `sitemeta`, Custom-Tabellen, DB-Export einer Subsite |
+| `references/multisite.md` | Multisite: `--url`, Optionen in `sitemeta`, Custom-Tabellen, Sicherung einer Subsite samt Aufräumen |
 | `references/troubleshooting.md` | typische Fehlermeldungen mit Ursache und Loesung |
 
 Bei einer Multisite **vor** dem ersten Befehl `references/multisite.md` lesen: ohne

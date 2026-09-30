@@ -61,7 +61,9 @@ wp search-replace 'alt' 'neu' --url=sub.example.com
 wp search-replace 'alt' 'neu' --all-tables
 ```
 
-**DB-Export einer Subsite:** Die Tabellenliste mit `--all-tables-with-prefix`
+## Sicherung einer Subsite
+
+Die Tabellenliste mit `--all-tables-with-prefix`
 bilden, nicht mit `--scope=blog`. `--scope=blog` liefert nur die WP-Kerntabellen
 der Subsite und laesst alle Plugin-Tabellen mit ihrem Prefix weg (WPML, Ninja
 Forms, Smart Slider, ...) - das Backup sieht vollstaendig aus und ist es nicht.
@@ -72,6 +74,45 @@ Bei einer Subsite mit vielen Plugins standen 15 Tabellen gegen 104.
 wp db tables --url=sub.example.com --scope=blog
 
 # RICHTIG — alle Tabellen mit dem Prefix der Subsite (wp_5_*):
-wp db export /tmp/sub-$(date +%Y%m%d).sql \
-    --tables=$(wp db tables --url=sub.example.com --all-tables-with-prefix --format=csv)
+wp db tables --url=sub.example.com --all-tables-with-prefix --format=csv
 ```
+
+Der Export geht nach stdout und wird auf dem **Host** gepackt. Im Jail braucht es
+dann kein beschreibbares Verzeichnis, und die Sicherung liegt nicht im Webroot.
+Das Script läuft per STDIN in einem `sh` auf dem Host, damit Tabellenliste und
+Pipe keine Quoting-Ebene überwinden müssen (Beispiel iocage, für ezjail `jexec
+<JID> sudo -u <wwwuser> wp …`):
+
+```sh
+cat <<'SCRIPT' | sudo ssh -C root@<server> sh
+set -e
+wp="iocage exec -U <wwwuser> <jail> -- wp --path=/www/home/<wwwuser>/<domain> --url=<subsite>"
+d=/root/<vorgang>
+f=$d/<subsite>-`date +%Y%m%d`.sql.gz
+mkdir -p $d
+t=`$wp db tables --all-tables-with-prefix --format=csv`
+$wp db export - --tables="$t" | gzip > $f
+gzip -t $f
+echo "Tabellen:     `echo $t | tr , '\n' | wc -l`"
+echo "CREATE TABLE: `gzip -dc $f | grep -c '^CREATE TABLE'`"
+sha256 -q $f
+SCRIPT
+```
+
+Fertig ist die Sicherung erst, wenn `gzip -t` durchläuft und die Zahl der
+`CREATE TABLE` der Tabellenzahl entspricht. `set -e` greift bei der Pipe nur auf
+`gzip` - ein abgebrochener Export fällt erst am Tabellenvergleich auf.
+
+### Aufräumen
+
+Keine Arbeitsdateien und Sicherungen auf dem Server liegen lassen. Nach dem
+geprüften Ergebnis:
+
+1. Sicherung ins lokale `.tmp/` des Projekts holen und die sha256 gegen den Wert
+   vom Server vergleichen (`sha256 -q` auf FreeBSD, `sha256sum` auf Linux):
+   ```sh
+   sudo ssh -C root@<server> "cat /root/<vorgang>/<datei>.sql.gz" > .tmp/<datei>.sql.gz
+   ```
+2. Remote auflisten, was liegt: das Sicherungsverzeichnis auf dem Host und ein
+   eventuelles Arbeitsverzeichnis im Jail (`/tmp/<vorgang>/` mit Scripts).
+3. Nur die eigenen Dateien löschen. Fremde Reste nicht anfassen, sondern melden.

@@ -661,13 +661,12 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.63.17
+### 1.63.18
 
-- **`privatebin` - `read` ohne Config.** Die Config wurde vor jedem Subcommand
-  geladen, ohne `privatebin.json` brach damit auch `read` ab, obwohl dort die URL
-  den Server und das Fragment den Schluessel liefert. Jetzt liest `read` ohne
-  Config; ist sie da, kommen Zugangsdaten und History dazu. `create`, `delete`,
-  `history` und ein ausdrueckliches `--config` verlangen sie weiterhin.
-- **`privatebin` - Hinweis bei fehlendem `cryptography` auf macOS.** Das venv steht
-  jetzt zuerst; `pip install --user` scheitert bei Homebrew-Python an PEP 668 und
-  kommt nur noch als Alternative.
+- **`wp-cli` - Sicherung einer Multisite-Subsite.** `references/multisite.md` hat
+  jetzt ein vollständiges Rezept: Tabellenliste per `--all-tables-with-prefix`,
+  Export nach stdout und gzip auf dem Host (kein beschreibbares Verzeichnis im
+  Jail nötig), Prüfung mit `gzip -t`, sha256 und dem Vergleich der Zahl der
+  `CREATE TABLE` mit der Tabellenzahl. Dazu die Regel zum Aufräumen: Sicherung
+  lokal holen und die sha256 vergleichen, remote nur die eigenen Dateien löschen,
+  fremde Reste melden.

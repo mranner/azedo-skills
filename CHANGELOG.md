@@ -3,6 +3,16 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.63.18
+
+- **`wp-cli` - Sicherung einer Multisite-Subsite.** `references/multisite.md` hat
+  jetzt ein vollständiges Rezept: Tabellenliste per `--all-tables-with-prefix`,
+  Export nach stdout und gzip auf dem Host (kein beschreibbares Verzeichnis im
+  Jail nötig), Prüfung mit `gzip -t`, sha256 und dem Vergleich der Zahl der
+  `CREATE TABLE` mit der Tabellenzahl. Dazu die Regel zum Aufräumen: Sicherung
+  lokal holen und die sha256 vergleichen, remote nur die eigenen Dateien löschen,
+  fremde Reste melden.
+
 ### 1.63.17
 
 - **`privatebin` - `read` ohne Config.** Die Config wurde vor jedem Subcommand
