@@ -50,7 +50,7 @@ REF=$(python3 -c "import json;print(json.load(open('$Q/quote.json'))['reply']['r
 SUBJ=$(python3 -c "
 import json,re
 s=json.load(open('$Q/quote.json'))['subject']
-print(s if re.match(r'^(re|aw|wg|fwd)\s*:', s, re.I) else 'Re: '+s)")
+print(s if re.match(r'^(re|aw)\s*:', s, re.I) else 'Re: '+s)")
 TO=$(python3 -c "
 import json,email.utils
 q=json.load(open('$Q/quote.json'))
@@ -88,7 +88,8 @@ python3 $B --send $Q/mail.eml \
 Zum Betreff: `Re: ` wird **einmal** vorangestellt. Traegt der Originalbetreff bereits
 ein `Re:` (oder das deutsche `AW:`), bleibt es bei dem vorhandenen Praefix -- `Re: AW:
 Re: ...` ist ein sicheres Zeichen dafuer, dass der Betreff zusammengetippt statt
-uebernommen wurde. Die Fallunterscheidung steckt deshalb im Snippet oben und nicht im
+uebernommen wurde. `Fwd:`/`WG:` zaehlen **nicht** als Antwort-Praefix: die Antwort
+auf eine Weiterleitung heisst `Re: Fwd: ...`. Die Fallunterscheidung steckt deshalb im Snippet oben und nicht im
 Kopf des Modells.
 
 **Warum die Threading-Header nicht optional sind:** ohne `In-Reply-To` und `References`

@@ -661,12 +661,9 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.63.24
+### 1.63.25
 
-- **`kimai` - Abgleich mit Anthropics Skill-Richtlinien.** Das Script bricht bei
-  einem nicht erreichbaren oder hängenden Kimai-Host mit klarer Meldung ab statt
-  mit Traceback bzw. ohne Ende (`NET_TIMEOUT` 30 s); `MAX_PER_DAY` ist
-  begründet. SKILL.md und `references/` sind zeitlos formuliert, die Migration
-  des alten Shortcut-Formats steht beim Dateiformat statt als Workflow-Schritt,
-  das doppelte `log`-Beispiel ist entfallen. Der ganze Skill schreibt echte
-  Umlaute; der JSON-Schlüssel `eintraege` bleibt unverändert.
+- **`mail-as-me` - Antwort auf eine Weiterleitung bekommt `Re:`.** Der
+  Betreff-Snippet in `references/antworten.md` wertete `Fwd:` und `WG:` als
+  vorhandenes Antwort-Präfix und setzte dann kein `Re:` davor. Jetzt zählen nur
+  `Re:` und `AW:`; die Antwort auf eine Weiterleitung heißt `Re: Fwd: ...`.

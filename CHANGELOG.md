@@ -3,6 +3,13 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.63.25
+
+- **`mail-as-me` - Antwort auf eine Weiterleitung bekommt `Re:`.** Der
+  Betreff-Snippet in `references/antworten.md` wertete `Fwd:` und `WG:` als
+  vorhandenes Antwort-Präfix und setzte dann kein `Re:` davor. Jetzt zählen nur
+  `Re:` und `AW:`; die Antwort auf eine Weiterleitung heißt `Re: Fwd: ...`.
+
 ### 1.63.24
 
 - **`kimai` - Abgleich mit Anthropics Skill-Richtlinien.** Das Script bricht bei
