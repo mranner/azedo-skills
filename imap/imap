@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-# IMAP-Helper fuer Posteingang-Triage
+# IMAP-Helper für Posteingang-Triage
 # Liest Zugangsdaten aus muttrc, arbeitet gegen mehrere Konten.
-# stdlib only, keine pip-Abhaengigkeiten. Lauffaehig auf macOS + FreeBSD.
+# stdlib only, keine pip-Abhängigkeiten. Lauffähig auf macOS + FreeBSD.
 # version 1.52.0
 
 import argparse
@@ -22,32 +22,32 @@ import time
 
 DEFAULT_MUTTRC = os.path.expanduser("~/.muttrc")
 
-# list ist eine Uebersicht, kein Export: 50 Zeilen passen in eine Triage-Runde,
-# mehr per -n. read kuerzt den Body auf 4000 Zeichen, damit eine lange Mail den
-# Kontext nicht fuellt; mehr per --max-chars
+# list ist eine Übersicht, kein Export: 50 Zeilen passen in eine Triage-Runde,
+# mehr per -n. read kürzt den Body auf 4000 Zeichen, damit eine lange Mail den
+# Kontext nicht füllt; mehr per --max-chars
 
 DEFAULT_LIMIT = 50
 DEFAULT_MAX_CHARS = 4000
 
-# Obergrenze fuer IMAP-Connect und das Passwort-Kommando aus der muttrc: ein
-# haengender Server oder ein wartender Passwort-Agent bricht den Aufruf ab,
+# Obergrenze für IMAP-Connect und das Passwort-Kommando aus der muttrc: ein
+# hängender Server oder ein wartender Passwort-Agent bricht den Aufruf ab,
 # statt ihn unbegrenzt zu blockieren
 
 NET_TIMEOUT = 30
 
-# Zeilenlaenge des Zitatblocks inkl. '> '-Praefix; unterhalb von
+# Zeilenlänge des Zitatblocks inkl. '> '-Präfix; unterhalb von
 # MIN_QUOTE_TEXT nutzbaren Zeichen wird nicht mehr umgebrochen, sonst
-# zerfaellt ein tief verschachteltes Zitat in Wortfragmente
+# zerfällt ein tief verschachteltes Zitat in Wortfragmente
 
 DEFAULT_QUOTE_WIDTH = 72
 MIN_QUOTE_TEXT = 20
 
-# UIDs je FETCH beim Stapelabruf - haelt die Antwort und damit den Speicher
+# UIDs je FETCH beim Stapelabruf - hält die Antwort und damit den Speicher
 # beherrschbar, ohne die Roundtrips wieder auf einen je Mail zu treiben
 
 FETCH_CHUNK = 50
 
-# Laengste zulaessige Antwortzeile: ein SEARCH ueber einen gewachsenen Ordner
+# Längste zulässige Antwortzeile: ein SEARCH über einen gewachsenen Ordner
 # liefert alle UIDs in einer Zeile. 1 MB entspricht dem Default von Python 3.12,
 # fest gesetzt, damit eine kleinere Grenze anderer Versionen nicht greift
 
@@ -98,7 +98,7 @@ def backtick(cmd):
 
 
 def parse_set_values(text):
-    """Alle set key=value aus einem Textstueck ziehen."""
+    """Alle set key=value aus einem Textstück ziehen."""
     values = {}
     for m in SET_RE.finditer(text):
         key = m.group(1)
@@ -148,7 +148,7 @@ def parse_muttrc(path, _seen=None):
             if m and "account-hook" not in line:
                 sub = m.group("path")
 
-                # source "cmd |" fuehrt einen Befehl aus statt eine Datei zu lesen
+                # source "cmd |" führt einen Befehl aus statt eine Datei zu lesen
 
                 if sub.endswith("|"):
                     text = backtick(sub[:-1].strip())
@@ -184,7 +184,7 @@ def parse_muttrc(path, _seen=None):
 
 
 def load_accounts(muttrc_path):
-    """Konten aus muttrc bauen, Default-Konto aus set folder ergaenzen."""
+    """Konten aus muttrc bauen, Default-Konto aus set folder ergänzen."""
     accounts, globals_ = parse_muttrc(muttrc_path)
 
     folder = globals_.get("folder", "")
@@ -264,9 +264,9 @@ class Account:
 
             die(f"[{self.alias}] Login als {self.cfg['user']} abgelehnt: {e}")
 
-        # Capabilities nach dem Login neu holen: imaplib behaelt die aus dem
+        # Capabilities nach dem Login neu holen: imaplib behält die aus dem
         # Greeting, Dovecot meldet MOVE und UIDPLUS aber erst im
-        # authentifizierten Zustand. Mit den alten Caps liefe move() unnoetig
+        # authentifizierten Zustand. Mit den alten Caps liefe move() unnötig
         # in den COPY-Fallback.
 
         self.caps = {c.upper() for c in self.conn.capabilities}
@@ -327,7 +327,7 @@ class Account:
         return out
 
     def special_folder(self, kind):
-        """Sonderordner ueber SPECIAL-USE finden, sonst ueber Namensheuristik."""
+        """Sonderordner über SPECIAL-USE finden, sonst über Namensheuristik."""
         want = "\\" + kind.capitalize()
         for f in self.folders():
             if any(s.lower() == want.lower() for s in f["special"]):
@@ -370,9 +370,9 @@ class Account:
         return self.fetch_envelopes([int(u) for u in uids], folder)
 
     def fetch_envelopes(self, uids, folder="INBOX"):
-        """Kopfdaten zu bekannten UIDs - der Ordner ist bereits gewaehlt.
+        """Kopfdaten zu bekannten UIDs - der Ordner ist bereits gewählt.
 
-        Aus envelopes() herausgezogen, damit auch eine Suche ueber die
+        Aus envelopes() herausgezogen, damit auch eine Suche über die
         Message-ID (find) dieselben Felder liefert und nicht eine zweite,
         leicht abweichende Ausgabestruktur entsteht."""
         if not uids:
@@ -415,11 +415,11 @@ class Account:
     def scan_message_ids(self, message_ids, folder):
         """Einen Ordner nach mehreren Message-IDs durchsuchen - ein SEARCH.
 
-        Der Einzelweg (scan_message_id je ID) laeuft bei einem Thread mit zehn
-        Vorgaengern in zehn SELECT/SEARCH-Paare je Ordner. IMAP-SEARCH nimmt
-        die Bedingungen stattdessen als OR-Kette in Praefixform entgegen:
+        Der Einzelweg (scan_message_id je ID) läuft bei einem Thread mit zehn
+        Vorgängern in zehn SELECT/SEARCH-Paare je Ordner. IMAP-SEARCH nimmt
+        die Bedingungen stattdessen als OR-Kette in Präfixform entgegen:
         'OR c1 OR c2 c3'. Fehler sind hier wie bei scan_message_id kein
-        Abbruchgrund - ein nicht waehlbarer Ordner ist beim Sweep normal."""
+        Abbruchgrund - ein nicht wählbarer Ordner ist beim Sweep normal."""
         if not message_ids:
             return {}
 
@@ -445,7 +445,7 @@ class Account:
             return {}
 
         # Server, die HEADER nur als Teilstring auswerten, liefern auch Mails,
-        # deren Message-ID die gesuchte enthaelt - deshalb der Gegencheck.
+        # deren Message-ID die gesuchte enthält - deshalb der Gegencheck.
 
         wanted = set(message_ids)
 
@@ -453,11 +453,11 @@ class Account:
                 for r in rows if r["message_id"].strip() in wanted}
 
     def address_headers(self, uids, folder="INBOX"):
-        """Adressheader zu bekannten UIDs - fuer die Kontaktauswertung.
+        """Adressheader zu bekannten UIDs - für die Kontaktauswertung.
 
-        fetch_envelopes() holt Cc nicht, weil die Uebersichtsliste es nicht
-        anzeigt. Fuer den Adressbestand eines Threads ist Cc aber genau die
-        Stelle, an der die uebrigen Beteiligten stehen."""
+        fetch_envelopes() holt Cc nicht, weil die Übersichtsliste es nicht
+        anzeigt. Für den Adressbestand eines Threads ist Cc aber genau die
+        Stelle, an der die übrigen Beteiligten stehen."""
         if not uids:
             return []
 
@@ -496,9 +496,9 @@ class Account:
         """Einen Ordner nach einer Message-ID durchsuchen.
 
         Anders als sonst ist ein Fehler hier **kein** Abbruchgrund: beim Sweep
-        ueber alle Ordner eines Kontos ist ein nicht waehlbarer Ordner (fremde
-        Freigabe, gerade geloescht, kein Zugriff) der Normalfall - er darf die
-        Suche in den uebrigen nicht beenden."""
+        über alle Ordner eines Kontos ist ein nicht wählbarer Ordner (fremde
+        Freigabe, gerade gelöscht, kein Zugriff) der Normalfall - er darf die
+        Suche in den übrigen nicht beenden."""
         try:
             typ, _ = self.conn.select(quote_mailbox(folder), readonly=True)
             if typ != "OK":
@@ -512,8 +512,8 @@ class Account:
             uids = [int(u) for u in data[0].split()]
 
             # Server, die HEADER nur als Teilstring auswerten, liefern hier
-            # auch eine Mail, deren Message-ID die gesuchte enthaelt. Der
-            # Gegencheck unten faengt das ab.
+            # auch eine Mail, deren Message-ID die gesuchte enthält. Der
+            # Gegencheck unten fängt das ab.
 
             rows = self.fetch_envelopes(uids, folder)
         except imaplib.IMAP4.error:
@@ -526,7 +526,7 @@ class Account:
         """Rohnachricht holen, ohne \\Seen zu setzen.
 
         Gemeinsame Grundlage von body() und attachments(): BODY.PEEK[] liefert
-        die vollstaendige Nachricht, jede Aufbereitung darauf ist reine
+        die vollständige Nachricht, jede Aufbereitung darauf ist reine
         Filterarbeit ohne weiteren Roundtrip."""
         self.select(folder, readonly=True)
         typ, data = self.conn.uid("FETCH", str(uid), "(BODY.PEEK[])")
@@ -541,7 +541,7 @@ class Account:
 
         Ein FETCH je Block statt eines je UID - und vor allem ein Login statt
         einem je Mail. Eine nicht vorhandene UID fehlt im Ergebnis, statt den
-        ganzen Lauf abzubrechen: bei einem Stapel ist eine geloeschte Mail der
+        ganzen Lauf abzubrechen: bei einem Stapel ist eine gelöschte Mail der
         Normalfall, kein Grund die anderen 200 nicht zu holen."""
         self.select(folder, readonly=True)
         found = {}
@@ -560,15 +560,15 @@ class Account:
         return found
 
     def attachments(self, uid, folder="INBOX"):
-        """Anhaenge einer Mail auflisten - Reihenfolge und Index wie im MIME-Baum."""
+        """Anhänge einer Mail auflisten - Reihenfolge und Index wie im MIME-Baum."""
         msg = email.message_from_bytes(self.peek_raw(uid, folder))
         return list_parts(msg)
 
     def body(self, uid, folder="INBOX", max_chars=DEFAULT_MAX_CHARS,
              with_headers=False, with_raw=False):
-        """Textkoerper lesen. BODY.PEEK laesst den Ungelesen-Status unangetastet.
+        """Textkörper lesen. BODY.PEEK lässt den Ungelesen-Status unangetastet.
 
-        BODY.PEEK[] holt ohnehin die vollstaendige Rohnachricht - Header und
+        BODY.PEEK[] holt ohnehin die vollständige Rohnachricht - Header und
         Rohfassung kosten daher keinen zweiten Roundtrip, sie werden sonst nur
         weggefiltert."""
         raw = self.peek_raw(uid, folder)
@@ -599,7 +599,7 @@ class Account:
 
         # Reihenfolge bleibt, Mehrfach-Header (Received) werden nicht
         # zusammengefasst - genau darauf beruht das Nachvollziehen des
-        # Zustellwegs. Faltung wird aufgeloest, der Wert sonst nicht angefasst.
+        # Zustellwegs. Faltung wird aufgelöst, der Wert sonst nicht angefasst.
 
         if with_headers:
             out["headers"] = [[k, unfold_header(v)] for k, v in msg.items()]
@@ -608,7 +608,7 @@ class Account:
         return out
 
     def raw_message(self, uid, folder="INBOX"):
-        """Rohmail samt Flags und INTERNALDATE - Basis fuer kontouebergreifende Kopien."""
+        """Rohmail samt Flags und INTERNALDATE - Basis für kontoübergreifende Kopien."""
         self.select(folder, readonly=True)
         typ, data = self.conn.uid(
             "FETCH", str(uid), "(FLAGS INTERNALDATE BODY.PEEK[])"
@@ -619,7 +619,7 @@ class Account:
             flags = imaplib.ParseFlags(meta.encode()) if "FLAGS" in meta else ()
             flags = [f.decode() if isinstance(f, bytes) else f for f in flags]
 
-            # \Recent laesst sich per APPEND nicht setzen
+            # \Recent lässt sich per APPEND nicht setzen
 
             flags = [f for f in flags if f.lower() != "\\recent"]
             m = re.search(r'INTERNALDATE "([^"]+)"', meta)
@@ -640,7 +640,7 @@ class Account:
                 return False, as_text(data)
             return True, "MOVE"
 
-        # Fallback fuer Server ohne RFC 6851
+        # Fallback für Server ohne RFC 6851
 
         typ, data = self.conn.uid("COPY", str(uid), tgt)
         if typ != "OK":
@@ -649,15 +649,15 @@ class Account:
         if typ != "OK":
             return False, f"STORE: {as_text(data)}"
 
-        # UID EXPUNGE loescht gezielt diese UID; nacktes EXPUNGE wuerde alle
-        # als geloescht markierten Mails im Ordner mitnehmen
+        # UID EXPUNGE löscht gezielt diese UID; nacktes EXPUNGE würde alle
+        # als gelöscht markierten Mails im Ordner mitnehmen
 
         if "UIDPLUS" in self.caps:
             typ, data = self.conn.uid("EXPUNGE", str(uid))
             if typ != "OK":
                 return False, f"UID EXPUNGE: {as_text(data)}"
             return True, "COPY+UID EXPUNGE"
-        return True, "COPY+FLAGS (kein UIDPLUS - Quelle bleibt als geloescht markiert)"
+        return True, "COPY+FLAGS (kein UIDPLUS - Quelle bleibt als gelöscht markiert)"
 
     def copy_local(self, uid, target, folder="INBOX"):
         self.select(folder, readonly=False)
@@ -690,9 +690,9 @@ class Account:
         return data[0].split()
 
     def append(self, folder, raw, flags, internaldate):
-        """Rohmail in einen Ordner einfuegen."""
+        """Rohmail in einen Ordner einfügen."""
 
-        # Cyrus weist Mails mit bare LF zurueck; die Normalisierung ist verlustfrei
+        # Cyrus weist Mails mit bare LF zurück; die Normalisierung ist verlustfrei
 
         raw = re.sub(rb"(?<!\r)\n", b"\r\n", raw)
 
@@ -711,7 +711,7 @@ class Account:
             return False, as_text(data)
 
         # Server mit UIDPLUS (RFC 4315) nennen im Antworttext die vergebene UID.
-        # Sie ist der einzige Beleg, unter dem sich die Kopie spaeter wiederfindet.
+        # Sie ist der einzige Beleg, unter dem sich die Kopie später wiederfindet.
 
         m = re.search(r"APPENDUID\s+(\d+)\s+(\d+)", as_text(data), re.I)
 
@@ -777,7 +777,7 @@ def hdr(msg, name):
 
 
 def unfold_header(value):
-    """Zeilenfaltung (RFC 5322 2.2.3) aufloesen, Wert sonst unveraendert lassen.
+    """Zeilenfaltung (RFC 5322 2.2.3) auflösen, Wert sonst unverändert lassen.
 
     Bewusst kein RFC-2047-Decoding: bei Header-Analysen (Received-Kette,
     Authentication-Results, Return-Path) ist der Rohwert die Aussage."""
@@ -785,16 +785,16 @@ def unfold_header(value):
 
 
 def flat(value):
-    """Zeilenumbrueche aus einem dekodierten Headerwert entfernen.
+    """Zeilenumbrüche aus einem dekodierten Headerwert entfernen.
 
-    hdr() loest die RFC-2047-Kodierung auf, laesst die Zeilenfaltung eines
-    langen Betreffs aber stehen. In der Textausgabe faellt das nicht auf, in
+    hdr() löst die RFC-2047-Kodierung auf, lässt die Zeilenfaltung eines
+    langen Betreffs aber stehen. In der Textausgabe fällt das nicht auf, in
     JSON steht dann ein Umbruch mitten im Betreff."""
     return re.sub(r"\s+", " ", value or "").strip()
 
 
 def decode_mailbox(name):
-    """Modified UTF-7 der IMAP-Ordnernamen aufloesen (RFC 3501)."""
+    """Modified UTF-7 der IMAP-Ordnernamen auflösen (RFC 3501)."""
     if "&" not in name:
         return name
     try:
@@ -830,14 +830,14 @@ def quote_mailbox(name):
 
 
 def collapse_blank_lines(text):
-    r"""Zeilenenden vereinheitlichen, dann hoechstens eine Leerzeile lassen.
+    r"""Zeilenenden vereinheitlichen, dann höchstens eine Leerzeile lassen.
 
-    Die Normalisierung gehoert zwingend **vor** das Kollabieren: ein Body kommt
+    Die Normalisierung gehört zwingend **vor** das Kollabieren: ein Body kommt
     vom Server mit CRLF, und `\n{3,}` trifft in `\r\n\r\n\r\n` nichts, weil
-    zwischen den Umbruechen jeweils ein `\r` steht. Ohne diesen Schritt lief die
+    zwischen den Umbrüchen jeweils ein `\r` steht. Ohne diesen Schritt lief die
     Kollabierung still ins Leere.
 
-    Unauffaellig war das, weil `unflow()` die Zeilenenden selbst vereinheitlicht:
+    Unauffällig war das, weil `unflow()` die Zeilenenden selbst vereinheitlicht:
     bei `format=flowed`-Mails (Thunderbird und damit alles selbst Geschriebene)
     stimmte das Ergebnis. Nur bei nicht-flowed-Sendern - Outlook - blieben die
     doppelten Leerzeilen stehen, am deutlichsten bei Tabellen, deren leere
@@ -893,7 +893,7 @@ def extract_text(msg):
 
 
 def extract_html(msg):
-    """Ersten HTML-Part liefern - Anhaenge bleiben aussen vor."""
+    """Ersten HTML-Part liefern - Anhänge bleiben außen vor."""
     if msg.is_multipart():
         for part in msg.walk():
             if part.get_content_maintype() == "multipart":
@@ -919,8 +919,8 @@ QUOTE_PREFIX_RE = re.compile(r"^((?:> ?)+)(.*)$")
 def quote_attribution(msg):
     """`Am <dd.mm.yy> um <HH:MM> schrieb <Name>:` - Zeitangabe lokal.
 
-    Ohne verwertbares Date-Feld faellt die Zeitangabe weg (`<Name> schrieb:`),
-    statt ein Datum zu raten - dieselbe Notloesung verwendet Thunderbird."""
+    Ohne verwertbares Date-Feld fällt die Zeitangabe weg (`<Name> schrieb:`),
+    statt ein Datum zu raten - dieselbe Notlösung verwendet Thunderbird."""
     sender = hdr(msg, "From")
     name, addr = email.utils.parseaddr(sender)
     who = name.strip() or addr.strip() or sender.strip() or "Unbekannt"
@@ -935,7 +935,7 @@ def quote_attribution(msg):
         if dt is not None:
 
             # Naive Zeitstempel (Date ohne Zone) gelten als lokal und werden
-            # nicht umgerechnet - astimezone() wuerde sie sonst als UTC deuten
+            # nicht umgerechnet - astimezone() würde sie sonst als UTC deuten
 
             if dt.tzinfo is not None:
                 dt = dt.astimezone()
@@ -968,24 +968,24 @@ def flowed_part(msg):
 
 
 def unflow(text, delsp=False):
-    """Weiche Umbrueche nach RFC 3676 zu Absaetzen zusammenfuehren.
+    """Weiche Umbrüche nach RFC 3676 zu Absätzen zusammenführen.
 
     Eine Zeile, die auf ein Leerzeichen endet, ist weich umgebrochen und
-    gehoert mit der naechsten zusammen - sofern beide auf derselben
-    Zitatebene stehen. Ohne dieses Zusammenfuehren trifft der eigene Umbruch
-    auf den fremden und zerlegt jeden Absatz saegezahnfoermig: aus einer
+    gehört mit der nächsten zusammen - sofern beide auf derselben
+    Zitatebene stehen. Ohne dieses Zusammenführen trifft der eigene Umbruch
+    auf den fremden und zerlegt jeden Absatz sägezahnförmig: aus einer
     71 Zeichen langen Quellzeile wird bei Breite 70 eine Zeile plus ein
     einzelnes Restwort.
 
     Der Signatur-Trenner '-- ' endet ebenfalls auf ein Leerzeichen, ist aber
-    laut RFC ausdruecklich kein weicher Umbruch."""
+    laut RFC ausdrücklich kein weicher Umbruch."""
     out = []
     for line in text.replace("\r\n", "\n").replace("\r", "\n").split("\n"):
         m = re.match(r"^(>*)(.*)$", line)
         depth, rest = len(m.group(1)), m.group(2)
 
-        # Space-Stuffing zuruecknehmen: der Sender schiebt ein Leerzeichen
-        # vor Zeilen, die sonst wie ein Zitat oder wie 'From ' aussaehen
+        # Space-Stuffing zurücknehmen: der Sender schiebt ein Leerzeichen
+        # vor Zeilen, die sonst wie ein Zitat oder wie 'From ' aussähen
 
         if rest.startswith(" "):
             rest = rest[1:]
@@ -1013,7 +1013,7 @@ def unflow(text, delsp=False):
 
 
 def quote_body(msg):
-    """Textkoerper fuer das Zitat - flowed-Absaetze vorher rekonstruieren."""
+    """Textkörper für das Zitat - flowed-Absätze vorher rekonstruieren."""
     part = flowed_part(msg)
     if part is None:
         return extract_text(msg)
@@ -1023,10 +1023,10 @@ def quote_body(msg):
 
 
 def quote_line_prefix(line):
-    """Zitatebene der Quellzeile um eins erhoehen.
+    """Zitatebene der Quellzeile um eins erhöhen.
 
     Eine bereits zitierte Zeile bekommt ein weiteres '>' ohne Leerzeichen
-    ('> x' -> '>> x'), eine unzitierte das uebliche '> '."""
+    ('> x' -> '>> x'), eine unzitierte das übliche '> '."""
     m = QUOTE_PREFIX_RE.match(line)
     if m:
         return ">" + m.group(1), m.group(2)
@@ -1034,7 +1034,7 @@ def quote_line_prefix(line):
 
 
 def quote_text(body, width=DEFAULT_QUOTE_WIDTH):
-    """Text zeilenweise zitieren, Umbruch bei width Zeichen inkl. Praefix."""
+    """Text zeilenweise zitieren, Umbruch bei width Zeichen inkl. Präfix."""
     body = body.replace("\r\n", "\n").replace("\r", "\n")
     out = []
     for line in body.split("\n"):
@@ -1049,11 +1049,11 @@ def quote_text(body, width=DEFAULT_QUOTE_WIDTH):
         avail = (width - len(prefix)) if width else 0
         if avail >= MIN_QUOTE_TEXT:
 
-            # Einrueckung (Listen, Code) auf die Folgezeilen mitnehmen -
-            # textwrap wuerde sie sonst am Zeilenanfang wegwerfen. Ein
-            # einzelnes Leerzeichen gilt nicht als Einrueckung: es stammt in
+            # Einrückung (Listen, Code) auf die Folgezeilen mitnehmen -
+            # textwrap würde sie sonst am Zeilenanfang wegwerfen. Ein
+            # einzelnes Leerzeichen gilt nicht als Einrückung: es stammt in
             # der Regel aus der HTML-Konvertierung (Tags werden dort durch ein
-            # Leerzeichen ersetzt) und stuende sonst sichtbar hinter jedem '>'
+            # Leerzeichen ersetzt) und stünde sonst sichtbar hinter jedem '>'
 
             indent = re.match(r"[ \t]*", rest).group(0)
             if len(indent) < 2:
@@ -1070,11 +1070,11 @@ def quote_text(body, width=DEFAULT_QUOTE_WIDTH):
 
 
 def html_body_inner(raw):
-    """Rumpf eines HTML-Dokuments herausloesen.
+    """Rumpf eines HTML-Dokuments herauslösen.
 
-    Ein vollstaendiger Baum mit <head> und <meta> laesst sich nicht in ein
+    Ein vollständiger Baum mit <head> und <meta> lässt sich nicht in ein
     <blockquote> schachteln; genommen wird daher nur der Inhalt von <body>.
-    Skripte und Stylesheets fallen dabei weg - sie gehoeren zur Darstellung
+    Skripte und Stylesheets fallen dabei weg - sie gehören zur Darstellung
     der Originalmail, nicht zum zitierten Inhalt."""
     raw = re.sub(r"(?is)<(script|style)\b.*?</\1\s*>", "", raw)
     m = re.search(r"(?is)<body[^>]*>(.*)</body\s*>", raw)
@@ -1086,9 +1086,9 @@ def html_body_inner(raw):
 
 # Outlook setzt jede Zeile - und jede Tabellenzelle - als eigenen Absatz mit
 # einer Mso*-Klasse und holt sich den fehlenden Abstand aus einer Regel im
-# <head> (`p.MsoNormal { margin:0cm }`). Die faellt mit dem Stylesheet weg,
+# <head> (`p.MsoNormal { margin:0cm }`). Die fällt mit dem Stylesheet weg,
 # und ohne sie greift die Browser-Vorgabe `margin: 1em 0`: vor und nach jeder
-# Zeile eine Leerzeile. Am staerksten sichtbar bei Tabellen, wo jede Zelle ein
+# Zeile eine Leerzeile. Am stärksten sichtbar bei Tabellen, wo jede Zelle ein
 # eigener Absatz ist.
 
 MSO_BLOCK_RE = re.compile(r"(?is)<(p|div|li)(\s[^>]*)?>")
@@ -1097,13 +1097,13 @@ ATTR_STYLE_RE = re.compile(r"(?is)\bstyle\s*=\s*(\"[^\"]*\"|'[^']*'|[^\s>]+)")
 
 
 def inline_mso_margins(html):
-    """Den weggefallenen Nullabstand der Outlook-Absaetze inline nachtragen.
+    """Den weggefallenen Nullabstand der Outlook-Absätze inline nachtragen.
 
     Betroffen sind nur Elemente mit einer Klasse, die mit `Mso` beginnt --
-    fremde Stylesheets werden also nicht zurueckgeholt, es wird nur die eine
-    Regel ersetzt, auf die Outlook sich verlaesst. Ein bereits vorhandenes
+    fremde Stylesheets werden also nicht zurückgeholt, es wird nur die eine
+    Regel ersetzt, auf die Outlook sich verlässt. Ein bereits vorhandenes
     `style` bleibt erhalten und gewinnt, weil `margin:0` davorgesetzt wird:
-    ein Absatz, der seinen Abstand selbst mitbringt, behaelt ihn."""
+    ein Absatz, der seinen Abstand selbst mitbringt, behält ihn."""
     def fix(match):
         tag, attrs = match.group(1), match.group(2) or ""
         found = ATTR_CLASS_RE.search(attrs)
@@ -1127,9 +1127,9 @@ def inline_mso_margins(html):
 def quote_html(msg, attribution):
     """Zitat als <blockquote type="cite">.
 
-    Der HTML-Part der Originalmail wird uebernommen, damit Formatierung,
+    Der HTML-Part der Originalmail wird übernommen, damit Formatierung,
     Links und Listen erhalten bleiben. Nur wenn es keinen gibt, wird der
-    Textkoerper escaped und mit <br> nachgebaut."""
+    Textkörper escaped und mit <br> nachgebaut."""
     inner = inline_mso_margins(html_body_inner(extract_html(msg)))
     if not inner:
         text = extract_text(msg)
@@ -1138,16 +1138,16 @@ def quote_html(msg, attribution):
             f'<blockquote type="cite">\n{inner}\n</blockquote>')
 
 
-# --- Anhaenge ---------------------------------------------------------------
+# --- Anhänge ---------------------------------------------------------------
 
 CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]")
 
 
 def decode_filename(raw):
-    """RFC-2047-Woerter im Dateinamen aufloesen.
+    """RFC-2047-Wörter im Dateinamen auflösen.
 
     RFC 2231 (`filename*=utf-8''...`) erledigt bereits get_filename(); die
-    kodierten Woerter `=?utf-8?B?...?=` bleiben dabei stehen."""
+    kodierten Wörter `=?utf-8?B?...?=` bleiben dabei stehen."""
     if not raw:
         return ""
     try:
@@ -1157,11 +1157,11 @@ def decode_filename(raw):
 
 
 def safe_filename(raw, fallback):
-    """Dateiname aus der Mail auf einen blossen Namen reduzieren.
+    """Dateiname aus der Mail auf einen bloßen Namen reduzieren.
 
     Der Absender bestimmt diesen String - er darf nicht bestimmen, wohin
     geschrieben wird. Pfadanteile fallen weg, Steuerzeichen ebenso; bleibt
-    nichts Brauchbares uebrig, gilt der Ersatzname."""
+    nichts Brauchbares übrig, gilt der Ersatzname."""
     name = decode_filename(raw).replace("\\", "/")
     name = name.split("/")[-1]
     name = CONTROL_RE.sub("", name).strip()
@@ -1171,12 +1171,12 @@ def safe_filename(raw, fallback):
 
 
 def part_bytes(part):
-    """Inhalt eines Teils als Bytes - auch fuer angehaengte Mails."""
+    """Inhalt eines Teils als Bytes - auch für angehängte Mails."""
     payload = part.get_payload(decode=True)
     if payload is not None:
         return payload
 
-    # message/rfc822 traegt keine dekodierbare Nutzlast: der Anhang ist die
+    # message/rfc822 trägt keine dekodierbare Nutzlast: der Anhang ist die
     # eingebettete Nachricht selbst
 
     if part.get_content_maintype() == "message":
@@ -1187,9 +1187,9 @@ def part_bytes(part):
 
 
 def list_parts(msg):
-    """Anhaenge einer Nachricht mit stabilem Index (1-basiert, MIME-Reihenfolge).
+    """Anhänge einer Nachricht mit stabilem Index (1-basiert, MIME-Reihenfolge).
 
-    Inline-Teile werden mitgezaehlt, aber als solche markiert - der Index bleibt
+    Inline-Teile werden mitgezählt, aber als solche markiert - der Index bleibt
     dadurch derselbe, egal ob sie angezeigt werden oder nicht."""
     out = []
     idx = 0
@@ -1236,7 +1236,7 @@ def public_parts(parts):
 
 
 def unique_path(path):
-    """Bestehende Datei nicht ueberschreiben - Anhaenge heissen oft gleich."""
+    """Bestehende Datei nicht überschreiben - Anhänge heißen oft gleich."""
     if not os.path.exists(path):
         return path
     stem, ext = os.path.splitext(path)
@@ -1261,7 +1261,7 @@ def sender_short(addr):
 
 
 def normalize_message_id(raw):
-    """Message-ID aus einer Kopie-Paste-Fassung herausschaelen.
+    """Message-ID aus einer Kopie-Paste-Fassung herausschälen.
 
     Eine Message-ID wird typischerweise aus einem Mailclient oder einem
     Markdown-Auszug kopiert - mal mit Header-Namen davor, mal ohne spitze
@@ -1278,7 +1278,7 @@ def normalize_message_id(raw):
 def selectable_folders(a):
     """Ordner eines Kontos in Suchreihenfolge - INBOX zuerst.
 
-    \\Noselect-Eintraege sind reine Zwischenknoten der Hierarchie und lassen
+    \\Noselect-Einträge sind reine Zwischenknoten der Hierarchie und lassen
     sich nicht durchsuchen."""
     names = [
         f["raw"] for f in a.folders()
@@ -1290,12 +1290,12 @@ def selectable_folders(a):
 
 def locate_message_id(accounts, message_id, account=None, folder=None,
                       stop_at_first=True):
-    """Eine Message-ID ueber Konten und Ordner hinweg suchen.
+    """Eine Message-ID über Konten und Ordner hinweg suchen.
 
     Der Weg von der Message-ID zur UID: eine einkopierte Mail nennt Ordner und
-    Message-ID, aber nie die UID - und die UID ist ordner-lokal, laesst sich
+    Message-ID, aber nie die UID - und die UID ist ordner-lokal, lässt sich
     also auch nicht raten. Gesucht wird je Konto in einer Session; ohne
-    --account ueber alle konfigurierten Konten."""
+    --account über alle konfigurierten Konten."""
     targets = ([pick_account(accounts, account)] if account
                else sorted(accounts.values(), key=lambda a: a["alias"]))
     hits = []
@@ -1308,8 +1308,8 @@ def locate_message_id(accounts, message_id, account=None, folder=None,
                 hits.extend(found)
 
                 # Eine als \Deleted markierte Kopie bleibt nach einem Verschieben
-                # ohne EXPUNGE zurueck und verschwindet beim naechsten - die
-                # gueltige Mail liegt in einem anderen Ordner, also weitersuchen
+                # ohne EXPUNGE zurück und verschwindet beim nächsten - die
+                # gültige Mail liegt in einem anderen Ordner, also weitersuchen
 
                 if stop_at_first and any(not m["deleted"] for m in found):
                     return sorted(hits, key=lambda m: m["deleted"])
@@ -1391,12 +1391,12 @@ def cmd_list(args, accounts):
 
 
 def cmd_find(args, accounts):
-    """Message-ID zu Konto, Ordner und UID aufloesen.
+    """Message-ID zu Konto, Ordner und UID auflösen.
 
     Der Gegenweg zu 'list': dort ist die UID der Ausgangspunkt, hier die
     Message-ID. Eine als Text oder Markdown einkopierte Mail nennt genau diese
-    - der Umweg ueber 'folders' + 'list' samt Abgleich von Betreff und Datum
-    entfaellt damit."""
+    - der Umweg über 'folders' + 'list' samt Abgleich von Betreff und Datum
+    entfällt damit."""
     mid = normalize_message_id(args.message_id)
     hits = locate_message_id(accounts, mid, args.account, args.folder,
                              stop_at_first=not args.all)
@@ -1413,11 +1413,11 @@ def cmd_find(args, accounts):
             print(f"keine Mail mit Message-ID {mid} gefunden", file=sys.stderr)
     if hits and all(m["deleted"] for m in hits):
         print("nur als \\Deleted markierte Treffer - die Kopie verschwindet beim "
-              "naechsten EXPUNGE, die Mail wurde vermutlich verschoben", file=sys.stderr)
+              "nächsten EXPUNGE, die Mail wurde vermutlich verschoben", file=sys.stderr)
 
     # Nicht gefunden ist hier ein Fehler, kein leeres Ergebnis: gesucht wird
-    # nach einer konkreten Mail, die es geben soll. Ein Exit-Code 0 wuerde in
-    # einer Pipeline still zu einem fehlenden Zitat fuehren.
+    # nach einer konkreten Mail, die es geben soll. Ein Exit-Code 0 würde in
+    # einer Pipeline still zu einem fehlenden Zitat führen.
 
     if not hits:
         sys.exit(1)
@@ -1437,9 +1437,9 @@ def cmd_read(args, accounts):
 def cmd_quote(args, accounts):
     """Zitatblock einer Mail erzeugen - Grundlage einer Antwort.
 
-    Das Zitat wird generiert, nicht formuliert: haendisch getippte '> '-Praefixe
-    weichen bei jeder Mail leicht ab. Anhaenge werden nicht zitiert, BODY.PEEK
-    laesst den Ungelesen-Status unangetastet."""
+    Das Zitat wird generiert, nicht formuliert: händisch getippte '> '-Präfixe
+    weichen bei jeder Mail leicht ab. Anhänge werden nicht zitiert, BODY.PEEK
+    lässt den Ungelesen-Status unangetastet."""
     if (args.uid is None) == (args.message_id is None):
         die("genau eines von <uid> oder --message-id angeben")
 
@@ -1448,7 +1448,7 @@ def cmd_quote(args, accounts):
 
         # UIDs sind ordner-lokal: der Ordner kommt aus dem Treffer, nicht aus
         # dem Default INBOX - sonst zitiert quote eine fremde Mail derselben
-        # Nummer, ohne dass etwas fehlschlaegt
+        # Nummer, ohne dass etwas fehlschlägt
 
         hits = locate_message_id(accounts, normalize_message_id(args.message_id),
                                  args.account, args.folder)
@@ -1475,35 +1475,35 @@ def cmd_quote(args, accounts):
         print(quote)
         return
 
-    # Message-IDs sind Adressen, keine anzeigbaren Texte: unfold_header laesst
-    # den Rohwert stehen, hdr() wuerde ihn durch die RFC-2047-Dekodierung
-    # schicken und im Zweifel veraendern
+    # Message-IDs sind Adressen, keine anzeigbaren Texte: unfold_header lässt
+    # den Rohwert stehen, hdr() würde ihn durch die RFC-2047-Dekodierung
+    # schicken und im Zweifel verändern
 
     message_id = unfold_header(msg.get("Message-ID"))
 
     # References ist laut RFC 5322 eine reine Folge von Message-IDs, getrennt
     # durch Whitespace. Manche Clients setzen trotzdem Kommas dazwischen; ein
-    # blosses .split() laesst dann "<a>,<b>" als ein Token stehen und das Komma
+    # bloßes .split() lässt dann "<a>,<b>" als ein Token stehen und das Komma
     # wandert unbemerkt in den Header der Antwort. Kommas deshalb wie Whitespace
     # behandeln - der Thread bricht sonst ohne jede Fehlermeldung.
 
     references = [r for r in re.split(r"[\s,]+", unfold_header(msg.get("References"))) if r]
 
     # References der Antwort: Kette der Originalmail plus deren Message-ID
-    # (RFC 5322 3.6.4) - damit haengt die Antwort im richtigen Thread
+    # (RFC 5322 3.6.4) - damit hängt die Antwort im richtigen Thread
 
     chain = list(references)
     if message_id and message_id not in chain:
         chain.append(message_id)
 
-    # Betreff der Antwort: Re: nur, wenn schon ein Antwort-Praefix dransteht
-    # (Re:/AW:) nicht noch einmal. Fwd:/WG: zaehlen nicht - die Antwort auf
-    # eine Weiterleitung heisst Re: Fwd: ...
+    # Betreff der Antwort: Re: nur, wenn schon ein Antwort-Präfix dransteht
+    # (Re:/AW:) nicht noch einmal. Fwd:/WG: zählen nicht - die Antwort auf
+    # eine Weiterleitung heißt Re: Fwd: ...
 
     subject = flat(hdr(msg, "Subject"))
     reply_subject = subject if re.match(r"(re|aw)\s*:", subject, re.I) else "Re: " + subject
 
-    # Empfaenger: 'to' = Absender, 'all' = Reply-All aus From, To und Cc ohne
+    # Empfänger: 'to' = Absender, 'all' = Reply-All aus From, To und Cc ohne
     # die eigenen Adressen (--me) und ohne Doubletten
 
     me = {m.lower() for m in args.me}
@@ -1545,7 +1545,7 @@ def cmd_quote(args, accounts):
 
 def thread_message_ids(msg):
     """Message-IDs des Threads aus einer Mail: References, In-Reply-To und die
-    eigene. Reihenfolge bleibt die der Kette (aelteste zuerst), die eigene
+    eigene. Reihenfolge bleibt die der Kette (älteste zuerst), die eigene
     kommt ans Ende - so liest sich die Ausgabe chronologisch."""
     ids = []
 
@@ -1560,7 +1560,7 @@ def thread_message_ids(msg):
 def collect_addresses(mail, contacts):
     """Adressen einer Mail in den Bestand aufnehmen.
 
-    Ein Kontakt wird ueber die Adresse identifiziert, nicht ueber den
+    Ein Kontakt wird über die Adresse identifiziert, nicht über den
     Anzeigenamen: derselbe Mensch steht in einem Thread mal als 'Max Muster',
     mal als 'muster' und mal ohne Namen. Der erste nicht leere Name gewinnt,
     die Rollen sammeln sich."""
@@ -1589,9 +1589,9 @@ def collect_addresses(mail, contacts):
 
 
 def resolve_chain(a, pending, folders):
-    """Offene Message-IDs in den Ordnern eines Kontos aufloesen.
+    """Offene Message-IDs in den Ordnern eines Kontos auflösen.
 
-    Liefert (weiterhin offen, gefundene Mails). Je Ordner ein SEARCH ueber
+    Liefert (weiterhin offen, gefundene Mails). Je Ordner ein SEARCH über
     alle noch offenen IDs statt eines je ID - bei einem langen Thread ist das
     der Unterschied zwischen ein paar Sekunden und einer Minute."""
     found = []
@@ -1614,9 +1614,9 @@ def resolve_chain(a, pending, folders):
 def cmd_contacts(args, accounts):
     """Alle Adressen eines Threads einsammeln - Vorstufe einer Antwort.
 
-    Wer auf eine Mail antwortet, braucht den vollstaendigen Empfaengerkreis,
+    Wer auf eine Mail antwortet, braucht den vollständigen Empfängerkreis,
     und der steht selten in der zuletzt eingegangenen Mail: eine Adresse aus
-    dem Verteiler taucht oft nur in einer einzigen aelteren Nachricht auf.
+    dem Verteiler taucht oft nur in einer einzigen älteren Nachricht auf.
     Von Hand ist das ein Abklappern der References-Kette mit je einem Aufruf
     pro Mail (CR4613) - hier ist es einer, mit einem Login."""
     if (args.uid is None) == (args.message_id is None):
@@ -1654,8 +1654,8 @@ def cmd_contacts(args, accounts):
         raw_start = a.peek_raw(uid, folder)
         chain = thread_message_ids(email.message_from_bytes(raw_start))
 
-        # Die Startmail ist ueber ihre UID schon da; ihre eigene Message-ID
-        # steht trotzdem in der Kette und wuerde sonst ein zweites Mal gesucht.
+        # Die Startmail ist über ihre UID schon da; ihre eigene Message-ID
+        # steht trotzdem in der Kette und würde sonst ein zweites Mal gesucht.
 
         pending = [] if args.no_thread else [
             m for m in chain if m != start["message_id"].strip()]
@@ -1713,13 +1713,13 @@ def cmd_contacts(args, accounts):
     if missing:
         print()
 
-        # stdout ist gepuffert, stderr nicht - ohne das Leeren stuende die
+        # stdout ist gepuffert, stderr nicht - ohne das Leeren stünde die
         # Warnung vor der Liste, auf die sie sich bezieht.
 
         sys.stdout.flush()
 
         print(f"  {len(missing)} Mail(s) der Kette nicht auffindbar "
-              "(geloescht oder ausserhalb der konfigurierten Konten):",
+              "(gelöscht oder außerhalb der konfigurierten Konten):",
               file=sys.stderr)
 
         for mid in missing:
@@ -1783,7 +1783,7 @@ def collect_uids(args):
 
 
 def cmd_fetch(args, accounts):
-    """Mehrere Mails mit einem Login holen - lesendes Gegenstueck zu batch."""
+    """Mehrere Mails mit einem Login holen - lesendes Gegenstück zu batch."""
     uids = collect_uids(args)
     acc = pick_account(accounts, args.account)
 
@@ -1809,8 +1809,8 @@ def cmd_fetch(args, accounts):
         })
         return
 
-    # Ohne Trennzeile waere ein Stapel Rohmails auf stdout nicht mehr
-    # aufteilbar - byte-genau kommt die Rohfassung ohnehin nur ueber -o
+    # Ohne Trennzeile wäre ein Stapel Rohmails auf stdout nicht mehr
+    # aufteilbar - byte-genau kommt die Rohfassung ohnehin nur über -o
 
     for msg in msgs:
         print(f"── {msg['account']}/{msg['uid']} " + "─" * 40)
@@ -1825,10 +1825,10 @@ def cmd_fetch(args, accounts):
 def write_fetched(args, acc, found, msgs, missing, uids):
     """Je UID eine Datei schreiben.
 
-    Vorhandene Dateien werden uebersprungen statt ueberschrieben oder
+    Vorhandene Dateien werden übersprungen statt überschrieben oder
     durchnummeriert: der Dateiname ist die UID, ein zweiter Lauf meint also
     dieselbe Mail. So ist ein abgebrochener Stapelabruf wiederholbar, ohne
-    einen Korpus mit Dubletten zu fuellen (--overwrite erzwingt das Schreiben)."""
+    einen Korpus mit Dubletten zu füllen (--overwrite erzwingt das Schreiben)."""
     os.makedirs(args.output, exist_ok=True)
     ext = ".eml" if args.raw else ".txt"
 
@@ -1840,7 +1840,7 @@ def write_fetched(args, acc, found, msgs, missing, uids):
             continue
 
         # Rohfassung byte-genau schreiben - das Decoding in render() ersetzt
-        # ungueltige Sequenzen und taugt fuer eine .eml-Ablage nicht
+        # ungültige Sequenzen und taugt für eine .eml-Ablage nicht
 
         if args.raw:
             data = found[msg["uid"]]
@@ -1895,7 +1895,7 @@ def cmd_attachments(args, accounts):
         return
 
     if not parts:
-        print("keine Anhaenge")
+        print("keine Anhänge")
     for p in parts:
         mark = "i" if p["inline"] else " "
         print(f"{p['index']:>3}{mark} {short(p['name'], 44):<44} "
@@ -1906,12 +1906,12 @@ def cmd_attachments(args, accounts):
 
 
 def select_parts(parts, args):
-    """Auswahl aufloesen. Ein ausdruecklich benannter Teil wird immer geliefert,
-    auch wenn er inline ist - der Inline-Filter gilt nur fuer --all."""
+    """Auswahl auflösen. Ein ausdrücklich benannter Teil wird immer geliefert,
+    auch wenn er inline ist - der Inline-Filter gilt nur für --all."""
     if args.all:
         chosen = parts if args.include_inline else [p for p in parts if not p["inline"]]
         if not chosen:
-            die("keine Anhaenge zum Speichern")
+            die("keine Anhänge zum Speichern")
         return chosen
 
     if args.index is not None:
@@ -1995,8 +1995,8 @@ def cmd_append(args, accounts):
     """Eine lokale .eml in einen Ordner legen - der fehlende Gegenpart zum Versand.
 
     `swaks` spricht SMTP und sonst nichts: es gibt keine Kopie in "Gesendet".
-    Wer die Mail spaeter sucht, sucht dort zuerst und findet nichts. Dieser
-    Befehl legt die Datei ab, die tatsaechlich versendet wurde - dieselbe, die
+    Wer die Mail später sucht, sucht dort zuerst und findet nichts. Dieser
+    Befehl legt die Datei ab, die tatsächlich versendet wurde - dieselbe, die
     an `swaks --data @...` ging."""
     path = args.file
 
@@ -2037,7 +2037,7 @@ def cmd_append(args, accounts):
 
         # Wiederholbarkeit: derselbe Aufruf zweimal soll keine zweite Kopie
         # anlegen. Der Abbruch eines Laufs zwischen Versand und Ablage ist der
-        # haeufige Fall, ein doppelter "Gesendet"-Eintrag der laestige.
+        # häufige Fall, ein doppelter "Gesendet"-Eintrag der lästige.
 
         existing = None
 
@@ -2065,13 +2065,13 @@ def cmd_append(args, accounts):
                                      "Message-ID) - nichts geschrieben"})
         elif args.dry_run:
             result.update({"ok": True, "appended": False, "dry_run": True,
-                           "detail": "wuerde angelegt"})
+                           "detail": "würde angelegt"})
         else:
             ok, detail = a.append(folder, raw, flags, internaldate)
             result.update({"ok": ok, "appended": ok, "detail": detail})
 
             # Das OK des Servers allein ist kein Nachweis der Ablage: erst die
-            # per Message-ID wiedergefundene Mail zaehlt (CR4714).
+            # per Message-ID wiedergefundene Mail zählt (CR4714).
 
             if ok and message_id:
                 found = a.find_by_message_id(message_id, folder)
@@ -2096,8 +2096,8 @@ def cmd_append(args, accounts):
 
 
 def cmd_empty_trash(args, accounts):
-    """Papierkorb endgueltig leeren. Ohne --force nur zaehlen und mit Exit 1
-    abbrechen - geloeschte Mails sind danach nicht wiederherstellbar."""
+    """Papierkorb endgültig leeren. Ohne --force nur zählen und mit Exit 1
+    abbrechen - gelöschte Mails sind danach nicht wiederherstellbar."""
     cfg = pick_account(accounts, args.account)
 
     with Account(cfg) as a:
@@ -2114,8 +2114,8 @@ def cmd_empty_trash(args, accounts):
 
         if args.force and uids:
 
-            # Nur die gezaehlten UIDs loeschen: was zwischen Zaehlen und
-            # Loeschen hinzukommt, bleibt liegen
+            # Nur die gezählten UIDs löschen: was zwischen Zählen und
+            # Löschen hinzukommt, bleibt liegen
 
             uidset = ",".join(u.decode() if isinstance(u, bytes) else str(u)
                               for u in uids)
@@ -2139,7 +2139,7 @@ def cmd_empty_trash(args, accounts):
         out_json(result)
     elif not args.force:
         print(f"{result['account']}/{result['folder']}: {result['count']} Mails - "
-              "wuerden endgueltig geloescht, mit --force ausfuehren")
+              "würden endgültig gelöscht, mit --force ausführen")
     else:
         print(f"ok: {result['account']}/{result['folder']} geleert - "
               f"{result.get('deleted', 0)} Mails geloescht, "
@@ -2150,7 +2150,7 @@ def cmd_empty_trash(args, accounts):
 
 
 def resolve_target(a, target):
-    """Zielordner aufloesen: Sonderrolle (junk/trash/...) oder echter Name."""
+    """Zielordner auflösen: Sonderrolle (junk/trash/...) oder echter Name."""
     key = target.lower()
     if key in SPECIAL_FALLBACK:
         found = a.special_folder(key)
@@ -2161,7 +2161,7 @@ def resolve_target(a, target):
 
 
 def cmd_batch(args, accounts):
-    """Operationen gebuendelt ausfuehren - ein Login je Konto statt eins je Mail."""
+    """Operationen gebündelt ausführen - ein Login je Konto statt eins je Mail."""
     if args.file == "-":
         payload = sys.stdin.read()
     else:
@@ -2174,7 +2174,7 @@ def cmd_batch(args, accounts):
     if isinstance(ops, dict):
         ops = ops.get("operations", [])
     if not isinstance(ops, list) or not ops:
-        die("Batch enthaelt keine Operationen")
+        die("Batch enthält keine Operationen")
 
     by_account = {}
     for op in ops:
@@ -2184,7 +2184,7 @@ def cmd_batch(args, accounts):
     for alias, group in by_account.items():
         cfg = pick_account(accounts, alias)
 
-        # Ziel-Konten fuer kontouebergreifende Kopien erst bei Bedarf oeffnen
+        # Ziel-Konten für kontoübergreifende Kopien erst bei Bedarf öffnen
 
         with Account(cfg) as a:
             targets = {}
@@ -2206,7 +2206,7 @@ def cmd_batch(args, accounts):
 
 
 def run_op(a, op, accounts, targets, dry_run):
-    """Einzelne Operation gegen ein offenes Konto ausfuehren."""
+    """Einzelne Operation gegen ein offenes Konto ausführen."""
     action = (op.get("action") or "").lower()
     uid = op.get("uid")
     folder = op.get("folder", "INBOX")
@@ -2255,7 +2255,7 @@ def run_op(a, op, accounts, targets, dry_run):
 
 
 def run_cross(a, op, accounts, targets, target_name, dry_run, base):
-    """Kontouebergreifend: FETCH, APPEND ins Ziel, erst danach Quelle aufraeumen."""
+    """Kontoübergreifend: FETCH, APPEND ins Ziel, erst danach Quelle aufräumen."""
     uid = op["uid"]
     folder = op.get("folder", "INBOX")
     to_alias = op["to_account"]
@@ -2335,13 +2335,13 @@ def cmd_op(args, accounts):
 def build_parser():
     p = argparse.ArgumentParser(
         prog="imap",
-        description="IMAP-Helper fuer Posteingang-Triage (Zugangsdaten aus muttrc)",
+        description="IMAP-Helper für Posteingang-Triage (Zugangsdaten aus muttrc)",
     )
     p.add_argument("--muttrc", default=DEFAULT_MUTTRC, help="Pfad zur muttrc")
     p.add_argument("--json", action="store_true", help="Ausgabe als JSON")
 
-    # Dieselben Optionen zusaetzlich hinter dem Subcommand erlauben.
-    # SUPPRESS ist noetig, sonst ueberschreibt der Default des Subparsers
+    # Dieselben Optionen zusätzlich hinter dem Subcommand erlauben.
+    # SUPPRESS ist nötig, sonst überschreibt der Default des Subparsers
     # einen vor dem Subcommand gesetzten Wert wieder mit False.
 
     common = argparse.ArgumentParser(add_help=False)
@@ -2366,19 +2366,19 @@ def build_parser():
     sp.set_defaults(func=cmd_list)
 
     sp = sub.add_parser("find", parents=[common],
-                        help="Message-ID zu Konto, Ordner und UID aufloesen")
+                        help="Message-ID zu Konto, Ordner und UID auflösen")
     sp.add_argument("--message-id", "-m", required=True,
                     help="mit oder ohne spitze Klammern")
     sp.add_argument("--account", "-a", help="ohne Angabe: alle Konten")
     sp.add_argument("--folder", "-f",
                     help="ohne Angabe: alle Ordner des Kontos, INBOX zuerst")
     sp.add_argument("--all", action="store_true",
-                    help="weitersuchen statt beim ersten Treffer aufhoeren "
+                    help="weitersuchen statt beim ersten Treffer aufhören "
                          "(findet Kopien in weiteren Ordnern/Konten)")
     sp.set_defaults(func=cmd_find)
 
     sp = sub.add_parser("read", parents=[common],
-                        help="Textkoerper einer Mail (setzt \\Seen nicht)")
+                        help="Textkörper einer Mail (setzt \\Seen nicht)")
     sp.add_argument("uid", type=int)
     sp.add_argument("--account", "-a")
     sp.add_argument("--folder", "-f", default="INBOX")
@@ -2390,29 +2390,29 @@ def build_parser():
     sp.set_defaults(func=cmd_read)
 
     sp = sub.add_parser("quote", parents=[common],
-                        help="Zitatblock einer Mail fuer eine Antwort (setzt \\Seen nicht)")
+                        help="Zitatblock einer Mail für eine Antwort (setzt \\Seen nicht)")
     sp.add_argument("uid", type=int, nargs="?",
-                    help="UID im gewaehlten Ordner; alternativ --message-id")
+                    help="UID im gewählten Ordner; alternativ --message-id")
     sp.add_argument("--message-id", "-m",
-                    help="statt der UID; loest Konto, Ordner und UID selbst auf")
+                    help="statt der UID; löst Konto, Ordner und UID selbst auf")
     sp.add_argument("--account", "-a")
     sp.add_argument("--folder", "-f",
                     help="Default INBOX; mit --message-id ohne Angabe alle Ordner")
     sp.add_argument("--format", choices=("text", "html"), default="text",
-                    help="text: '> '-Praefixe; html: <blockquote type=\"cite\">")
+                    help="text: '> '-Präfixe; html: <blockquote type=\"cite\">")
     sp.add_argument("--width", type=int, default=DEFAULT_QUOTE_WIDTH,
                     metavar="ZEICHEN",
-                    help="Zeilenlaenge inkl. Zitatzeichen, 0 = kein Umbruch")
+                    help="Zeilenlänge inkl. Zitatzeichen, 0 = kein Umbruch")
     sp.add_argument("--me", action="append", default=[], metavar="ADRESSE",
-                    help="eigene Adresse, fehlt in reply.to/reply.all (mehrfach moeglich)")
+                    help="eigene Adresse, fehlt in reply.to/reply.all (mehrfach möglich)")
     sp.set_defaults(func=cmd_quote)
 
     sp = sub.add_parser("contacts", parents=[common],
                         help="alle Adressen eines Threads sammeln (setzt \\Seen nicht)")
     sp.add_argument("uid", type=int, nargs="?",
-                    help="UID im gewaehlten Ordner; alternativ --message-id")
+                    help="UID im gewählten Ordner; alternativ --message-id")
     sp.add_argument("--message-id", "-m",
-                    help="statt der UID; loest Konto, Ordner und UID selbst auf")
+                    help="statt der UID; löst Konto, Ordner und UID selbst auf")
     sp.add_argument("--account", "-a")
     sp.add_argument("--folder", "-f",
                     help="Default INBOX; mit Angabe wird die Kette nur in "
@@ -2428,7 +2428,7 @@ def build_parser():
     pick.add_argument("--uids", metavar="LISTE",
                       help="UIDs, durch Komma oder Leerzeichen getrennt")
     pick.add_argument("--uid-file", metavar="DATEI",
-                      help="Datei mit UIDs, '-' fuer stdin")
+                      help="Datei mit UIDs, '-' für stdin")
     sp.add_argument("--account", "-a")
     sp.add_argument("--folder", "-f", default="INBOX")
     sp.add_argument("--max-chars", type=int, default=DEFAULT_MAX_CHARS)
@@ -2439,11 +2439,11 @@ def build_parser():
     sp.add_argument("--output", "-o", metavar="VERZEICHNIS",
                     help="je UID eine Datei (<uid>.eml bei --raw, sonst <uid>.txt)")
     sp.add_argument("--overwrite", action="store_true",
-                    help="vorhandene Dateien ueberschreiben statt ueberspringen")
+                    help="vorhandene Dateien überschreiben statt überspringen")
     sp.set_defaults(func=cmd_fetch)
 
     sp = sub.add_parser("attachments", parents=[common],
-                        help="Anhaenge einer Mail auflisten (setzt \\Seen nicht)")
+                        help="Anhänge einer Mail auflisten (setzt \\Seen nicht)")
     sp.add_argument("uid", type=int)
     sp.add_argument("--account", "-a")
     sp.add_argument("--folder", "-f", default="INBOX")
@@ -2459,7 +2459,7 @@ def build_parser():
     pick = sp.add_mutually_exclusive_group(required=True)
     pick.add_argument("--name", help="Dateiname laut 'attachments'")
     pick.add_argument("--index", type=int, help="Index laut 'attachments'")
-    pick.add_argument("--all", action="store_true", help="alle Anhaenge")
+    pick.add_argument("--all", action="store_true", help="alle Anhänge")
     sp.add_argument("--output", "-o", metavar="PFAD",
                     help="Datei oder Verzeichnis; ohne Angabe .tmp/")
     sp.add_argument("--include-inline", action="store_true",
@@ -2483,7 +2483,7 @@ def build_parser():
         if name in ("move", "copy"):
             sp.add_argument("--target", "-t", required=True,
                             help="Ordnername oder Sonderrolle (junk/trash/archive/sent/drafts)")
-            sp.add_argument("--to-account", help="Zielkonto fuer kontouebergreifende Kopien")
+            sp.add_argument("--to-account", help="Zielkonto für kontoübergreifende Kopien")
         sp.add_argument("--dry-run", action="store_true")
         sp.set_defaults(func=cmd_op)
 
@@ -2504,15 +2504,15 @@ def build_parser():
     sp.set_defaults(func=cmd_append)
 
     sp = sub.add_parser("empty-trash", parents=[common],
-                        help="Papierkorb endgueltig leeren (ohne --force nur zaehlen)")
+                        help="Papierkorb endgültig leeren (ohne --force nur zählen)")
     sp.add_argument("--account", "-a", required=True)
     sp.add_argument("--force", action="store_true",
-                    help="wirklich loeschen - nicht wiederherstellbar")
+                    help="wirklich löschen - nicht wiederherstellbar")
     sp.set_defaults(func=cmd_empty_trash)
 
     sp = sub.add_parser("batch", parents=[common],
-                        help="Operationen gebuendelt ausfuehren (ein Login je Konto)")
-    sp.add_argument("file", help="JSON-Datei mit Operationen, '-' fuer stdin")
+                        help="Operationen gebündelt ausführen (ein Login je Konto)")
+    sp.add_argument("file", help="JSON-Datei mit Operationen, '-' für stdin")
     sp.add_argument("--dry-run", action="store_true")
     sp.set_defaults(func=cmd_batch)
 
@@ -2541,11 +2541,11 @@ if __name__ == "__main__":
         sys.exit(130)
     except BrokenPipeError:
 
-        # `read --raw | head` schliesst die Pipe frueh - das ist der
+        # `read --raw | head` schließt die Pipe früh - das ist der
         # Normalfall, kein Fehler. stdout wird auf devnull umgebogen, damit
-        # ein spaeterer Schreibversuch ins Leere laeuft; beendet wird ueber
-        # os._exit, weil der regulaere Exit den Puffer noch einmal auf die
-        # tote Pipe schreiben wuerde - dann mit einem Fehler, den an dieser
+        # ein späterer Schreibversuch ins Leere läuft; beendet wird über
+        # os._exit, weil der reguläre Exit den Puffer noch einmal auf die
+        # tote Pipe schreiben würde - dann mit einem Fehler, den an dieser
         # Stelle niemand mehr abfangen kann.
 
         os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())

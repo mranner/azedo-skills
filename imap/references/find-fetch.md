@@ -1,13 +1,13 @@
 # imap - find und fetch
 
-Message-ID aufloesen, Stapel von Mails mit einem Login holen.
+Message-ID auflösen, Stapel von Mails mit einem Login holen.
 
 ## `find` -- von der Message-ID zur UID
 
 Der Gegenweg zu `list`: dort ist die UID der Ausgangspunkt, hier die
 **Message-ID**. Eine als Text oder Markdown einkopierte Mail nennt Ordner,
 Betreff und Message-ID -- aber **nie** die UID, denn die vergibt der Server je
-Ordner. Ohne `find` bleibt der Umweg ueber `folders` + `list` und ein
+Ordner. Ohne `find` bleibt der Umweg über `folders` + `list` und ein
 Handabgleich von Betreff und Datum:
 
 ```
@@ -23,10 +23,10 @@ ein vorangestelltes `Message-ID:` wird abgeschnitten -- der Wert darf also aus
 einem Header-Auszug kopiert sein.
 
 **Gesucht wird ordnerweise**, INBOX zuerst, danach alphabetisch; ohne
-`--account` ueber alle konfigurierten Konten. Beim ersten Treffer ist Schluss --
+`--account` über alle konfigurierten Konten. Beim ersten Treffer ist Schluss --
 `--all` sucht weiter und findet damit auch Kopien in Archiv oder Zweitkonto. Ein
-Sweep ueber ein gewachsenes Postfach dauert dabei durchaus eine Minute (je
-Ordner ein SELECT und ein SEARCH); `-a` und `-f` kuerzen das entsprechend ab.
+Sweep über ein gewachsenes Postfach dauert dabei durchaus eine Minute (je
+Ordner ein SELECT und ein SEARCH); `-a` und `-f` kürzen das entsprechend ab.
 
 **Als `\Deleted` markierte Treffer zählen nicht als erster Treffer.** Nach einem
 Verschieben ohne EXPUNGE bleibt im Quellordner eine Kopie mit `\Deleted` zurück.
@@ -41,14 +41,14 @@ hin.
 Inbox: gesucht wird nach einer bestimmten Mail, die es geben soll. Ohne diesen
 Exit-Code liefe eine Pipeline still mit fehlendem Zitat weiter.
 
-Nicht durchsucht werden `\Noselect`-Eintraege -- das sind reine Zwischenknoten
+Nicht durchsucht werden `\Noselect`-Einträge -- das sind reine Zwischenknoten
 der Ordnerhierarchie, keine Mailboxen.
 
 ## `fetch` -- ein Stapel Mails, ein Login
 
-`read` oeffnet **je Aufruf** eine eigene Verbindung samt Login. Fuer einen Stapel
-ist das dasselbe Problem, das `batch` auf der Schreibseite loest: 200 Mails
-waeren 200 Logins in kurzer Folge -- unnoetig langsam und in den Auth-Logs von
+`read` öffnet **je Aufruf** eine eigene Verbindung samt Login. Für einen Stapel
+ist das dasselbe Problem, das `batch` auf der Schreibseite löst: 200 Mails
+wären 200 Logins in kurzer Folge -- unnötig langsam und in den Auth-Logs von
 einem Brute-Force-Versuch kaum zu unterscheiden. `fetch` holt beliebig viele
 UIDs in **einer** Session (und je 50 UIDs mit einem FETCH):
 
@@ -60,31 +60,31 @@ python3 "$SKILL_DIR/imap" fetch -a office -f Sent --uid-file - --raw -o .tmp/eml
 ```
 
 Die UID-Liste kommt per `--uids` (Komma oder Leerzeichen) oder aus einer Datei
-(`--uid-file`, `-` liest stdin). In der Datei sind Zeilenumbrueche, Kommas und
+(`--uid-file`, `-` liest stdin). In der Datei sind Zeilenumbrüche, Kommas und
 `#`-Kommentare erlaubt; Dubletten fallen weg, die Reihenfolge bleibt.
 
 Ausgabe wie bei `read`, inklusive `--headers`, `--raw` und `--max-chars`:
 
 - **ohne `-o`** auf stdout, je Mail mit einer Trennzeile `── <konto>/<uid> ──`.
-  Fuer eine byte-genaue Rohfassung ist `-o` der Weg, nicht stdout.
+  Für eine byte-genaue Rohfassung ist `-o` der Weg, nicht stdout.
 - **mit `-o <verzeichnis>`** je UID eine Datei: `<uid>.eml` bei `--raw` (Original-
   bytes, ungetastet), sonst `<uid>.txt` mit der aufbereiteten Fassung.
 - **`--json`** liefert ohne `-o` alle Mails als Liste, mit `-o` die
   Schreib-Bilanz (`saved`, `skipped`, `missing`).
 
-**Eine vorhandene Datei wird uebersprungen, nicht ueberschrieben und nicht
+**Eine vorhandene Datei wird übersprungen, nicht überschrieben und nicht
 durchnummeriert.** Der Dateiname ist die UID, ein zweiter Lauf meint also
-dieselbe Mail -- ein abgebrochener Stapelabruf laesst sich damit einfach
-wiederholen, ohne einen Korpus mit Dubletten zu fuellen. `--overwrite` erzwingt
+dieselbe Mail -- ein abgebrochener Stapelabruf lässt sich damit einfach
+wiederholen, ohne einen Korpus mit Dubletten zu füllen. `--overwrite` erzwingt
 das Schreiben. (Bei `save-attachment` ist es umgekehrt: dort kommt der Name vom
 Absender, `scan.pdf` meint jedes Mal etwas anderes.)
 
 **Eine unbekannte UID bricht den Lauf nicht ab** -- sie erscheint in `missing`.
-Bei einem Stapel ist eine zwischenzeitlich verschobene oder geloeschte Mail der
-Normalfall, kein Grund die uebrigen nicht zu holen.
+Bei einem Stapel ist eine zwischenzeitlich verschobene oder gelöschte Mail der
+Normalfall, kein Grund die übrigen nicht zu holen.
 
-`BODY.PEEK` gilt unveraendert: auch ein Stapelabruf setzt `\Seen` nicht.
+`BODY.PEEK` gilt unverändert: auch ein Stapelabruf setzt `\Seen` nicht.
 
-Typische Faelle: Korpus-Aufbau fuer [mail-as-me](../../mail-as-me/SKILL.md),
-Header-Analysen ueber mehrere Mails (Zustellwege, SPF/DKIM), einen Thread am
-Stueck lesen, Export vor einer Migration.
+Typische Fälle: Korpus-Aufbau für [mail-as-me](../../mail-as-me/SKILL.md),
+Header-Analysen über mehrere Mails (Zustellwege, SPF/DKIM), einen Thread am
+Stück lesen, Export vor einer Migration.

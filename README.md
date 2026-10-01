@@ -661,9 +661,16 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.63.27
+### 1.63.28
 
-- **`mail-as-me` - echte Umlaute.** SKILL.md, `references/`, das
-  Profil-Template und die Kommentare in `extract.py` schreiben ä, ö, ü und ß
-  statt ae, oe, ue und ss. Code, Schlüssel und Beispieladressen bleiben
-  unverändert.
+- **`imap` - Abgleich mit Anthropics Skill-Richtlinien.** Die SKILL.md ist von
+  328 auf 250 Zeilen geschrumpft: die muttrc-Konfiguration steht in
+  `references/konfiguration.md`, `read --headers`/`--raw` in
+  `references/header.md`, der Gegencheck von Alert-Mails in
+  `references/alerts.md`; in der SKILL.md bleiben je ein kurzer Hinweis und der
+  Verweis. Die Fallstricke zu `CAPABILITY` nach dem Login und `UID EXPUNGE` sind
+  raus - sie beschreiben, was das Script intern ohnehin richtig macht, und stehen
+  dort als Kommentar.
+- **`imap` - echte Umlaute** in SKILL.md, `references/` und den Kommentaren und
+  Ausgaben des Scripts. JSON-Schlüssel, Dateinamen und die Namensheuristik für
+  Sonderordner (`entwuerfe`, `geloeschte objekte`) bleiben unverändert.
