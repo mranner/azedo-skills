@@ -5,15 +5,15 @@ Liest Mail-Samples (.eml, .mbox, Maildir/Cyrus-Ordner) und schreibt pro Mail den
 bereinigten Eigentext als Markdown mit Frontmatter nach <out>/clean/<id>.md.
 
 Bereinigung: erster text/plain-Part, Zitat (>, 'Am ... schrieb:') und Signatur
-(ab '-- ') entfernt, format=flowed weich, Anhaenge ignoriert. Register- und
-Dialekt-Vorschlag pro Mail (der setup-Interview bestaetigt/korrigiert).
+(ab '-- ') entfernt, format=flowed weich, Anhänge ignoriert. Register- und
+Dialekt-Vorschlag pro Mail (der setup-Interview bestätigt/korrigiert).
 
 Nutzung:
   extract.py --input <datei|ordner> --out <profil>/corpus [--config <config.json>]
   extract.py --analyze <datei>        # nur anzeigen, nichts schreiben
 """
 
-# version 1.63.26
+# version 1.63.27
 
 import argparse
 import email
@@ -28,7 +28,7 @@ QUOTE_INTRO = re.compile(
     r"(schrieb\s+.*:|wrote:|hat\s+.*geschrieben:|"
     r"^Am\s.+\sum\s.+:$|^Gesendet:|^Von:|^-----\s*Urspr)", re.I)
 
-# Dialekt-Marker mit WORTGRENZEN (\b) — sonst matcht 'eh' in 'geehrter' u.ae.
+# Dialekt-Marker mit WORTGRENZEN (\b) — sonst matcht 'eh' in 'geehrter' u.ä.
 AT_MARKERS = [r"\beh\b", r"\bohnehin\b", r"\bheuer\b", r"\bJänner\b",
               r"\ballfällig\w*", r"schlimmsten Fall", r"sich \w*aus(?:zu)?geh",
               r"\bpasst\b", r"passen würde", r"doch einfach"]
@@ -67,8 +67,8 @@ def get_plain(msg):
 
 
 def deflow(text):
-    """format=flowed entfalten: Zeilen mit Trailing-Space sind Soft-Umbrueche
-    (Fortsetzung), das Space bleibt erhalten, der Umbruch faellt weg."""
+    """format=flowed entfalten: Zeilen mit Trailing-Space sind Soft-Umbrüche
+    (Fortsetzung), das Space bleibt erhalten, der Umbruch fällt weg."""
     out, buf = [], ""
     for ln in text.split("\n"):
         if ln.endswith(" ") and ln.strip() != "":
@@ -82,9 +82,9 @@ def deflow(text):
 
 
 def strip_blocks(text):
-    """Grosse eingefuegte Code-/JSON-Bloecke durch [...] ersetzen (Stil-Rauschen,
-    oft auch sensible Daten). Heuristik: ```-Fences und eigenstaendige {..}-Bloecke
-    ueber mehrere Zeilen (Klammer-Zaehlung; ignoriert Klammern in Strings nicht)."""
+    """Große eingefügte Code-/JSON-Blöcke durch [...] ersetzen (Stil-Rauschen,
+    oft auch sensible Daten). Heuristik: ```-Fences und eigenständige {..}-Blöcke
+    über mehrere Zeilen (Klammer-Zählung; ignoriert Klammern in Strings nicht)."""
     lines, out, i, n = text.split("\n"), [], 0, len(text.split("\n"))
     while i < n:
         s = lines[i].strip()
@@ -154,7 +154,7 @@ def parse_one(raw_bytes):
 
 
 def iter_messages(path):
-    """Liefert (id, raw_bytes) fuer .eml, .mbox oder Ordner (eml/mbox/Cyrus)."""
+    """Liefert (id, raw_bytes) für .eml, .mbox oder Ordner (eml/mbox/Cyrus)."""
     if path.is_file():
         if path.suffix.lower() == ".mbox":
             for i, m in enumerate(mailbox.mbox(str(path)), 1):
@@ -202,7 +202,7 @@ def main():
     for mid, raw in iter_messages(Path(args.input)):
         d = parse_one(raw)
         if not d["body"]:
-            print(f"{mid}: leer, uebersprungen")
+            print(f"{mid}: leer, übersprungen")
             continue
         reg = guess_register(d["body"], d["domain"], register_map)
         fm = (f"---\nid: {mid}\nbucket: {reg}\nto: {d['to']}\n"

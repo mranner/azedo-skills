@@ -3,6 +3,13 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.63.27
+
+- **`mail-as-me` - echte Umlaute.** SKILL.md, `references/`, das
+  Profil-Template und die Kommentare in `extract.py` schreiben ä, ö, ü und ß
+  statt ae, oe, ue und ss. Code, Schlüssel und Beispieladressen bleiben
+  unverändert.
+
 ### 1.63.26
 
 - **`mail-as-me` - Abgleich mit Anthropics Skill-Richtlinien.** Die SKILL.md ist

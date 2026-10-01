@@ -1,14 +1,14 @@
 # mail-as-me - Versand und Entwurfsablage
 
-**Inhalt:** Absender und Ablage aus dem Profil · Bau, Pruefung und Versand · Kontakt ergaenzen · als Entwurf ablegen (`draft`)
+**Inhalt:** Absender und Ablage aus dem Profil · Bau, Prüfung und Versand · Kontakt ergänzen · als Entwurf ablegen (`draft`)
 
 ## Absender und Ablage aus dem Profil
 
-Gesendet wird ueber **swaks** - dessen Defaults (`--from claude@azedo.at`) sind aber
+Gesendet wird über **swaks** - dessen Defaults (`--from claude@azedo.at`) sind aber
 die von Claude, nicht die des Profils. Eine Mail, die in der eigenen Stimme verfasst
-wurde, aber von `claude@azedo.at` kommt, ist beim Empfaenger schlicht falsch. Damit
-das nicht bei jedem Versand haendisch nachgezogen werden muss, steht die
-Versand-Identitaet im Profil:
+wurde, aber von `claude@azedo.at` kommt, ist beim Empfänger schlicht falsch. Damit
+das nicht bei jedem Versand händisch nachgezogen werden muss, steht die
+Versand-Identität im Profil:
 
 ```json
 "send":  { "from": "ich@example.org", "account": "<imap-konto>" },
@@ -17,9 +17,9 @@ Versand-Identitaet im Profil:
 
 `send.from` ist der Absender (fehlt er, gilt der swaks-Default). `send.account` und
 `draft.account` sind Aliase aus `imap accounts`: dort landet die Mail in "Gesendet"
-bzw. in den Entwuerfen. Eine Bcc-Kopie an sich selbst gibt es nur noch als
+bzw. in den Entwürfen. Eine Bcc-Kopie an sich selbst gibt es nur noch als
 Fallback ohne IMAP-Konto (siehe unten): ob die Mail raus ist, belegt die Queue-ID,
-ob sie abgelegt ist, das Zuruecklesen nach der Ablage. Ein Bcc an Dritte,
+ob sie abgelegt ist, das Zurücklesen nach der Ablage. Ein Bcc an Dritte,
 das der Nutzer im Auftrag nennt, geht weiterhin mit.
 
 Welche Kopie der versendeten Mail entsteht, entscheidet das Profil in dieser
@@ -27,25 +27,25 @@ Reihenfolge:
 
 1. **`send.account` gesetzt:** `--file-sent <send.account>`. Steht daneben noch
    `send.bcc` im Profil, wird es nicht verwendet: einmal darauf hinweisen und
-   anbieten, den Eintrag zu entfernen. Mitgeschickt landete die Kopie zusaetzlich
+   anbieten, den Eintrag zu entfernen. Mitgeschickt landete die Kopie zusätzlich
    zur Ablage in "Gesendet".
 2. **Kein `send.account`, aber `send.bcc`:** Bcc an die Adresse aus `send.bcc`, an
-   beide Aufrufe (Bau und `--send`), ohne Rueckfrage. Das ist der Weg auf
+   beide Aufrufe (Bau und `--send`), ohne Rückfrage. Das ist der Weg auf
    Rechnern ohne eingerichtete IMAP-Konten (`imap accounts` leer).
 3. **Weder noch:** nicht raten. Liefert `imap accounts` Konten, sie zur Auswahl
    zeigen und die Antwort als `send.account` ins Profil schreiben, damit die Frage
-   nur einmal kommt. Ist die Liste leer, nach einer Adresse fuer `send.bcc` fragen.
+   nur einmal kommt. Ist die Liste leer, nach einer Adresse für `send.bcc` fragen.
 
-Fehlt `draft.account`, gilt Schritt 3 sinngemaess; ohne IMAP-Konto gibt es keine
+Fehlt `draft.account`, gilt Schritt 3 sinngemäß; ohne IMAP-Konto gibt es keine
 Entwurfsablage.
 
-`send` aus dem geladenen Profil wird ohne Rueckfrage angewendet, wie die Signatur.
+`send` aus dem geladenen Profil wird ohne Rückfrage angewendet, wie die Signatur.
 Eine Angabe des Nutzers im Auftrag ("schick das von X") hat Vorrang.
 
-## Bau, Pruefung und Versand
+## Bau, Prüfung und Versand
 
-`from` geht an beide Aufrufe - den Bau und den Versand. Gebaut und geprueft wird in
-einem Befehl, gesendet und abgelegt im naechsten:
+`from` geht an beide Aufrufe - den Bau und den Versand. Gebaut und geprüft wird in
+einem Befehl, gesendet und abgelegt im nächsten:
 
 ```bash
 M=$(mktemp -d .tmp/mail.XXXXXX)
@@ -62,7 +62,7 @@ python3 $B \
   && test -s $M/mail.eml \
   && python3 $B --verify $M/mail.eml \
       --expect-sha256 "$(cat $M/mail.sha256)" \
-      --expect-marker "<woertliches Stueck aus dem freigegebenen Entwurf>"
+      --expect-marker "<wörtliches Stück aus dem freigegebenen Entwurf>"
 ```
 
 ```bash
@@ -73,45 +73,45 @@ python3 $B --send $M/mail.eml \
 ```
 
 `--file-sent` legt die versendete Datei nach erfolgreichem Versand in "Gesendet"
-und liest sie per Message-ID zurueck. Exit `0` heisst gesendet und abgelegt,
+und liest sie per Message-ID zurück. Exit `0` heißt gesendet und abgelegt,
 `1` nicht gesendet (und nichts abgelegt), `3` gesendet, aber nicht abgelegt. Bei
 `3` dem Nutzer genau das sagen und den Befehl aus dem Feld `retry` nennen;
-`$M/mail.eml` bleibt dafuer liegen. Details im swaks-Skill, Abschnitt „Ablage".
+`$M/mail.eml` bleibt dafür liegen. Details im swaks-Skill, Abschnitt „Ablage".
 
 Ohne `send.account` (Fallback `send.bcc`, siehe oben) statt `--file-sent` an
-beide Aufrufe `--bcc <send.bcc>` haengen; Exit `3` gibt es dann nicht.
+beide Aufrufe `--bcc <send.bcc>` hängen; Exit `3` gibt es dann nicht.
 
 **Warum `mktemp -d` und die `--verify`-Zeile:** Mit einem festen Pfad wie
 `.tmp/mail.eml` schreibt eine parallel laufende Session dieselbe Datei, und der
-Versand nimmt, was zuletzt drinstand - mit korrektem Betreff, korrektem Empfaenger
-und dem Text einer fremden Mail. Beim Versand faellt das nicht auf: swaks quittiert
-die uebertragenen Bytes, nicht die gebauten. Der Marker ist ein woertliches
-Stueck aus dem freigegebenen Entwurf; `--verify` dekodiert den Text-Part und
+Versand nimmt, was zuletzt drinstand - mit korrektem Betreff, korrektem Empfänger
+und dem Text einer fremden Mail. Beim Versand fällt das nicht auf: swaks quittiert
+die übertragenen Bytes, nicht die gebauten. Der Marker ist ein wörtliches
+Stück aus dem freigegebenen Entwurf; `--verify` dekodiert den Text-Part und
 sucht es dort (ein `grep` auf die rohe `.eml` findet es nicht, der Body ist
 quoted-printable kodiert). Details im swaks-Skill, Abschnitt "Vor dem Versand
-pruefen".
+prüfen".
 
 **Nur Text und kein HTML-Entwurf?** Dann `--html-file` weglassen, nicht die
 Textdatei ein zweites Mal angeben. Ein HTML-Part aus rohem Text hat kein
-einziges Tag und kommt beim Empfaenger in einer einzigen Zeile an - Aufzaehlung,
+einziges Tag und kommt beim Empfänger in einer einzigen Zeile an - Aufzählung,
 Tabelle und Zugangsdaten inklusive.
 
 Die Signatur bleibt beim eigenen Absender aus `send.from` dran (die globale
 Signatur ist die eigene, siehe swaks-Skill) - der Wechsel des Absenders ist kein
 Ausschlussgrund.
 
-## Kontakt ergaenzen (swaks Schritt 11)
+## Kontakt ergänzen (swaks Schritt 11)
 
 Stand die Adresse nicht in `.claude/swaks-contacts.tsv` (bzw. `~/.claude/`), wird
-sie nach dem Versand dort angehaengt - sonst ist die naechste Mail an dieselbe
-Person wieder ein Ratespiel. Nur fuer Adressen, die ohne Thread wieder gebraucht
+sie nach dem Versand dort angehängt - sonst ist die nächste Mail an dieselbe
+Person wieder ein Ratespiel. Nur für Adressen, die ohne Thread wieder gebraucht
 werden; Thread-Adressen liefert `imap contacts` jederzeit neu. Details im
 swaks-Skill.
 
 ## Als Entwurf ablegen (`draft`)
 
 Gebaut wird wie oben, mit zwei Unterschieden: `--for-draft` beim Bau und statt
-`--send` die Ablage in die Entwuerfe. Eine Bcc-Kopie an sich selbst entfaellt
+`--send` die Ablage in die Entwürfe. Eine Bcc-Kopie an sich selbst entfällt
 auch hier. Ein Bcc an Dritte steht im Entwurf als Header, sonst kennt der
 Mailclient es beim Senden nicht; `--send` verweigert eine solche `.eml` deshalb.
 
@@ -121,15 +121,15 @@ python3 $B --for-draft --subject "Betreff" --to "empfaenger@example.com" \
   --sha-file $M/mail.sha256 > $M/mail.eml \
   && test -s $M/mail.eml \
   && python3 $B --verify $M/mail.eml --expect-sha256 "$(cat $M/mail.sha256)" \
-      --expect-marker "<woertliches Stueck aus dem freigegebenen Entwurf>"
+      --expect-marker "<wörtliches Stück aus dem freigegebenen Entwurf>"
 ```
 
 ```bash
 python3 $B --draft $M/mail.eml --account <draft.account>
 ```
 
-Abgelegt wird mit `\Draft` und ungelesen, danach per Message-ID zurueckgelesen;
-Exit `0` heisst: liegt in den Entwuerfen, das JSON nennt Ordner und UID. Bei einer
-Antwort gehoeren Zitat und Threading-Header genauso dazu wie beim Versand. Der
-Kontakt wird erst ergaenzt, wenn der Nutzer den Entwurf abgeschickt hat - das
-sieht dieser Skill nicht, deshalb entfaellt der Schritt hier.
+Abgelegt wird mit `\Draft` und ungelesen, danach per Message-ID zurückgelesen;
+Exit `0` heißt: liegt in den Entwürfen, das JSON nennt Ordner und UID. Bei einer
+Antwort gehören Zitat und Threading-Header genauso dazu wie beim Versand. Der
+Kontakt wird erst ergänzt, wenn der Nutzer den Entwurf abgeschickt hat - das
+sieht dieser Skill nicht, deshalb entfällt der Schritt hier.

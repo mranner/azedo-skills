@@ -661,18 +661,9 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.63.26
+### 1.63.27
 
-- **`mail-as-me` - Abgleich mit Anthropics Skill-Richtlinien.** Die SKILL.md ist
-  von 406 auf 181 Zeilen geschrumpft: Versand und Entwurfsablage stehen in
-  `references/versand.md`, `setup` und `learn` in `references/profil.md`, die
-  Subcommands in einer Übersichtstabelle. Regeln, die bis zu neunmal vorkamen
-  (nicht spiegeln, `imap quote`, humanizer-de), stehen je einmal; statt fetter
-  Pflichtwörter steht der Grund dabei. Der profilspezifische Hinweis auf
-  `michael`/de-AT ist aus der Engine raus, das regelt `config.json`.
-- **`imap` - `quote --json` liefert Betreff und Empfänger der Antwort.** Das
-  `reply`-Objekt hat jetzt `subject` (mit `Re:`-Logik), `to` (Absender) und
-  `all` (Reply-All aus From, To und Cc); `--me <adresse>` nimmt die eigenen
-  Adressen heraus. `mail-as-me/references/antworten.md` liest die Felder, statt
-  sie per kopiertem Python-Snippet zu berechnen - dort saß der `Fwd:`-Fehler aus
-  1.63.25.
+- **`mail-as-me` - echte Umlaute.** SKILL.md, `references/`, das
+  Profil-Template und die Kommentare in `extract.py` schreiben ä, ö, ü und ß
+  statt ae, oe, ue und ss. Code, Schlüssel und Beispieladressen bleiben
+  unverändert.

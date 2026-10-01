@@ -6,21 +6,21 @@ klingt. Aufbau: (1) Register-Matrix, (2) Stilmarker, (3) Anti-Patterns, (4) Beis
 Grundlage: selbstverfasste Mails (Korpus in `corpus/clean/`) + laufende Korrekturen
 (Feedback-Loop via `learn`).
 
-**Beim Entwerfen:** Empfaengertyp bestimmen → passende Zeile der Register-Matrix +
-1-2 Beispiele desselben Registers heranziehen → Anti-Patterns pruefen.
+**Beim Entwerfen:** Empfängertyp bestimmen → passende Zeile der Register-Matrix +
+1-2 Beispiele desselben Registers heranziehen → Anti-Patterns prüfen.
 
 ---
 
 ## 1. Register-Matrix
 
-Achse: formell ↔ informell, festgemacht am Empfaenger (siehe `config.json.register_map`).
+Achse: formell ↔ informell, festgemacht am Empfänger (siehe `config.json.register_map`).
 
-| Empfaengertyp | Anrede | Anrede-Form | Sign-off | Beleg |
+| Empfängertyp | Anrede | Anrede-Form | Sign-off | Beleg |
 |---|---|---|---|---|
 | {{FORMELL_TYP}} | {{FORMELL_ANREDE}} | Sie/Ihnen | {{FORMELL_SIGNOFF}} | {{FORMELL_BELEG}} |
-| {{PARTNER_TYP}} | {{PARTNER_ANREDE}} | Du/Dir (gross) | {{PARTNER_SIGNOFF}} | {{PARTNER_BELEG}} |
+| {{PARTNER_TYP}} | {{PARTNER_ANREDE}} | Du/Dir (groß) | {{PARTNER_SIGNOFF}} | {{PARTNER_BELEG}} |
 
-Sign-off-Sonderfaelle: {{SIGNOFF_CONDITIONS}}
+Sign-off-Sonderfälle: {{SIGNOFF_CONDITIONS}}
 
 ---
 
@@ -38,12 +38,12 @@ Aus dem Korpus abgeleitete, belegte Gewohnheiten — je Punkt eine Mail-Referenz
 
 ## 3. Anti-Patterns (vermeiden)
 
-Geprueft ueber den **humanizer-de**-Skill; hier nur als Checkliste mit persoenlichem
-Bezug. Standard-KI-Tells: Gedankenstrich (— → `-`), Nominalkomposita aufloesen,
-elliptische Antithese, erfundene Zusagen/Deadlines, Anfuehrungszeichen um Paraphrasen,
-Absolutheit ohne Hedge, Bestaetigungsfloskeln. Echte Umlaute, gerade Anfuehrungszeichen.
+Geprüft über den **humanizer-de**-Skill; hier nur als Checkliste mit persönlichem
+Bezug. Standard-KI-Tells: Gedankenstrich (— → `-`), Nominalkomposita auflösen,
+elliptische Antithese, erfundene Zusagen/Deadlines, Anführungszeichen um Paraphrasen,
+Absolutheit ohne Hedge, Bestätigungsfloskeln. Echte Umlaute, gerade Anführungszeichen.
 
-Persoenliche Zusaetze (aus `learn`): {{ANTI_PERSOENLICH}}
+Persönliche Zusätze (aus `learn`): {{ANTI_PERSOENLICH}}
 
 ---
 
