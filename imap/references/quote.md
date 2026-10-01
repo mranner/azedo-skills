@@ -119,10 +119,20 @@ stehen die Kopfdaten der Originalmail und ein fertiges `reply`-Objekt:
   "references": ["<wurzel@example.org>", "<vorher@example.org>"],
   "reply": {
     "in_reply_to": "<abc@example.org>",
-    "references": "<wurzel@example.org> <vorher@example.org> <abc@example.org>"
+    "references": "<wurzel@example.org> <vorher@example.org> <abc@example.org>",
+    "subject": "Re: Fwd: Angebot",
+    "to": "absender@example.org",
+    "all": "absender@example.org,kollege@example.org"
   }
 }
 ```
+
+`reply.subject` ist der Betreff der Antwort: `Re: ` davor, ausser es steht schon
+ein `Re:` oder `AW:` dran. `Fwd:`/`WG:` zaehlen nicht, die Antwort auf eine
+Weiterleitung heisst `Re: Fwd: ...`. `reply.to` ist der Absender, `reply.all`
+die Reply-All-Besetzung aus From, To und Cc, beide ohne Doubletten und ohne die
+eigenen Adressen aus `--me` (mehrfach angebbar). Ohne `--me` steht die eigene
+Adresse in `reply.all` mit drin.
 
 `message_id`, `in_reply_to` und `references` sind die Header der **Originalmail**;
 `reply` enthaelt die Werte fuer die **Antwort** -- `In-Reply-To` ist deren

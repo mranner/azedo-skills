@@ -311,7 +311,7 @@ IMAP-Konten: dann geht `--bcc <send.bcc>` an **beide** Aufrufe, ohne Rückfrage.
 Neben `--file-sent` hat sie nichts verloren: sie belegt nur die Zustellung ins
 eigene Postfach, ob sie mitgeht, steht beim Versand fest, und sie landet
 zusätzlich zur Ablage in „Gesendet". Die Reihenfolge im Detail steht im
-mail-as-me-Skill, Abschnitt „Versand: Absender und Ablage aus dem Profil".
+mail-as-me-Skill, `references/versand.md`, Abschnitt „Absender und Ablage aus dem Profil".
 
 **Als Entwurf ablegen statt senden:** mit `--for-draft` bauen, dann
 

@@ -1496,6 +1496,27 @@ def cmd_quote(args, accounts):
     if message_id and message_id not in chain:
         chain.append(message_id)
 
+    # Betreff der Antwort: Re: nur, wenn schon ein Antwort-Praefix dransteht
+    # (Re:/AW:) nicht noch einmal. Fwd:/WG: zaehlen nicht - die Antwort auf
+    # eine Weiterleitung heisst Re: Fwd: ...
+
+    subject = flat(hdr(msg, "Subject"))
+    reply_subject = subject if re.match(r"(re|aw)\s*:", subject, re.I) else "Re: " + subject
+
+    # Empfaenger: 'to' = Absender, 'all' = Reply-All aus From, To und Cc ohne
+    # die eigenen Adressen (--me) und ohne Doubletten
+
+    me = {m.lower() for m in args.me}
+    sender, everyone = [], []
+    for role in ("From", "To", "Cc"):
+        for _, addr in email.utils.getaddresses(msg.get_all(role, [])):
+            addr = addr.lower()
+            if not addr or addr in me or addr in everyone:
+                continue
+            everyone.append(addr)
+            if role == "From":
+                sender.append(addr)
+
     out_json({
         "account": acc["alias"],
         "folder": folder,
@@ -1515,6 +1536,9 @@ def cmd_quote(args, accounts):
         "reply": {
             "in_reply_to": message_id,
             "references": " ".join(chain),
+            "subject": reply_subject,
+            "to": ",".join(sender),
+            "all": ",".join(everyone),
         },
     })
 
@@ -2379,6 +2403,8 @@ def build_parser():
     sp.add_argument("--width", type=int, default=DEFAULT_QUOTE_WIDTH,
                     metavar="ZEICHEN",
                     help="Zeilenlaenge inkl. Zitatzeichen, 0 = kein Umbruch")
+    sp.add_argument("--me", action="append", default=[], metavar="ADRESSE",
+                    help="eigene Adresse, fehlt in reply.to/reply.all (mehrfach moeglich)")
     sp.set_defaults(func=cmd_quote)
 
     sp = sub.add_parser("contacts", parents=[common],

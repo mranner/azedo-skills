@@ -8,16 +8,17 @@ und die **Empfaenger**. Der Grund ist derselbe wie beim humanizer-de-Audit: was 
 Modell selbst tippt, weicht bei jeder Mail leicht ab. Das alles ist Formatarbeit, keine
 Formulierungsarbeit.
 
-**Betreff und Empfaenger stehen in `quote --json` bereits drin** (`subject`, `from`,
-`to`, `cc`) -- sie werden von dort uebernommen, nicht abgeschrieben und nicht aus dem
-Auftrag rekonstruiert:
+**Betreff und Empfaenger stehen in `quote --json` fertig drin** (Feld `reply`, mit
+`--me <send.from>` aufgerufen) - sie werden von dort uebernommen, nicht abgeschrieben
+und nicht aus dem Auftrag rekonstruiert:
 
-- **Betreff** = `subject` plus ein vorangestelltes `Re: `. Ein abgetippter Betreff
-  verliert genau die Zeichen, an denen der Mailclient den Thread erkennt: eine
-  Ticketnummer in eckigen Klammern, ein `AW:` der Gegenseite, ein Umlaut aus einer
-  RFC-2047-Kodierung.
-- **Empfaenger** = `from`; bei Reply-All zusaetzlich `to` und `cc`, **abzueglich der
-  eigenen Adressen** aus `config.json.send`. Aus dem Auftrag kommt hoechstens eine
+- **Betreff** = `reply.subject`: `Re: ` davor, ausser es steht schon ein `Re:`/`AW:`
+  dran; die Antwort auf eine Weiterleitung heisst `Re: Fwd: ...`. Ein abgetippter
+  Betreff verliert genau die Zeichen, an denen der Mailclient den Thread erkennt:
+  eine Ticketnummer in eckigen Klammern, ein `AW:` der Gegenseite, ein Umlaut aus
+  einer RFC-2047-Kodierung.
+- **Empfaenger** = `reply.to` (Absender), bei Reply-All `reply.all` (From, To und Cc
+  ohne die eigene Adresse aus `--me`). Aus dem Auftrag kommt hoechstens eine
   ausdrueckliche Abweichung ("nur an X"), nicht die Standardbesetzung.
 
 Wer die Empfaenger aus dem Auftrag statt aus den Kopfdaten nimmt, verliert still den
@@ -26,7 +27,15 @@ Mitleser im `Cc` -- fuer den Absender sieht die Antwort vollstaendig aus.
 **Position: Antwort oben, Zitat unten** (Top-Posting). Die Reihenfolge im fertigen
 Text-Part ist Antwort -> Signatur -> Zitat; `build_mail.py` setzt sie so zusammen,
 solange der Quote ueber `--quote-text-file`/`--quote-html-file` hereinkommt. Der Entwurf
-selbst enthaelt also **kein** Zitat.
+selbst enthaelt also **kein** Zitat. Ein von Hand getipptes Zitat - auch eines, das
+ein uebernommener Entwurf (`rewrite`) mitbringt - wird durch das erzeugte ersetzt:
+selbst gesetzte `> `-Praefixe sehen auf den ersten Blick gleich aus, ignorieren aber
+`format=flowed` und die Threading-Header.
+
+UIDs sind ordner-lokal. Liegt die Mail nicht in der INBOX und fehlt `-f`, zitiert
+`quote` die gleichnamige UID der INBOX, also eine fremde Mail - ohne Fehlermeldung.
+Ist nur die Message-ID bekannt, loest `quote -m "<message-id>"` Konto, Ordner und UID
+selbst auf.
 
 ```bash
 Q=$(mktemp -d .tmp/reply.XXXXXX)
@@ -38,30 +47,17 @@ B=~/.claude/skills/swaks/build_mail.py
 #    ordner-lokal); alternativ -m "<message-id>" statt uid/-a/-f.
 python3 $IMAP quote <uid> -a <konto> -f <ordner> > $Q/quote.txt
 python3 $IMAP quote <uid> -a <konto> -f <ordner> --format html > $Q/quote.html
-python3 $IMAP quote <uid> -a <konto> -f <ordner> --json > $Q/quote.json
+python3 $IMAP quote <uid> -a <konto> -f <ordner> --json --me ich@example.org > $Q/quote.json
 
-# 2. Threading-Header abgreifen (Feld `reply`, nicht die Header der Originalmail)
-IRT=$(python3 -c "import json;print(json.load(open('$Q/quote.json'))['reply']['in_reply_to'])")
-REF=$(python3 -c "import json;print(json.load(open('$Q/quote.json'))['reply']['references'])")
+# 2. Threading-Header, Betreff und Empfaenger aus dem Feld `reply`
+#    (nicht die Header der Originalmail); TO=reply.all fuer Reply-All
+R="import json,sys;print(json.load(open('$Q/quote.json'))['reply'][sys.argv[1]])"
+IRT=$(python3 -c "$R" in_reply_to)
+REF=$(python3 -c "$R" references)
+SUBJ=$(python3 -c "$R" subject)
+TO=$(python3 -c "$R" to)
 
-# 3. Betreff und Empfaenger aus denselben Kopfdaten -- nicht abschreiben.
-#    Re: nur, wenn nicht schon ein Re:/AW: dransteht; Reply-All ist
-#    from + to + cc minus der eigenen Adressen aus config.json.send.
-SUBJ=$(python3 -c "
-import json,re
-s=json.load(open('$Q/quote.json'))['subject']
-print(s if re.match(r'^(re|aw)\s*:', s, re.I) else 'Re: '+s)")
-TO=$(python3 -c "
-import json,email.utils
-q=json.load(open('$Q/quote.json'))
-mine={'ich@example.org'}
-addrs=email.utils.getaddresses([q['from'], q['to'], q['cc']])
-seen=[]
-for _,a in addrs:
-    if a and a.lower() not in mine and a.lower() not in seen: seen.append(a.lower())
-print(','.join(seen))")
-
-# 4. Mail bauen -- Body ohne Zitat, der Helper haengt es unter die Signatur
+# 3. Mail bauen -- Body ohne Zitat, der Helper haengt es unter die Signatur
 python3 $B \
   --subject "$SUBJ" \
   --to "$TO" \
@@ -79,18 +75,15 @@ python3 $B \
       --expect-sha256 "$(cat $Q/mail.sha256)" \
       --expect-marker "<woertliches Stueck aus dem Entwurf>"
 
-# 5. Versand als eigener Befehl, mit Ablage in Gesendet
+# 4. Versand als eigener Befehl, mit Ablage in Gesendet
 #    (ohne send.account: --bcc <send.bcc> an Bau und Versand statt --file-sent)
 python3 $B --send $Q/mail.eml \
   --to "$TO" --from ich@example.org --file-sent <send.account>
 ```
 
-Zum Betreff: `Re: ` wird **einmal** vorangestellt. Traegt der Originalbetreff bereits
-ein `Re:` (oder das deutsche `AW:`), bleibt es bei dem vorhandenen Praefix -- `Re: AW:
-Re: ...` ist ein sicheres Zeichen dafuer, dass der Betreff zusammengetippt statt
-uebernommen wurde. `Fwd:`/`WG:` zaehlen **nicht** als Antwort-Praefix: die Antwort
-auf eine Weiterleitung heisst `Re: Fwd: ...`. Die Fallunterscheidung steckt deshalb im Snippet oben und nicht im
-Kopf des Modells.
+Zum Betreff: `Re: ` wird einmal vorangestellt - `Re: AW: Re: ...` ist ein sicheres
+Zeichen dafuer, dass der Betreff zusammengetippt statt uebernommen wurde. Die
+Fallunterscheidung steckt deshalb in `imap quote` und nicht im Kopf des Modells.
 
 **Warum die Threading-Header nicht optional sind:** ohne `In-Reply-To` und `References`
 startet die Antwort im Mailclient des Empfaengers einen **neuen** Thread. Das faellt
