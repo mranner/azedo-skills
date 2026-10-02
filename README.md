@@ -661,16 +661,14 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.63.28
+### 1.63.29
 
-- **`imap` - Abgleich mit Anthropics Skill-Richtlinien.** Die SKILL.md ist von
-  328 auf 250 Zeilen geschrumpft: die muttrc-Konfiguration steht in
-  `references/konfiguration.md`, `read --headers`/`--raw` in
-  `references/header.md`, der Gegencheck von Alert-Mails in
-  `references/alerts.md`; in der SKILL.md bleiben je ein kurzer Hinweis und der
-  Verweis. Die Fallstricke zu `CAPABILITY` nach dem Login und `UID EXPUNGE` sind
-  raus - sie beschreiben, was das Script intern ohnehin richtig macht, und stehen
-  dort als Kommentar.
-- **`imap` - echte Umlaute** in SKILL.md, `references/` und den Kommentaren und
-  Ausgaben des Scripts. JSON-Schlüssel, Dateinamen und die Namensheuristik für
-  Sonderordner (`entwuerfe`, `geloeschte objekte`) bleiben unverändert.
+- **`imap quote --json` - Reply-All ohne Phantom-Adresse.** Ein Anzeigename in
+  Anführungszeichen, der im To/Cc-Header umbrochen ist (`"Ing.\r\n Max
+  Muster"`), ergab in `reply.all` einen eigenen Eintrag `ing.`. Die Header-Werte
+  gehen jetzt ungefaltet an `getaddresses()`.
+- **`imap quote`/`contacts` - zerrissene Message-IDs.** Steht in References eine
+  ID mit Leerzeichen (vom Client mitten in der ID gefaltet und so weitergereicht),
+  wurde sie in zwei Tokens zerlegt und landete kaputt in `reply.references`. Neue
+  Funktion `split_message_ids()` zerlegt entlang der spitzen Klammern und entfernt
+  Whitespace innerhalb einer ID; Kommas zwischen den IDs fallen wie bisher weg.

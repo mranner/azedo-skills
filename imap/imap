@@ -784,6 +784,21 @@ def unfold_header(value):
     return re.sub(r"\r?\n[ \t]+", " ", value or "").strip()
 
 
+def split_message_ids(value):
+    """Message-IDs aus References/In-Reply-To/Message-ID als Liste.
+
+    Eine Message-ID enthält laut RFC 5322 keinen Whitespace. Manche Clients
+    falten trotzdem mitten in einer ID oder reichen eine so zerrissene ID im
+    References-Header weiter ("<a@exam ple.org>"); ein Split an Whitespace
+    macht daraus zwei Tokens. Deshalb entlang der spitzen Klammern zerlegen und
+    Whitespace innerhalb einer ID entfernen. Kommas zwischen den IDs setzen
+    manche Clients ebenfalls - sie fallen dabei mit weg."""
+    value = unfold_header(value)
+    if "<" not in value:
+        return [t for t in re.split(r"[\s,]+", value) if t]
+    return [re.sub(r"\s+", "", m) for m in re.findall(r"<[^<>]*>", value)]
+
+
 def flat(value):
     """Zeilenumbrüche aus einem dekodierten Headerwert entfernen.
 
@@ -1481,13 +1496,10 @@ def cmd_quote(args, accounts):
 
     message_id = unfold_header(msg.get("Message-ID"))
 
-    # References ist laut RFC 5322 eine reine Folge von Message-IDs, getrennt
-    # durch Whitespace. Manche Clients setzen trotzdem Kommas dazwischen; ein
-    # bloßes .split() lässt dann "<a>,<b>" als ein Token stehen und das Komma
-    # wandert unbemerkt in den Header der Antwort. Kommas deshalb wie Whitespace
-    # behandeln - der Thread bricht sonst ohne jede Fehlermeldung.
+    # References: Kommas und zerrissene IDs löst split_message_ids() auf -
+    # beides wandert sonst unbemerkt in den Header der Antwort
 
-    references = [r for r in re.split(r"[\s,]+", unfold_header(msg.get("References"))) if r]
+    references = split_message_ids(msg.get("References"))
 
     # References der Antwort: Kette der Originalmail plus deren Message-ID
     # (RFC 5322 3.6.4) - damit hängt die Antwort im richtigen Thread
@@ -1509,7 +1521,12 @@ def cmd_quote(args, accounts):
     me = {m.lower() for m in args.me}
     sender, everyone = [], []
     for role in ("From", "To", "Cc"):
-        for _, addr in email.utils.getaddresses(msg.get_all(role, [])):
+        # Ungefaltet übergeben: ein Umbruch innerhalb eines Anzeigenamens in
+        # Anführungszeichen ("Ing.\r\n Max Muster") lässt getaddresses() sonst
+        # den Namensrest als eigene Adresse "Ing." liefern
+
+        values = [unfold_header(v) for v in msg.get_all(role, [])]
+        for _, addr in email.utils.getaddresses(values):
             addr = addr.lower()
             if not addr or addr in me or addr in everyone:
                 continue
@@ -1550,8 +1567,8 @@ def thread_message_ids(msg):
     ids = []
 
     for name in ("References", "In-Reply-To", "Message-ID"):
-        for token in re.split(r"[\s,]+", unfold_header(msg.get(name))):
-            if token and token not in ids:
+        for token in split_message_ids(msg.get(name)):
+            if token not in ids:
                 ids.append(token)
 
     return ids
