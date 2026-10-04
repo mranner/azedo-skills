@@ -3,6 +3,15 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.63.32
+
+- **`wiki` - echte Umlaute in den Scripts.** `lint-wiki.py`, `audit-wiki.py`,
+  `wiki_remotes.py` und `test-lint-wiki.py`: Kommentare, Docstrings und
+  Ausgaben (z.B. „überfällig“, „übersprungen“, „Alle 19 Fälle erfüllt“).
+  Unverändert bleiben Regex-Muster, die Wiki-Inhalt erkennen (sie treffen
+  weiterhin beide Schreibweisen), die Stoppwortliste, Bezeichner und Slugs. Die
+  Befunde von Lint und Audit sind gleich geblieben.
+
 ### 1.63.31
 
 - **`wiki` - Abgleich mit Anthropics Skill-Richtlinien.** In „Ziel-Wiki

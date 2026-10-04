@@ -661,14 +661,11 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.63.31
+### 1.63.32
 
-- **`wiki` - Abgleich mit Anthropics Skill-Richtlinien.** In „Ziel-Wiki
-  bestimmen" steht statt der Merge-Reihenfolge der Remote-Configs ein Verweis auf
-  `references/remote-wikis.md`, wo sie vollständig beschrieben ist. Gestrichen
-  sind die Begründungen, warum ein fest verdrahteter Default-Name falsch wäre und
-  warum der Wiki-Root projekt-relativ ist - die Regel trägt ohne sie.
-- **`wiki` - echte Umlaute** in SKILL.md und `references/`, auch in den
-  Artikel-Vorlagen. Code, Befehle und zitierte Script-Ausgaben bleiben
-  unverändert, ebenso die Scripts selbst. Der Anker auf „Kürzen heißt Wörter
-  streichen" ist nachgezogen.
+- **`wiki` - echte Umlaute in den Scripts.** `lint-wiki.py`, `audit-wiki.py`,
+  `wiki_remotes.py` und `test-lint-wiki.py`: Kommentare, Docstrings und
+  Ausgaben (z.B. „überfällig“, „übersprungen“, „Alle 19 Fälle erfüllt“).
+  Unverändert bleiben Regex-Muster, die Wiki-Inhalt erkennen (sie treffen
+  weiterhin beide Schreibweisen), die Stoppwortliste, Bezeichner und Slugs. Die
+  Befunde von Lint und Audit sind gleich geblieben.

@@ -1,39 +1,39 @@
 #!/usr/bin/env python3
 
 # stdlib only, no pip dependencies
-# version 1.63.31
+# version 1.63.32
 
 """
 audit-wiki.py — misst Aufblähung und überholte Historie in LLM-Wikis.
 
 Abgrenzung zu lint-wiki.py: der Linter meldet **Fehler** (tote Links, fehlende
 Pflichtfelder) und liefert Exit 1. Dieses Script meldet **Bewertungen** — es gibt
-keine falschen Dateien, nur auffällige. Exit ist deshalb immer 0, ausser bei
+keine falschen Dateien, nur auffällige. Exit ist deshalb immer 0, außer bei
 einem Aufrufproblem (2).
 
 Gemessen wird je Artikel:
 - Zeilen relativ zum p90 des eigenen Entity-Typs (eine access-Entity mit 90
   Zeilen ist auffällig, eine procedure mit 90 Zeilen ist normal)
-- Historie-Dichte: Datumsangaben, "Session", "inzwischen" u.ae. — im ganzen
-  Artikel, "## Quellen" eingeschlossen. Nicht gezaehlt werden Belege (Datum
+- Historie-Dichte: Datumsangaben, "Session", "inzwischen" u.ä. — im ganzen
+  Artikel, "## Quellen" eingeschlossen. Nicht gezählt werden Belege (Datum
   neben "verifiziert", "gemessen" ...), Ticket- und Revisionsnummern sowie
-  Codebloecke und Tabellen, wo Daten Beispiel- oder Fixture-Werte sind
-- Logbuch: datierte Aufzaehlungspunkte unter "## Quellen". Dort gehoert die
+  Codeblöcke und Tabellen, wo Daten Beispiel- oder Fixture-Werte sind
+- Logbuch: datierte Aufzählungspunkte unter "## Quellen". Dort gehört die
   Rohquelle hin, nicht die Chronologie der eigenen Sessions
 - typfremder Inhalt: Codeblöcke und FALSCH/RICHTIG-Rezepte in server-, service-,
   access- oder site-Entities (gehört in eine procedure)
-- dominanter Abschnitt: ein Kapitel frisst den Grossteil der Datei — nur
-  gemeldet, wenn zusaetzlich Umfang oder Historie auffaellt
+- dominanter Abschnitt: ein Kapitel frisst den Großteil der Datei — nur
+  gemeldet, wenn zusätzlich Umfang oder Historie auffällt
 - Sammelbecken: viele gleichrangige H2-Themen ohne Unterbau in einem zu langen
-  Artikel — Hinweis darauf, dass hier mehrere Gegenstaende unter einem Namen
-  stehen und nicht ein Gegenstand zu ausfuehrlich beschrieben ist
+  Artikel — Hinweis darauf, dass hier mehrere Gegenstände unter einem Namen
+  stehen und nicht ein Gegenstand zu ausführlich beschrieben ist
 - Strukturtiefe: Anzahl H3 und Verschachtelung ab H4 (Punkte nur mit Befund)
-- Personendaten: persoenliche E-Mail-Adressen (vorname.nachname@) und
-  Benutzernamen-Literale, die im Wiki durch eine Rolle ersetzt gehoeren
+- Personendaten: persönliche E-Mail-Adressen (vorname.nachname@) und
+  Benutzernamen-Literale, die im Wiki durch eine Rolle ersetzt gehören
 
 Zusätzlich schlägt das Script je auffälligem Artikel bestehende Procedures als
 Verschiebeziel vor (Wortüberlappung Überschrift ↔ Procedure-Slug, mit den
-gemeinsamen Wörtern in der Ausgabe). Das ist ein Hinweis für die anschliessende
+gemeinsamen Wörtern in der Ausgabe). Das ist ein Hinweis für die anschließende
 Handarbeit, keine Entscheidung.
 
 Aufruf: python3 audit-wiki.py [--type <typ>] [--path <teilpfad>]
@@ -41,7 +41,7 @@ Aufruf: python3 audit-wiki.py [--type <typ>] [--path <teilpfad>]
 
 Die Baseline (p90 je Typ) wird immer über das **ganze** Wiki gerechnet, auch wenn
 die Ausgabe per --type/--path eingeschränkt ist — sonst verschiebt der Filter den
-Massstab.
+Maßstab.
 """
 
 import sys
@@ -52,7 +52,7 @@ from pathlib import Path
 from collections import defaultdict
 
 # Absolute Untergrenzen je Typ. Verhindern, dass in einem jungen Wiki mit
-# durchweg kurzen Artikeln schon 60 Zeilen als "aufgeblaeht" gelten. Wirksam ist
+# durchweg kurzen Artikeln schon 60 Zeilen als "aufgebläht" gelten. Wirksam ist
 # immer max(p90_des_typs, floor).
 SIZE_FLOOR = {
     "server": 150,
@@ -63,7 +63,7 @@ SIZE_FLOOR = {
 }
 DEFAULT_FLOOR = 150
 
-# Entity-Typen, in denen ausfuehrliche Kommandofolgen fehl am Platz sind.
+# Entity-Typen, in denen ausführliche Kommandofolgen fehl am Platz sind.
 # Procedures sind ausgenommen — dort sind sie der Zweck.
 NARRATIVE_TYPES = {"server", "service", "access", "site"}
 
@@ -72,19 +72,19 @@ HEADING_PATTERN = re.compile(r"^(#{1,6})\s+(.*)$", re.M)
 FENCE_PATTERN = re.compile(r"^(```+|~~~+)", re.M)
 DATE_PATTERN = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
 HISTORY_PATTERN = re.compile(
-    # "Session" zaehlt nur als Logbuch-Marke, also mit anhaengendem Datum.
-    # Blank getroffen wuerde sonst jeder Artikel ueber SSH, Shells oder Jails,
+    # "Session" zählt nur als Logbuch-Marke, also mit anhängendem Datum.
+    # Blank getroffen würde sonst jeder Artikel über SSH, Shells oder Jails,
     # wo "Session" schlicht Fachvokabular ist. Ticket- (CR####) und
-    # Revisionsnummern (r#####) zaehlen nicht: sie sind der Beleg zu einer
-    # Aussage, keine Chronologie - im CRIS-Wiki machten sie die Haelfte der
+    # Revisionsnummern (r#####) zählen nicht: sie sind der Beleg zu einer
+    # Aussage, keine Chronologie - im CRIS-Wiki machten sie die Hälfte der
     # Top-Befunde zu Fehlalarmen.
     r"\b\d{4}-\d{2}-\d{2}\b|\bSession\s+\d{4}-\d{2}-\d{2}|\bseit\s+\d{4}\b|\binzwischen\b|\bfrüher\b|\bmittlerweile\b|\bdamals\b",
     re.I,
 )
 
-# Ein Datum direkt nach einem dieser Woerter ist ein Beleg ("verifiziert
+# Ein Datum direkt nach einem dieser Wörter ist ein Beleg ("verifiziert
 # 2026-07-28 auf fry") - die Schreibregeln verlangen genau diese Form. Es
-# beschreibt keinen Zustand, der veralten kann, und zaehlt deshalb nicht.
+# beschreibt keinen Zustand, der veralten kann, und zählt deshalb nicht.
 EVIDENCE_PATTERN = re.compile(
     r"(verifiziert|gemessen|entschieden|bestätigt|bestaetigt|geprüft|geprueft|getestet)\W+(?:\w+\W+){0,3}$",
     re.I,
@@ -93,30 +93,30 @@ EVIDENCE_WINDOW = 45
 RECIPE_PATTERN = re.compile(r"^#\s*(FALSCH|RICHTIG|WIRKUNGSLOS|GEFÄHRLICH|GEFAEHRLICH)\b", re.M)
 QUELLEN_PATTERN = re.compile(r"^##+\s+Quellen\s*$", re.M | re.I)
 
-# Ueberschriften, die einen Schritt in einem Ablauf nummerieren ("## 6. Datenbank
-# und DB-User", "## Schritt 2: ..."). Sie sehen wie eigenstaendige Themen aus,
+# Überschriften, die einen Schritt in einem Ablauf nummerieren ("## 6. Datenbank
+# und DB-User", "## Schritt 2: ..."). Sie sehen wie eigenständige Themen aus,
 # sind aber Teile einer Reihenfolge und deshalb kein Zerlegungskandidat.
 STEP_TITLE_PATTERN = re.compile(r"^\s*(?:\d+[.)]|Schritt\s+\d+)", re.I)
 GENERIC_TITLES = re.compile(r"^\s*(Quellen|Hinweise?|Verwandte\s|Siehe\s)", re.I)
 
-# Aufzaehlungspunkt unter "## Quellen", der ein Datum oder eine CR-Nummer traegt.
+# Aufzählungspunkt unter "## Quellen", der ein Datum oder eine CR-Nummer trägt.
 # Genau die Form, in der sich Session-Protokolle ansammeln:
 #   "- Session 2026-07-05: Double-Hop giwe → mail-giwe-at"
 BULLET_PATTERN = re.compile(r"^\s*[-*]\s+.*$", re.M)
 LOGBUCH_MARK_PATTERN = re.compile(r"\b\d{4}-\d{2}-\d{2}\b|\bCR\d{3,5}\b")
 
-# Ein Logbuch-Eintrag traegt sein Datum im Fliesstext, eine Rohquelle im
+# Ein Logbuch-Eintrag trägt sein Datum im Fließtext, eine Rohquelle im
 # Dateinamen ("raw/articles/session-2026-07-08-....md"). Code-Spans und Pfade
-# deshalb ausblenden, bevor gezaehlt wird - sonst meldet gerade der aufgeraeumte
+# deshalb ausblenden, bevor gezählt wird - sonst meldet gerade der aufgeräumte
 # Abschnitt, der nur noch Rohquellen listet, ein Logbuch.
 CODE_SPAN_PATTERN = re.compile(r"`[^`]*`")
 PATH_PATTERN = re.compile(r"\S*/\S*")
 
-# Woerter, die in fast jeder Ueberschrift stehen und deshalb keine Aussage ueber
-# das Thema treffen — beim Abgleich Ueberschrift <-> Procedure-Slug ignoriert.
-# Persoenliche E-Mail-Adressen: vorname.nachname@ oder v.nachname@. Funktions-
+# Wörter, die in fast jeder Überschrift stehen und deshalb keine Aussage über
+# das Thema treffen — beim Abgleich Überschrift <-> Procedure-Slug ignoriert.
+# Persönliche E-Mail-Adressen: vorname.nachname@ oder v.nachname@. Funktions-
 # adressen (hostmaster@, double-bounce@, abteilung-ort@) und Platzhalter (<user>@,
-# example.*) bleiben aussen vor. Dazu Benutzernamen als Literal in Zuweisungen
+# example.*) bleiben außen vor. Dazu Benutzernamen als Literal in Zuweisungen
 # (username: mmuster); der Wert muss klein beginnen, sonst trifft "login: Error".
 PERSONAL_MAIL_PATTERN = re.compile(r"(?<![\w.-])[a-z]+\.[a-z]{2,}@([a-z0-9-]+\.)+[a-z]{2,}\b", re.I)
 EXAMPLE_DOMAIN_PATTERN = re.compile(r"@(example|beispiel|domain|firma)\.", re.I)
@@ -125,12 +125,12 @@ USERNAME_LITERAL_PATTERN = re.compile(
 )
 
 # Entity-Typen, deren Bauform gleichrangige H2 sind: eine API-Referenz hat einen
-# Abschnitt je Endpunktgruppe. MEHRTHEMIG waere dort Fehlalarm.
+# Abschnitt je Endpunktgruppe. MEHRTHEMIG wäre dort Fehlalarm.
 MULTI_TOPIC_EXEMPT = {"reference"}
 
-# Mindestzahl seltener Woerter (in hoechstens 3 % der Artikel), die ein
+# Mindestzahl seltener Wörter (in höchstens 3 % der Artikel), die ein
 # Abschnitt mit einer Procedure teilen muss, damit ein einzelnes gemeinsames
-# Ueberschriftswort als Verschiebeziel gilt.
+# Überschriftswort als Verschiebeziel gilt.
 RARE_OVERLAP_MIN = 3
 RARE_SHARE = 0.03
 
@@ -171,9 +171,9 @@ def parse_type(text):
 
 
 def count_logbuch(quellen):
-    """Zaehlt datierte Aufzaehlungspunkte unter "## Quellen".
+    """Zählt datierte Aufzählungspunkte unter "## Quellen".
 
-    Datumsangaben in Code-Spans und Pfaden zaehlen nicht mit: sie gehoeren zu
+    Datumsangaben in Code-Spans und Pfaden zählen nicht mit: sie gehören zu
     einer Rohquelle, nicht zu einer Chronologie.
     """
     hits = 0
@@ -186,7 +186,7 @@ def count_logbuch(quellen):
 
 
 def strip_examples(text):
-    """Codebloecke und Tabellenzeilen entfernen.
+    """Codeblöcke und Tabellenzeilen entfernen.
 
     Daten dort sind Fixture-, Beispiel- oder Messwerte, keine Chronologie des
     Artikels. Die Zeilenzahl bleibt erhalten, damit die Dichte je 100 Zeilen
@@ -204,7 +204,7 @@ def strip_examples(text):
 
 
 def history_markers(text):
-    """Historie-Marker ohne Belege; zurueck kommt die Liste der Treffer."""
+    """Historie-Marker ohne Belege; zurück kommt die Liste der Treffer."""
     prose = strip_examples(text)
     hits = []
     for m in HISTORY_PATTERN.finditer(prose):
@@ -216,23 +216,23 @@ def history_markers(text):
 
 
 def personal_data(text):
-    """Persoenliche E-Mail-Adressen und Benutzernamen-Literale, dedupliziert."""
+    """Persönliche E-Mail-Adressen und Benutzernamen-Literale, dedupliziert."""
     found = set()
     for m in PERSONAL_MAIL_PATTERN.finditer(text):
         if not EXAMPLE_DOMAIN_PATTERN.search(m.group(0)):
             found.add(m.group(0).lower())
-    # Benutzernamen nur im Fliesstext: in Codebloecken steht "username = a.address"
-    # als SQL, "always-allow-password-login=yes" als Geraete-Option.
+    # Benutzernamen nur im Fließtext: in Codeblöcken steht "username = a.address"
+    # als SQL, "always-allow-password-login=yes" als Geräte-Option.
     for m in USERNAME_LITERAL_PATTERN.finditer(strip_examples(text)):
         found.add(m.group(1))
     return sorted(found)
 
 
 def split_quellen(text):
-    """Trennt den Artikel in Fliesstext und den Abschnitt '## Quellen'.
+    """Trennt den Artikel in Fließtext und den Abschnitt '## Quellen'.
 
-    Die Historie-Dichte wird ueber den ganzen Artikel gerechnet; die Trennung
-    dient allein dazu, den Quellen-Block fuer das Logbuch-Signal zu finden.
+    Die Historie-Dichte wird über den ganzen Artikel gerechnet; die Trennung
+    dient allein dazu, den Quellen-Block für das Logbuch-Signal zu finden.
     """
     m = QUELLEN_PATTERN.search(text)
     if not m:
@@ -241,7 +241,7 @@ def split_quellen(text):
 
 
 def section_texts(text):
-    """Text je H2/H3-Abschnitt, Schluessel ist die Ueberschrift."""
+    """Text je H2/H3-Abschnitt, Schlüssel ist die Überschrift."""
     out = {}
     title = None
     buf = []
@@ -261,8 +261,8 @@ def section_texts(text):
 def section_sizes(text):
     """Zeilenumfang je H2/H3-Abschnitt, in Reihenfolge des Auftretens.
 
-    Gibt eine Liste (level, titel, zeilen) zurueck. Der Vorspann vor der ersten
-    Ueberschrift bleibt unberuecksichtigt.
+    Gibt eine Liste (level, titel, zeilen) zurück. Der Vorspann vor der ersten
+    Überschrift bleibt unberücksichtigt.
     """
     lines = text.splitlines()
     marks = []
@@ -279,13 +279,13 @@ def section_sizes(text):
 
 
 def tokenize(text):
-    """Sinntragende Woerter einer Ueberschrift oder eines Slugs."""
+    """Sinntragende Wörter einer Überschrift oder eines Slugs."""
     words = re.split(r"[^0-9a-zäöüß]+", text.lower())
     return {w for w in words if len(w) > 3 and w not in STOPWORDS}
 
 
 def content_tokens(text):
-    """Inhaltswoerter eines Textes (ab fuenf Zeichen, ohne Stoppwoerter)."""
+    """Inhaltswörter eines Textes (ab fünf Zeichen, ohne Stoppwörter)."""
     words = re.split(r"[^0-9a-zäöüß]+", text.lower())
     return {w for w in words if len(w) > 4 and w not in STOPWORDS}
 
@@ -293,14 +293,14 @@ def content_tokens(text):
 def collect_topics(sections):
     """Gleichrangige H2-Themen und die Flachheit der Gliederung.
 
-    Ein Sammelbecken erkennt man nicht an der Groesse einzelner Abschnitte —
-    freebsd-shell-pitfalls hatte mit 811 Zeilen keinen H2 ueber 66 Zeilen —,
+    Ein Sammelbecken erkennt man nicht an der Größe einzelner Abschnitte —
+    freebsd-shell-pitfalls hatte mit 811 Zeilen keinen H2 über 66 Zeilen —,
     sondern an der Bauform: viele H2 nebeneinander, jeder mit eigenem Gewicht,
-    kaum Unterbau. Ein Artikel ueber *einen* Gegenstand baut stattdessen
+    kaum Unterbau. Ein Artikel über *einen* Gegenstand baut stattdessen
     Hierarchie: wenige H2, die Substanz in H3 darunter.
 
-    Zurueck kommen die Themen-H2 (>= 15 Zeilen, keine Schritt- oder
-    Verwaltungsueberschrift) und der H2-Anteil an allen H2/H3.
+    Zurück kommen die Themen-H2 (>= 15 Zeilen, keine Schritt- oder
+    Verwaltungsüberschrift) und der H2-Anteil an allen H2/H3.
     """
     h2 = [(t, n) for lvl, t, n in sections if lvl == 2]
     h3 = [s for s in sections if s[0] == 3]
@@ -375,7 +375,7 @@ def score(article, p90_by_type):
     # Umfang: logarithmisch ab dem 1,0-fachen der Baseline, ausgereizt erst beim
     # 8-fachen. Eine lineare Skala mit Deckel bei 3x sah zwischen 4,5x und 3,9x
     # keinen Unterschied — 118 entfernte Zeilen bewegten den Score um 0,1 Punkte.
-    # Genau die Artikel, an denen man arbeitet, liegen aber ueber dem Deckel.
+    # Genau die Artikel, an denen man arbeitet, liegen aber über dem Deckel.
     size_pts = 30 * clamp(math.log2(ratio) / 3.0) if ratio > 0 else 0
     is_long = ratio > 1.0
     if is_long:
@@ -383,8 +383,8 @@ def score(article, p90_by_type):
     points += size_pts
 
     # Historie: Dichte und absolute Menge gemeinsam. Die Dichte allein ist ein
-    # Verhaeltnis und steigt, sobald man historienarme Zeilen entfernt — ein
-    # Artikel wuerde sich durchs Aufraeumen verschlechtern.
+    # Verhältnis und steigt, sobald man historienarme Zeilen entfernt — ein
+    # Artikel würde sich durchs Aufräumen verschlechtern.
     hist_pts = 25 * clamp(
         0.6 * clamp(article["hist_per_100"] / 6.0)
         + 0.4 * clamp(article["hist_hits"] / 40.0)
@@ -398,10 +398,10 @@ def score(article, p90_by_type):
         )
     points += hist_pts
 
-    # Logbuch: datierte Aufzaehlung unter "## Quellen". Eigenes Signal statt Teil
+    # Logbuch: datierte Aufzählung unter "## Quellen". Eigenes Signal statt Teil
     # von HISTORIE, weil die Behandlung eine andere ist — HISTORIE meint einen
-    # Zustand im Fliesstext, der nicht mehr gilt, LOGBUCH eine Chronologie der
-    # eigenen Arbeit, die nie in den Artikel gehoert hat. Ein einzelner datierter
+    # Zustand im Fließtext, der nicht mehr gilt, LOGBUCH eine Chronologie der
+    # eigenen Arbeit, die nie in den Artikel gehört hat. Ein einzelner datierter
     # Beleg ist kein Logbuch, deshalb erst ab dem dritten Eintrag.
     log_hits = article["logbuch_hits"]
     points += 20 * clamp(log_hits / 8.0)
@@ -410,7 +410,7 @@ def score(article, p90_by_type):
             f"LOGBUCH ({log_hits} datierte Einträge unter '## Quellen')"
         )
 
-    # Typfremdes: Kommandofolgen in erzaehlenden Entities
+    # Typfremdes: Kommandofolgen in erzählenden Entities
     if typ in NARRATIVE_TYPES:
         proc_pts = 20 * clamp((article["fences"] + article["recipes"]) / 12.0)
         if article["fences"] + article["recipes"] >= 5:
@@ -420,12 +420,12 @@ def score(article, p90_by_type):
             )
         points += proc_pts
 
-    # Dominanter Abschnitt: erst ab einem Viertel der Datei zaehlend, und nur bei
-    # einem Artikel, der ohnehin durch Umfang oder Historie auffaellt. Fuer sich
-    # genommen ist ein Schwerpunkt kein Mangel, sondern die Bauform — er erklaert
-    # bei einem zu langen Artikel, *wo* der Ballast sitzt. Ueber 205 Artikel des
-    # azedo-Wikis hat die Rohbedingung ohne zweiten Grund ausschliesslich kurze
-    # Artikel getroffen (38-62 % der Typ-Schwelle); ein Zerlegen waere dort falsch.
+    # Dominanter Abschnitt: erst ab einem Viertel der Datei zählend, und nur bei
+    # einem Artikel, der ohnehin durch Umfang oder Historie auffällt. Für sich
+    # genommen ist ein Schwerpunkt kein Mangel, sondern die Bauform — er erklärt
+    # bei einem zu langen Artikel, *wo* der Ballast sitzt. Über 205 Artikel des
+    # azedo-Wikis hat die Rohbedingung ohne zweiten Grund ausschließlich kurze
+    # Artikel getroffen (38-62 % der Typ-Schwelle); ein Zerlegen wäre dort falsch.
     dom_counts = is_long or is_historic
     if dom_counts:
         points += 15 * clamp((article["big_share"] - 0.25) / 0.35)
@@ -435,12 +435,12 @@ def score(article, p90_by_type):
             )
 
     # Sammelbecken: viele gleichrangige H2-Themen, wenig Unterbau — und der
-    # Artikel ist ohnehin zu lang. Dann steht die Frage nicht "was kuerzen",
-    # sondern "sind das ueberhaupt ein Gegenstand". Wie DOMINANT ohne den
+    # Artikel ist ohnehin zu lang. Dann steht die Frage nicht "was kürzen",
+    # sondern "sind das überhaupt ein Gegenstand". Wie DOMINANT ohne den
     # zweiten Grund nicht gemeldet: eine flache Gliederung allein ist die
     # Bauform kurzer Artikel und kein Mangel. Kalibriert am azedo-Wiki im Stand
     # vor der Entflechtung vom 2026-08-20: von 190 Artikeln traf die Bedingung
-    # genau freebsd-shell-pitfalls (811 Zeilen, fuenf Themen, in vier eigene
+    # genau freebsd-shell-pitfalls (811 Zeilen, fünf Themen, in vier eigene
     # Procedures zerlegt) und sonst keinen.
     topics = article["topics"]
     if (is_long and typ not in MULTI_TOPIC_EXEMPT
@@ -453,15 +453,15 @@ def score(article, p90_by_type):
 
     # Struktur: viele H3 oder Verschachtelung ab H4. Punkte nur mit Befund — sonst
     # verschiebt das Signal die Rangfolge, ohne in der Ausgabe zu erscheinen.
-    # Im azedo-Wiki loest keiner der 205 Artikel den Befund aus (h3 max 13 gegen
-    # Schwelle 15, H4 max 1 gegen 5), waehrend struct_pts bis zu 5,2 Punkte
-    # beitrug. Ausserdem folgt h3 im Wesentlichen der Laenge, die LANG schon misst.
+    # Im azedo-Wiki löst keiner der 205 Artikel den Befund aus (h3 max 13 gegen
+    # Schwelle 15, H4 max 1 gegen 5), während struct_pts bis zu 5,2 Punkte
+    # beitrug. Außerdem folgt h3 im Wesentlichen der Länge, die LANG schon misst.
     if article["h3"] >= 15 or article["deep"] >= 5:
         findings.append(f"TIEF ({article['h3']}x H3, {article['deep']}x H4+)")
         points += 10 * clamp(article["h3"] / 25.0)
 
-    # Personendaten: unabhaengig von Umfang und Historie ein eigener Mangel -
-    # Namen und private Adressen gehoeren durch eine Rolle ersetzt (Schreibregeln,
+    # Personendaten: unabhängig von Umfang und Historie ein eigener Mangel -
+    # Namen und private Adressen gehören durch eine Rolle ersetzt (Schreibregeln,
     # Aufnahmefilter). Wenige Punkte, damit der Befund sichtbar wird, ohne die
     # Rangfolge der Umbaukandidaten zu verschieben.
     personal = article["personal"]
@@ -476,18 +476,18 @@ def score(article, p90_by_type):
 
 
 def suggest_targets(article, procedures, token_df, rare_words):
-    """Bestehende Procedures, die zu grossen Abschnitten des Artikels passen.
+    """Bestehende Procedures, die zu großen Abschnitten des Artikels passen.
 
-    Wortueberlappung Ueberschrift <-> Procedure-Slug, entschaerft gegen zwei
-    Rauschquellen: Woerter, die in drei oder mehr Procedure-Slugs vorkommen
+    Wortüberlappung Überschrift <-> Procedure-Slug, entschärft gegen zwei
+    Rauschquellen: Wörter, die in drei oder mehr Procedure-Slugs vorkommen
     ("diagnose", "wp"), taugen nicht zur Unterscheidung und fliegen raus; ein
     einzelnes gemeinsames Wort reicht nur, wenn Abschnitt und Procedure
-    zusaetzlich mindestens RARE_OVERLAP_MIN seltene Woerter teilen - also
-    dasselbe Thema behandeln und nicht bloss ein Wort der Ueberschrift. Ohne
+    zusätzlich mindestens RARE_OVERLAP_MIN seltene Wörter teilen - also
+    dasselbe Thema behandeln und nicht bloß ein Wort der Überschrift. Ohne
     diese Bedingung trafen "schleife", "leeren" und "lokale" Procedures aus
     fremden Themen (wp-permalink, wp-cache, rspamd), die mit dem Abschnitt kein
-    einziges seltenes Wort gemeinsam hatten; die zutreffenden Vorschlaege
-    teilten fuenf und mehr. Bleibt ein Hinweis fuer die Handarbeit.
+    einziges seltenes Wort gemeinsam hatten; die zutreffenden Vorschläge
+    teilten fünf und mehr. Bleibt ein Hinweis für die Handarbeit.
     """
     hits = defaultdict(set)
     words = defaultdict(set)
@@ -519,14 +519,14 @@ def audit(wiki_root, type_filter=None, path_filter=None, top=10, show_all=False,
         print("Keine Artikel gefunden.", file=sys.stderr)
         return 2
 
-    # Baseline immer ueber das ganze Wiki, damit ein Filter den Massstab nicht verschiebt
+    # Baseline immer über das ganze Wiki, damit ein Filter den Maßstab nicht verschiebt
     by_type = defaultdict(list)
     for a in articles:
         by_type[a["type"]].append(a["lines"])
     p90_by_type = {t: percentile(v, 0.90) for t, v in by_type.items()}
 
-    # Seltene Woerter: in hoechstens RARE_SHARE der Artikel. Sie tragen das
-    # Thema, haeufige Woerter ("server", "config") tun es nicht.
+    # Seltene Wörter: in höchstens RARE_SHARE der Artikel. Sie tragen das
+    # Thema, häufige Wörter ("server", "config") tun es nicht.
     content_df = defaultdict(int)
     for a in articles:
         for t in a["content"]:
@@ -541,7 +541,7 @@ def audit(wiki_root, type_filter=None, path_filter=None, top=10, show_all=False,
         for a in articles if a["type"] == "procedure"
     ]
 
-    # Wie viele Procedure-Slugs enthalten ein Wort — Grundlage fuer den
+    # Wie viele Procedure-Slugs enthalten ein Wort — Grundlage für den
     # Rausch-Filter in suggest_targets()
     token_df = defaultdict(int)
     for _, slug_tokens, _ in procedures:

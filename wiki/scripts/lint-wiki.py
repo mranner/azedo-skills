@@ -1,41 +1,41 @@
 #!/usr/bin/env python3
 
 # stdlib only, no pip dependencies
-# version 1.63.31
+# version 1.63.32
 
 """
-lint-wiki.py — Strukturpruefung fuer LLM Wikis (Infra + Projekt-Doku).
+lint-wiki.py — Strukturprüfung für LLM Wikis (Infra + Projekt-Doku).
 
-Prueft:
+Prüft:
 - Frontmatter-Pflichtfelder pro Entity-Typ
-- Wikilinks (tote Links, niedrige Konnektivitaet)
-- Index-Eintraege (fehlende Artikel im Index)
+- Wikilinks (tote Links, niedrige Konnektivität)
+- Index-Einträge (fehlende Artikel im Index)
 - Namenskonventionen (nur Kleinbuchstaben, Ziffern, Bindestriche)
 - Verwaiste Seiten (keine eingehenden Links)
-- Datumsangaben in Ueberschriften (Logbuch-Muster, siehe Schreibregeln)
+- Datumsangaben in Überschriften (Logbuch-Muster, siehe Schreibregeln)
 - Optionale Vertrauensfelder verified/stale_after (Format, Ablauf)
-- Optional: Frontmatter-Verweise (z.B. tests, config) gegen ihre Pruefquelle,
+- Optional: Frontmatter-Verweise (z.B. tests, config) gegen ihre Prüfqülle,
   konfiguriert unter "references" in wiki-schema.json
 - Abschnittsverweise ([[x]], Abschnitt Y / Y-Abschnitt): gibt es Y in x noch?
-- Mit --check-shrink: was eine Aktualisierung gegenueber git HEAD (ohne git:
+- Mit --check-shrink: was eine Aktualisierung gegenüber git HEAD (ohne git:
   SVN-BASE) verloren hat
 
-Praefix-Pointer [[<praefix>:<slug>]] werden in dieser Reihenfolge aufgeloest:
+Präfix-Pointer [[<präfix>:<slug>]] werden in dieser Reihenfolge aufgelöst:
 
-1. <praefix> ist ein Geschwister-Wiki unter <projekt-root>/wiki/<praefix>/ →
-   lokaler Cross-Wiki-Pointer. Das Ziel wird direkt im Dateisystem geprueft
-   (offline moeglich), fehlt es, ist der Link tot.
-2. <praefix> ist ein Key in der Remote-Config (~/.claude/wiki-remotes.json,
+1. <präfix> ist ein Geschwister-Wiki unter <projekt-root>/wiki/<präfix>/ →
+   lokaler Cross-Wiki-Pointer. Das Ziel wird direkt im Dateisystem geprüft
+   (offline möglich), fehlt es, ist der Link tot.
+2. <präfix> ist ein Key in der Remote-Config (~/.claude/wiki-remotes.json,
    <projekt-root>/.claude/wiki-remotes.json und -.local.json, in dieser
    Reihenfolge gemergt) → Remote-Pointer auf ein Wiki an einem anderen Host.
-   Das Ziel wird im Default NICHT geprueft (offline-sicher); mit
+   Das Ziel wird im Default NICHT geprüft (offline-sicher); mit
    --check-remotes wird die Existenz per SSH (find) on demand verifiziert.
 3. sonst toter Link.
 
 Aufruf: python3 lint-wiki.py [--check-remotes] [--check-shrink] <wiki-root>
         z.B. python3 lint-wiki.py wiki/azedo/   (relativ zum Projekt-Root)
 
-Keine externen Abhaengigkeiten — reines Python 3.
+Keine externen Abhängigkeiten — reines Python 3.
 """
 
 import sys
@@ -46,13 +46,13 @@ from datetime import date
 from pathlib import Path
 from collections import defaultdict
 
-# Liegt im selben Verzeichnis; der Modulname traegt deshalb einen Unterstrich
+# Liegt im selben Verzeichnis; der Modulname trägt deshalb einen Unterstrich
 # (siehe dortiger Docstring).
 import wiki_remotes
 
-# Eingebautes Default-Schema = Infra-Modell (Rueckwaertskompatibilitaet).
+# Eingebautes Default-Schema = Infra-Modell (Rückwärtskompatibilität).
 # Greift, wenn im Wiki-Root keine wiki-schema.json liegt.
-# required_common gilt fuer jeden Typ; die Liste pro Typ ergaenzt typ-spezifische
+# required_common gilt für jeden Typ; die Liste pro Typ ergänzt typ-spezifische
 # Pflichtfelder. Effektive Pflichtfelder = required_common + types[typ].
 DEFAULT_SCHEMA = {
     "required_common": ["date", "tags", "type", "status", "kunde"],
@@ -67,10 +67,10 @@ DEFAULT_SCHEMA = {
 
 
 def load_schema(wiki_root):
-    """Laedt das Entity-Modell aus <wiki-root>/wiki-schema.json.
+    """Lädt das Entity-Modell aus <wiki-root>/wiki-schema.json.
 
-    Faellt auf DEFAULT_SCHEMA (Infra-Modell) zurueck, wenn keine Config existiert.
-    Gibt (required_fields_pro_typ, set_der_gueltigen_typen, references) zurueck;
+    Fällt auf DEFAULT_SCHEMA (Infra-Modell) zurück, wenn keine Config existiert.
+    Gibt (required_fields_pro_typ, set_der_gueltigen_typen, references) zurück;
     references ist {} ohne Eintrag im Schema.
     """
     schema_file = Path(wiki_root) / "wiki-schema.json"
@@ -85,7 +85,7 @@ def load_schema(wiki_root):
 
 
 def read_reference_source(path):
-    """Text einer Pruefquelle: die Datei, oder alle Dateien darunter. None wenn sie fehlt."""
+    """Text einer Prüfqülle: die Datei, oder alle Dateien darunter. None wenn sie fehlt."""
     if path.is_file():
         return path.read_text(encoding="utf-8", errors="replace")
     if path.is_dir():
@@ -95,10 +95,10 @@ def read_reference_source(path):
 
 
 def check_references(fm, references, sources):
-    """Prueft Frontmatter-Verweise gegen ihre Pruefquelle (references im Schema).
+    """Prüft Frontmatter-Verweise gegen ihre Prüfqülle (references im Schema).
 
     references: {feld: {"pattern": regex mit {name}, "path": ...}},
-    sources: {feld: Quelltext}. Gibt die Meldungen zu nicht gefundenen Eintraegen zurueck.
+    sources: {feld: Quelltext}. Gibt die Meldungen zu nicht gefundenen Einträgen zurück.
     """
     found = []
     for field, spec in references.items():
@@ -115,7 +115,7 @@ def check_references(fm, references, sources):
 
 
 def load_remotes(wiki_root):
-    """Laedt bekannte Remote-Wikis fuer das Projekt ueber wiki_root.
+    """Lädt bekannte Remote-Wikis für das Projekt über wiki_root.
 
     Projekt-Root = wiki_root.parent.parent (Layout <projekt>/wiki/<name>/);
     welche Dateien gelesen und in welcher Reihenfolge sie gemergt werden, steht
@@ -129,10 +129,10 @@ def load_remotes(wiki_root):
 def load_local_wikis(wiki_root):
     """Findet Geschwister-Wikis unter <projekt-root>/wiki/<name>/.
 
-    Layout <projekt>/wiki/<name>/ — Geschwister sind also die uebrigen
+    Layout <projekt>/wiki/<name>/ — Geschwister sind also die übrigen
     Verzeichnisse in wiki_root.parent, die selbst ein wiki/-Unterverzeichnis
-    haben. Das eigene Wiki bleibt aussen vor (dafuer gibt es all_slugs).
-    Gibt {name: Path} zurueck.
+    haben. Das eigene Wiki bleibt außen vor (dafür gibt es all_slugs).
+    Gibt {name: Path} zurück.
     """
     local = {}
     wiki_root = Path(wiki_root).resolve()
@@ -155,17 +155,17 @@ FILENAME_PATTERN = re.compile(r"^[a-z0-9][a-z0-9-]*\.md$")
 WIKILINK_PATTERN = re.compile(r"\[\[([^\]|]+?)(?:\|[^\]]+?)?\]\]")
 # Code-Bereiche, die von der Wikilink-Erkennung ausgenommen werden. Ein Regex
 # wie `class[[:space:]]+timthumb` in einem Shell-Beispiel ist kein Wikilink —
-# jede POSIX-Zeichenklasse sieht fuer WIKILINK_PATTERN wie [[...]] aus und
+# jede POSIX-Zeichenklasse sieht für WIKILINK_PATTERN wie [[...]] aus und
 # wurde bis 1.34.3 als toter Link gemeldet.
-# Fence: ``` oder ~~~ (auch laenger), bis zum passenden Schluss-Fence oder EOF
-# (ein unterminierter Block am Dateiende zaehlt komplett als Code).
+# Fence: ``` oder ~~~ (auch länger), bis zum passenden Schluss-Fence oder EOF
+# (ein unterminierter Block am Dateiende zählt komplett als Code).
 CODE_FENCE_PATTERN = re.compile(
     r"^(?P<fence>```+|~~~+)[^\n]*\n.*?(?:^(?P=fence)[^\n]*$|\Z)",
     re.S | re.M,
 )
 # Inline-Code `...` bzw. ``...`` — die Backtick-Anzahl muss beidseitig passen.
 INLINE_CODE_PATTERN = re.compile(r"(?<!`)(`+)(?!`).+?(?<!`)\1(?!`)", re.S)
-# Praefix-Pointer [[<praefix>:<slug>]] — beide Teile in Slug-Schreibweise
+# Präfix-Pointer [[<präfix>:<slug>]] — beide Teile in Slug-Schreibweise
 REMOTE_TARGET_PATTERN = re.compile(r"^([a-z0-9-]+):([a-z0-9-]+)$")
 MIN_WIKILINKS = 3
 
@@ -175,12 +175,12 @@ MIN_WIKILINKS = 3
 VERIFIED_PATTERN = re.compile(r"^([a-z0-9][a-z0-9.:_/-]*)@(\d{4}-\d{2}-\d{2})$")
 ISO_DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
-# Datum in einer Ueberschrift = Logbuch-Muster. Eine Ueberschrift benennt einen
+# Datum in einer Überschrift = Logbuch-Muster. Eine Überschrift benennt einen
 # Gegenstand, kein Ereignis; "Umbau 2026-08-15" oder "Stand 2026-08-15" markiert
 # eine Sitzung, die jemand mitgeschrieben hat. Diese Abschnitte wachsen monoton,
-# weil die naechste Sitzung den naechsten anlegt, statt den alten zu ersetzen.
-# Ein Datum im Fliesstext ("seit 2026-08-15") ist unbedenklich und wird nicht
-# geprueft. Siehe SKILL.md, Abschnitt Schreibregeln.
+# weil die nächste Sitzung den nächsten anlegt, statt den alten zu ersetzen.
+# Ein Datum im Fließtext ("seit 2026-08-15") ist unbedenklich und wird nicht
+# geprüft. Siehe SKILL.md, Abschnitt Schreibregeln.
 #
 # Erkannt werden ISO (2026-08-15) und die deutsche Schreibweise (15.08.2026).
 # Letztere verlangt ein vierstelliges Jahr, damit Versionsnummern ("8.2.33")
@@ -191,13 +191,13 @@ DATED_HEADING_PATTERN = re.compile(
 )
 
 
-# Abschnitts-Ueberschriften ab Ebene 2 — die Gliederung eines Artikels. Ebene 1
-# ist der Titel und steht genau einmal, die zaehlt nicht mit.
+# Abschnitts-Überschriften ab Ebene 2 — die Gliederung eines Artikels. Ebene 1
+# ist der Titel und steht genau einmal, die zählt nicht mit.
 HEADING_PATTERN = re.compile(r"^#{2,6}\s+(.+?)\s*$")
 
 
 def find_headings(text):
-    """Ueberschriften ab Ebene 2 (Code-Bloecke ausgenommen)."""
+    """Überschriften ab Ebene 2 (Code-Blöcke ausgenommen)."""
     out = []
     in_fence = False
     for line in text.splitlines():
@@ -215,9 +215,9 @@ def find_headings(text):
 # Verweis auf einen Abschnitt eines anderen Artikels. Formen im Bestand:
 #   [[x]], Abschnitt Double-Hop      [[x]], Abschnitt „Lokale UCEPROTECT-Mirrors"
 #   [[x]] (Double-Hop-Abschnitt)
-# Ein Name in Anfuehrungszeichen darf ueber den Zeilenumbruch laufen, ein
+# Ein Name in Anführungszeichen darf über den Zeilenumbruch laufen, ein
 # nackter endet am Satzzeichen. Beschreibende Nennungen ("Abschnitt zu
-# `localhost` in Jails") sind keine Namen und werden nicht geprueft.
+# `localhost` in Jails") sind keine Namen und werden nicht geprüft.
 SECTION_REF_PATTERNS = (
     re.compile(r"\[\[([^\]|]+?)\]\],?\s*\(?Abschnitt\s+[„\"»]([^\"“«]+)[\"“«]"),
     re.compile(r"\[\[([^\]|]+?)\]\],?\s*\(?Abschnitt\s+(?!(?:zu|zum|zur|über|ueber|oben|unten)\b)([^.,;:)\n\"„“«»]+)"),
@@ -226,13 +226,13 @@ SECTION_REF_PATTERNS = (
 
 
 def normalize_heading(text):
-    """Ueberschrift oder Abschnittsnennung ohne Markup, klein geschrieben."""
+    """Überschrift oder Abschnittsnennung ohne Markup, klein geschrieben."""
     return re.sub(r"[`*„“\"»«]", "", text).strip().lower()
 
 
 def find_section_refs(text):
-    """(ziel, abschnitt) fuer jeden Abschnittsverweis im Fliesstext."""
-    # Nur Codebloecke entfernen: Inline-Code gehoert oft zum Abschnittsnamen.
+    """(ziel, abschnitt) für jeden Abschnittsverweis im Fließtext."""
+    # Nur Codeblöcke entfernen: Inline-Code gehört oft zum Abschnittsnamen.
     prose = CODE_FENCE_PATTERN.sub("", text)
     refs = set()
     for pattern in SECTION_REF_PATTERNS:
@@ -242,20 +242,20 @@ def find_section_refs(text):
 
 
 def section_exists(section, headings):
-    """Nennt eine Ueberschrift des Ziels den Abschnitt?
+    """Nennt eine Überschrift des Ziels den Abschnitt?
 
-    Genannt wird oft eine Kurzform ("Double-Hop" fuer "Double-Hop: SSH ueber
-    Gateway ..."), deshalb reicht es, wenn alle Woerter der Nennung in einer
-    Ueberschrift stehen.
+    Genannt wird oft eine Kurzform ("Double-Hop" für "Double-Hop: SSH über
+    Gateway ..."), deshalb reicht es, wenn alle Wörter der Nennung in einer
+    Überschrift stehen.
     """
     words = [w for w in re.split(r"[\s/]+", normalize_heading(section)) if w]
     return any(all(w in normalize_heading(h) for w in words) for h in headings)
 
 
 def find_dated_headings(text):
-    """Ueberschriften mit Datumsangabe (Code-Bloecke ausgenommen).
+    """Überschriften mit Datumsangabe (Code-Blöcke ausgenommen).
 
-    Gibt eine Liste (ueberschrift, treffer) zurueck.
+    Gibt eine Liste (überschrift, treffer) zurück.
     """
     hits = []
     in_fence = False
@@ -267,7 +267,7 @@ def find_dated_headings(text):
             continue
 
         # Bewusst auf der Rohzeile arbeiten, nicht auf strip_code(): dessen
-        # Inline-Code-Entfernung wuerde `datei.php` aus der Ueberschrift
+        # Inline-Code-Entfernung würde `datei.php` aus der Überschrift
         # schneiden und die Meldung unlesbar machen.
         m = DATED_HEADING_PATTERN.match(line)
         if m:
@@ -286,10 +286,10 @@ def parse_iso_date(value):
 
 
 def check_trust_fields(fm, today=None):
-    """Prueft die optionalen Felder verified und stale_after.
+    """Prüft die optionalen Felder verified und stale_after.
 
-    Beide duerfen fehlen — geprueft wird nur, was dasteht. Gibt eine Liste
-    (level, meldung) zurueck, level ist "error" (kaputtes Format) oder
+    Beide dürfen fehlen — geprüft wird nur, was dasteht. Gibt eine Liste
+    (level, meldung) zurück, level ist "error" (kaputtes Format) oder
     "warning" (abgelaufen, Datum in der Zukunft).
     """
     today = today or date.today()
@@ -305,7 +305,7 @@ def check_trust_fields(fm, today=None):
                 continue
             when = parse_iso_date(m.group(2))
             if when is None:
-                found.append(("error", f"verified-Eintrag '{entry}' enthaelt kein gueltiges Datum"))
+                found.append(("error", f"verified-Eintrag '{entry}' enthält kein gültiges Datum"))
             elif when > today:
                 found.append(("warning", f"verified-Eintrag '{entry}' liegt in der Zukunft"))
 
@@ -315,7 +315,7 @@ def check_trust_fields(fm, today=None):
         if when is None:
             found.append(("error", f"stale_after '{stale_after}' ist kein ISO-Datum (YYYY-MM-DD)"))
         elif when <= today:
-            found.append(("warning", f"Inhalt seit {when} ueberfaellig (stale_after) — pruefen und Datum neu setzen"))
+            found.append(("warning", f"Inhalt seit {when} überfällig (stale_after) — prüfen und Datum neu setzen"))
 
     return found
 
@@ -327,7 +327,7 @@ def parse_remote_target(target):
 
 
 def check_remote_target(remote_conf, slug):
-    """Prueft per SSH, ob <slug>.md im Remote-Wiki existiert.
+    """Prüft per SSH, ob <slug>.md im Remote-Wiki existiert.
 
     Gibt (True, None) bei Fund, (False, grund) sonst. Nutzt BatchMode (kein
     Passwort-Prompt). Nur bei --check-remotes aufgerufen.
@@ -335,7 +335,7 @@ def check_remote_target(remote_conf, slug):
     host = remote_conf.get("host")
     path = remote_conf.get("path")
     if not host or not path:
-        return False, "unvollstaendige Remote-Config (host/path)"
+        return False, "unvollständige Remote-Config (host/path)"
     cmd = ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8", host,
            f"find {path}/wiki -type f -name '{slug}.md'"]
     try:
@@ -355,8 +355,8 @@ def parse_frontmatter(filepath):
 def parse_frontmatter_text(text):
     """Extrahiert YAML-Frontmatter aus einem Markdown-Text.
 
-    Einfacher Key-Value-Parser fuer flaches YAML-Frontmatter.
-    Unterstuetzt: Strings, Listen (YAML-Inline [...] und mehrzeilig mit -),
+    Einfacher Key-Value-Parser für flaches YAML-Frontmatter.
+    Unterstützt: Strings, Listen (YAML-Inline [...] und mehrzeilig mit -),
     quoted Strings mit Wikilinks.
     """
     if not text.startswith("---"):
@@ -391,14 +391,14 @@ def parse_frontmatter_text(text):
         if colon_pos == -1:
             continue
 
-        # Neuen Key gefunden — vorherige Liste abschliessen
+        # Neuen Key gefunden — vorherige Liste abschließen
         current_list = None
 
         key = stripped[:colon_pos].strip()
         value = stripped[colon_pos + 1:].strip()
 
         if not value:
-            # Naechste Zeilen koennten eine Liste sein
+            # Nächste Zeilen könnten eine Liste sein
             current_key = key
             current_list = []
             fm[key] = current_list
@@ -427,9 +427,9 @@ def parse_frontmatter_text(text):
 def strip_code(text):
     """Entfernt Code-Fences und Inline-Code aus dem Text.
 
-    Damit zaehlt nur Fliesstext als Wikilink-Quelle. Betrifft beide Auswertungen:
-    tote Links (ein Regex im Code-Beispiel ist kein Link) und die Konnektivitaet
-    (ein Link im Code-Block ist kein Beleg fuer Vernetzung).
+    Damit zählt nur Fließtext als Wikilink-Quelle. Betrifft beide Auswertungen:
+    tote Links (ein Regex im Code-Beispiel ist kein Link) und die Konnektivität
+    (ein Link im Code-Block ist kein Beleg für Vernetzung).
     """
     text = CODE_FENCE_PATTERN.sub("", text)
     return INLINE_CODE_PATTERN.sub("", text)
@@ -441,7 +441,7 @@ def find_wikilinks(text):
 
 
 def check_filename(filepath):
-    """Prueft ob der Dateiname der Konvention entspricht."""
+    """Prüft ob der Dateiname der Konvention entspricht."""
     name = filepath.name
     if not FILENAME_PATTERN.match(name):
         return f"Dateiname '{name}' verletzt Namenskonvention (nur a-z, 0-9, -)"
@@ -449,7 +449,7 @@ def check_filename(filepath):
 
 
 def git_repo_root(path):
-    """Repo-Wurzel ueber <path>, oder None wenn dort kein git-Repo liegt."""
+    """Repo-Wurzel über <path>, oder None wenn dort kein git-Repo liegt."""
     try:
         res = subprocess.run(
             ["git", "-C", str(path), "rev-parse", "--show-toplevel"],
@@ -499,10 +499,10 @@ def svn_cat(path):
 def repointed_links(old_body, new_body):
     """Links, die an ihrer Stelle durch einen anderen Link ersetzt wurden.
 
-    Beim Zerlegen eines Artikels werden eingehende Verweise umgehaengt: aus
+    Beim Zerlegen eines Artikels werden eingehende Verweise umgehängt: aus
     "siehe [[a]]" wird "siehe [[b]]". Das ist kein Verlust, sondern der Zweck.
-    Erkannt wird es zeilenweise: steht in einem geaenderten Zeilenblock ein Link
-    weniger und dafuer ein neuer, gilt der alte als umgehaengt.
+    Erkannt wird es zeilenweise: steht in einem geänderten Zeilenblock ein Link
+    weniger und dafür ein neuer, gilt der alte als umgehängt.
     """
     import difflib
     old_lines = strip_code(old_body).splitlines()
@@ -522,14 +522,14 @@ def repointed_links(old_body, new_body):
 def check_shrink(old_text, new_text):
     """Was eine Aktualisierung an Inventar verloren hat.
 
-    Gemeint ist nicht die Laenge: Verdichten ist erwuenscht (siehe
-    Schreibregeln, "Aktualisieren heisst ersetzen"). Gemeint ist, was sich
-    aufzaehlen laesst und damit auffaellt, wenn es fehlt — ein Frontmatter-Feld,
+    Gemeint ist nicht die Länge: Verdichten ist erwünscht (siehe
+    Schreibregeln, "Aktualisieren heißt ersetzen"). Gemeint ist, was sich
+    aufzählen lässt und damit auffällt, wenn es fehlt — ein Frontmatter-Feld,
     ein Abschnitt, ein Verweis auf eine andere Entity. Verschwindet davon etwas,
     ist das entweder eine gewollte Verdichtung oder ein Versehen beim
-    Ueberschreiben; unterscheiden kann das nur ein Mensch, deshalb Warnung.
+    Überschreiben; unterscheiden kann das nur ein Mensch, deshalb Warnung.
 
-    Gibt eine Liste von Meldungen zurueck.
+    Gibt eine Liste von Meldungen zurück.
     """
     old_fm, old_body = parse_frontmatter_text(old_text)
     new_fm, new_body = parse_frontmatter_text(new_text)
@@ -558,7 +558,7 @@ def check_shrink(old_text, new_text):
 
 
 def lint_wiki(wiki_root, check_remotes=False, check_shrink_flag=False):
-    """Hauptfunktion: prueft das gesamte Wiki."""
+    """Hauptfunktion: prüft das gesamte Wiki."""
     wiki_root = Path(wiki_root)
     wiki_dir = wiki_root / "wiki"
     index_file = wiki_root / "index.md"
@@ -570,7 +570,7 @@ def lint_wiki(wiki_root, check_remotes=False, check_shrink_flag=False):
     # Entity-Modell pro Wiki laden (Config oder Infra-Default)
     required_fields, valid_types, references = load_schema(wiki_root)
 
-    # Bekannte Ziele fuer [[<praefix>:<slug>]]-Pointer: erst die lokalen
+    # Bekannte Ziele für [[<präfix>:<slug>]]-Pointer: erst die lokalen
     # Geschwister-Wikis, dann die Remotes.
     local_wikis = load_local_wikis(wiki_root)
     remotes = load_remotes(wiki_root)
@@ -578,13 +578,13 @@ def lint_wiki(wiki_root, check_remotes=False, check_shrink_flag=False):
     errors = []
     warnings = []
 
-    # Pruefquellen der Frontmatter-Verweise, Pfade relativ zum Projekt-Root
+    # Prüfqüllen der Frontmatter-Verweise, Pfade relativ zum Projekt-Root
     project_root = wiki_root.resolve().parent.parent
     reference_sources = {}
     for field, spec in references.items():
         text = read_reference_source(project_root / spec["path"])
         if text is None:
-            errors.append(f"wiki-schema.json: Pruefquelle fuer '{field}' fehlt: {spec['path']}")
+            errors.append(f"wiki-schema.json: Prüfqülle für '{field}' fehlt: {spec['path']}")
         else:
             reference_sources[field] = text
 
@@ -606,7 +606,7 @@ def lint_wiki(wiki_root, check_remotes=False, check_shrink_flag=False):
             "body": body,
         }
 
-    # Pro Artikel pruefen
+    # Pro Artikel prüfen
     for slug, info in articles.items():
         filepath = info["path"]
         fm = info["frontmatter"]
@@ -646,7 +646,7 @@ def lint_wiki(wiki_root, check_remotes=False, check_shrink_flag=False):
         for msg in check_references(fm, references, reference_sources):
             errors.append(f"{prefix}: {msg}")
 
-        # Wikilinks zaehlen — Frontmatter-Werte + Body
+        # Wikilinks zählen — Frontmatter-Werte + Body
         fm_str = "\n".join(
             v if isinstance(v, str) else " ".join(v) if isinstance(v, list) else str(v)
             for v in fm.values()
@@ -661,12 +661,12 @@ def lint_wiki(wiki_root, check_remotes=False, check_shrink_flag=False):
         if len(links) < MIN_WIKILINKS:
             warnings.append(f"{prefix}: Nur {len(links)} Wikilinks (Minimum: {MIN_WIKILINKS})")
 
-        # Datum in Ueberschriften — Logbuch statt Artikel
+        # Datum in Überschriften — Logbuch statt Artikel
         for heading, hit in find_dated_headings(body):
             short = heading if len(heading) <= 60 else heading[:57] + "…"
             warnings.append(
-                f"{prefix}: Datum in Ueberschrift ({hit}) — \"{short}\"; "
-                f"Zustand beschreiben statt Verlauf, Datum in den Fliesstext"
+                f"{prefix}: Datum in Überschrift ({hit}) — \"{short}\"; "
+                f"Zustand beschreiben statt Verlauf, Datum in den Fließtext"
             )
 
     # Tote Links (Remote-Pointer [[<remote>:<slug>]] ausgenommen, wenn <remote> bekannt)
@@ -677,21 +677,21 @@ def lint_wiki(wiki_root, check_remotes=False, check_shrink_flag=False):
                 continue
             rp = parse_remote_target(target)
             if rp and rp[0] in local_wikis:
-                # lokales Nachbar-Wiki — Ziel direkt im Dateisystem pruefbar
+                # lokales Nachbar-Wiki — Ziel direkt im Dateisystem prüfbar
                 if rp[1] in local_wiki_slugs(local_wikis[rp[0]]):
                     continue
                 errors.append(f"{articles[slug]['rel_path']}: Toter Wikilink [[{target}]] — Ziel existiert nicht im Wiki '{rp[0]}'")
                 continue
             if rp and rp[0] in remotes:
-                # gueltiger Remote-Pointer — kein toter Link (Default offline-sicher)
+                # gültiger Remote-Pointer — kein toter Link (Default offline-sicher)
                 remote_pointers.append((slug, rp[0], rp[1]))
                 continue
             errors.append(f"{articles[slug]['rel_path']}: Toter Wikilink [[{target}]] — Ziel existiert nicht")
 
     # Abschnittsverweise: das Ziel existiert, der genannte Abschnitt vielleicht
     # nicht mehr. Nach dem Zerlegen eines Sammelartikels zeigen solche Verweise
-    # weiter auf den Rumpf, waehrend das Thema laengst in einem neuen Artikel
-    # steht - der Link selbst ist nicht tot und faellt deshalb sonst nicht auf.
+    # weiter auf den Rumpf, während das Thema längst in einem neuen Artikel
+    # steht - der Link selbst ist nicht tot und fällt deshalb sonst nicht auf.
     for slug, info in articles.items():
         for target, section in find_section_refs(info["body"]):
             if target not in articles:
@@ -699,15 +699,15 @@ def lint_wiki(wiki_root, check_remotes=False, check_shrink_flag=False):
             if not section_exists(section, find_headings(articles[target]["body"])):
                 warnings.append(
                     f"{info['rel_path']}: Abschnittsverweis [[{target}]] \"{section}\" — "
-                    f"diesen Abschnitt gibt es dort nicht (mehr); Verweis auf den neuen Ort umhaengen"
+                    f"diesen Abschnitt gibt es dort nicht (mehr); Verweis auf den neuen Ort umhängen"
                 )
 
-    # Tote Links in log.md und index.md. Beide liegen eine Ebene ueber wiki/ und
+    # Tote Links in log.md und index.md. Beide liegen eine Ebene über wiki/ und
     # sind damit nicht in der Sammlung oben — sie stehen aber voller Wikilinks.
-    # Als Quelle zaehlen sie, als Ziel nicht: sonst meldeten sie sich selbst als
+    # Als Quelle zählen sie, als Ziel nicht: sonst meldeten sie sich selbst als
     # verwaiste Seite und als nicht im Index gelistet. Warnung statt Fehler, weil
     # log.md historisch ist — ein alter Eintrag darf auf einen seither
-    # aufgeloesten Artikel zeigen, ohne dass der Lauf fehlschlaegt.
+    # aufgelösten Artikel zeigen, ohne dass der Lauf fehlschlägt.
     for extra_file in (wiki_root / "log.md", index_file):
         if not extra_file.exists():
             continue
@@ -736,7 +736,7 @@ def lint_wiki(wiki_root, check_remotes=False, check_shrink_flag=False):
         if slug not in incoming_links or len(incoming_links[slug]) == 0:
             warnings.append(f"{articles[slug]['rel_path']}: Verwaiste Seite — keine eingehenden Links")
 
-    # Index-Eintraege pruefen
+    # Index-Einträge prüfen
     if index_file.exists():
         # Gleiche Regel wie bei den Wikilinks: ein [[slug]] in einem Code-Block
         # des Index ist ein Beispiel, kein Index-Eintrag.
@@ -747,7 +747,7 @@ def lint_wiki(wiki_root, check_remotes=False, check_shrink_flag=False):
     else:
         errors.append("index.md nicht gefunden")
 
-    # Optional: was die Arbeitskopie gegenueber git HEAD bzw. SVN-BASE verloren hat
+    # Optional: was die Arbeitskopie gegenüber git HEAD bzw. SVN-BASE verloren hat
     if check_shrink_flag:
         repo_root = git_repo_root(wiki_root)
         if repo_root is not None:
@@ -757,7 +757,7 @@ def lint_wiki(wiki_root, check_remotes=False, check_shrink_flag=False):
             base_text = svn_cat
         else:
             base_text = None
-            warnings.append("--check-shrink: weder git-Repo noch SVN-Arbeitskopie ueber dem Wiki gefunden, uebersprungen")
+            warnings.append("--check-shrink: weder git-Repo noch SVN-Arbeitskopie über dem Wiki gefunden, übersprungen")
         if base_text is not None:
             for slug in sorted(articles):
                 info = articles[slug]
@@ -766,7 +766,7 @@ def lint_wiki(wiki_root, check_remotes=False, check_shrink_flag=False):
                 if old_text is None or old_text == new_text:
                     continue
                 for msg in check_shrink(old_text, new_text):
-                    warnings.append(f"{info['rel_path']}: {msg} — gewollt verdichtet oder beim Ueberschreiben verloren?")
+                    warnings.append(f"{info['rel_path']}: {msg} — gewollt verdichtet oder beim Überschreiben verloren?")
 
     # Ergebnis ausgeben
     print(f"\n{'='*60}")
@@ -816,7 +816,7 @@ if __name__ == "__main__":
         print(f"  z.B.: {sys.argv[0]} wiki/azedo/")
         print(f"  --check-remotes: [[<remote>:<slug>]]-Ziele per SSH verifizieren")
         print(f"  --check-shrink:  Frontmatter-Felder, Abschnitte und Wikilinks melden,")
-        print(f"                   die die Arbeitskopie gegenueber git HEAD bzw. SVN-BASE verloren hat")
+        print(f"                   die die Arbeitskopie gegenüber git HEAD bzw. SVN-BASE verloren hat")
         sys.exit(2)
     sys.exit(lint_wiki(args[0], check_remotes=check_remotes,
                        check_shrink_flag=check_shrink_flag))

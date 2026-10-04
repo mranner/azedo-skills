@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
 
 # stdlib only, no pip dependencies
-# version 1.63.31
+# version 1.63.32
 
 """
 wiki_remotes.py — Remote-Wiki-Konfiguration lesen und schreiben.
 
-Konfigurationsquellen, in dieser Reihenfolge gemergt (spaetere gewinnen je Key):
+Konfigurationsquellen, in dieser Reihenfolge gemergt (spätere gewinnen je Key):
 
 1. ~/.claude/wiki-remotes.json          benutzerweit, gilt in jedem Projekt
 2. <projekt-root>/.claude/wiki-remotes.json        projektlokal, eingecheckt
 3. <projekt-root>/.claude/wiki-remotes.local.json  maschinenlokal
 
-Der Dateiname traegt einen Unterstrich statt des sonst ueblichen Bindestrichs
+Der Dateiname trägt einen Unterstrich statt des sonst üblichen Bindestrichs
 (lint-wiki.py, audit-wiki.py): lint-wiki.py importiert load_remotes von hier,
-und ein Modulname mit Bindestrich laesst sich nicht importieren.
+und ein Modulname mit Bindestrich lässt sich nicht importieren.
 
 Aufruf: python3 wiki_remotes.py list
         python3 wiki_remotes.py add <name> <host>:<pfad> [--home] [--force]
@@ -41,13 +41,13 @@ def remote_files(project_root):
 
 
 def load_remotes(project_root, with_origin=False):
-    """Laedt die bekannten Remote-Wikis aus allen drei Quellen.
+    """Lädt die bekannten Remote-Wikis aus allen drei Quellen.
 
     Fehlt alles → leeres Dict (dann ist jeder [[x:y]]-Link mit unbekanntem x
-    ein toter Link). Kaputtes JSON wird still uebergangen, damit eine defekte
+    ein toter Link). Kaputtes JSON wird still übergangen, damit eine defekte
     Datei nicht den ganzen Lint-Lauf kippt.
-    Gibt {name: {"host": ..., "path": ...}} zurueck, mit with_origin
-    zusaetzlich {name: "home"|"projekt"|"local"}.
+    Gibt {name: {"host": ..., "path": ...}} zurück, mit with_origin
+    zusätzlich {name: "home"|"projekt"|"local"}.
     """
     remotes = {}
     origin = {}
@@ -105,13 +105,13 @@ def cmd_add(project_root, name, target, home=False, force=False):
             print(f"FEHLER: {f} ist nicht lesbar ({exc})")
             return 1
         if not isinstance(data, dict):
-            print(f"FEHLER: {f} enthaelt kein JSON-Objekt")
+            print(f"FEHLER: {f} enthält kein JSON-Objekt")
             return 1
 
     if name in data and not force:
         print(f"FEHLER: '{name}' steht schon in {f}: "
               f"{data[name].get('host')}:{data[name].get('path')}")
-        print("Mit --force ueberschreiben.")
+        print("Mit --force überschreiben.")
         return 1
 
     data[name] = {"host": host, "path": path, "readonly": True}
@@ -122,7 +122,7 @@ def cmd_add(project_root, name, target, home=False, force=False):
 
     # Ein projektlokaler Eintrag verdeckt den gleichnamigen aus dem Home; ein
     # Home-Eintrag umgekehrt nie einen projektlokalen. Beides ist gewollt, aber
-    # nur, wenn es jemand weiss.
+    # nur, wenn es jemand weiß.
     others = load_remotes(project_root, with_origin=True)[1].get(name)
     if others and others != ("home" if home else "projekt"):
         print(f"Hinweis: '{name}' wird effektiv aus '{others}' gelesen.")
@@ -144,7 +144,7 @@ def main():
     print(f"Aufruf: {sys.argv[0]} list")
     print(f"        {sys.argv[0]} add <name> <host>:<pfad> [--home] [--force]")
     print("  --home:  nach ~/.claude/wiki-remotes.json statt ins Projekt")
-    print("  --force: bestehenden Eintrag ueberschreiben")
+    print("  --force: bestehenden Eintrag überschreiben")
     return 2
 
 

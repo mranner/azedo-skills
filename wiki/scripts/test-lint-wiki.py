@@ -3,19 +3,19 @@
 # stdlib only, no pip dependencies
 
 """
-test-lint-wiki.py — Testfaelle fuer die Praefix-Aufloesung, die
+test-lint-wiki.py — Testfälle für die Präfix-Auflösung, die
 Frontmatter-Verweise (references), die Abschnittsverweise und den
-Schrumpf-Guard (umgehaengte Links) in lint-wiki.py.
+Schrumpf-Guard (umgehängte Links) in lint-wiki.py.
 
 Baut ein Wegwerf-Projekt mit zwei Geschwister-Wikis, einem Verzeichnis ohne
-wiki/-Unterordner und einer wiki-remotes.json, laesst lint-wiki.py darauf laufen
+wiki/-Unterordner und einer wiki-remotes.json, lässt lint-wiki.py darauf laufen
 und vergleicht die Meldungen zu Wikilinks mit der Erwartung. Das Home wird auf
 ein Wegwerf-Verzeichnis umgebogen: so wird der benutzerweite Fallback
-(~/.claude/wiki-remotes.json) mitgeprueft, ohne dass die echte Datei des
+(~/.claude/wiki-remotes.json) mitgeprüft, ohne dass die echte Datei des
 Entwicklers in den Lauf hineinwirkt.
 
 Aufruf: python3 test-lint-wiki.py
-Exit 0 = alle Faelle erfuellt, 1 = Abweichung (wird ausgegeben).
+Exit 0 = alle Fälle erfüllt, 1 = Abweichung (wird ausgegeben).
 """
 
 import json
@@ -44,9 +44,9 @@ def write(path, text):
 
 
 def build(root, home):
-    """Legt Testprojekt und Wegwerf-Home an, gibt das zu pruefende Wiki zurueck."""
+    """Legt Testprojekt und Wegwerf-Home an, gibt das zu prüfende Wiki zurück."""
 
-    # Nur im Home bekannt — prueft den benutzerweiten Fallback
+    # Nur im Home bekannt — prüft den benutzerweiten Fallback
     write(home / ".claude/wiki-remotes.json", json.dumps({
         "heim": {"host": "example.org", "path": "/srv/heim"},
     }))
@@ -56,21 +56,21 @@ def build(root, home):
           "---\ntype: artikel\n---\n\nText.\n")
 
     # Zweites Nachbar-Wiki, bewusst NICHT in wiki-remotes.json: nur die lokale
-    # Aufloesung kann diesen Link gueltig machen.
+    # Auflösung kann diesen Link gültig machen.
     write(root / "wiki/biologie/wiki/zellteilung.md",
           "---\ntype: artikel\n---\n\nText.\n")
 
-    # Verzeichnis ohne wiki/-Unterordner — darf kein Praefix aufloesen
+    # Verzeichnis ohne wiki/-Unterordner — darf kein Präfix auflösen
     write(root / "wiki/notizen/README.md", "Kein Wiki.\n")
 
-    # 'geschichte' steht zusaetzlich als Remote drin: lokal muss gewinnen,
+    # 'geschichte' steht zusätzlich als Remote drin: lokal muss gewinnen,
     # sonst bliebe der fehlende Slug unbemerkt.
     write(root / ".claude/wiki-remotes.json", json.dumps({
         "fern": {"host": "example.org", "path": "/srv/wiki"},
         "geschichte": {"host": "example.org", "path": "/srv/geschichte"},
     }))
 
-    # Pruefquellen fuer die Frontmatter-Verweise
+    # Prüfqüllen für die Frontmatter-Verweise
     write(root / "tests/test_regeln.py",
           "def test_grenzwert():\n    pass\n\ndef test_grenzwert_hoch():\n    pass\n")
     write(root / "config/settings.json",
@@ -84,13 +84,13 @@ def build(root, home):
           "Lokal vorhanden, auch als Remote bekannt: [[geschichte:franzoesische-revolution]].\n"
           "Lokal fehlend: [[geschichte:gibt-es-nicht]].\n"
           "Kein Wiki-Verzeichnis: [[notizen:irgendwas]].\n"
-          "Unbekanntes Praefix: [[fremd:irgendwas]].\n"
+          "Unbekanntes Präfix: [[fremd:irgendwas]].\n"
           "Bekannter Remote: [[fern:egal]].\n"
           "Remote nur aus dem Home: [[heim:egal]].\n"
           "Kurzform eines Abschnitts: [[grenzwert]], Abschnitt Epsilon.\n"
           "Umbrochener Name: [[grenzwert]], Abschnitt „Folgen\nund Reihen\".\n"
           "Nachgestellte Form: [[grenzwert]] (Delta-Abschnitt).\n"
-          "Beschreibend, nicht geprueft: [[grenzwert]], Abschnitt zu `lim` in Folgen.\n")
+          "Beschreibend, nicht geprüft: [[grenzwert]], Abschnitt zu `lim` in Folgen.\n")
     write(mathe / "wiki/grenzwert.md",
           "---\ntype: artikel\n"
           "tests: [test_grenzwert, test_umbenannt]\n"
@@ -115,7 +115,7 @@ CASES = [
     ("grenzwert.md: tests-Eintrag 'test_umbenannt' nicht gefunden in tests", True),
     ("config-Eintrag 'grenzwert' nicht gefunden", False),
     ("grenzwert.md: config-Eintrag 'entfernt' nicht gefunden in config/settings.json", True),
-    ("wiki-schema.json: Pruefquelle fuer 'doku' fehlt: gibt/es/nicht", True),
+    ("wiki-schema.json: Prüfqülle für 'doku' fehlt: gibt/es/nicht", True),
     ("Abschnittsverweis [[grenzwert]] \"Epsilon\"", False),
     ("schriftliches-dividieren.md: Abschnittsverweis [[grenzwert]] \"Folgen und Reihen\"", True),
     ("schriftliches-dividieren.md: Abschnittsverweis [[grenzwert]] \"Delta\"", True),
@@ -124,7 +124,7 @@ CASES = [
 
 
 def shrink_cases():
-    """Schrumpf-Guard direkt: umgehaengter Link still, geloeschter gemeldet."""
+    """Schrumpf-Guard direkt: umgehängter Link still, gelöschter gemeldet."""
     sys.path.insert(0, str(LINT.parent))
     import importlib.util
     spec = importlib.util.spec_from_file_location("lint_wiki", LINT)
@@ -135,7 +135,7 @@ def shrink_cases():
     new = "---\ntype: artikel\n---\n\nSiehe [[neu]].\n\nAuch nichts.\n"
     out = " ".join(lint.check_shrink(old, new))
     return [
-        ("Schrumpf-Guard: umgehaengter Link [[alt]] -> [[neu]] nicht gemeldet", "[[alt]]" not in out),
+        ("Schrumpf-Guard: umgehängter Link [[alt]] -> [[neu]] nicht gemeldet", "[[alt]]" not in out),
         ("Schrumpf-Guard: ersatzlos entfernter Link [[weg]] gemeldet", "[[weg]]" in out),
     ]
 
@@ -167,10 +167,10 @@ def main():
 
     total = len(CASES) + len(extra)
     if failed:
-        print(f"\n{failed} von {total} Faellen abweichend. Lint-Ausgabe:\n{out}")
+        print(f"\n{failed} von {total} Fällen abweichend. Lint-Ausgabe:\n{out}")
         return 1
 
-    print(f"\nAlle {total} Faelle erfuellt.")
+    print(f"\nAlle {total} Fälle erfüllt.")
     return 0
 
 
