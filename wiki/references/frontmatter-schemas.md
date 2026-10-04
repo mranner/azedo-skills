@@ -1,13 +1,13 @@
 # Entity-Templates
 
-Vorlagen fuer alle Wiki-Entity-Typen. Beim Anlegen neuer Entities diese Templates verwenden.
+Vorlagen für alle Wiki-Entity-Typen. Beim Anlegen neuer Entities diese Templates verwenden.
 
 **Inhalt:** server · service · access · site · procedure · Pflichtfelder pro Typ · Optionale Vertrauensfelder (`verified`, `stale_after`, Abweichungen zur OKF-Referenz)
 
 Der Abschnitt `## Quellen` in den Vorlagen ist **optional**: er nimmt nur echte
 Rohquellen auf - die Datei unter `raw/`, ein externes Dokument, ein Ticket. Gibt
-es keine, faellt er ersatzlos weg. Keine Liste der eigenen Sessions und keine
-Chronologie; dafuer gibt es git.
+es keine, fällt er ersatzlos weg. Keine Liste der eigenen Sessions und keine
+Chronologie; dafür gibt es git.
 
 ## server
 
@@ -180,11 +180,11 @@ kunde: alle | <spezifischer Kunde>
 
 ## Erwartete Ausgabe
 
-<Was nach erfolgreicher Ausfuehrung zu sehen ist>
+<Was nach erfolgreicher Ausführung zu sehen ist>
 
 ## Fallstricke
 
-<Bekannte Probleme, haeufige Fehler>
+<Bekannte Probleme, häufige Fehler>
 
 ## Quellen
 
@@ -214,46 +214,46 @@ kunde: alle | <spezifischer Kunde>
 
 ## Optionale Vertrauensfelder
 
-Zwei Felder darf jede Entity jedes Typs zusaetzlich tragen. Beide sind
-**optional** — der Lint prueft nur, was dasteht, und verlangt nie, dass es
+Zwei Felder darf jede Entity jedes Typs zusätzlich tragen. Beide sind
+**optional** — der Lint prüft nur, was dasteht, und verlangt nie, dass es
 dasteht. Uebernommen aus dem Open Knowledge Format 0.2, dort aber verschachtelt;
 hier flach gehalten, weil der Frontmatter-Parser des Lints nur flaches YAML
 liest und die Felder so greppbar bleiben.
 
 ### verified
 
-Wer den Inhalt wann an einem echten System nachgeprueft hat. Bisher stand das im
-Fliesstext („Verifiziert 2026-09-06 auf [[fry-azedo-at]]"); im Frontmatter ist
+Wer den Inhalt wann an einem echten System nachgeprüft hat. Bisher stand das im
+Fließtext („Verifiziert 2026-09-06 auf [[fry-azedo-at]]"); im Frontmatter ist
 es auffindbar.
 
 ```yaml
 verified: ["human:mranner@2026-09-06", "claude-opus-5@2026-09-14"]
 ```
 
-Format je Eintrag: `<akteur>@<YYYY-MM-DD>`. Akteur ist `human:<kuerzel>` fuer
-einen Menschen, `process:<name>` fuer einen automatisierten Lauf, sonst der
-Modell- bzw. Werkzeugname. Der Unterschied traegt die Aussage: was ein Mensch
-bestaetigt hat, wiegt schwerer als was ein Agent behauptet.
+Format je Eintrag: `<akteur>@<YYYY-MM-DD>`. Akteur ist `human:<kuerzel>` für
+einen Menschen, `process:<name>` für einen automatisierten Lauf, sonst der
+Modell- bzw. Werkzeugname. Der Unterschied trägt die Aussage: was ein Mensch
+bestätigt hat, wiegt schwerer als was ein Agent behauptet.
 
 ```
-grep -rl "verified:.*human:" wiki/       # menschlich geprueft
-grep -rL "verified:" wiki/procedures/    # nie nachgeprueft
+grep -rl "verified:.*human:" wiki/       # menschlich geprüft
+grep -rL "verified:" wiki/procedures/    # nie nachgeprüft
 ```
 
-Das `date`-Feld bleibt davon unberuehrt: es sagt, wann jemand die Datei
+Das `date`-Feld bleibt davon unberührt: es sagt, wann jemand die Datei
 geschrieben hat, nicht wann der Inhalt zuletzt gestimmt hat.
 
 ### stale_after
 
-Datum, ab dem der Inhalt als ueberholt gilt — fuer Wissen, das an einen Stand
+Datum, ab dem der Inhalt als überholt gilt — für Wissen, das an einen Stand
 gebunden ist: Paketversionen, IP-Zuordnungen, Zertifikatslaufzeiten.
 
 ```yaml
 stale_after: 2027-01-31
 ```
 
-Der Lint warnt ab diesem Datum. Ohne das Feld verfaellt eine Entity nie; es
-gehoert nur dorthin, wo ein Ablauf absehbar ist, nicht in jeden Artikel.
+Der Lint warnt ab diesem Datum. Ohne das Feld verfällt eine Entity nie; es
+gehört nur dorthin, wo ein Ablauf absehbar ist, nicht in jeden Artikel.
 
 ### Abweichungen zur OKF-Referenz
 
@@ -264,10 +264,10 @@ Stellen bewusst ab; wer je exportiert, muss beides umsetzen:
 
 | Punkt | OKF 0.2 | Hier |
 |---|---|---|
-| `stale_after` | ISO-8601-Zeitstempel **mit UTC-Offset**; ein reines Datum wird von der Referenz-Implementierung ignoriert, weil es in jeder Zeitzone einen anderen Moment meint | reines Datum `YYYY-MM-DD` — Infra-Wissen laeuft ueber Monate ab, nicht ueber Stunden |
+| `stale_after` | ISO-8601-Zeitstempel **mit UTC-Offset**; ein reines Datum wird von der Referenz-Implementierung ignoriert, weil es in jeder Zeitzone einen anderen Moment meint | reines Datum `YYYY-MM-DD` — Infra-Wissen läuft über Monate ab, nicht über Stunden |
 | `verified` | Liste von Mappings `{by, at}`, eine einzelne Map auch ohne Listen-Strich | flache Liste `"<akteur>@<datum>"`, weil der Frontmatter-Parser des Lints nur flaches YAML liest |
 
 Die Akteur-Konvention (`human:<id>`, `process:<id>`, sonst Werkzeugname) ist
 dieselbe, ebenso die daraus abgeleiteten Vertrauensstufen: kein `verified` =
-ungeprueft, nur Maschinen-Akteure = maschinell bestaetigt, mindestens ein
-`human:` = menschlich geprueft.
+ungeprüft, nur Maschinen-Akteure = maschinell bestätigt, mindestens ein
+`human:` = menschlich geprüft.

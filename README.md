@@ -661,10 +661,14 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.63.30
+### 1.63.31
 
-- **`wiki lint --check-shrink` - auch für SVN-Wikis.** Ohne git-Repo über dem
-  Wiki wurde die Prüfung übersprungen, bei einem Wiki in SVN (CRIS-Wiki) also
-  gerade nach einem `refactor`. Liegt das Wiki in einer SVN-Arbeitskopie, holt
-  `lint-wiki.py` die Vergleichsfassung jetzt per `svn cat -r BASE`; Meldungen und
-  die Regel für umgehängte Links bleiben gleich. git hat Vorrang.
+- **`wiki` - Abgleich mit Anthropics Skill-Richtlinien.** In „Ziel-Wiki
+  bestimmen" steht statt der Merge-Reihenfolge der Remote-Configs ein Verweis auf
+  `references/remote-wikis.md`, wo sie vollständig beschrieben ist. Gestrichen
+  sind die Begründungen, warum ein fest verdrahteter Default-Name falsch wäre und
+  warum der Wiki-Root projekt-relativ ist - die Regel trägt ohne sie.
+- **`wiki` - echte Umlaute** in SKILL.md und `references/`, auch in den
+  Artikel-Vorlagen. Code, Befehle und zitierte Script-Ausgaben bleiben
+  unverändert, ebenso die Scripts selbst. Der Anker auf „Kürzen heißt Wörter
+  streichen" ist nachgezogen.

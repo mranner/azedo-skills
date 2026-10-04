@@ -22,10 +22,10 @@ unterschieden:
 
 | Platzhalter | Was | Woher |
 |---|---|---|
-| `$SKILL_DIR` | Base Directory dieses Skills (dort wo diese SKILL.md liegt) | ueblicherweise unter `~/.claude/skills/wiki` -- der Skill ist **global** installiert, nicht im Projekt |
+| `$SKILL_DIR` | Base Directory dieses Skills (dort wo diese SKILL.md liegt) | üblicherweise unter `~/.claude/skills/wiki` -- der Skill ist **global** installiert, nicht im Projekt |
 | `<WIKI_ROOT>` | die Wiki-**Daten** | projekt-relativ, siehe [Ziel-Wiki bestimmen](#ziel-wiki-bestimmen) |
 
-Die Scripts des Skills werden immer ueber `$SKILL_DIR` aufgerufen, das Wiki
+Die Scripts des Skills werden immer über `$SKILL_DIR` aufgerufen, das Wiki
 selbst immer projekt-relativ:
 
 ```
@@ -38,40 +38,32 @@ nicht wie ein falscher Pfad.
 
 ## Ziel-Wiki bestimmen
 
-Alle Subcommands nehmen optional einen Wiki-Namen als Praefix an:
+Alle Subcommands nehmen optional einen Wiki-Namen als Präfix an:
 
 ```
-/wiki <name>:<subcommand> [args]     # z.B. /wiki cris:query "Wie laeuft Auth?"
+/wiki <name>:<subcommand> [args]     # z.B. /wiki cris:query "Wie läuft Auth?"
 /wiki <subcommand> [args]            # ohne name → Default, siehe Schritt 1
 ```
 
 Vor jeder Operation:
 
-1. Wiki-Name aus dem Argument parsen (Muster `^([a-z0-9-]+):`). **Ohne Praefix
+1. Wiki-Name aus dem Argument parsen (Muster `^([a-z0-9-]+):`). **Ohne Präfix
    den Default ableiten, nicht raten** — `wiki/` im Projekt-Root auflisten:
 
    | Lage | Verhalten |
    |---|---|
-   | genau **ein** lokales Wiki | das ist der Default, ohne Rueckfrage |
-   | **mehrere** lokale Wikis | die Namen nennen und nachfragen, keins waehlen |
+   | genau **ein** lokales Wiki | das ist der Default, ohne Rückfrage |
+   | **mehrere** lokale Wikis | die Namen nennen und nachfragen, keins wählen |
    | **keins** | auf `/wiki init <name>` hinweisen |
 
-   Ein fest verdrahteter Default-Name waere genau in dem Projekt richtig, in dem
-   er gesetzt wurde, und in jedem anderen falsch: `/wiki audit` liefe dort gegen
-   ein Wiki, das es nicht gibt. Der Name des Wikis richtet sich nach dem
-   Projekt, nicht nach dem Skill.
 2. Wiki-Root ableiten: `WIKI_ROOT = wiki/<name>/` — **relativ zum Projekt-Root**
-   (dem Arbeitsverzeichnis, in dem der Skill laeuft; dort liegen die Wikis unter
-   `wiki/`). Analog zur Projekt-`CLAUDE.md`, die das Wiki als `wiki/azedo/…`
-   referenziert. Kein absoluter Home-Pfad — so bleibt der Skill portabel
-   (Mac, andere Mitarbeiter, anderer Checkout-Ort). Das gilt den **Wiki-Daten**;
-   die Scripts des Skills liegen ausserhalb des Projekts und werden ueber
-   `$SKILL_DIR` angesprochen (siehe oben).
-3. Ziel aufloesen — in dieser Reihenfolge:
+   (dem Arbeitsverzeichnis, in dem der Skill läuft; dort liegen die Wikis unter
+   `wiki/`). Kein absoluter Home-Pfad - der Skill läuft auch auf dem Mac und
+   in anderen Checkouts.
+3. Ziel auflösen — in dieser Reihenfolge:
    a. `WIKI_ROOT` existiert lokal → **lokales Wiki** (wie gehabt, weiter mit Schritt 4).
    b. Lokal nicht vorhanden, aber `<name>` steht in der Remote-Config
-      (`~/.claude/wiki-remotes.json`, dann `.claude/wiki-remotes.json` und
-      `.claude/wiki-remotes.local.json` im Projekt, in dieser Reihenfolge gemergt;
+      ([`wiki-remotes.json`](references/remote-wikis.md#konfiguration-wiki-remotesjson);
       `python3 "$SKILL_DIR/scripts/wiki_remotes.py" list` zeigt sie mit Herkunft)
       → **Remote-Wiki, read-only**. Ab hier gilt der Abschnitt
       [Remote-Wikis](references/remote-wikis.md): nur lesende Subcommands (`query`,
@@ -84,15 +76,15 @@ Vor jeder Operation:
    eigene Konventionen (z.B. Infra `kunde` vs. Projekt-Wiki `projekt`). Bei einem
    Remote-Wiki diese Datei per SSH lesen (siehe Remote-Wikis).
 
-Im Folgenden steht `<WIKI_ROOT>` fuer den in Schritt 2 ermittelten Pfad.
+Im Folgenden steht `<WIKI_ROOT>` für den in Schritt 2 ermittelten Pfad.
 Die Sicherheitsregeln (keine Secrets) und das Cross-Referencing gelten
-wikiuebergreifend: ein `[[<präfix>:<slug>]]` zeigt in derselben Schreibweise auf ein
+wikiübergreifend: ein `[[<präfix>:<slug>]]` zeigt in derselben Schreibweise auf ein
 Nachbar-Wiki unter `wiki/` wie auf ein Remote-Wiki - siehe
 [Hints](references/remote-wikis.md#auf-entities-anderer-wikis-verweisen-hints).
 
 ## Subcommands
 
-Haeufigster Fall ist `query` (nachschlagen) und `harvest` (Erkenntnisse aufnehmen -
+Häufigster Fall ist `query` (nachschlagen) und `harvest` (Erkenntnisse aufnehmen -
 Kandidaten filtern, vorlegen, erst nach Freigabe schreiben):
 
 ```
@@ -100,21 +92,21 @@ Kandidaten filtern, vorlegen, erst nach Freigabe schreiben):
 /wiki harvest [thema]
 ```
 
-Beide fuehrt das Modell selbst aus, es gibt dafuer **kein Script**: `query` liest
+Beide führt das Modell selbst aus, es gibt dafür **kein Script**: `query` liest
 `index.md`, greppt Frontmatter und folgt Backlinks; `harvest` sammelt Kandidaten,
 schickt sie durch den Aufnahmefilter und legt sie vor. Der Ablauf steht in
-`references/subcommands.md`. Scripts gibt es nur fuer `lint` und `audit` -
+`references/subcommands.md`. Scripts gibt es nur für `lint` und `audit` -
 `python3 "$SKILL_DIR/scripts/lint-wiki.py" <WIKI_ROOT>` und
-`python3 "$SKILL_DIR/scripts/audit-wiki.py" <WIKI_ROOT>` - sowie fuer die
+`python3 "$SKILL_DIR/scripts/audit-wiki.py" <WIKI_ROOT>` - sowie für die
 Remote-Config (`scripts/wiki_remotes.py list` / `add`, siehe
 [Remote-Wikis](references/remote-wikis.md#remotes-anzeigen-und-eintragen)).
 
-Vollstaendige Referenz daneben, bei Bedarf lesen:
+Vollständige Referenz daneben, bei Bedarf lesen:
 
 | Datei | Inhalt |
 |---|---|
 | `references/subcommands.md` | `init`, `ingest`, `compile`, `harvest`, `query`, `lint` |
-| `references/pflege.md` | `audit` (aufgeblaehte Artikel finden), `refactor` (Entity umbauen, verdichten statt verschieben), `status`, `handoff` |
+| `references/pflege.md` | `audit` (aufgeblähte Artikel finden), `refactor` (Entity umbauen, verdichten statt verschieben), `status`, `handoff` |
 | `references/compilation-guide.md` | Compile-Regeln: Source-first, Entity-Extraktion, Duplikate, Cross-Referencing, Widersprüche, Compile-Checkliste |
 | `references/frontmatter-schemas.md` | Entity-Templates und Pflichtfelder je Typ (Infra-Modell), `verified`/`stale_after` |
 | `references/remote-wikis.md` | Wikis anderer Hosts read-only per SSH abfragen, Konfiguration, Hints auf Entities anderer Wikis (Nachbar-Wiki wie Remote) |
@@ -135,13 +127,13 @@ Vier Fragen, **alle** müssen mit Ja beantwortet sein:
 
 1. **Gilt es in drei Monaten noch?** Ein Zwischenstand, ein „aktuell läuft noch"
    oder ein Vorhaben gehört ins Ticket, nicht in einen Artikel.
-2. **Kostet es jemanden Zeit, der es nicht weiss?** Wenn niemand darüber
+2. **Kostet es jemanden Zeit, der es nicht weiß?** Wenn niemand darüber
    stolpern kann, ist es keine Erkenntnis, sondern eine Notiz.
 3. **Lässt es sich *nicht* in einer halben Minute am Gegenstand selbst
    ablesen?** Was `--help`, ein Blick in die Datei, `systemctl status` oder ein
    Testlauf sofort zeigen, braucht keinen Artikel. Aufnahmewürdig ist, was man
    dort **nicht** sieht: die Reihenfolge, die entscheidet; das Feld, das anders
-   heisst als es wirkt; der stille Fehlschlag.
+   heißt als es wirkt; der stille Fehlschlag.
 4. **Steht es nicht schon in einem anderen Artikel?** Sonst dort ergänzen und
    von hier verlinken - nicht zweitschreiben.
 
@@ -173,19 +165,19 @@ Dicht:    "Z gilt, nicht X. Folge: <Konsequenz>.
   leiten alle eine Erzählung ein. Wo einer steht, gehört der Absatz gekürzt.
 - **Herleitung wird gestrichen, nicht verlagert.** Im Artikel steht das
   Ergebnis, ein Satz; der Irrweg dorthin gar nicht. Ein Messwert bleibt nur,
-  wenn er die Aussage traegt - dann im Fachabsatz, mit Host und Datum im
+  wenn er die Aussage trägt - dann im Fachabsatz, mit Host und Datum im
   Nebensatz („verifiziert 2026-07-28 auf [[fry-azedo-at]]").
 - **`## Quellen` ist keine Ablage.** Der Abschnitt ist optional und nimmt nur
   echte Rohquellen auf: die Datei unter `raw/`, ein externes Dokument, ein
-  Ticket. Gibt es keine, entfaellt er. Eine Liste der eigenen Sessions
-  („Session 2026-07-05: …") ist ein Arbeitsprotokoll und faellt unter den
-  Aufnahmefilter - wann etwas aufgeschrieben wurde, haelt git.
+  Ticket. Gibt es keine, entfällt er. Eine Liste der eigenen Sessions
+  („Session 2026-07-05: …") ist ein Arbeitsprotokoll und fällt unter den
+  Aufnahmefilter - wann etwas aufgeschrieben wurde, hält git.
 - **Aufzählung wird Liste oder Tabelle**, nicht Absatz.
 - **Kein Datum in einer Überschrift.** Wer „Umbau 2026-08-15" oder „Stand
   <Datum>" als Überschrift braucht, schreibt gerade ein Logbuch statt eines
-  Artikels. Ein Datum im Fliesstext („seit 2026-08-15") ist in Ordnung.
+  Artikels. Ein Datum im Fließtext („seit 2026-08-15") ist in Ordnung.
 
-### Kürzen heisst Wörter streichen, nicht Sachverhalte
+### Kürzen heißt Wörter streichen, nicht Sachverhalte
 
 Knapp ist der Artikel in der Formulierung, nicht im Inhalt: Bedingung, Sonderfall
 und Folge gehören vollständig hinein. Wer eine davon weglässt, macht den Artikel
@@ -194,7 +186,7 @@ nicht dichter, sondern falsch - und die Lücke ist dem Leser nicht anzusehen.
 Der Aufnahmefilter entscheidet, **ob** ein Sachverhalt in den Artikel kommt.
 Ist er drin, steht er ganz da.
 
-### Aktualisieren heisst ersetzen
+### Aktualisieren heißt ersetzen
 
 Die häufigste Ursache aufgeblähter Artikel ist die naheliegende Handlung:
 anhängen. Beim Aktualisieren wird die **alte Aussage überschrieben**, nicht
@@ -216,8 +208,8 @@ Gegenstands-Artikel und muss später per `refactor` getrennt werden.
 
 ## Sicherheitsregeln
 
-- **KEINE Klartext-Passwoerter** in Wiki-Entities — nur Verweis auf Passwortmanager
+- **KEINE Klartext-Passwörter** in Wiki-Entities — nur Verweis auf Passwortmanager
 - **KEINE Private Keys oder API-Tokens**
 - Vor dem Kompilieren Quellen auf Secrets scannen und diese durch Platzhalter ersetzen
-- Geschuetzte Verwaltungs- und Kundenzugaenge (IP-Whitelist) niemals als "zu blockieren"
-  dokumentieren — die konkreten Adressen stehen ausserhalb des Repos
+- Geschützte Verwaltungs- und Kundenzugänge (IP-Whitelist) niemals als "zu blockieren"
+  dokumentieren — die konkreten Adressen stehen außerhalb des Repos

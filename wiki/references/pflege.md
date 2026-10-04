@@ -1,6 +1,6 @@
 # wiki - Pflege und Umbau
 
-Aufgeblaehte Artikel finden und entflechten, Status, Handoff.
+Aufgeblähte Artikel finden und entflechten, Status, Handoff.
 
 **Inhalt:** audit · refactor (Zerlegen statt kürzen, Verdichten statt verschieben) · verified / stale_after setzen · status · handoff
 
@@ -37,7 +37,7 @@ Gemessen wird je Artikel:
   Dorthin gehört die Rohquelle, nicht die Chronologie der eigenen Sessions.
 - **PROZEDURAL** — Codeblöcke und FALSCH/RICHTIG-Rezepte in einer server-,
   service-, access- oder site-Entity. Das gehört in eine procedure.
-- **DOMINANT** — ein Abschnitt frisst den Grossteil der Datei. Gemeldet nur,
+- **DOMINANT** — ein Abschnitt frisst den Großteil der Datei. Gemeldet nur,
   wenn zusätzlich LANG oder HISTORIE zutrifft: für sich genommen ist ein
   Schwerpunkt die Bauform und nicht der Mangel. Der Befund sagt bei einem ohnehin
   auffälligen Artikel, **wo** der Ballast sitzt; als eigener Auslöser trifft er
@@ -116,7 +116,7 @@ Ablauf:
    beim Zerlegen. Wer eine Konstante, eine Schwelle oder einen offenen Punkt
    streicht oder ändert, lässt sonst andere Artikel zurück, die ihn weiter
    zitieren: einen Verweis auf den gestrichenen Punkt, eine „Toleranz 5 %", die
-   hier inzwischen 3 % heisst. Der Lint findet tote Links und Verweise auf
+   hier inzwischen 3 % heißt. Der Lint findet tote Links und Verweise auf
    verschwundene Abschnitte, aber keine inhaltlich veralteten Sätze.
 
 #### Zerlegen statt kürzen
@@ -171,7 +171,7 @@ Ein Artikel kann strukturell fertig sein - jeder Abschnitt gehört dorthin, wo e
 steht, und der Artikel beschreibt genau einen Gegenstand - und trotzdem ein
 Fünftel zu lang. Schritt 4 verschiebt Abschnitte,
 Schritt 5 kürzt Sätze innerhalb der bleibenden. Beide Durchgänge sind nötig; wer
-nur den ersten macht, verteilt die Fülle bloss auf mehr Dateien.
+nur den ersten macht, verteilt die Fülle bloß auf mehr Dateien.
 
 Der zweite Durchgang sucht fünf Muster. Sie sind mechanisch erkennbar, deshalb
 gehören sie in den Vorschlag mit **Vorher/Nachher am konkreten Satz** - nicht als
@@ -236,24 +236,24 @@ Für **Remote-Wikis** nicht erlaubt (schreibend) — dort `<remote>:handoff` nut
 Zwei optionale Frontmatter-Felder, Format in
 [Frontmatter-Schemas](frontmatter-schemas.md#optionale-vertrauensfelder).
 
-`verified` beim **ingest/compile** ergaenzen, wenn der Inhalt in derselben
-Sitzung an einem echten System geprueft wurde — nicht, wenn er nur
-aufgeschrieben oder umformuliert wurde. Bestehende Eintraege bleiben stehen, der
+`verified` beim **ingest/compile** ergänzen, wenn der Inhalt in derselben
+Sitzung an einem echten System geprüft wurde — nicht, wenn er nur
+aufgeschrieben oder umformuliert wurde. Bestehende Einträge bleiben stehen, der
 neue kommt dazu; die Liste ist eine Historie, kein einzelner Stand.
 
 `stale_after` nur dort setzen, wo ein Ablauf absehbar ist (Paketversion,
 Zertifikatslaufzeit, geplante Migration). Meldet der Lint eine Entity als
-ueberfaellig: Inhalt pruefen, dann entweder das Datum neu setzen oder das Feld
-entfernen, wenn der Bezug weggefallen ist. Das blosse Hochsetzen ohne Pruefung
+überfällig: Inhalt prüfen, dann entweder das Datum neu setzen oder das Feld
+entfernen, wenn der Bezug weggefallen ist. Das bloße Hochsetzen ohne Prüfung
 macht das Feld wertlos.
 
 Nach einem Umbau den [Schrumpf-Guard](subcommands.md#schrumpf-guard---check-shrink)
-laufen lassen: `refactor` schreibt ganze Artikel neu, und dabei faellt am
+laufen lassen: `refactor` schreibt ganze Artikel neu, und dabei fällt am
 ehesten etwas heraus, das niemand vermisst hat - ein Abschnitt, ein Verweis.
 
 ### status
 
-Ueberblick ueber den Wiki-Zustand.
+Ueberblick über den Wiki-Zustand.
 
 ```
 /wiki status
@@ -267,12 +267,12 @@ Zeigt:
   (`grep -rl "^status: offen" <WIKI_ROOT>/wiki/`); gibt es keinen, entfällt der Block
 
 Bei einem **Remote-Wiki** die Quellen per SSH lesen (`ssh <host> "cat/grep …"`, siehe
-[Remote-Wikis](remote-wikis.md#remote-wikis-read-only)); Lint entfaellt (laeuft nur auf lokaler
+[Remote-Wikis](remote-wikis.md#remote-wikis-read-only)); Lint entfällt (läuft nur auf lokaler
 Kopie).
 
 ### handoff
 
-Erzeugt aus lokal erarbeiteten Erkenntnissen eine **ingest-fertige Note** fuer ein
+Erzeugt aus lokal erarbeiteten Erkenntnissen eine **ingest-fertige Note** für ein
 **Remote-Wiki**, die der User **manuell** auf dem Zielhost einspielt. Schreibt nichts
 remote — der asynchrone, menschlich vermittelte Gegenpart zum read-only `query`.
 
@@ -280,7 +280,7 @@ remote — der asynchrone, menschlich vermittelte Gegenpart zum read-only `query
 /wiki <remote>:handoff "<was gelernt wurde>"
 ```
 
-Nur mit Remote-Praefix sinnvoll (das Ziel-Wiki liegt auf einem anderen Host). Fuer ein
+Nur mit Remote-Präfix sinnvoll (das Ziel-Wiki liegt auf einem anderen Host). Für ein
 lokales Wiki direkt `ingest`/`compile` nutzen.
 
 Workflow:
@@ -290,13 +290,13 @@ Workflow:
    Entity schon existiert.
 2. Entity-Slug + Typ bestimmen. Existiert der Slug remote (via `index.md` bzw.
    `ssh <host> "grep -rl …"`)? → `mode: update` (konkret benennen, welches Feld
-   ergaenzt/geaendert wird, keine Dublette). Sonst → `mode: new` (vollstaendiger
+   ergänzt/geändert wird, keine Dublette). Sonst → `mode: new` (vollständiger
    Entity-Draft im Zielschema).
 3. Note nach `.claude/wiki-outbox/<remote>-<slug>.md` schreiben (Verzeichnis anlegen,
-   falls noetig). Secrets-Regeln gelten wie im Wiki (keine Passwoerter/Keys).
+   falls nötig). Secrets-Regeln gelten wie im Wiki (keine Passwörter/Keys).
 4. **Nicht** remote schreiben. Am Ende dem User die Transport-Optionen nennen — er
-   entscheidet, Transport ist ausdruecklich user-ausgeloest:
-   - **Kanboard-Attachment** (`/kanboard`): Note an einen Task haengen (Review-Queue).
+   entscheidet, Transport ist ausdrücklich user-ausgelöst:
+   - **Kanboard-Attachment** (`/kanboard`): Note an einen Task hängen (Review-Queue).
    - **scp** nach `<host>:<path>/raw/inbox/` (Pfad aus der
      [Remote-Config](remote-wikis.md#konfiguration-wiki-remotesjson)).
    - **Mail** (`/swaks`) als Anhang.
@@ -322,9 +322,9 @@ source-date: 2026-07-07
 <Entity-Body bzw. konkrete Feld-Aenderungen im Zielschema>
 ```
 
-Auf dem Zielhost spielt der User die Note ueber das **bestehende** `ingest` (bzw.
+Auf dem Zielhost spielt der User die Note über das **bestehende** `ingest` (bzw.
 Ablage in `raw/inbox/`) + `compile` + `lint` ein — kein neuer Code auf Host-B-Seite
-noetig, der Mensch ist der Gate-Keeper. Ein `scp` nach `raw/inbox/` ist **kein**
+nötig, der Mensch ist der Gate-Keeper. Ein `scp` nach `raw/inbox/` ist **kein**
 Schreiben ins Wiki: die Entity entsteht erst durch das lokale `ingest` auf dem
 Zielhost.
 

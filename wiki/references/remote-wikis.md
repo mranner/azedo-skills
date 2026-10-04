@@ -2,24 +2,24 @@
 
 Wikis anderer Hosts per SSH abfragen.
 
-**Inhalt:** Konfiguration `wiki-remotes.json` · Remotes anzeigen und eintragen · Lesen ueber SSH · Read-only erzwungen · Auf Entities anderer Wikis verweisen (Hints)
+**Inhalt:** Konfiguration `wiki-remotes.json` · Remotes anzeigen und eintragen · Lesen über SSH · Read-only erzwungen · Auf Entities anderer Wikis verweisen (Hints)
 
 ## Remote-Wikis (read-only)
 
 Ein Wiki, das auf einem **anderen Host** liegt, kann read-only abgefragt werden —
 ohne lokale Kopie, ohne Sync. `query` ist reines Datei-Lesen (CLAUDE.md + index.md
 lesen, Entities greppen, Treffer lesen, synthetisieren); genau dieser Read-Path
-laeuft dann ueber SSH. Es wird **nie** remote ins Wiki geschrieben.
+läuft dann über SSH. Es wird **nie** remote ins Wiki geschrieben.
 
 ### Konfiguration: `wiki-remotes.json`
 
 Tooling-Config, kein Wiki-Inhalt. Drei Quellen, in dieser Reihenfolge gemergt -
-spaetere gewinnen **je Key**, nicht als ganze Datei:
+spätere gewinnen **je Key**, nicht als ganze Datei:
 
-| Herkunft | Datei | Wofuer |
+| Herkunft | Datei | Wofür |
 |---|---|---|
 | `home` | `~/.claude/wiki-remotes.json` | was in **jedem** Projekt gilt (das Infra-Wiki) |
-| `projekt` | `<projekt-root>/.claude/wiki-remotes.json` | was zu diesem Projekt gehoert und mitgecheckt wird |
+| `projekt` | `<projekt-root>/.claude/wiki-remotes.json` | was zu diesem Projekt gehört und mitgecheckt wird |
 | `local` | `<projekt-root>/.claude/wiki-remotes.local.json` | maschinenlokal, analog zu Claudes `settings.local.json` - nur bei realem Bedarf |
 
 ```json
@@ -35,11 +35,11 @@ spaetere gewinnen **je Key**, nicht als ganze Datei:
 - `host` — SSH-Ziel, muss per Key erreichbar sein (kein Passwort-Prompt im
   Agent-Kontext).
 - `path` — Wiki-Root auf dem Host; `~` wird von der Remote-Shell expandiert.
-- Enthaelt **keine Secrets** (nur Host/Pfad) → darf eingecheckt/geteilt werden.
+- Enthält **keine Secrets** (nur Host/Pfad) → darf eingecheckt/geteilt werden.
 
 Der Home-Fallback spart die Kopie in jedem neuen Projekt, hat aber einen Preis:
 ein `[[azedo:x]]` lintet auf der eigenen Maschine sauber und bei jemandem ohne
-diese Datei nicht. **Was mit dem Projekt geteilt wird, gehoert deshalb in die
+diese Datei nicht. **Was mit dem Projekt geteilt wird, gehört deshalb in die
 projektlokale Datei** - der Home-Eintrag ist die Bequemlichkeit der eigenen
 Maschine, nicht die Dokumentation des Projekts.
 
@@ -56,18 +56,18 @@ nach dem Merge nicht mehr zu sehen, welcher Eintrag aus dem Projekt stammt und
 welcher nur hier existiert.
 
 `add` schreibt in die **projektlokale** Datei, mit `--home` stattdessen in die
-benutzerweite; ein bestehender Eintrag wird nur mit `--force` ueberschrieben.
-Legt der Aufruf einen Eintrag an, den eine spaetere Quelle bereits verdeckt,
+benutzerweite; ein bestehender Eintrag wird nur mit `--force` überschrieben.
+Legt der Aufruf einen Eintrag an, den eine spätere Quelle bereits verdeckt,
 sagt er das (`Hinweis: 'x' wird effektiv aus 'projekt' gelesen.`) - sonst
 schreibt ein `--home` still eine Datei, die nie gelesen wird.
 
-Beide Befehle loesen das Projekt aus dem **aktuellen Arbeitsverzeichnis** auf,
+Beide Befehle lösen das Projekt aus dem **aktuellen Arbeitsverzeichnis** auf,
 wie die Wikis unter `wiki/` auch.
 
-### Lesen ueber SSH
+### Lesen über SSH
 
 Die User-Shell auf den Zielhosts ist `bash` (nicht die `csh` der root-Shell), daher
-normales Quoting — kein `sh -c`-Wrapping noetig. `~` **innerhalb** des
+normales Quoting — kein `sh -c`-Wrapping nötig. `~` **innerhalb** des
 remote-quotierten Strings lassen, damit die Remote-Shell expandiert; sonst expandiert
 die lokale Shell auf das falsche Home:
 
@@ -86,9 +86,9 @@ wird **lokal** aus den gelesenen Inhalten synthetisiert.
 
 ### Read-only erzwungen
 
-Schreibende Subcommands (`ingest`, `compile`, `init`) sind fuer Remote-Wikis **nicht**
+Schreibende Subcommands (`ingest`, `compile`, `init`) sind für Remote-Wikis **nicht**
 erlaubt — mit klarem Hinweis abbrechen, nichts remote schreiben. Neue Erkenntnisse
-fuer ein Remote-Wiki werden nicht remote geschrieben, sondern mit `<remote>:handoff`
+für ein Remote-Wiki werden nicht remote geschrieben, sondern mit `<remote>:handoff`
 (siehe [handoff](pflege.md#handoff)) als lokale Note erzeugt und **manuell auf dem Zielhost**
 eingepflegt (dort lokal `ingest`/`compile`/`lint`). Read-only ist damit *by
 construction*, nicht per Konvention.
@@ -127,4 +127,4 @@ Bestehende lokale `[[slug]]` ohne Präfix bleiben unverändert.
 
 Bei `query` darf ein solcher Pointer aufgelöst werden (Ziel-Datei lesen, Antwort
 anreichern): beim Nachbar-Wiki schlicht lokal lesen, beim Remote per SSH - siehe
-Lesen ueber SSH oben.
+Lesen über SSH oben.

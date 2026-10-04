@@ -3,6 +3,18 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.63.31
+
+- **`wiki` - Abgleich mit Anthropics Skill-Richtlinien.** In „Ziel-Wiki
+  bestimmen" steht statt der Merge-Reihenfolge der Remote-Configs ein Verweis auf
+  `references/remote-wikis.md`, wo sie vollständig beschrieben ist. Gestrichen
+  sind die Begründungen, warum ein fest verdrahteter Default-Name falsch wäre und
+  warum der Wiki-Root projekt-relativ ist - die Regel trägt ohne sie.
+- **`wiki` - echte Umlaute** in SKILL.md und `references/`, auch in den
+  Artikel-Vorlagen. Code, Befehle und zitierte Script-Ausgaben bleiben
+  unverändert, ebenso die Scripts selbst. Der Anker auf „Kürzen heißt Wörter
+  streichen" ist nachgezogen.
+
 ### 1.63.30
 
 - **`wiki lint --check-shrink` - auch für SVN-Wikis.** Ohne git-Repo über dem

@@ -1,15 +1,15 @@
 # Compilation Guide
 
-Regeln fuer das Kompilieren von Quellen zu Wiki-Entities.
+Regeln für das Kompilieren von Quellen zu Wiki-Entities.
 
-**Inhalt:** Grundprinzipien · Entity-Extraktion · Duplikat-Pruefung · Cross-Referencing (Wikilinks, Backlink-Audit, Verlinkungsmuster) · Widersprueche · Index-Aktualisierung · Compile-Checkliste · Einträge in `log.md`
+**Inhalt:** Grundprinzipien · Entity-Extraktion · Duplikat-Prüfung · Cross-Referencing (Wikilinks, Backlink-Audit, Verlinkungsmuster) · Widersprüche · Index-Aktualisierung · Compile-Checkliste · Einträge in `log.md`
 
 ## Grundprinzipien
 
-1. **Source-first**: Jede Aussage im Wiki muss auf eine Quelle in `raw/` zurueckfuehrbar sein
+1. **Source-first**: Jede Aussage im Wiki muss auf eine Quelle in `raw/` zurückführbar sein
 2. **Keine Erfindungen**: Was nicht in der Quelle steht, wird nicht ins Wiki geschrieben
-3. **Secrets filtern**: Passwoerter, Private Keys, API-Tokens durch `[siehe Passwortmanager]` ersetzen
-4. **Immutable raw/**: Quelldateien in `raw/` werden nie veraendert
+3. **Secrets filtern**: Passwörter, Private Keys, API-Tokens durch `[siehe Passwortmanager]` ersetzen
+4. **Immutable raw/**: Quelldateien in `raw/` werden nie verändert
 
 ## Entity-Extraktion
 
@@ -21,17 +21,17 @@ Beim Lesen einer Quelle diese Entity-Typen identifizieren:
 | Dienst-Name, Port, Config-Pfad, Version | **service** |
 | SSH-Befehl, sudo-Regel, Jail-Zugriff | **access** |
 | Standort, VLAN, Subnetz, Netzwerk-Topologie | **site** |
-| Schritt-fuer-Schritt-Anleitung, Workflow | **procedure** |
+| Schritt-für-Schritt-Anleitung, Workflow | **procedure** |
 
 Eine Quelldatei kann mehrere Entities erzeugen. Typisch:
 - Ein Server-Doc → 1 Server + 1-3 Services + 1 Access
 - Ein Gateway-Doc → 1 Server + 3-5 Services + 1 Access + 1 Site
 
-## Duplikat-Pruefung
+## Duplikat-Prüfung
 
 Vor dem Anlegen eines neuen Entities:
 
-1. Dateiname pruefen: `ls wiki/servers/<slug>.md`
+1. Dateiname prüfen: `ls wiki/servers/<slug>.md`
 2. Hostname/Service-Name im Index suchen
 3. Wenn Entity existiert: bestehenden Artikel lesen, dann gezielt aktualisieren
 4. Wenn Entity nicht existiert: neuen Artikel mit Template anlegen
@@ -40,7 +40,7 @@ Vor dem Anlegen eines neuen Entities:
 
 ### Wikilinks setzen
 
-- Format: `[[slug]]` (ohne `.md`, ohne Pfad-Praefix)
+- Format: `[[slug]]` (ohne `.md`, ohne Pfad-Präfix)
 - Minimum 3 Wikilinks pro Artikel
 - Beim ersten Vorkommen eines referenzierten Entity im Text verlinken
 - Nicht jeden Vorkommen verlinken — nur das erste
@@ -48,27 +48,27 @@ Vor dem Anlegen eines neuen Entities:
 ### Backlink-Audit (nach jedem neuen Artikel)
 
 1. Dateiname und Titel des neuen Artikels notieren
-2. `grep -rl "<hostname>" wiki/` oder `grep -rl "<service-name>" wiki/` ausfuehren
-3. Jeden Treffer lesen und pruefen ob ein Wikilink ergaenzt werden sollte
-4. Wikilink beim ersten Vorkommen im Text ergaenzen
+2. `grep -rl "<hostname>" wiki/` oder `grep -rl "<service-name>" wiki/` ausführen
+3. Jeden Treffer lesen und prüfen ob ein Wikilink ergänzt werden sollte
+4. Wikilink beim ersten Vorkommen im Text ergänzen
 
 ### Typische Verlinkungsmuster
 
 - Server → Services die darauf laufen, Access, Site
-- Service → Server auf dem er laeuft, abhaengige Services
+- Service → Server auf dem er läuft, abhängige Services
 - Access → Ziel-Server
 - Site → Server an diesem Standort
 - Procedure → Server/Services auf die sie sich bezieht
 
-## Widersprueche
+## Widersprüche
 
 Wenn eine neue Quelle bestehenden Wiki-Inhalten widerspricht:
 
-1. Nicht still ueberschreiben
+1. Nicht still überschreiben
 2. Beide Versionen dokumentieren mit Callout:
    ```
    > [!warning] Widerspruch
-   > Quelle A sagt X, Quelle B sagt Y. Zu klaeren.
+   > Quelle A sagt X, Quelle B sagt Y. Zu klären.
    ```
 3. Beide betroffenen Artikel aktualisieren
 4. In `log.md` notieren: `CONFLICT: <entity> — <beschreibung>`
@@ -77,20 +77,20 @@ Wenn eine neue Quelle bestehenden Wiki-Inhalten widerspricht:
 
 Nach jedem Compile-Lauf:
 
-1. `index.md` oeffnen
+1. `index.md` öffnen
 2. Neuen Entity in die passende Kunden-Sektion eintragen
 3. Format: `- [[slug]] — <Kurzbeschreibung> (YYYY-MM-DD)`
 4. Alphabetisch innerhalb der Sektion sortieren
 
 ## Compile-Checkliste
 
-- [ ] Quelle vollstaendig gelesen
+- [ ] Quelle vollständig gelesen
 - [ ] Alle Entity-Typen identifiziert
-- [ ] Duplikat-Pruefung durchgefuehrt
-- [ ] Frontmatter vollstaendig (alle Pflichtfelder)
+- [ ] Duplikat-Prüfung durchgeführt
+- [ ] Frontmatter vollständig (alle Pflichtfelder)
 - [ ] Minimum 3 Wikilinks pro Artikel
 - [ ] Secrets entfernt
-- [ ] Backlink-Audit durchgefuehrt
+- [ ] Backlink-Audit durchgeführt
 - [ ] index.md aktualisiert
 - [ ] log.md Eintrag geschrieben
 

@@ -1,6 +1,6 @@
 # wiki - Subcommands
 
-Anlegen, Einlesen, Kompilieren, Ernten, Abfragen, Pruefen.
+Anlegen, Einlesen, Kompilieren, Ernten, Abfragen, Prüfen.
 
 **Inhalt:** init · ingest · compile · harvest · query · lint (mit Schrumpf-Guard `--check-shrink`)
 
@@ -29,27 +29,27 @@ neue Wiki sofort lintbar ist:
 }
 ```
 
-Fuer ein Projekt-Wiki mit abweichendem Entity-Modell die `wiki-schema.json`
-anschliessend anpassen (`required_common` + Typen-Liste) und die passende
-`CLAUDE.md` schreiben. `required_common` gilt fuer jeden Typ; die Liste pro Typ
-ergaenzt typ-spezifische Pflichtfelder.
+Für ein Projekt-Wiki mit abweichendem Entity-Modell die `wiki-schema.json`
+anschließend anpassen (`required_common` + Typen-Liste) und die passende
+`CLAUDE.md` schreiben. `required_common` gilt für jeden Typ; die Liste pro Typ
+ergänzt typ-spezifische Pflichtfelder.
 
 ### ingest
 
-Quelle ins Wiki aufnehmen. Kopiert die Originaldatei unveraendert nach `raw/`.
+Quelle ins Wiki aufnehmen. Kopiert die Originaldatei unverändert nach `raw/`.
 
 ```
 /wiki ingest <pfad>
 ```
 
-Nur fuer **lokale** Wikis. Ist `<name>` ein Remote (siehe
+Nur für **lokale** Wikis. Ist `<name>` ein Remote (siehe
 [Remote-Wikis](remote-wikis.md#remote-wikis-read-only)), abbrechen: Remote ist read-only, neue
 Erkenntnisse manuell auf dem Zielhost einpflegen.
 
 Workflow:
 1. Datei nach `raw/articles/` kopieren (Originalname beibehalten)
 2. Eintrag in `log.md` schreiben: `INGEST: <dateiname> — <kurzbeschreibung>`
-3. Datei NICHT veraendern — raw/ ist immutable
+3. Datei NICHT verändern — raw/ ist immutable
 
 Bei Verzeichnissen: alle `.md`-Dateien im Verzeichnis einzeln ingesten.
 
@@ -64,30 +64,30 @@ Ingested-Quellen zu Wiki-Entities verarbeiten.
 Ohne Argument: alle noch nicht kompilierten Quellen in `raw/` verarbeiten.
 Mit Argument: nur die angegebene Quelle.
 
-Nur fuer **lokale** Wikis. Ist `<name>` ein Remote (siehe
+Nur für **lokale** Wikis. Ist `<name>` ein Remote (siehe
 [Remote-Wikis](remote-wikis.md#remote-wikis-read-only)), abbrechen: Remote ist read-only.
 
 Workflow:
 1. Quelle lesen und Entity-Typen identifizieren — erlaubte Typen laut
    `<WIKI_ROOT>/CLAUDE.md` bzw. `<WIKI_ROOT>/wiki-schema.json` (Infra:
    Server/Service/Access/Site/Procedure; Projekt-Wikis abweichend)
-2. Fuer jeden identifizierten Entity:
-   a. Pruefen ob Entity bereits existiert (Dateiname-Check)
+2. Für jeden identifizierten Entity:
+   a. Prüfen ob Entity bereits existiert (Dateiname-Check)
    b. Wenn ja: bestehenden Artikel lesen, dann aktualisieren
-   c. Wenn nein: neuen Artikel mit vollstaendigem Frontmatter anlegen
+   c. Wenn nein: neuen Artikel mit vollständigem Frontmatter anlegen
 3. Minimum 3 Wikilinks pro Artikel setzen
 4. `index.md` aktualisieren (Entity in die passende Sektion des Wikis eintragen)
-5. Backlink-Audit: bestehende Artikel durchsuchen, die den neuen Entity erwaehnen sollten
+5. Backlink-Audit: bestehende Artikel durchsuchen, die den neuen Entity erwähnen sollten
 6. Eintrag in `log.md`: `COMPILE: <quelle> → <entity1>, <entity2>, ...`
 7. Bei aktualisierten Artikeln (Schritt 2b) den [Schrumpf-Guard](#schrumpf-guard---check-shrink)
    laufen lassen und jede Meldung einzeln beantworten, bevor committet wird
 
 **Vor Schritt 2 gelten die [Schreibregeln](../SKILL.md#schreibregeln)** - Aufnahmefilter
-(gehört es überhaupt hinein), Dichtegebot und „aktualisieren heisst ersetzen".
+(gehört es überhaupt hinein), Dichtegebot und „aktualisieren heißt ersetzen".
 
 Detaillierte Compile-Regeln (Cross-Referencing, Compile-Checkliste): [compilation-guide.md](compilation-guide.md)
 
-Entity-Templates (Infra-Modell; fuer Projekt-Wikis gilt deren `<WIKI_ROOT>/CLAUDE.md`): [frontmatter-schemas.md](frontmatter-schemas.md)
+Entity-Templates (Infra-Modell; für Projekt-Wikis gilt deren `<WIKI_ROOT>/CLAUDE.md`): [frontmatter-schemas.md](frontmatter-schemas.md)
 
 ### harvest
 
@@ -151,10 +151,10 @@ Frage gegen das Wiki beantworten.
 ```
 
 Workflow:
-1. `index.md` lesen fuer Ueberblick
+1. `index.md` lesen für Ueberblick
 2. Relevante Entities per Frontmatter-grep identifizieren (z.B. `grep -r "type: server" wiki/` im Infra-Wiki bzw. `grep -r "type: concept" wiki/` in einem Projekt-Wiki)
 3. Gefundene Artikel lesen
-4. Backlinks in Artikeln folgen fuer verwandte Informationen
+4. Backlinks in Artikeln folgen für verwandte Informationen
 5. Antwort mit Wikilink-Zitaten formulieren (`[[entity-slug]]`)
 6. Optional: Antwort als Query-Output in `wiki/queries/` speichern
 
@@ -165,20 +165,20 @@ per SSH (siehe [Hints](remote-wikis.md#auf-entities-anderer-wikis-verweisen-hint
 
 Bei einem **Remote-Wiki** dieselben Schritte, aber `index.md` und Entities per SSH
 lesen statt lokal (`ssh <host> "cat/grep …"`, siehe
-[Remote-Wikis](remote-wikis.md#remote-wikis-read-only)). Schritt 6 (Speichern) entfaellt — Remote
+[Remote-Wikis](remote-wikis.md#remote-wikis-read-only)). Schritt 6 (Speichern) entfällt — Remote
 ist read-only.
 
 ### lint
 
-Wiki auf strukturelle Probleme pruefen.
+Wiki auf strukturelle Probleme prüfen.
 
 ```
 /wiki lint
 ```
 
-Fuehrt `python3 "$SKILL_DIR/scripts/lint-wiki.py" <WIKI_ROOT>` aus (z.B.
+Führt `python3 "$SKILL_DIR/scripts/lint-wiki.py" <WIKI_ROOT>` aus (z.B.
 `wiki/azedo/`, `wiki/cris/` — jeweils relativ zum Projekt-Root; welches Wiki ohne
-Praefix gemeint ist, klaert Schritt 1 unter [Ziel-Wiki bestimmen](../SKILL.md#ziel-wiki-bestimmen)).
+Präfix gemeint ist, klärt Schritt 1 unter [Ziel-Wiki bestimmen](../SKILL.md#ziel-wiki-bestimmen)).
 
 Das erlaubte Entity-Modell (Typen + Pflichtfelder) liest der Linter aus
 `<WIKI_ROOT>/wiki-schema.json`; fehlt die Datei, gilt das Infra-Default.
@@ -191,12 +191,12 @@ ein fehlender Slug ist ein Fehler - und danach gegen die
 Remote-Ziele gelten ungeprüft als gültig, `--check-remotes` verifiziert sie per SSH.
 Unbekanntes Präfix bleibt ein toter Link.
 
-Prueft:
+Prüft:
 - **Orphaned pages**: Artikel ohne eingehende Links
 - **Dead links**: Wikilinks zu nicht-existierenden Artikeln - in den Artikeln als
-  Fehler, in `log.md` und `index.md` als Warnung (beide liegen ausserhalb von
-  `wiki/` und zaehlen nur als Quelle, nicht als Ziel; `log.md` ist historisch,
-  ein alter Eintrag darf auf einen aufgeloesten Artikel zeigen)
+  Fehler, in `log.md` und `index.md` als Warnung (beide liegen außerhalb von
+  `wiki/` und zählen nur als Quelle, nicht als Ziel; `log.md` ist historisch,
+  ein alter Eintrag darf auf einen aufgelösten Artikel zeigen)
 - **Missing frontmatter**: Fehlende Pflichtfelder laut Wiki-Schema (Infra: type, kunde, date, status; Projekt-Wikis abweichend)
 - **Missing index entries**: Artikel die nicht in index.md gelistet sind
 - **Naming violations**: Dateinamen die nicht der Konvention entsprechen
@@ -233,21 +233,21 @@ Nach einem `compile` oder `refactor` aufrufen, **bevor** committet wird:
 python3 "$SKILL_DIR/scripts/lint-wiki.py" --check-shrink <WIKI_ROOT>
 ```
 
-Vergleicht jeden geaenderten Artikel mit seiner Fassung in `git HEAD` und meldet,
+Vergleicht jeden geänderten Artikel mit seiner Fassung in `git HEAD` und meldet,
 was verschwunden ist: ein Frontmatter-Feld, ein `##`-Abschnitt, ein Wikilink auf
-eine andere Entity. Liegt kein git-Repo ueber dem Wiki, aber eine SVN-Arbeitskopie,
+eine andere Entity. Liegt kein git-Repo über dem Wiki, aber eine SVN-Arbeitskopie,
 kommt die Vergleichsfassung aus `svn cat -r BASE`. Ungetrackte Artikel und
-unveraenderte Dateien bleiben still, ohne beides entfaellt die Pruefung mit einem
+unveränderte Dateien bleiben still, ohne beides entfällt die Prüfung mit einem
 Hinweis. Ein **umgehängter** Link
 zählt nicht als Verlust: steht in einem geänderten Zeilenblock statt `[[a]]` ein
 neuer Link, gilt `[[a]]` als ersetzt. Beim Zerlegen eines Artikels kämen sonst
 Dutzende Warnungen, die alle Absicht sind.
 
-Gemeint ist **nicht** die Laenge - Verdichten ist erwuenscht, siehe
-[Schreibregeln](../SKILL.md#kürzen-heisst-wörter-streichen-nicht-sachverhalte).
-Gemeint ist, was sich aufzaehlen laesst: dass ein Artikel beim Ueberschreiben
+Gemeint ist **nicht** die Länge - Verdichten ist erwünscht, siehe
+[Schreibregeln](../SKILL.md#kürzen-heißt-wörter-streichen-nicht-sachverhalte).
+Gemeint ist, was sich aufzählen lässt: dass ein Artikel beim Ueberschreiben
 seine Beziehung zu einer anderen Entity oder einen ganzen Abschnitt verliert,
-faellt beim Durchlesen des neuen Textes niemandem auf - dem Diff schon.
+fällt beim Durchlesen des neuen Textes niemandem auf - dem Diff schon.
 
 Deshalb Warnung und nicht Fehler: ob ein weggefallener Abschnitt Absicht war
 oder ein Versehen, kann nur ein Mensch entscheiden. Jede Meldung einzeln
