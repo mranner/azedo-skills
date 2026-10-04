@@ -235,8 +235,10 @@ python3 "$SKILL_DIR/scripts/lint-wiki.py" --check-shrink <WIKI_ROOT>
 
 Vergleicht jeden geaenderten Artikel mit seiner Fassung in `git HEAD` und meldet,
 was verschwunden ist: ein Frontmatter-Feld, ein `##`-Abschnitt, ein Wikilink auf
-eine andere Entity. Ungetrackte Artikel und unveraenderte Dateien bleiben still,
-ohne git-Repo entfaellt die Pruefung mit einem Hinweis. Ein **umgehängter** Link
+eine andere Entity. Liegt kein git-Repo ueber dem Wiki, aber eine SVN-Arbeitskopie,
+kommt die Vergleichsfassung aus `svn cat -r BASE`. Ungetrackte Artikel und
+unveraenderte Dateien bleiben still, ohne beides entfaellt die Pruefung mit einem
+Hinweis. Ein **umgehängter** Link
 zählt nicht als Verlust: steht in einem geänderten Zeilenblock statt `[[a]]` ein
 neuer Link, gilt `[[a]]` als ersetzt. Beim Zerlegen eines Artikels kämen sonst
 Dutzende Warnungen, die alle Absicht sind.

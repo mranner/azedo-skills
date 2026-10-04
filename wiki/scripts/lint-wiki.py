@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # stdlib only, no pip dependencies
-# version 1.63.29
+# version 1.63.30
 
 """
 lint-wiki.py — Strukturpruefung fuer LLM Wikis (Infra + Projekt-Doku).
@@ -17,7 +17,8 @@ Prueft:
 - Optional: Frontmatter-Verweise (z.B. tests, config) gegen ihre Pruefquelle,
   konfiguriert unter "references" in wiki-schema.json
 - Abschnittsverweise ([[x]], Abschnitt Y / Y-Abschnitt): gibt es Y in x noch?
-- Mit --check-shrink: was eine Aktualisierung gegenueber git HEAD verloren hat
+- Mit --check-shrink: was eine Aktualisierung gegenueber git HEAD (ohne git:
+  SVN-BASE) verloren hat
 
 Praefix-Pointer [[<praefix>:<slug>]] werden in dieser Reihenfolge aufgeloest:
 
@@ -471,6 +472,30 @@ def git_show(repo_root, ref, rel_path):
     return res.stdout if res.returncode == 0 else None
 
 
+def svn_working_copy(path):
+    """True, wenn <path> in einer SVN-Arbeitskopie liegt."""
+    try:
+        res = subprocess.run(
+            ["svn", "info", str(path)],
+            capture_output=True, text=True, timeout=20,
+        )
+    except (subprocess.SubprocessError, OSError):
+        return False
+    return res.returncode == 0
+
+
+def svn_cat(path):
+    """Dateiinhalt aus der SVN-BASE, oder None (neu, unversioniert)."""
+    try:
+        res = subprocess.run(
+            ["svn", "cat", "-r", "BASE", str(path)],
+            capture_output=True, text=True, timeout=20,
+        )
+    except (subprocess.SubprocessError, OSError):
+        return None
+    return res.stdout if res.returncode == 0 else None
+
+
 def repointed_links(old_body, new_body):
     """Links, die an ihrer Stelle durch einen anderen Link ersetzt wurden.
 
@@ -722,17 +747,22 @@ def lint_wiki(wiki_root, check_remotes=False, check_shrink_flag=False):
     else:
         errors.append("index.md nicht gefunden")
 
-    # Optional: was die Arbeitskopie gegenueber git HEAD verloren hat
+    # Optional: was die Arbeitskopie gegenueber git HEAD bzw. SVN-BASE verloren hat
     if check_shrink_flag:
         repo_root = git_repo_root(wiki_root)
-        if repo_root is None:
-            warnings.append("--check-shrink: kein git-Repo ueber dem Wiki gefunden, uebersprungen")
+        if repo_root is not None:
+            def base_text(path):
+                return git_show(repo_root, "HEAD", path.resolve().relative_to(repo_root))
+        elif svn_working_copy(wiki_root):
+            base_text = svn_cat
         else:
+            base_text = None
+            warnings.append("--check-shrink: weder git-Repo noch SVN-Arbeitskopie ueber dem Wiki gefunden, uebersprungen")
+        if base_text is not None:
             for slug in sorted(articles):
                 info = articles[slug]
                 new_text = info["path"].read_text(encoding="utf-8")
-                rel = info["path"].resolve().relative_to(repo_root)
-                old_text = git_show(repo_root, "HEAD", rel)
+                old_text = base_text(info["path"])
                 if old_text is None or old_text == new_text:
                     continue
                 for msg in check_shrink(old_text, new_text):
@@ -786,7 +816,7 @@ if __name__ == "__main__":
         print(f"  z.B.: {sys.argv[0]} wiki/azedo/")
         print(f"  --check-remotes: [[<remote>:<slug>]]-Ziele per SSH verifizieren")
         print(f"  --check-shrink:  Frontmatter-Felder, Abschnitte und Wikilinks melden,")
-        print(f"                   die die Arbeitskopie gegenueber git HEAD verloren hat")
+        print(f"                   die die Arbeitskopie gegenueber git HEAD bzw. SVN-BASE verloren hat")
         sys.exit(2)
     sys.exit(lint_wiki(args[0], check_remotes=check_remotes,
                        check_shrink_flag=check_shrink_flag))

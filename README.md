@@ -661,14 +661,10 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.63.29
+### 1.63.30
 
-- **`imap quote --json` - Reply-All ohne Phantom-Adresse.** Ein Anzeigename in
-  Anführungszeichen, der im To/Cc-Header umbrochen ist (`"Ing.\r\n Max
-  Muster"`), ergab in `reply.all` einen eigenen Eintrag `ing.`. Die Header-Werte
-  gehen jetzt ungefaltet an `getaddresses()`.
-- **`imap quote`/`contacts` - zerrissene Message-IDs.** Steht in References eine
-  ID mit Leerzeichen (vom Client mitten in der ID gefaltet und so weitergereicht),
-  wurde sie in zwei Tokens zerlegt und landete kaputt in `reply.references`. Neue
-  Funktion `split_message_ids()` zerlegt entlang der spitzen Klammern und entfernt
-  Whitespace innerhalb einer ID; Kommas zwischen den IDs fallen wie bisher weg.
+- **`wiki lint --check-shrink` - auch für SVN-Wikis.** Ohne git-Repo über dem
+  Wiki wurde die Prüfung übersprungen, bei einem Wiki in SVN (CRIS-Wiki) also
+  gerade nach einem `refactor`. Liegt das Wiki in einer SVN-Arbeitskopie, holt
+  `lint-wiki.py` die Vergleichsfassung jetzt per `svn cat -r BASE`; Meldungen und
+  die Regel für umgehängte Links bleiben gleich. git hat Vorrang.

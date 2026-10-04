@@ -3,6 +3,14 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.63.30
+
+- **`wiki lint --check-shrink` - auch für SVN-Wikis.** Ohne git-Repo über dem
+  Wiki wurde die Prüfung übersprungen, bei einem Wiki in SVN (CRIS-Wiki) also
+  gerade nach einem `refactor`. Liegt das Wiki in einer SVN-Arbeitskopie, holt
+  `lint-wiki.py` die Vergleichsfassung jetzt per `svn cat -r BASE`; Meldungen und
+  die Regel für umgehängte Links bleiben gleich. git hat Vorrang.
+
 ### 1.63.29
 
 - **`imap quote --json` - Reply-All ohne Phantom-Adresse.** Ein Anzeigename in
