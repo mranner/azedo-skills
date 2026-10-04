@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 
-"""Prueft das Frontmatter aller Skills im Repo gegen die Anthropic-Empfehlungen
+"""Prüft das Frontmatter aller Skills im Repo gegen die Anthropic-Empfehlungen
 und die Repo-Konventionen aus CLAUDE.md, dazu ihren Eintrag in install.sh.
 
 Aufruf ohne Argumente im Repo-Wurzelverzeichnis (oder mit Pfaden auf einzelne
 Skill-Verzeichnisse). Exit 0 = keine Fehler, Exit 1 = mindestens ein Fehler.
-Warnungen aendern den Exit-Code nicht."""
+Warnungen ändern den Exit-Code nicht."""
 
 import os
 import re
 import sys
 
-# Schluessel, die Claude Code bzw. die Agent-Skills-Spec kennen. Alles andere
+# Schlüssel, die Claude Code bzw. die Agent-Skills-Spec kennen. Alles andere
 # ist vermutlich ein Tippfehler und wird gemeldet.
 
 BEKANNTE_SCHLUESSEL = {
@@ -31,7 +31,7 @@ MAX_BODY_ZEILEN = 500
 
 
 def frontmatter(text):
-    """Gibt (block, body) zurueck oder (None, None) ohne Frontmatter."""
+    """Gibt (block, body) zurück oder (None, None) ohne Frontmatter."""
 
     m = re.match(r"---\n(.*?)\n---\n", text, re.S)
     if not m:
@@ -41,10 +41,10 @@ def frontmatter(text):
 
 
 def top_level_schluessel(block):
-    """Sammelt die Schluessel der obersten Ebene samt ihrer Notation.
+    """Sammelt die Schlüssel der obersten Ebene samt ihrer Notation.
 
     Ein eigener Mini-Parser, weil PyYAML auf den Zielsystemen nicht
-    durchgaengig installiert ist."""
+    durchgängig installiert ist."""
 
     gefunden = {}
     for zeile in block.split("\n"):
@@ -80,7 +80,7 @@ def description_text(block):
 
 
 def pruefe(verzeichnis):
-    """Gibt (fehler, warnungen) fuer einen Skill zurueck."""
+    """Gibt (fehler, warnungen) für einen Skill zurück."""
 
     fehler = []
     warnungen = []
@@ -110,7 +110,7 @@ def pruefe(verzeichnis):
         if not re.match(r"^[a-z0-9]+(-[a-z0-9]+)*$", name):
             fehler.append(f"name '{name}' ist nicht kebab-case")
         if len(name) > MAX_NAME:
-            fehler.append(f"name laenger als {MAX_NAME} Zeichen")
+            fehler.append(f"name länger als {MAX_NAME} Zeichen")
 
     # description
 
@@ -133,28 +133,28 @@ def pruefe(verzeichnis):
                 f"description hat {len(text_desc)} Zeichen, erlaubt sind {MAX_DESCRIPTION}"
             )
 
-    # Version gehoert ausschliesslich in VERSION
+    # Version gehört ausschließlich in VERSION
 
     if re.search(r"^\s+version:", block, re.M):
         fehler.append(
-            "version im Frontmatter - die Version steht ausschliesslich in "
-            "VERSION (upstream_version fuer fremde Herkunft ist erlaubt)"
+            "version im Frontmatter - die Version steht ausschließlich in "
+            "VERSION (upstream_version für fremde Herkunft ist erlaubt)"
         )
 
-    # unbekannte Schluessel
+    # unbekannte Schlüssel
 
     unbekannt = [k for k in schluessel if k not in BEKANNTE_SCHLUESSEL]
     verschachtelt = set(re.findall(r"^  ([A-Za-z0-9_-]+):", block, re.M))
     unbekannt = [k for k in unbekannt if k not in verschachtelt]
     for k in unbekannt:
-        warnungen.append(f"unbekannter Schluessel '{k}'")
+        warnungen.append(f"unbekannter Schlüssel '{k}'")
 
-    # Body-Laenge
+    # Body-Länge
 
     zeilen = len(body.splitlines())
     if zeilen > MAX_BODY_ZEILEN:
         warnungen.append(
-            f"SKILL.md-Body hat {zeilen} Zeilen - ueber {MAX_BODY_ZEILEN} gehoert "
+            f"SKILL.md-Body hat {zeilen} Zeilen - über {MAX_BODY_ZEILEN} gehört "
             "Inhalt nach references/"
         )
 
@@ -165,7 +165,7 @@ def install_liste():
     """Liest die hartcodierte Skill-Liste aus install.sh.
 
     Fehlt ein Skill dort, bekommt eine frische Installation keinen Symlink -
-    auf einer Maschine, die ihn schon verlinkt hat, faellt das nicht auf."""
+    auf einer Maschine, die ihn schon verlinkt hat, fällt das nicht auf."""
 
     if not os.path.isfile("install.sh"):
         return None
@@ -196,7 +196,7 @@ def main():
     liste = install_liste()
 
     if liste is None:
-        print("WARNUNG install.sh: Skill-Liste nicht gefunden - Eintrag ungeprueft")
+        print("WARNUNG install.sh: Skill-Liste nicht gefunden - Eintrag ungeprüft")
         warnungen_gesamt += 1
 
     for ziel in ziele:
@@ -205,7 +205,7 @@ def main():
         if liste is not None and name not in liste:
             fehler.append(
                 "fehlt in der Skill-Liste von install.sh - eine frische "
-                "Installation bekaeme keinen Symlink"
+                "Installation bekäme keinen Symlink"
             )
         for f in fehler:
             print(f"FEHLER  {ziel}: {f}")
@@ -224,7 +224,7 @@ def main():
             warnungen_gesamt += 1
 
     print(
-        f"\n{len(ziele)} Skills geprueft, "
+        f"\n{len(ziele)} Skills geprüft, "
         f"{fehler_gesamt} Fehler, {warnungen_gesamt} Warnungen"
     )
 

@@ -9,7 +9,7 @@ git clone https://github.com/mranner/azedo-skills.git ~/.claude/azedo-skills
 sh ~/.claude/azedo-skills/install.sh
 ```
 
-Das Install-Script legt Symlinks an und traegt die nötigen Permissions in `~/.claude/settings.json` ein (Read/Write auf den Skills-Ordner).
+Das Install-Script legt Symlinks an und trägt die nötigen Permissions in `~/.claude/settings.json` ein (Read/Write auf den Skills-Ordner).
 
 ## Update
 
@@ -21,26 +21,26 @@ cd ~/.claude/azedo-skills && git pull
 jedem `git pull` **automatisch** verlinkt — man muss `install.sh` nach einem
 Update also nicht erneut aufrufen.
 
-**Aeltere Installationen ohne Hook:** einmalig `sh install.sh` ausfuehren,
+**Ältere Installationen ohne Hook:** einmalig `sh install.sh` ausführen,
 danach greift der Automatismus bei jedem weiteren `git pull`.
 
-Nach einem Update ggf. `setup` erneut ausfuehren, damit `instance.json` aktualisiert wird.
+Nach einem Update ggf. `setup` erneut ausführen, damit `instance.json` aktualisiert wird.
 
-**Ab v1.1.0:** `setup` muss nach dem Update einmal ausgefuehrt werden — die `instance.json` enthaelt jetzt die Benutzerrolle (Admin/Non-Admin) fuer die API-Aufrufe.
+**Ab v1.1.0:** `setup` muss nach dem Update einmal ausgeführt werden — die `instance.json` enthält jetzt die Benutzerrolle (Admin/Non-Admin) für die API-Aufrufe.
 
-## Neue Skills hinzufuegen
+## Neue Skills hinzufügen
 
 **Wichtig:** Wird ein neuer Skill angelegt, muss sein Verzeichnisname in die
 `for skill in …`-Liste in `install.sh` eingetragen werden. Sonst legt
-`install.sh` beim naechsten Lauf keinen Symlink an und der Skill ist nach dem
-Update nicht verfuegbar.
+`install.sh` beim nächsten Lauf keinen Symlink an und der Skill ist nach dem
+Update nicht verfügbar.
 
 Alle Skript-Shebangs verwenden `#!/usr/bin/env python3` (minor-version-
-unabhaengig); ein neuer Skill sollte das ebenso halten.
+unabhängig); ein neuer Skill sollte das ebenso halten.
 
 ## Skills umbauen
 
-Wird eine grosse `SKILL.md` in `references/` aufgeteilt, brechen relative
+Wird eine große `SKILL.md` in `references/` aufgeteilt, brechen relative
 Verweise still - kein Fehler beim Laden, das Modell folgt dem Verweis erst im
 Einsatz ins Leere:
 
@@ -90,9 +90,9 @@ KANBOARD_TOKEN=dein-api-token
 KANBOARD_USER=dein-username
 ```
 
-`KANBOARD_USER` ist optional — ohne Angabe wird `jsonrpc` (Admin-API-User) verwendet. Fuer persoenliche API-Tokens den eigenen Kanboard-Usernamen eintragen.
+`KANBOARD_USER` ist optional — ohne Angabe wird `jsonrpc` (Admin-API-User) verwendet. Für persönliche API-Tokens den eigenen Kanboard-Usernamen eintragen.
 
-Dann einmalig `setup` ausfuehren (aus dem Arbeitsverzeichnis mit der `.env`):
+Dann einmalig `setup` ausführen (aus dem Arbeitsverzeichnis mit der `.env`):
 
 ```bash
 python3 ~/.claude/skills/kanboard/kanboard setup --default-user <username>
@@ -120,7 +120,7 @@ KIMAI_HOST=https://kimai2.example.com
 KIMAI_TOKEN=dein-api-token
 ```
 
-Dann einmalig `setup` ausfuehren (aus dem Arbeitsverzeichnis mit der `.env`):
+Dann einmalig `setup` ausführen (aus dem Arbeitsverzeichnis mit der `.env`):
 
 ```bash
 python3 ~/.claude/skills/kimai/kimai setup
@@ -219,13 +219,13 @@ ENVATO_TOKEN=dein-personal-token
 
 ### forgejo
 
-Vorhandene **Bare-Repos in eine Forgejo-Instanz uebernehmen** und den HTTPS-Zugang dorthin einrichten: `preflight` (Bare-Repo, Arbeitskopie und Zielplatz nebeneinander - ein zurueckliegendes Bare-Repo faellt **vor** dem `mv` auf), `adopt` (verschieben, `chown` auf das Owner-Verzeichnis, HEAD vor dem Adopt richten, `POST admin/unadopted`, Gegenprobe), `access-check` (Helper-Scoping messen samt Negativprobe gegen einen fremden Host, Credential-Datei auf Form, Platzhalter und Rechte pruefen - nur Zaehler, nie Inhalt), `access-setup` (Helper-Zeiger setzen, Datei mit `--fix-file` in Form bringen, ohne den Wert auszugeben) und `api` fuer einzelne Aufrufe. Schreibende Schritte erst mit `--commit`. Jeder API-Aufruf stellt einen **Einweg-Token** aus, benutzt ihn und loescht ihn im selben Script auf dem Zielhost - der Wert erreicht die lokale Kommandozeile nie. `git remote set-url` und Treffer in der Projektdoku bleiben bewusst beim Menschen.
+Vorhandene **Bare-Repos in eine Forgejo-Instanz übernehmen** und den HTTPS-Zugang dorthin einrichten: `preflight` (Bare-Repo, Arbeitskopie und Zielplatz nebeneinander - ein zurückliegendes Bare-Repo fällt **vor** dem `mv` auf), `adopt` (verschieben, `chown` auf das Owner-Verzeichnis, HEAD vor dem Adopt richten, `POST admin/unadopted`, Gegenprobe), `access-check` (Helper-Scoping messen samt Negativprobe gegen einen fremden Host, Credential-Datei auf Form, Platzhalter und Rechte prüfen - nur Zähler, nie Inhalt), `access-setup` (Helper-Zeiger setzen, Datei mit `--fix-file` in Form bringen, ohne den Wert auszugeben) und `api` für einzelne Aufrufe. Schreibende Schritte erst mit `--commit`. Jeder API-Aufruf stellt einen **Einweg-Token** aus, benutzt ihn und löscht ihn im selben Script auf dem Zielhost - der Wert erreicht die lokale Kommandozeile nie. `git remote set-url` und Treffer in der Projektdoku bleiben bewusst beim Menschen.
 
-Config `~/.claude/forgejo.json` (Vorlage `forgejo.example.json`, anderer Pfad ueber `FORGEJO_CONFIG`): `host` (oeffentlicher Name der Forge), `forgejo-host`, `ssh` (Befehl als Liste, der dort root wird), `api-user`, `owner` und die Pfade auf dem Host. Lokal laeuft das Script nur, wenn es auf dem Forgejo-Host **und** als root sitzt - sonst ueber `ssh`, auch zum selben Rechner.
+Config `~/.claude/forgejo.json` (Vorlage `forgejo.example.json`, anderer Pfad über `FORGEJO_CONFIG`): `host` (öffentlicher Name der Forge), `forgejo-host`, `ssh` (Befehl als Liste, der dort root wird), `api-user`, `owner` und die Pfade auf dem Host. Lokal läuft das Script nur, wenn es auf dem Forgejo-Host **und** als root sitzt - sonst über `ssh`, auch zum selben Rechner.
 
 **Voraussetzungen:** Python >= 3.9 (stdlib only); auf dem Forgejo-Host `curl`, `sqlite3` und `git`.
 
-**Trigger:** `/forgejo` oder natuerliche Sprache wie "nimm das Repo in Forgejo auf", "der Push in die Forge haengt", "401 trotz frischem Token".
+**Trigger:** `/forgejo` oder natürliche Sprache wie "nimm das Repo in Forgejo auf", "der Push in die Forge hängt", "401 trotz frischem Token".
 
 ### google-analytics
 
@@ -234,20 +234,20 @@ Google Analytics 4 Datenabfrage via Service Account. Python-Script (stdlib only,
 - Accounts und Properties auflisten
 - Reports: Custom Dimensions, Metrics, Filter, Sortierung, Datumsbereiche
 - Realtime: aktive User, aktuelle Seitenaufrufe
-- Metadata: verfuegbare Dimensionen und Metriken einer Property
-- Custom Dimensions auflisten und anlegen — ohne Registrierung sind Event-Parameter ueber die Data API gar nicht abfragbar, und die Registrierung wirkt **nicht rueckwirkend**
+- Metadata: verfügbare Dimensionen und Metriken einer Property
+- Custom Dimensions auflisten und anlegen — ohne Registrierung sind Event-Parameter über die Data API gar nicht abfragbar, und die Registrierung wirkt **nicht rückwirkend**
 - Datenaufbewahrung anzeigen und setzen (GA4-Default sind 2 Monate)
 - Tab-separierte oder JSON-Ausgabe
 
-**Voraussetzungen:** Python >= 3.11, Package `cryptography` (fuer JWT-Signierung; Installation plattformabhaengig, das Script nennt den passenden Weg)
+**Voraussetzungen:** Python >= 3.11, Package `cryptography` (für JWT-Signierung; Installation plattformabhängig, das Script nennt den passenden Weg)
 
-**Setup:** Service Account JSON unter `~/.config/ga4-service-account.json`. Service Account in den GA4-Properties hinterlegen: als Betrachter fuer die lesenden Subcommands, als **Bearbeiter** fuer die schreibenden. Dann:
+**Setup:** Service Account JSON unter `~/.config/ga4-service-account.json`. Service Account in den GA4-Properties hinterlegen: als Betrachter für die lesenden Subcommands, als **Bearbeiter** für die schreibenden. Dann:
 
 ```bash
 python3 "$SKILL_DIR/google-analytics" setup
 ```
 
-**Trigger:** `/google-analytics`, `/ga4` oder natuerliche Sprache wie "wie viele Besucher", "Traffic letzte Woche", "GA4 Report".
+**Trigger:** `/google-analytics`, `/ga4` oder natürliche Sprache wie "wie viele Besucher", "Traffic letzte Woche", "GA4 Report".
 
 ### google-search-console
 
@@ -259,7 +259,7 @@ Google Search Console (GSC) Datenabfrage via Service Account. Python-Script (std
 - Sitemaps: eingereichte Sitemaps + submitted/indexed URL-Zahlen (`sitemaps`); einreichen (`submit-sitemap`) und entfernen (`delete-sitemap`) mit y/N-Abfrage bzw. `--yes`
 - Tab-separierte oder JSON-Ausgabe
 
-**Voraussetzungen:** Python >= 3.11, Package `cryptography` (fuer JWT-Signierung; Installation plattformabhaengig, das Script nennt den passenden Weg)
+**Voraussetzungen:** Python >= 3.11, Package `cryptography` (für JWT-Signierung; Installation plattformabhängig, das Script nennt den passenden Weg)
 
 **Setup:** Service Account JSON unter `~/.config/ga4-service-account.json` (derselbe SA wie GA4, oder Pfad via `GSC_SERVICE_ACCOUNT`). Service Account als Nutzer in der GSC-Property hinterlegen, Search Console API im GCP-Projekt aktivieren. Dann:
 
@@ -267,7 +267,7 @@ Google Search Console (GSC) Datenabfrage via Service Account. Python-Script (std
 python3 "$SKILL_DIR/google-search-console" setup
 ```
 
-**Trigger:** `/google-search-console`, `/gsc` oder natuerliche Sprache wie "organische Klicks", "Impressionen in der Google-Suche", "ist die Seite indexiert".
+**Trigger:** `/google-search-console`, `/gsc` oder natürliche Sprache wie "organische Klicks", "Impressionen in der Google-Suche", "ist die Seite indexiert".
 
 ### image-optimize
 
@@ -322,16 +322,16 @@ Die Gegenrichtung zu `md2pdf`: wandelt Dokumente über das CLI [liteparse](https
 
 ### ripgrep
 
-Referenz-Skill fuer `rg` (ripgrep) — schnelle Textsuche in Dateien und Verzeichnissen. Kein eigenes Script, reine SKILL.md mit:
+Referenz-Skill für `rg` (ripgrep) — schnelle Textsuche in Dateien und Verzeichnissen. Kein eigenes Script, reine SKILL.md mit:
 
 - Quick Reference: alle wichtigen Flags und Optionen
 - Regex-Patterns, Multiline-Matching, File-Filtering
 - Common Patterns: Funktionen, Imports, TODOs finden
-- Performance-Tipps und haeufige Fehler
+- Performance-Tipps und häufige Fehler
 
 Quelle: [ratacat/claude-skills](https://github.com/ratacat/claude-skills/tree/main/skills/ripgrep)
 
-**Trigger:** Wird automatisch als Kontext geladen, kein expliziter Aufruf noetig.
+**Trigger:** Wird automatisch als Kontext geladen, kein expliziter Aufruf nötig.
 
 ### php-formatting
 
@@ -340,31 +340,31 @@ PHP-Code-Formatierung nach PSR-2 mit azedo-spezifischen Anpassungen. Kein eigene
 - PSR-2 Grundregeln als Basis
 - Tabs statt Spaces (Ausnahme: bestehende Dateien mit Spaces bleiben bei 4 Spaces)
 - Leerzeilen um Kontrollstrukturen (`if`, `for`, `foreach`, etc.)
-- Leerzeilen um Kommentarbloecke und DocBlocks
+- Leerzeilen um Kommentarblöcke und DocBlocks
 - Leerzeilen nach Methoden-/Funktionsdeklarationen
 
-**Trigger:** `/php-formatting` oder natuerliche Sprache wie "formatiere den PHP Code". Wird automatisch angewendet wenn PHP-Code erstellt oder geaendert wird.
+**Trigger:** `/php-formatting` oder natürliche Sprache wie "formatiere den PHP Code". Wird automatisch angewendet wenn PHP-Code erstellt oder geändert wird.
 
 ### tcsh
 
-Referenz-Skill fuer tcsh — Remote-Administration auf FreeBSD-Servern. Root-Shell auf allen FreeBSD-Servern ist `tcsh`, Claude denkt aber in bash/sh. Kein eigenes Script, reine SKILL.md mit:
+Referenz-Skill für tcsh — Remote-Administration auf FreeBSD-Servern. Root-Shell auf allen FreeBSD-Servern ist `tcsh`, Claude denkt aber in bash/sh. Kein eigenes Script, reine SKILL.md mit:
 
 - Entscheidungsmatrix: tcsh nativ vs. `sh -c` Wrapping
 - tcsh-Syntax-Kurzreferenz (Variablen, Redirects, Kontrollstrukturen, File-Tests)
-- Bash → tcsh Uebersetzungstabelle (die haeufigsten 20 Patterns)
+- Bash → tcsh Übersetzungstabelle (die häufigsten 20 Patterns)
 - FreeBSD-Admin-Patterns (service, pkg, jails, logs, firewall, ZFS)
-- Quoting-Regeln fuer SSH → tcsh und SSH → jexec/iocage → sh -c
+- Quoting-Regeln für SSH → tcsh und SSH → jexec/iocage → sh -c
 - Bekannte Fallen (Glob-Expansion, History-!, foreach, sed -i, Funktionen)
 
 **Trigger:** Wird automatisch angewendet bei SSH-Befehlen auf FreeBSD-Servern.
 
 ### wp-cli
 
-Referenz-Skill fuer `wp` CLI — WordPress-Administration auf FreeBSD-Servern mit Jails. Kein eigenes Script, reine SKILL.md mit:
+Referenz-Skill für `wp` CLI — WordPress-Administration auf FreeBSD-Servern mit Jails. Kein eigenes Script, reine SKILL.md mit:
 
-- Zugriffsmuster fuer ezjail und iocage (SSH → jexec/iocage exec → sudo -u)
+- Zugriffsmuster für ezjail und iocage (SSH → jexec/iocage exec → sudo -u)
 - Datenbank-Operationen: Export, Import, Query, Search-Replace (mit Safety-Workflow)
-- Code-Ausfuehrung im WordPress-Kontext: `wp eval`, `wp eval-file`, `$wpdb`-Workaround
+- Code-Ausführung im WordPress-Kontext: `wp eval`, `wp eval-file`, `$wpdb`-Workaround
 - Quick Reference: Plugins, Themes, Users, Options, Cache, Cron, Core, Wartung
 - Bulk-Operationen, Multisite, Performance-Flags, Troubleshooting
 
@@ -374,21 +374,21 @@ Referenz-Skill fuer `wp` CLI — WordPress-Administration auf FreeBSD-Servern mi
 
 Synchronisiert WordPress-Plugins und -Themes zwischen Produktions-Installationen (in FreeBSD-Jails) und der DEV-Umgebung via rsync. Bidirektional: Prod → DEV und DEV → Prod. Kein eigenes Script, reine SKILL.md mit:
 
-- Pfad-Schema fuer DEV und Prod (iocage/ezjail); DEV-Host und Jail-Name kommen aus dem Infra-Wiki, nicht aus dem Skill
+- Pfad-Schema für DEV und Prod (iocage/ezjail); DEV-Host und Jail-Name kommen aus dem Infra-Wiki, nicht aus dem Skill
 - rsync-Befehle in beide Richtungen
 - Permissions: DEV immer `www:<gruppe>` 775/664, Prod an bestehender Installation orientieren
-- Aufraeumen von macOS-Artefakten (._*, .DS*)
+- Aufräumen von macOS-Artefakten (._*, .DS*)
 
 **Trigger:** ausschließlich `/wp-sync-dev` (`disable-model-invocation: true`).
 
 ### mainwp
 
-MainWP Dashboard — WordPress-Sites netzwerkuebergreifend verwalten.
-Generischer Abilities-Executor: 5 Subcommands fuer beliebige MainWP-Abilities.
+MainWP Dashboard — WordPress-Sites netzwerkübergreifend verwalten.
+Generischer Abilities-Executor: 5 Subcommands für beliebige MainWP-Abilities.
 
 - Sites auflisten, Details anzeigen
-- Updates pruefen und installieren
-- Plugins/Themes verwalten (aktivieren, deaktivieren, installieren, loeschen)
+- Updates prüfen und installieren
+- Plugins/Themes verwalten (aktivieren, deaktivieren, installieren, löschen)
 - Clients und Tags organisieren
 - Batch-Operationen mit Job-Polling
 
@@ -406,7 +406,7 @@ MAINWP_V2_CONSUMER_KEY=<consumer-key>
 MAINWP_V2_CONSUMER_SECRET=<consumer-secret>
 ```
 
-Application Password fuer die Abilities-API (Sites, Updates, Clients). Consumer Key/Secret fuer die REST API v2 (Tags).
+Application Password für die Abilities-API (Sites, Updates, Clients). Consumer Key/Secret für die REST API v2 (Tags).
 
 Dann einmalig:
 
@@ -414,24 +414,24 @@ Dann einmalig:
 python3 ~/.claude/skills/mainwp/mainwp setup
 ```
 
-**Trigger:** `/mainwp` oder natuerliche Sprache wie "welche Sites haben Updates", "installiere Updates auf allen Sites".
+**Trigger:** `/mainwp` oder natürliche Sprache wie "welche Sites haben Updates", "installiere Updates auf allen Sites".
 
 ### wp-pys
 
-Referenz-Skill fuer PixelYourSite Pro Event-Verwaltung in WordPress-(Multi-)Sites per WP-CLI. Kein eigenes Script, reine SKILL.md mit PHP-Snippets:
+Referenz-Skill für PixelYourSite Pro Event-Verwaltung in WordPress-(Multi-)Sites per WP-CLI. Kein eigenes Script, reine SKILL.md mit PHP-Snippets:
 
 - Datenmodell: `pys_event` CPT, `wp_{blog}_pys_options`, serialisierte Meta-Felder
 - Events auflisten, Plugin-Config lesen, Pixel-Ziele aktivieren
-- Events klonen, Trigger aendern (CSS-Click, Ninja Forms)
-- Verifizieren (Trigger-Deserialisierung pruefen), Backup/Restore
+- Events klonen, Trigger ändern (CSS-Click, Ninja Forms)
+- Verifizieren (Trigger-Deserialisierung prüfen), Backup/Restore
 - Ninja-Form-IDs nachschlagen (site-spezifisch bei Multisite)
 - Fallstricke: `wp_slash()` bei Triggers, `$args[]` statt Env-Vars, login-gated Formulare
 
-**Trigger:** `/wp-pys` oder natuerliche Sprache wie "PYS Events auflisten", "GA4 Event einrichten", "PixelYourSite".
+**Trigger:** `/wp-pys` oder natürliche Sprache wie "PYS Events auflisten", "GA4 Event einrichten", "PixelYourSite".
 
 ### wp-nf
 
-Referenz-Skill fuer Ninja-Forms-Administration in WordPress-(Multi-)Sites per WP-CLI (FreeBSD-Jail). Kein eigenes Script, reine SKILL.md mit PHP-Snippets, verifiziert an NF 3.14.8:
+Referenz-Skill für Ninja-Forms-Administration in WordPress-(Multi-)Sites per WP-CLI (FreeBSD-Jail). Kein eigenes Script, reine SKILL.md mit PHP-Snippets, verifiziert an NF 3.14.8:
 
 - Datenmodell + Footguns: `nf3_forms`/`nf3_fields`/`nf3_field_meta`, `element_class` liegt in der Meta-Tabelle (keine `settings`-Spalte); Render-Quelle ist der Form-Cache (`nf3_upgrades`), `use_cache()` hart `true`
 - Ein Feldwert liegt an **vier** Stellen: Meta, Form-Cache, Legacy-Spalte `nf3_fields.default_value` und WPML-Quellstring in `icl_strings` — die letzten beiden schreibt die Model-API nicht mit
@@ -439,127 +439,127 @@ Referenz-Skill fuer Ninja-Forms-Administration in WordPress-(Multi-)Sites per WP
 - Formulare auflisten + Titel→ID-Mapping (native `wp ninja-forms list` oder Snippet), Felder + Settings dumpen (Model-API)
 - `element_class`/HTML-Link-Klasse setzen — Backup (Form-Export) → Write → Cache invalidieren → Verify
 - Export/Import (`.nff`, Backend-identisch): Backup und Klonen zwischen Subsites; Import legt immer ein neues Formular an
-- WPML-Falle beim Write: `save()` kann die `parent_id` aendern und das Feld ins Quellformular verschieben — `parent_id` vor/nach jedem Write pruefen, Ruecksetzen per direktem `UPDATE` (dort sitzt kein Hook), Caches beider Formulare neu bauen; dazu die Abwaegung Model-API gegen direktes SQL
-- `update_setting('label', …)` schreibt die Spalte `nf3_fields.label` und laesst die gleichnamige Meta-Zeile alt stehen — dieselbe Drift, nur mit vertauschten Rollen
-- Preflight/Verify: Drift ueber alle vier Ablagen pruefen (Signatur des stillen „geaendert, aendert sich nichts"-Fehlers) inkl. Nachzieh-UPDATEs, plus `parent_id` und Feldzahl je Formular als fuenfte Pruefgroesse
+- WPML-Falle beim Write: `save()` kann die `parent_id` ändern und das Feld ins Quellformular verschieben — `parent_id` vor/nach jedem Write prüfen, Rücksetzen per direktem `UPDATE` (dort sitzt kein Hook), Caches beider Formulare neu bauen; dazu die Abwägung Model-API gegen direktes SQL
+- `update_setting('label', …)` schreibt die Spalte `nf3_fields.label` und lässt die gleichnamige Meta-Zeile alt stehen — dieselbe Drift, nur mit vertauschten Rollen
+- Preflight/Verify: Drift über alle vier Ablagen prüfen (Signatur des stillen „geändert, ändert sich nichts"-Fehlers) inkl. Nachzieh-UPDATEs, plus `parent_id` und Feldzahl je Formular als fünfte Prüfgröße
 - Diagnose-Muster PYS-CSS-Click ↔ NF-`element_class` (Cross-Link zu wp-pys)
-- Uebersicht der nativen `wp ninja-forms`-Extension und ihrer Grenzen (kein Export/Import, keine Settings-Details)
+- Übersicht der nativen `wp ninja-forms`-Extension und ihrer Grenzen (kein Export/Import, keine Settings-Details)
 
-- Aufteilung: Kern in der SKILL.md (Zugriff, Datenmodell, Write-Ablauf, Diagnose), Ausfuehrungsrezepte in `references/` (`snippets-read.md`, `wpml-writes.md`, `preflight.md`, `export-import.md`)
+- Aufteilung: Kern in der SKILL.md (Zugriff, Datenmodell, Write-Ablauf, Diagnose), Ausführungsrezepte in `references/` (`snippets-read.md`, `wpml-writes.md`, `preflight.md`, `export-import.md`)
 
-**Trigger:** `/wp-nf` oder natuerliche Sprache wie "Ninja Forms Feld", "element_class setzen", "Formular exportieren/importieren".
+**Trigger:** `/wp-nf` oder natürliche Sprache wie "Ninja Forms Feld", "element_class setzen", "Formular exportieren/importieren".
 
 ### wp-rest
 
-Pflegt WordPress-Inhalte ueber die REST-API (`/wp-json/wp/v2/`) mit einem Application Password statt Shell-Zugang. Eigenes Python-Script, stdlib-only:
+Pflegt WordPress-Inhalte über die REST-API (`/wp-json/wp/v2/`) mit einem Application Password statt Shell-Zugang. Eigenes Python-Script, stdlib-only:
 
-- Beitraege, Seiten und wiederverwendbare Bloecke: auflisten, lesen, anlegen, einzelne Felder aendern, Status setzen, loeschen (`--yes` noetig, sonst Dry-Run)
+- Beiträge, Seiten und wiederverwendbare Blöcke: auflisten, lesen, anlegen, einzelne Felder ändern, Status setzen, löschen (`--yes` nötig, sonst Dry-Run)
 - Medien: Upload als Binary-Body mit `Content-Disposition`, damit der Dateiname zum Slug wird; Titel, Alt-Text, Caption und Beitragszuordnung
 - Kategorien und Schlagworte auflisten, anlegen und zuweisen (Namen statt IDs, `--create` legt fehlende an)
 - Templates, Template-Parts und Global Styles von Block-Themes (`styles.css` einzeln setzbar)
-- WooCommerce generisch ueber `/wc/v3/` (`products`, `orders`, `customers`, ...), optional mit eigenen Consumer-Keys
-- `request` als Escape-Hatch fuer jeden weiteren Endpunkt (`settings`, `block-types`, `navigation`, ...)
+- WooCommerce generisch über `/wc/v3/` (`products`, `orders`, `customers`, ...), optional mit eigenen Consumer-Keys
+- `request` als Escape-Hatch für jeden weiteren Endpunkt (`settings`, `block-types`, `navigation`, ...)
 - Fallstrick fest eingebaut: gelesen wird mit `context=edit`, weil `content.rendered` die Block-Kommentare verliert
 - Abgrenzung zu `wp-cli`: Cache, Plugins, Datenbank, Theme-Dateien und Customizer-CSS von Classic-Themes kann die REST-API nicht
 
-Profile in `~/.claude/wp-rest.json` (Muster wie `jira`; `WP_REST_CONFIG` ueberschreibt den Pfad): `instances` als Objekt mit `url`, `user`, `app_password`, optional `wc: {key, secret}` und `aliases`. Ueber die Aliasse bzw. den Host der `url` waehlt `--instance www.example.org` die Instanz, ohne den Profilnamen zu kennen; sonst greift `default`.
+Profile in `~/.claude/wp-rest.json` (Muster wie `jira`; `WP_REST_CONFIG` überschreibt den Pfad): `instances` als Objekt mit `url`, `user`, `app_password`, optional `wc: {key, secret}` und `aliases`. Über die Aliasse bzw. den Host der `url` wählt `--instance www.example.org` die Instanz, ohne den Profilnamen zu kennen; sonst greift `default`.
 
-**Voraussetzungen:** Python >= 3.9, stdlib only. Pro Site ein Application Password (WordPress: Benutzer > Profil > Anwendungspasswoerter).
+**Voraussetzungen:** Python >= 3.9, stdlib only. Pro Site ein Application Password (WordPress: Benutzer > Profil > Anwendungspasswörter).
 
-**Trigger:** `/wp-rest` oder natuerliche Sprache wie "leg einen Beitrag an", "lad das Bild hoch", "setz die Seite auf publish", "Produkt in WooCommerce".
+**Trigger:** `/wp-rest` oder natürliche Sprache wie "leg einen Beitrag an", "lad das Bild hoch", "setz die Seite auf publish", "Produkt in WooCommerce".
 
 ### wiki
 
-LLM Wiki-Verwaltung fuer strukturierte Dokumentation. Unterstuetzt **mehrere Wikis** mit je eigenem Entity-Modell (Infra `azedo`: Server/Service/Access/Site/Procedure; Projekt-Wikis abweichend). Zwei Scripts (`lint-wiki.py`, `audit-wiki.py`), sonst reine SKILL.md mit Subcommands:
+LLM Wiki-Verwaltung für strukturierte Dokumentation. Unterstützt **mehrere Wikis** mit je eigenem Entity-Modell (Infra `azedo`: Server/Service/Access/Site/Procedure; Projekt-Wikis abweichend). Zwei Scripts (`lint-wiki.py`, `audit-wiki.py`), sonst reine SKILL.md mit Subcommands:
 
 - init: neues Wiki-Unterverzeichnis anlegen (inkl. Default-`wiki-schema.json`)
 - ingest: Quellen ins Wiki aufnehmen (nach raw/, immutable)
 - compile: Quellen zu Wiki-Entities verarbeiten (erlaubte Typen laut Wiki-`CLAUDE.md`)
 - harvest: Erkenntnisse der Sitzung durch den Aufnahmefilter schicken und als Vorlage zeigen (inkl. der verworfenen mit Grund); schreibt erst nach Freigabe
 - query: Fragen gegen das Wiki beantworten
-- lint: strukturelle Pruefung (Frontmatter, tote Links, Konnektivitaet, Namenskonventionen, Datum in Ueberschriften); `--check-remotes` verifiziert Remote-Pointer per SSH
-- audit: aufgeblaehte und historienlastige Artikel finden (Zeilen relativ zum p90 des eigenen Entity-Typs, Historie-Dichte, prozeduraler Inhalt in erzaehlenden Entities); bewertet statt zu pruefen, Exit immer 0
-- refactor: eine Entity abschnittsweise einordnen (bleibt / gehoert in eine Procedure / ueberholte Historie / Duplikat) und einen Umbauvorschlag vorlegen; schreibt nichts ohne Freigabe
-- status: Ueberblick ueber Wiki-Zustand
-- handoff: aus lokalen Erkenntnissen eine ingest-fertige Note fuer ein Remote-Wiki erzeugen (manueller Ingest auf dem Zielhost)
+- lint: strukturelle Prüfung (Frontmatter, tote Links, Konnektivität, Namenskonventionen, Datum in Überschriften); `--check-remotes` verifiziert Remote-Pointer per SSH
+- audit: aufgeblähte und historienlastige Artikel finden (Zeilen relativ zum p90 des eigenen Entity-Typs, Historie-Dichte, prozeduraler Inhalt in erzählenden Entities); bewertet statt zu prüfen, Exit immer 0
+- refactor: eine Entity abschnittsweise einordnen (bleibt / gehört in eine Procedure / überholte Historie / Duplikat) und einen Umbauvorschlag vorlegen; schreibt nichts ohne Freigabe
+- status: Überblick über Wiki-Zustand
+- handoff: aus lokalen Erkenntnissen eine ingest-fertige Note für ein Remote-Wiki erzeugen (manueller Ingest auf dem Zielhost)
 
-Ziel-Wiki per Praefix waehlen: `/wiki cris:query "…"`; ohne Praefix gilt `azedo` (Default). Die Wiki-Root wird projekt-relativ aufgeloest (`wiki/<name>/` relativ zum Projekt-Root), nicht ueber einen absoluten Home-Pfad — portabel ueber Maschinen/Checkout-Orte. Das Entity-Modell (erlaubte Typen + Pflichtfelder) liest der Linter aus `<wiki-root>/wiki-schema.json`, mit Infra-Default als Fallback.
+Ziel-Wiki per Präfix wählen: `/wiki cris:query "…"`; ohne Präfix gilt `azedo` (Default). Die Wiki-Root wird projekt-relativ aufgelöst (`wiki/<name>/` relativ zum Projekt-Root), nicht über einen absoluten Home-Pfad — portabel über Maschinen/Checkout-Orte. Das Entity-Modell (erlaubte Typen + Pflichtfelder) liest der Linter aus `<wiki-root>/wiki-schema.json`, mit Infra-Default als Fallback.
 
-**Remote-Wikis (read-only):** Ein Wiki auf einem anderen Host kann per SSH read-only abgefragt werden — ohne lokale Kopie, ohne Sync. Definiert in `wiki-remotes.json` (`{name: {host, path}}`) - benutzerweit unter `~/.claude/`, projektlokal unter `<projekt>/.claude/`, in dieser Reihenfolge je Key gemergt; `scripts/wiki_remotes.py list` zeigt sie mit Herkunft, `add <name> <host>:<pfad> [--home]` traegt einen ein; `query`/`status` lesen dann per `ssh <host> "cat/grep …"`, schreibende Subcommands sind fuer Remotes gesperrt. Aus einem lokalen Wiki auf eine Remote-Entity verweisen: `[[<remote>:<slug>]]` (gueltiger Pointer, kein toter Link, wenn `<remote>` bekannt). Neue Erkenntnisse fuer ein Remote-Wiki liefert `<remote>:handoff` als Outbox-Note (`.claude/wiki-outbox/`) zum manuellen Ingest auf dem Zielhost — kein Remote-Write.
+**Remote-Wikis (read-only):** Ein Wiki auf einem anderen Host kann per SSH read-only abgefragt werden — ohne lokale Kopie, ohne Sync. Definiert in `wiki-remotes.json` (`{name: {host, path}}`) - benutzerweit unter `~/.claude/`, projektlokal unter `<projekt>/.claude/`, in dieser Reihenfolge je Key gemergt; `scripts/wiki_remotes.py list` zeigt sie mit Herkunft, `add <name> <host>:<pfad> [--home]` trägt einen ein; `query`/`status` lesen dann per `ssh <host> "cat/grep …"`, schreibende Subcommands sind für Remotes gesperrt. Aus einem lokalen Wiki auf eine Remote-Entity verweisen: `[[<remote>:<slug>]]` (gültiger Pointer, kein toter Link, wenn `<remote>` bekannt). Neue Erkenntnisse für ein Remote-Wiki liefert `<remote>:handoff` als Outbox-Note (`.claude/wiki-outbox/`) zum manuellen Ingest auf dem Zielhost — kein Remote-Write.
 
 Referenzen: Frontmatter-Schemas, Compilation-Guide, Cross-Referencing-Regeln.
 
-**Trigger:** `/wiki` oder natuerliche Sprache wie "trag das ins Wiki ein", "was steht im Wiki zu X".
+**Trigger:** `/wiki` oder natürliche Sprache wie "trag das ins Wiki ein", "was steht im Wiki zu X".
 
 ### wetter
 
-GeoSphere Austria Wetterdaten fuer Oesterreich. Python-Script (stdlib only, keine pip-Dependencies, keine Auth):
+GeoSphere Austria Wetterdaten für Österreich. Python-Script (stdlib only, keine pip-Dependencies, keine Auth):
 
-- forecast: Stundenvorhersage (AROME `nwp-v1-1h-2500m`, ~60 h), pro Tag Min/Max, Niederschlag, Boeen + 3-stuendliche Zeilen
+- forecast: Stundenvorhersage (AROME `nwp-v1-1h-2500m`, ~60 h), pro Tag Min/Max, Niederschlag, Böen + 3-stündliche Zeilen
 - nowcast: Nahzeitvorhersage (`nowcast-v1-15min-1km`, ~3 h in 15-Minuten-Schritten)
 - warnungen: aktive amtliche Warnungen (Typ, Stufe gelb/orange/rot, Zeitraum, Auswirkungen, Empfehlungen)
 
-Standort per Ortsname (Geocoding via OpenStreetMap/Nominatim, auf AT beschraenkt) oder Koordinaten `lat,lon`. Alle Zeiten in Europe/Vienna. `--json` fuer Rohdaten.
+Standort per Ortsname (Geocoding via OpenStreetMap/Nominatim, auf AT beschränkt) oder Koordinaten `lat,lon`. Alle Zeiten in Europe/Vienna. `--json` für Rohdaten.
 
-Die Kontaktadresse in der User-Agent-Zeile (von Nominatim gewuenscht) kommt aus `WETTER_CONTACT` oder `contact` in `~/.claude/wetter.json` (Vorlage: `wetter/wetter.json.example`); ohne beides laeuft der Skill ohne Kontaktangabe.
+Die Kontaktadresse in der User-Agent-Zeile (von Nominatim gewünscht) kommt aus `WETTER_CONTACT` oder `contact` in `~/.claude/wetter.json` (Vorlage: `wetter/wetter.json.example`); ohne beides läuft der Skill ohne Kontaktangabe.
 
 **Voraussetzungen:** Python >= 3.11
 
-**Trigger:** `/wetter` oder natuerliche Sprache wie "wie wird das Wetter in X", "regnet es morgen in X", "gibt es Wetterwarnungen fuer X".
+**Trigger:** `/wetter` oder natürliche Sprache wie "wie wird das Wetter in X", "regnet es morgen in X", "gibt es Wetterwarnungen für X".
 
 ### humanizer-de
 
-Deutscher AI-Text-Humanizer: KI-Schreibmuster (KI-Tells) in deutschen Texten auditieren und belegtreu ueberarbeiten. Vendorisierter Fork von [marmbiz/humanizer-de](https://github.com/marmbiz/humanizer-de) (MIT). SKILL.md + Referenzen + Python-Linter (stdlib only):
+Deutscher AI-Text-Humanizer: KI-Schreibmuster (KI-Tells) in deutschen Texten auditieren und belegtreu überarbeiten. Vendorisierter Fork von [marmbiz/humanizer-de](https://github.com/marmbiz/humanizer-de) (MIT). SKILL.md + Referenzen + Python-Linter (stdlib only):
 
 - 66 Muster in 10 Kategorien (Referenzkatalog `references/patterns.md`)
 - Drei Modi: Locker (Blog/Social), Sachlich (Website/Doku/B2B), Formal (Wissenschaft/Recht)
-- Fuenf-Pass-Workflow (Triage, Artefakte/Evidenz, Lexik, Struktur, Rhythmus) + optionales QGIR-Gate
-- Claim-Lock und Persona-Lock: Quellen, Zahlen, Namen und Aussagen bleiben unveraendert
+- Fünf-Pass-Workflow (Triage, Artefakte/Evidenz, Lexik, Struktur, Rhythmus) + optionales QGIR-Gate
+- Claim-Lock und Persona-Lock: Quellen, Zahlen, Namen und Aussagen bleiben unverändert
 - Linter: `humanizer_audit.py` (Sammelcheck) plus unicode/rhythm/register/evidence/german-pattern-Checks
 
 **Voraussetzungen:** Python >= 3.11
 
-**Lizenz:** MIT (c) Martin Moeller, mit CC BY-SA 4.0 fuer die aus der deutschen Wikipedia adaptierten Musterbeschreibungen. Basiert auf `blader/humanizer` (MIT). Siehe `humanizer-de/LICENSE`.
+**Lizenz:** MIT (c) Martin Moeller, mit CC BY-SA 4.0 für die aus der deutschen Wikipedia adaptierten Musterbeschreibungen. Basiert auf `blader/humanizer` (MIT). Siehe `humanizer-de/LICENSE`.
 
-**Trigger:** `/humanizer-de` oder natuerliche Sprache wie "humanisiere den Text", "klingt nach KI", "entferne die KI-Tells".
+**Trigger:** `/humanizer-de` oder natürliche Sprache wie "humanisiere den Text", "klingt nach KI", "entferne die KI-Tells".
 
 ### einfache-sprache
 
-Deutsche Texte in Einfache Sprache bringen und auf Verstaendlichkeit pruefen - messend statt nach Gefuehl. Orientiert an DIN 8581-1 (Einfache Sprache) und DIN ISO 24495-1 (Grundsaetze verstaendlicher Sprache). SKILL.md + fuenf Referenzen + Python-Linter (stdlib only):
+Deutsche Texte in Einfache Sprache bringen und auf Verständlichkeit prüfen - messend statt nach Gefühl. Orientiert an DIN 8581-1 (Einfache Sprache) und DIN ISO 24495-1 (Grundsätze verständlicher Sprache). SKILL.md + fünf Referenzen + Python-Linter (stdlib only):
 
-- Drei Zielstufen mit eigenen Zielwerten: `PLAIN` (Fachpublikum), `B1` (Standard), `A2` (Formulare, Merkblaetter)
+- Drei Zielstufen mit eigenen Zielwerten: `PLAIN` (Fachpublikum), `B1` (Standard), `A2` (Formulare, Merkblätter)
 - Lesbarkeitsindizes: Wiener Sachtextformel 1-4, LIX, Flesch in der deutschen Fassung nach Amstad, je mit Ampel gegen die Stufe
-- Regel-Linter: Satzlaenge/Nebensaetze/Passiv/Konjunktiv/Genitivketten/Verbklammer (`sentence_lint.py`), Nominalstil/Funktionsverbgefuege/Amtsdeutsch/Fremdwoerter/Begriffsvarianten (`lexicon_lint.py`), Absaetze/Ueberschriften/Listenkandidaten/Anrede/Datumsformate (`structure_lint.py`)
-- Sammelcheck `einfache_sprache_audit.py` mit Ampel, priorisierten Hebeln und `--vergleich` fuer Vorher/Nachher
-- Inhaltstreue als Leitplanke: Zahlen, Fristen, Bedingungen und Rechtsfolgen bleiben unveraendert; Rechtsbegriffe werden erklaert statt ersetzt
-- Abgrenzung zur Leichten Sprache (A1, DIN SPEC 33429) ist Teil des Skills - die verlangt eine Pruefgruppe aus der Zielgruppe und ist kein Werkzeugergebnis
+- Regel-Linter: Satzlänge/Nebensätze/Passiv/Konjunktiv/Genitivketten/Verbklammer (`sentence_lint.py`), Nominalstil/Funktionsverbgefüge/Amtsdeutsch/Fremdwörter/Begriffsvarianten (`lexicon_lint.py`), Absätze/Überschriften/Listenkandidaten/Anrede/Datumsformate (`structure_lint.py`)
+- Sammelcheck `einfache_sprache_audit.py` mit Ampel, priorisierten Hebeln und `--vergleich` für Vorher/Nachher
+- Inhaltstreue als Leitplanke: Zahlen, Fristen, Bedingungen und Rechtsfolgen bleiben unverändert; Rechtsbegriffe werden erklärt statt ersetzt
+- Abgrenzung zur Leichten Sprache (A1, DIN SPEC 33429) ist Teil des Skills - die verlangt eine Prüfgruppe aus der Zielgruppe und ist kein Werkzeugergebnis
 
 **Voraussetzungen:** Python >= 3.11
 
-**Trigger:** `/einfache-sprache` oder natuerliche Sprache wie "schreib das einfacher", "in Einfacher Sprache", "das versteht kein Mensch", "Amtsdeutsch aufloesen", "Lesbarkeit pruefen".
+**Trigger:** `/einfache-sprache` oder natürliche Sprache wie "schreib das einfacher", "in Einfacher Sprache", "das versteht kein Mensch", "Amtsdeutsch auflösen", "Lesbarkeit prüfen".
 
 ### handoff
 
-Fasst die aktuelle Konversation in ein Uebergabedokument zusammen, damit ein neuer Agent nahtlos weiterarbeiten kann. Reiner Referenz-Skill (nur SKILL.md, kein Script). Vendorisierter, angepasster Fork von [mattpocock/skills](https://github.com/mattpocock/skills/tree/main/skills/productivity/handoff) (MIT):
+Fasst die aktuelle Konversation in ein Übergabedokument zusammen, damit ein neuer Agent nahtlos weiterarbeiten kann. Reiner Referenz-Skill (nur SKILL.md, kein Script). Vendorisierter, angepasster Fork von [mattpocock/skills](https://github.com/mattpocock/skills/tree/main/skills/productivity/handoff) (MIT):
 
 - Ablage im Projektverzeichnis (`docs/` falls vorhanden, sonst Projektstamm)
-- Dateiname aus dem Argument: kein Argument → `handoff.md`; Argument ohne `.md` → Fokus **und** Slug (`handoff-<slug>.md`, nichts wird ueberschrieben); Argument mit `.md` → expliziter Dateiname
+- Dateiname aus dem Argument: kein Argument → `handoff.md`; Argument ohne `.md` → Fokus **und** Slug (`handoff-<slug>.md`, nichts wird überschrieben); Argument mit `.md` → expliziter Dateiname
 - Abschnitt „Empfohlene Skills" im Dokument, keine Duplikate zu bestehenden Artefakten, Redaktion sensibler Daten
-- Einlese-Workflow: bestehendes Handoff rekapitulieren, rueckfragen, nie eigenstaendig handeln
+- Einlese-Workflow: bestehendes Handoff rekapitulieren, rückfragen, nie eigenständig handeln
 
 **Lizenz:** MIT (c) 2026 Matt Pocock. Siehe `handoff/LICENSE`. azedo-Anpassungen (Deutsch, Ablageort, Dateinamens-Konvention, Einlese-Sektion) in der SKILL.md unter „Herkunft & Lizenz" dokumentiert.
 
-**Trigger:** `/handoff` oder natuerliche Sprache wie "erstell eine Uebergabe", "fass die Session fuer den naechsten Agent zusammen".
+**Trigger:** `/handoff` oder natürliche Sprache wie "erstell eine Übergabe", "fass die Session für den nächsten Agent zusammen".
 
 ### wie-bitte
 
-Erklaert die zuletzt gegebene Antwort noch einmal, in Einfacher Sprache. Fuer den Moment, in dem eine Antwort nicht angekommen ist - auf Nachfrage wird sie sonst meist nur laenger, nicht verstaendlicher. Reiner Referenz-Skill (nur SKILL.md, kein Script). Angelehnt an `wait-what` aus [mattpocock/skills](https://github.com/mattpocock/skills/tree/main/skills/productivity/wait-what) (MIT):
+Erklärt die zuletzt gegebene Antwort noch einmal, in Einfacher Sprache. Für den Moment, in dem eine Antwort nicht angekommen ist - auf Nachfrage wird sie sonst meist nur länger, nicht verständlicher. Reiner Referenz-Skill (nur SKILL.md, kein Script). Angelehnt an `wait-what` aus [mattpocock/skills](https://github.com/mattpocock/skills/tree/main/skills/productivity/wait-what) (MIT):
 
-- Fester Aufbau: ein Satz Kontext, die Aussage, die Folge fuer den Nutzer - hoechstens acht Saetze
+- Fester Aufbau: ein Satz Kontext, die Aussage, die Folge für den Nutzer - höchstens acht Sätze
 - Sprachregeln auf Stufe `B1` von `einfache-sprache`, aber ohne dessen Messapparat (keine Kennwerte, keine Linter, keine Befundliste)
-- Fachbegriffe bleiben stehen und bekommen einen Halbsatz Erklaerung, statt ersetzt zu werden
+- Fachbegriffe bleiben stehen und bekommen einen Halbsatz Erklärung, statt ersetzt zu werden
 - Gilt immer der **letzten eigenen Antwort**, nie einem mitgeschickten Text; ein Argument benennt nur die Stelle, die nicht getragen hat
-- `disable-model-invocation: true` - nur ueber `/wie-bitte`, sonst kollidiert der Trigger mit `einfache-sprache`
+- `disable-model-invocation: true` - nur über `/wie-bitte`, sonst kollidiert der Trigger mit `einfache-sprache`
 
 **Lizenz:** MIT (c) 2026 Matt Pocock. Siehe `wie-bitte/LICENSE`. azedo-Anpassungen (Deutsch, B1 statt ASD-STE100, kein Repo-Anker, fester Dreiteiler, Abgrenzung zu `einfache-sprache`) in der SKILL.md unter „Herkunft & Lizenz" dokumentiert.
 
@@ -567,14 +567,14 @@ Erklaert die zuletzt gegebene Antwort noch einmal, in Einfacher Sprache. Fuer de
 
 ### bridge
 
-Nachrichten zwischen Claude-Code-Sessions ueber Remote Control, mit einem rudimentaeren Handshake. `SendMessage` weckt die Gegenseite nur auf - es gibt keine Zustellbestaetigung, und ob die andere Session zurueckschreibt, ist eine Entscheidung ihres Modells. Der Skill legt die Quittung deshalb in den **Nachrichtentext selbst**:
+Nachrichten zwischen Claude-Code-Sessions über Remote Control, mit einem rudimentären Handshake. `SendMessage` weckt die Gegenseite nur auf - es gibt keine Zustellbestätigung, und ob die andere Session zurückschreibt, ist eine Entscheidung ihres Modells. Der Skill legt die Quittung deshalb in den **Nachrichtentext selbst**:
 
-- Vier Zeilenformen: `[bridge msg=<id> from=... reply=ack]`, `[bridge ack=<id>]`, `[bridge done=<id>] <Ergebnis>`, `[bridge wait=<id>] <was fehlt>`. `ack` (angekommen) und `done` (erledigt) sind getrennt, damit man bei einer langen Aufgabe nicht minutenlang im Ungewissen sitzt; `wait` haelt blockierte oder abgelehnte Aufgaben aus `done` heraus
-- Kopffelder `reply=none`, `reply=ack;done=objection`, `re=` (Nachtrag), `topic=` und `decision=relayed`; `--reply` ist beim Senden Pflicht; weitergereichte Freigaben fuer Versand nach aussen oder Irreversibles gibt es nicht
-- Die Gegenseite braucht den Skill **nicht installiert** - die Anweisung steht im Klartext in der Nachricht. Ein Protokoll, das auf beiden Seiten konfiguriert sein muesste, versagte genau bei der fremden Maschine
-- `who` gibt die eigene **bridge-Session-ID** aus, die einzige stabile Adresse: Anzeigenamen werden bridge-seitig vergeben und aendern sich im Betrieb, der Name, unter dem sich eine Session selbst kennt, ist von aussen gar nicht adressierbar, und Refs aus `ListAgents` gelten nur innerhalb einer Auflistung
-- Die eigene Session wird ueber den **Prozessbaum** ab der eigenen PID aufgeloest, nicht ueber "die zuletzt geaenderte Datei" - das bleibt auch bei mehreren gleichzeitig laufenden Sessions richtig
-- `send` baut nur den Text, verschickt wird er mit `SendMessage`; ohne Text-Argument kommt er von STDIN. Ist die eigene Session nicht gebridgt, bricht `send` ab, statt eine Nachricht mit unbeantwortbarer Rueckadresse zu bauen
+- Vier Zeilenformen: `[bridge msg=<id> from=... reply=ack]`, `[bridge ack=<id>]`, `[bridge done=<id>] <Ergebnis>`, `[bridge wait=<id>] <was fehlt>`. `ack` (angekommen) und `done` (erledigt) sind getrennt, damit man bei einer langen Aufgabe nicht minutenlang im Ungewissen sitzt; `wait` hält blockierte oder abgelehnte Aufgaben aus `done` heraus
+- Kopffelder `reply=none`, `reply=ack;done=objection`, `re=` (Nachtrag), `topic=` und `decision=relayed`; `--reply` ist beim Senden Pflicht; weitergereichte Freigaben für Versand nach außen oder Irreversibles gibt es nicht
+- Die Gegenseite braucht den Skill **nicht installiert** - die Anweisung steht im Klartext in der Nachricht. Ein Protokoll, das auf beiden Seiten konfiguriert sein müsste, versagte genau bei der fremden Maschine
+- `who` gibt die eigene **bridge-Session-ID** aus, die einzige stabile Adresse: Anzeigenamen werden bridge-seitig vergeben und ändern sich im Betrieb, der Name, unter dem sich eine Session selbst kennt, ist von außen gar nicht adressierbar, und Refs aus `ListAgents` gelten nur innerhalb einer Auflistung
+- Die eigene Session wird über den **Prozessbaum** ab der eigenen PID aufgelöst, nicht über "die zuletzt geänderte Datei" - das bleibt auch bei mehreren gleichzeitig laufenden Sessions richtig
+- `send` baut nur den Text, verschickt wird er mit `SendMessage`; ohne Text-Argument kommt er von STDIN. Ist die eigene Session nicht gebridgt, bricht `send` ab, statt eine Nachricht mit unbeantwortbarer Rückadresse zu bauen
 
 Grenze des Verfahrens: ein ausbleibender `ack` beweist nicht, dass die Nachricht nicht angekommen ist. Der Handshake ist eine Konvention, kein Transportprotokoll.
 
@@ -582,13 +582,13 @@ Grenze des Verfahrens: ein ausbleibender `ack` beweist nicht, dass die Nachricht
 
 ### telegram
 
-Telegram-Bot-Anbindung (outbound-first). Python-Script (stdlib only, keine pip-Dependencies), lauffaehig auf macOS + FreeBSD, **kein Server-Prozess** — jeder Aufruf ist ein einzelner HTTPS-Call an `api.telegram.org` und laeuft auch aus cron:
+Telegram-Bot-Anbindung (outbound-first). Python-Script (stdlib only, keine pip-Dependencies), lauffähig auf macOS + FreeBSD, **kein Server-Prozess** — jeder Aufruf ist ein einzelner HTTPS-Call an `api.telegram.org` und läuft auch aus cron:
 
 - send: Kernbefehl (sendMessage), Text aus Argument/`--file`/STDIN, `--parse-mode`, `--silent`, `--no-preview`, `--json`
-- Vorlagen: alert (rot), recovery (gruen), digest (Titel + Bullets) — HTML mit Emoji, dynamische Werte geescaped
+- Vorlagen: alert (rot), recovery (grün), digest (Titel + Bullets) — HTML mit Emoji, dynamische Werte geescaped
 - setup: chat_id via `getUpdates` ermitteln (optional `--write` in die .env)
 - Interaktiv warten: `wait` (blockiert bis Nachricht kommt, gibt Text aus) und `ask` (Frage senden **und** auf Antwort warten) — drainen Backlog vorab, akzeptieren per Default nur den eigenen Chat, Exit 2 bei Timeout
-- Dauer-Empfangs-Scaffold: `get-updates` (roh) und `poll` (Long-Poll `getUpdates?timeout=50` im Vordergrund, fuehrt `offset` mit) — optional, kein Daemon
+- Dauer-Empfangs-Scaffold: `get-updates` (roh) und `poll` (Long-Poll `getUpdates?timeout=50` im Vordergrund, führt `offset` mit) — optional, kein Daemon
 
 Credentials in `.env`: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` (Auffindung wie kimai/kanboard: cwd/.env → ~/.env, Env-Variablen haben Vorrang). FreeBSD-TLS-Escape-Hatch `TELEGRAM_CA_BUNDLE`.
 
@@ -598,35 +598,35 @@ Credentials in `.env`: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` (Auffindung wie 
 
 ### privatebin
 
-PrivateBin-Anbindung — teilt Text, Logausschnitte, Configs und ganze Dateien als Ende-zu-Ende-verschluesselte Paste und gibt den Link zurueck. Die Verschluesselung passiert lokal im Skill (Format v2: AES-256-GCM, PBKDF2-HMAC-SHA256, raw deflate); der Base58-Schluessel steht nur im URL-Fragment und erreicht den Server nie:
+PrivateBin-Anbindung — teilt Text, Logausschnitte, Configs und ganze Dateien als Ende-zu-Ende-verschlüsselte Paste und gibt den Link zurück. Die Verschlüsselung passiert lokal im Skill (Format v2: AES-256-GCM, PBKDF2-HMAC-SHA256, raw deflate); der Base58-Schlüssel steht nur im URL-Fragment und erreicht den Server nie:
 
 - create: Inhalt aus `--text`/`--file`/STDIN, Datei per `--attach` (`--name` benennt um), `--expire` (5min…never), `--burn`, `--password`, `--discussion`, `--format` (plaintext/markdown/syntaxhighlighting), `--json`. Ausgabe ist genau eine Zeile: die fertige URL
-- read: entschluesselt eine Paste-URL samt `#`-Fragment — auch von fremden Instanzen; `--save-attachment` schreibt den Anhang, `--password` fuer geschuetzte Pastes
-- delete: nimmt eine Paste zurueck, Token aus der History oder per `--token`
-- history: die letzten 25 geteilten Links (`~/.claude/privatebin-pastes.log`, Modus 0600, enthaelt Schluessel und Delete-Tokens; `--no-history` schaltet das Mitschreiben ab)
+- read: entschlüsselt eine Paste-URL samt `#`-Fragment — auch von fremden Instanzen; `--save-attachment` schreibt den Anhang, `--password` für geschützte Pastes
+- delete: nimmt eine Paste zurück, Token aus der History oder per `--token`
+- history: die letzten 25 geteilten Links (`~/.claude/privatebin-pastes.log`, Modus 0600, enthält Schlüssel und Delete-Tokens; `--no-history` schaltet das Mitschreiben ab)
 
-Instanz-URL und optionale Basic-Auth-Zugangsdaten in `~/.claude/privatebin.json` (Vorlage `privatebin/privatebin.json.example`), mehrere Instanzen moeglich.
+Instanz-URL und optionale Basic-Auth-Zugangsdaten in `~/.claude/privatebin.json` (Vorlage `privatebin/privatebin.json.example`), mehrere Instanzen möglich.
 
 **Voraussetzungen:** Python >= 3.9 und `cryptography` (AES-256-GCM gibt es in der stdlib nicht). FreeBSD: `pkg install py3XY-cryptography` passend zur laufenden Python-Version; macOS: `python3 -m pip install --user cryptography`, bei Homebrew-Python stattdessen ein venv (`python3 -m venv ~/.claude/venv`). Fehlt das Modul, nennt das Script den passenden Weg.
 
-**Trigger:** `/privatebin` oder natuerliche Sprache wie "teil das per PrivateBin", "mach einen Paste draus", "schick mir das als Link", "gib mir den Inhalt von dieser Paste-URL".
+**Trigger:** `/privatebin` oder natürliche Sprache wie "teil das per PrivateBin", "mach einen Paste draus", "schick mir das als Link", "gib mir den Inhalt von dieser Paste-URL".
 
 ### sec-audit-transcripts
 
 Sucht Geheimnisse in den Ablagen von Claude Code und meldet sie — reine Erkennung, keine automatische Bereinigung. Python-Script (stdlib only), zwei Wege der Suche:
 
-- **Known-secret matching** (praezise, keine Fehlalarme): liest die lokalen Quellen (`~/.muttrc`, `~/.env`, `~/.claude/*.json`, `~/.ssh/id_*`) und sucht deren *Werte*. Die Werte bleiben im Speicher und kommen nie in den Report.
-- **Mustersuche** (fuer Fremdgeheimnisse, mit Fehlalarmen, per `--no-patterns` abschaltbar): `sk-ant-`, `ghp_`, `AKIA`, `xox…`, JWTs, `BEGIN … PRIVATE KEY`, Zuweisungen an `password`/`secret`/`token`. Getrennt ausgewiesen, eigener Exit-Code.
+- **Known-secret matching** (präzise, keine Fehlalarme): liest die lokalen Quellen (`~/.muttrc`, `~/.env`, `~/.claude/*.json`, `~/.ssh/id_*`) und sucht deren *Werte*. Die Werte bleiben im Speicher und kommen nie in den Report.
+- **Mustersuche** (für Fremdgeheimnisse, mit Fehlalarmen, per `--no-patterns` abschaltbar): `sk-ant-`, `ghp_`, `AKIA`, `xox…`, JWTs, `BEGIN … PRIVATE KEY`, Zuweisungen an `password`/`secret`/`token`. Getrennt ausgewiesen, eigener Exit-Code.
 
-Geprueft wird nicht nur `~/.claude/projects/**/*.jsonl`, sondern auch `history.jsonl` (haeufigster Fundort, weil Zugangsdaten beim Einrichten getippt werden), `file-history/` (Klartext-Kopien editierter Dateien), `shell-snapshots`, `paste-cache`, `session-env`, `sessions`, `plans`, `backups`, `cache`, `feedback`, `todos` und `/tmp/claude-*`.
+Geprüft wird nicht nur `~/.claude/projects/**/*.jsonl`, sondern auch `history.jsonl` (häufigster Fundort, weil Zugangsdaten beim Einrichten getippt werden), `file-history/` (Klartext-Kopien editierter Dateien), `shell-snapshots`, `paste-cache`, `session-env`, `sessions`, `plans`, `backups`, `cache`, `feedback`, `todos` und `/tmp/claude-*`.
 
-- scan: Bericht mit Label, Datei, Zeile, Zeitstempel, Rolle und HMAC-Kurzhash — **nie der Wert**; `--context` zeigt hoechstens maskiertes Umfeld
+- scan: Bericht mit Label, Datei, Zeile, Zeitstempel, Rolle und HMAC-Kurzhash — **nie der Wert**; `--context` zeigt höchstens maskiertes Umfeld
 - sources: welche Quellen gelesen wurden und wie viele Werte daraus stammen
-- fix-perms: setzt die Rechte der Ablagen und Quellen zurecht (idempotent, laeuft in der Session)
-- ack/unack/list: Fundstellen als gesehen abhaken, damit der naechste Lauf nicht ewig denselben Altfund meldet
-- apply / `--emit-cleanup`: loescht Session-Transkripte ganz und einzelne Zeilen aus `history.jsonl` — **nur bei beendetem Claude Code**, ein editiertes Transkript bricht `--resume`
+- fix-perms: setzt die Rechte der Ablagen und Quellen zurecht (idempotent, läuft in der Session)
+- ack/unack/list: Fundstellen als gesehen abhaken, damit der nächste Lauf nicht ewig denselben Altfund meldet
+- apply / `--emit-cleanup`: löscht Session-Transkripte ganz und einzelne Zeilen aus `history.jsonl` — **nur bei beendetem Claude Code**, ein editiertes Transkript bricht `--resume`
 
-Exit-Codes 0 (sauber), 1 (bestaetigte Funde), 2 (nur Mustertreffer), 3 (Fehler) — damit taugt der Lauf als cron mit Meldung ab 1.
+Exit-Codes 0 (sauber), 1 (bestätigte Funde), 2 (nur Mustertreffer), 3 (Fehler) — damit taugt der Lauf als cron mit Meldung ab 1.
 
 **Voraussetzungen:** Python >= 3.11. Zustandsdatei und Salt unter `~/.claude/sec-audit-transcripts/`.
 
@@ -634,38 +634,35 @@ Exit-Codes 0 (sauber), 1 (bestaetigte Funde), 2 (nur Mustertreffer), 3 (Fehler) 
 
 ### pushover
 
-Pushover-Anbindung (outbound-only) — Push-Notifications aufs Handy (iOS/Android/Desktop). Python-Script (stdlib only, keine pip-Dependencies), lauffaehig auf macOS + FreeBSD, **kein Server-Prozess** — jeder Aufruf ist ein einzelner HTTPS-Call an `api.pushover.net` und laeuft auch aus cron:
+Pushover-Anbindung (outbound-only) — Push-Notifications aufs Handy (iOS/Android/Desktop). Python-Script (stdlib only, keine pip-Dependencies), lauffähig auf macOS + FreeBSD, **kein Server-Prozess** — jeder Aufruf ist ein einzelner HTTPS-Call an `api.pushover.net` und läuft auch aus cron:
 
-- send: Kernbefehl, Text aus Argument/`--file`/STDIN, `--title`, `--priority -2..1` (Emergency=2 bewusst nicht), `--sound`, `--user`/`--device` (komma-faehig), `--url`/`--url-title`, `--html`|`--monospace`, `--ttl`, `--attachment` (Bild <=5 MB), `--silent`, `--json`
-- Vorlagen: alert (rot, Prio 1), recovery (gruen, Prio 0), digest (Titel + Bullets, Prio -1) — html mit Emoji, dynamische Werte geescaped, `--host`-Fusszeile
-- validate: Token + User/Group-Key pruefen (zeigt aktive Geraete); sounds: verfuegbare Sound-Kennungen
-- Empfaenger-Verzeichnis (Adressbuch): `recipients add/list` mappt Alias-Namen auf Keys, `--user kollege` statt Roh-Key; Default ist der Alias `me`. Ein Alias kann auch ein Delivery-Group-Key sein (ein `send` an alle). Datei `~/.pushover-recipients` (bzw. cwd)
+- send: Kernbefehl, Text aus Argument/`--file`/STDIN, `--title`, `--priority -2..1` (Emergency=2 bewusst nicht), `--sound`, `--user`/`--device` (komma-fähig), `--url`/`--url-title`, `--html`|`--monospace`, `--ttl`, `--attachment` (Bild <=5 MB), `--silent`, `--json`
+- Vorlagen: alert (rot, Prio 1), recovery (grün, Prio 0), digest (Titel + Bullets, Prio -1) — html mit Emoji, dynamische Werte geescaped, `--host`-Fußzeile
+- validate: Token + User/Group-Key prüfen (zeigt aktive Geräte); sounds: verfügbare Sound-Kennungen
+- Empfänger-Verzeichnis (Adressbuch): `recipients add/list` mappt Alias-Namen auf Keys, `--user kollege` statt Roh-Key; Default ist der Alias `me`. Ein Alias kann auch ein Delivery-Group-Key sein (ein `send` an alle). Datei `~/.pushover-recipients` (bzw. cwd)
 
-Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env → ~/.env, Env-Variablen haben Vorrang); Empfaenger im Verzeichnis (`me` = Default) oder `PUSHOVER_USER` als Fallback, optional `PUSHOVER_DEVICE`. FreeBSD-TLS-Escape-Hatch `PUSHOVER_CA_BUNDLE`.
+Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env → ~/.env, Env-Variablen haben Vorrang); Empfänger im Verzeichnis (`me` = Default) oder `PUSHOVER_USER` als Fallback, optional `PUSHOVER_DEVICE`. FreeBSD-TLS-Escape-Hatch `PUSHOVER_CA_BUNDLE`.
 
 **Voraussetzungen:** Python >= 3.11, App-Token + User-Key von pushover.net. FreeBSD: `pkg install python311 ca_root_nss`.
 
-**Trigger:** `/pushover` (Slash-Kommando; `/push` gibt es als Slash nicht — der Name des Skills ist `pushover`) oder natuerliche Sprache wie "push mir eine Nachricht", "push kollege eine Nachricht", "schick mir das per Pushover", "Alert nach Pushover".
+**Trigger:** `/pushover` (Slash-Kommando; `/push` gibt es als Slash nicht — der Name des Skills ist `pushover`) oder natürliche Sprache wie "push mir eine Nachricht", "push kollege eine Nachricht", "schick mir das per Pushover", "Alert nach Pushover".
 
 ### cloudns
 
-DNS-**Records** bei ClouDNS lesen und setzen: `list-zones`, `list`, `add`, `modify`, `delete`, `export`/`import` (BIND, tinydns), `soa`, `dnssec` (read-only) und `verify` (autoritative Gegenprobe gegen alle NS der Zone). Zonen anlegen oder loeschen kann der Skill nicht. Lesen ist der Standard, Schreiben erst mit `--commit` - ohne das Flag zeigt jeder Schreibbefehl nur Bestand und geplante Aenderung. Guard-Rails gegen CNAME-Kollisionen, unzulaessige TTL-Werte und den trailing dot im Zielwert.
+DNS-**Records** bei ClouDNS lesen und setzen: `list-zones`, `list`, `add`, `modify`, `delete`, `export`/`import` (BIND, tinydns), `soa`, `dnssec` (read-only) und `verify` (autoritative Gegenprobe gegen alle NS der Zone). Zonen anlegen oder löschen kann der Skill nicht. Lesen ist der Standard, Schreiben erst mit `--commit` - ohne das Flag zeigt jeder Schreibbefehl nur Bestand und geplante Änderung. Guard-Rails gegen CNAME-Kollisionen, unzulässige TTL-Werte und den trailing dot im Zielwert.
 
-Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwort verdeckt, schreibt `~/.claude/cloudns.json` mit 0600 und prueft den Zugang; `--force` ueberschreibt eine bestehende. Inhalt (Vorlage `cloudns.example.json`): genau eine ID - `auth-id` (Haupt-API-User), `sub-auth-id` oder `sub-auth-user` - plus `auth-password` bzw. `auth-password-env`. Anderer Pfad ueber `CLOUDNS_CONFIG`. Steht beim API-User eine IP-Whitelist, meldet die API dieselbe Fehlermeldung wie bei falschem Passwort - `check-auth` zuerst.
+Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwort verdeckt, schreibt `~/.claude/cloudns.json` mit 0600 und prüft den Zugang; `--force` überschreibt eine bestehende. Inhalt (Vorlage `cloudns.example.json`): genau eine ID - `auth-id` (Haupt-API-User), `sub-auth-id` oder `sub-auth-user` - plus `auth-password` bzw. `auth-password-env`. Anderer Pfad über `CLOUDNS_CONFIG`. Steht beim API-User eine IP-Whitelist, meldet die API dieselbe Fehlermeldung wie bei falschem Passwort - `check-auth` zuerst.
 
-**Voraussetzungen:** Python >= 3.9 (stdlib only) und `dig` fuer die Gegenprobe.
+**Voraussetzungen:** Python >= 3.9 (stdlib only) und `dig` für die Gegenprobe.
 
-**Trigger:** `/cloudns` oder natuerliche Sprache wie "setz den CNAME", "trag den A-Record ein", "welche Records hat die Zone".
+**Trigger:** `/cloudns` oder natürliche Sprache wie "setz den CNAME", "trag den A-Record ein", "welche Records hat die Zone".
 
 ## Changelog
 
-Vollstaendiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
+Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.63.32
+### 1.63.33
 
-- **`wiki` - echte Umlaute in den Scripts.** `lint-wiki.py`, `audit-wiki.py`,
-  `wiki_remotes.py` und `test-lint-wiki.py`: Kommentare, Docstrings und
-  Ausgaben (z.B. „überfällig“, „übersprungen“, „Alle 19 Fälle erfüllt“).
-  Unverändert bleiben Regex-Muster, die Wiki-Inhalt erkennen (sie treffen
-  weiterhin beide Schreibweisen), die Stoppwortliste, Bezeichner und Slugs. Die
-  Befunde von Lint und Audit sind gleich geblieben.
+- **README und `scripts/lint-skills.py` - echte Umlaute.** Fließtext des README
+  und Kommentare, Docstrings und Ausgaben von `lint-skills.py` („Skills
+  geprüft“). Code, Pfade, Links und Eigennamen bleiben unverändert.

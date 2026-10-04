@@ -3,6 +3,12 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.63.33
+
+- **README und `scripts/lint-skills.py` - echte Umlaute.** Fließtext des README
+  und Kommentare, Docstrings und Ausgaben von `lint-skills.py` („Skills
+  geprüft“). Code, Pfade, Links und Eigennamen bleiben unverändert.
+
 ### 1.63.32
 
 - **`wiki` - echte Umlaute in den Scripts.** `lint-wiki.py`, `audit-wiki.py`,
