@@ -3,6 +3,12 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.63.35
+
+- **`kanboard` - `.tmp/`-Hinweis als eigener Punkt.** Die Anweisung, `.tmp/` mit
+  `mkdir -m 700` anzulegen, steht nicht mehr am Ende des Hinweises zum
+  Skill-Verzeichnis, sondern als eigener Bullet.
+
 ### 1.63.34
 
 - **Projekt-`.tmp/` mit Modus 700.** `kanboard`, `imap` und `swos` legen `.tmp/`
