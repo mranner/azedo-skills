@@ -184,7 +184,7 @@ Nach Anlage oder Änderung dem User die URL anzeigen. Die Basis-URL ergibt sich 
 - **Config-Quelle:** `KANBOARD_ENV`, sonst `.env` im Arbeitsverzeichnis, sonst
   `~/.env`. Bei `KANBOARD_URL not set in <pfad>` siehe `references/setup.md`.
 - Dateipfade für `attach-file` müssen absolut sein.
-- Temporäre Dateien (Downloads, Optimierungen etc.) gehören ins Projekt-Verzeichnis `.tmp/`, **nicht** in `$SKILL_DIR/.tmp/`. Das Skill-Verzeichnis darf nicht als Arbeitsverzeichnis verwendet werden.
+- Temporäre Dateien (Downloads, Optimierungen etc.) gehören ins Projekt-Verzeichnis `.tmp/`, **nicht** in `$SKILL_DIR/.tmp/`. Das Skill-Verzeichnis darf nicht als Arbeitsverzeichnis verwendet werden. Fehlt `.tmp/`, mit `mkdir -m 700 .tmp` anlegen - liegt das Projekt in einem Docroot, liefert der Webserver es sonst aus.
 - Spaltennamen sind case-insensitiv im Script.
 - Output ist JSON -- relevante Felder extrahieren und lesbar darstellen.
 - Beschreibungen unterstützen Markdown-Syntax.

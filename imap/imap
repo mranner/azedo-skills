@@ -1262,7 +1262,9 @@ def unique_path(path):
 
 
 def default_dir():
-    return os.path.join(os.getcwd(), ".tmp")
+    d = os.path.join(os.getcwd(), ".tmp")
+    os.makedirs(d, mode=0o700, exist_ok=True)
+    return d
 
 
 def short(text, width):

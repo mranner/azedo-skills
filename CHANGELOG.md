@@ -3,6 +3,15 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.63.34
+
+- **Projekt-`.tmp/` mit Modus 700.** `kanboard`, `imap` und `swos` legen `.tmp/`
+  mit `0o700` an. kanboard, kimai, mail-as-me, swaks, wp-rest und envato weisen
+  an, ein fehlendes `.tmp/` mit `mkdir -m 700 .tmp` anzulegen: Ist das
+  Projektverzeichnis zugleich ein Docroot, liefert der Webserver sonst aus, was
+  ein Skill dort ablegt (Task-Exporte, Mail-Entwürfe, DB-Dumps). Ein schon
+  vorhandenes `.tmp/` ändern die Scripts nicht.
+
 ### 1.63.33
 
 - **README und `scripts/lint-skills.py` - echte Umlaute.** Fließtext des README

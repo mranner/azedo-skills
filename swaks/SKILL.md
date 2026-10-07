@@ -104,7 +104,7 @@ M=$(mktemp -d .tmp/mail.XXXXXX)
 
 Ein `mktemp -d` unter dem Projekt-`.tmp/` reicht; das Scratchpad-Verzeichnis der
 Session tut es genauso. Der gemeinsame `.tmp/` bleibt für Artefakte, die
-absichtlich sessionübergreifend liegen bleiben.
+absichtlich sessionübergreifend liegen bleiben. Fehlt `.tmp/`, mit `mkdir -m 700 .tmp` anlegen - liegt das Projekt in einem Docroot, liefert der Webserver es sonst aus.
 
 Das allein genügt nicht — es schließt nur die häufigste Ursache aus. Die Prüfung
 unmittelbar vor dem Versand (siehe „Vor dem Versand prüfen") fängt auch die

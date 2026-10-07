@@ -178,4 +178,4 @@ Falschaussage - schlimmer als gar keine Zeile.
   versionierte Skill und die persönlichen Daten getrennt bleiben.
 - Temporäre Dateien ins Projekt-`.tmp/`, nicht ins Skill-Verzeichnis; die Dateien
   eines Versands in ein eigenes Verzeichnis per `mktemp -d` (Grund:
-  [references/versand.md](references/versand.md)).
+  [references/versand.md](references/versand.md)). Fehlt `.tmp/`, mit `mkdir -m 700 .tmp` anlegen - liegt das Projekt in einem Docroot, liefert der Webserver es sonst aus.

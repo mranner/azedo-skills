@@ -106,7 +106,7 @@ python3 "$SKILL_DIR/envato" user-email
 ## Hinweise
 
 - Config (`ENVATO_TOKEN`) wird aus `.env` im aktuellen Arbeitsverzeichnis gelesen (oder via `ENVATO_ENV` Environment-Variable, Fallback `~/.env`).
-- Temporaere Dateien und Downloads gehoeren ins Projekt-Verzeichnis `.tmp/`, **nicht** in `$SKILL_DIR/.tmp/`.
+- Temporaere Dateien und Downloads gehoeren ins Projekt-Verzeichnis `.tmp/`, **nicht** in `$SKILL_DIR/.tmp/`. Fehlt `.tmp/`, mit `mkdir -m 700 .tmp` anlegen - liegt das Projekt in einem Docroot, liefert der Webserver es sonst aus.
 - Output ist JSON — relevante Felder extrahieren und lesbar darstellen.
 - Der Download-Endpunkt liefert eine temporaere URL, die nur kurz gueltig ist.
 - Bei WordPress-Themes liefert die API getrennte URLs fuer "Installable WordPress file only" (`wordpress_theme`, via `--wp-theme`) und "All files & documentation" (`download_url`, Default).

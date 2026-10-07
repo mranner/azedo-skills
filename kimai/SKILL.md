@@ -166,7 +166,7 @@ python3 "$SKILL_DIR/kimai" ping
   Der Home-Fallback ist gewollt: eine Konfiguration reicht für alle Projekte. Ein
   projektlokales `.env` ohne Kimai-Schlüssel wird übersprungen statt zum Abbruch zu
   führen; der kanboard-Skill ist an dieser Stelle strenger (siehe dortige SKILL.md).
-- Temporäre Dateien gehören ins Projekt-Verzeichnis `.tmp/`, **nicht** in `$SKILL_DIR/.tmp/`.
+- Temporäre Dateien gehören ins Projekt-Verzeichnis `.tmp/`, **nicht** in `$SKILL_DIR/.tmp/`. Fehlt `.tmp/`, mit `mkdir -m 700 .tmp` anlegen - liegt das Projekt in einem Docroot, liefert der Webserver es sonst aus.
 - Output ist JSON — relevante Felder extrahieren und lesbar darstellen.
 - Alle IDs (Projekt, Aktivität, User, Kunde) sind numerisch.
 - `create-timesheet` ohne `--end` startet einen laufenden Timer. `stop-timesheet` beendet ihn.

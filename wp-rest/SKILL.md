@@ -268,4 +268,4 @@ Block-Markup ist HTML mit `<!-- wp:… -->`-Kommentaren im Feld `content`.
 - **Löschen braucht `--yes`.** Ohne die Option zeigen `delete-post`,
   `delete-media` und `wc-delete` nur, was getroffen wäre.
 - Temporäre Dateien (Inhalte, Exporte) gehören ins Projekt-`.tmp/`, nicht ins
-  Skill-Verzeichnis.
+  Skill-Verzeichnis. Fehlt `.tmp/`, mit `mkdir -m 700 .tmp` anlegen - liegt das Projekt in einem Docroot, liefert der Webserver es sonst aus.

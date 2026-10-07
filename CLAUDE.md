@@ -151,3 +151,9 @@ landen in `~/.claude/settings.json`. Heißt: gepusht wird hier, geholt wird dort
 ins Projekt-`.tmp/` zu legen; im Repo selbst darf davon nichts landen. Besonders heikel:
 SwOS-`.swb`-Sicherungen enthalten das Switch-Passwort im Klartext — solche Dateien
 niemals einchecken (siehe „Das Repo ist public").
+
+Das Projekt-`.tmp/` wird mit Modus 700 angelegt (`mkdir -m 700 .tmp`, in Scripts
+`os.makedirs(..., mode=0o700)`). Ist das Projektverzeichnis zugleich ein Docroot,
+liefert der Webserver sonst aus, was ein Skill dort ablegt - Task-Exporte,
+Mail-Entwürfe, DB-Dumps. Mit 700 kann der Webserver-User nicht lesen. Das gilt für
+jedes Script, das `.tmp/` selbst anlegt (`kanboard`, `imap`, `swos`).

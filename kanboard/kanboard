@@ -1098,7 +1098,7 @@ def cmd_download_file(args):
         outpath = os.path.abspath(args.output)
     else:
         tmpdir = os.path.join(os.getcwd(), ".tmp")
-        os.makedirs(tmpdir, exist_ok=True)
+        os.makedirs(tmpdir, mode=0o700, exist_ok=True)
         outpath = os.path.join(tmpdir, f"kanboard_file_{args.file_id}")
 
     with open(outpath, "wb") as f:

@@ -1087,7 +1087,7 @@ def _snapshot_dir():
             cwd.startswith(s + os.sep) for s in skill_dirs)
         d = (os.path.join(os.path.expanduser("~"), ".cache", "swos")
              if in_skill else os.path.join(cwd, ".tmp"))
-    os.makedirs(d, exist_ok=True)
+    os.makedirs(d, mode=0o700, exist_ok=True)
     return d
 
 
