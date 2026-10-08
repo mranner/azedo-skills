@@ -3,6 +3,15 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.63.36
+
+- **`mainwp` - Plugin über alle Sites finden.** Neuer Workflow mit
+  `get-site-plugins-v1` je Site, parallel wie bei den Versionen. Hinweise:
+  `update_version` stammt aus dem letzten Sync, und Sites mit
+  `mainwp_child_outdated` sind nicht abfragbar. Das `specific_items`-Beispiel
+  bei `run-updates-v1` nutzt jetzt den Plugin-Dateipfad
+  (`akismet/akismet.php`), so wie `get-site-plugins-v1` den Slug liefert.
+
 ### 1.63.35
 
 - **`kanboard` - `.tmp/`-Hinweis als eigener Punkt.** Die Anweisung, `.tmp/` mit

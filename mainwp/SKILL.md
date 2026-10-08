@@ -228,8 +228,12 @@ python3 "$SKILL_DIR/mainwp" run mainwp/run-updates-v1 \
 # ein bestimmtes Plugin auf einer Site
 python3 "$SKILL_DIR/mainwp" run mainwp/run-updates-v1 \
   --param 'site_ids_or_domains=[42]' --param 'types=["plugins"]' \
-  --param 'specific_items=["akismet"]' --confirm
+  --param 'specific_items=["akismet/akismet.php"]' --confirm
 ```
+
+Als Slug in `specific_items` funktioniert der Plugin-Dateipfad, so wie ihn
+`get-site-plugins-v1` im Feld `slug` liefert (`<ordner>/<datei>.php`). Ob die
+Kurzform ohne Dateinamen ebenso greift, ist nicht geprueft.
 
 **Ein leeres Array bedeutet „alle".** Das gilt fuer jeden der drei Parameter,
 und ein weggelassener Parameter ist ein leeres Array. `run mainwp/run-updates-v1`
@@ -293,6 +297,41 @@ Die Antworten **nicht** parallel in dieselbe Datei schreiben: die Ausgabe des
 Wrappers ist mehrzeiliges JSON, bei sechs gleichzeitigen Schreibern vermischen
 sich die Bloecke. `export SKILL_DIR` ist noetig, weil die Variable sonst in der
 `sh -c`-Subshell leer ist und `python3` still auf einen falschen Pfad zeigt.
+
+### Plugin ueber alle Sites finden
+
+Auf welchen Sites ein Plugin installiert ist (etwa nach einer Sicherheitsmeldung),
+liefert `get-site-plugins-v1` -- wie bei den Versionen ein Aufruf je Site, IDs
+und Parallelisierung wie unter „Site-Details abrufen":
+
+```bash
+export SKILL_DIR
+xargs -P 6 -I{} sh -c 'python3 "$SKILL_DIR/mainwp" run mainwp/get-site-plugins-v1 --param site_id_or_domain=$1 >.tmp/mainwp_pl_$1.json 2>.tmp/mainwp_pl_$1.err' _ {} \
+  <.tmp/mainwp_ids.txt
+
+python3 -c "
+import json, glob
+for f in sorted(glob.glob('.tmp/mainwp_pl_*.json')):
+    try:
+        d = json.load(open(f))
+    except ValueError:
+        print('FAIL', f)
+        continue
+    for p in d['plugins']:
+        if '<plugin-ordner>' in p['slug']:
+            print(d['site_id'], d['site_url'], p['slug'], p['version'], p['active'], p.get('update_version'))
+"
+```
+
+Pro Plugin kommen `slug`, `name`, `version`, `active` und `update_version`.
+
+- **`update_version` stammt aus dem letzten Sync.** Ist er ein paar Tage alt,
+  steht dort `None`, obwohl ein Update existiert -- oder die Site wurde
+  inzwischen ausserhalb von MainWP aktualisiert. Vor einer Entscheidung
+  `last_sync` (aus `get-site-v1`) pruefen und die Site ggf. erst syncen.
+- **Fehlgeschlagene Sites stehen in der `.err`-Datei**, die `.json` ist dann
+  leer. Typisch ist `400 mainwp_child_outdated` bei einer getrennten Site mit
+  altem Child-Plugin -- deren Plugins sind ueber MainWP nicht abfragbar.
 
 ### Tags verwalten (REST API v2)
 

@@ -661,8 +661,11 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.63.35
+### 1.63.36
 
-- **`kanboard` - `.tmp/`-Hinweis als eigener Punkt.** Die Anweisung, `.tmp/` mit
-  `mkdir -m 700` anzulegen, steht nicht mehr am Ende des Hinweises zum
-  Skill-Verzeichnis, sondern als eigener Bullet.
+- **`mainwp` - Plugin über alle Sites finden.** Neuer Workflow mit
+  `get-site-plugins-v1` je Site, parallel wie bei den Versionen. Hinweise:
+  `update_version` stammt aus dem letzten Sync, und Sites mit
+  `mainwp_child_outdated` sind nicht abfragbar. Das `specific_items`-Beispiel
+  bei `run-updates-v1` nutzt jetzt den Plugin-Dateipfad
+  (`akismet/akismet.php`), so wie `get-site-plugins-v1` den Slug liefert.
