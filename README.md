@@ -661,10 +661,10 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.63.37
+### 1.63.38
 
-- **`kanboard`, `kimai` - `kimai:`-Tag nur setzen, wenn er fehlt.** Der
-  Write-back nach einer Kimai-Buchung unter aktivem CR legt den Shortcut nur
-  noch an, wenn der Task noch keinen `kimai:`-Tag trägt. Weicht ein vorhandener
-  Tag ab, wird das gemeldet, nicht überschrieben: Ein Task, der über mehrere
-  Kimai-Projekte gebucht wird, wechselt den Tag nicht mehr mit jeder Buchung.
+- **`kimai` - gemeinsame Shortcut-Datei als Fallback.** Neben der
+  projektlokalen `.claude/kimai-shortcuts.json` liest `kimai` jetzt
+  `~/.claude/kimai-shortcuts.json` für Kurznamen, die projektlokal fehlen; bei
+  gleichem Key gilt der projektlokale. Damit lässt sich ein `kimai:`-Tag am Task
+  auch in Repos ohne eigene Shortcut-Datei auflösen.

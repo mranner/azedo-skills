@@ -1103,19 +1103,22 @@ def _find_shortcuts_file():
 
 
 def load_shortcuts():
-    """Read .claude/kimai-shortcuts.json (searched upward from cwd). Returns dict or {}."""
-    path = _find_shortcuts_file()
-    if not path:
-        return {}
-    with open(path) as f:
-        data = json.load(f)
+    """Read .claude/kimai-shortcuts.json (searched upward from cwd), then
+    ~/.claude/kimai-shortcuts.json for keys missing there. Returns dict or {}."""
+    home_file = os.path.join(os.path.expanduser("~"), ".claude", "kimai-shortcuts.json")
+    paths = [p for p in (_find_shortcuts_file(), home_file) if p and os.path.exists(p)]
 
     shortcuts = {}
-    for key, val in data.items():
-        if isinstance(val, list) and len(val) >= 3:
-            shortcuts[key] = {"project": val[0], "activity": val[1], "label": val[2]}
-        elif isinstance(val, dict) and "project" in val and "activity" in val:
-            shortcuts[key] = val
+    for path in dict.fromkeys(os.path.realpath(p) for p in paths):
+        with open(path) as f:
+            data = json.load(f)
+        for key, val in data.items():
+            if key in shortcuts:
+                continue
+            if isinstance(val, list) and len(val) >= 3:
+                shortcuts[key] = {"project": val[0], "activity": val[1], "label": val[2]}
+            elif isinstance(val, dict) and "project" in val and "activity" in val:
+                shortcuts[key] = val
     return shortcuts
 
 

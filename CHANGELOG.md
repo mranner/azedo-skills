@@ -3,6 +3,14 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.63.38
+
+- **`kimai` - gemeinsame Shortcut-Datei als Fallback.** Neben der
+  projektlokalen `.claude/kimai-shortcuts.json` liest `kimai` jetzt
+  `~/.claude/kimai-shortcuts.json` für Kurznamen, die projektlokal fehlen; bei
+  gleichem Key gilt der projektlokale. Damit lässt sich ein `kimai:`-Tag am Task
+  auch in Repos ohne eigene Shortcut-Datei auflösen.
+
 ### 1.63.37
 
 - **`kanboard`, `kimai` - `kimai:`-Tag nur setzen, wenn er fehlt.** Der

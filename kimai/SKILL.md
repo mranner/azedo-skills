@@ -29,7 +29,7 @@ Das schreibt `instance.json` ins Skill-Verzeichnis mit allen Projekten, Aktivit�
 
 Falls `instance.json` nicht existiert, zuerst `setup` ausführen.
 
-**ID-Lookup:** Zuerst `.claude/kimai-shortcuts.json` im Arbeitsverzeichnis prüfen (kompakte Zuordnung häufiger Projekt/Aktivitäts-Kombinationen). Nur bei unbekannten Projekten auf `$SKILL_DIR/instance.json` zurückfallen.
+**ID-Lookup:** Zuerst `.claude/kimai-shortcuts.json` im Arbeitsverzeichnis prüfen (kompakte Zuordnung häufiger Projekt/Aktivitäts-Kombinationen), danach die gemeinsame `~/.claude/kimai-shortcuts.json` für Kurznamen, die projektlokal fehlen. Bei gleichem Key gilt der projektlokale. Nur bei unbekannten Projekten auf `$SKILL_DIR/instance.json` zurückfallen.
 
 **Aufbau von `.claude/kimai-shortcuts.json`:**
 
@@ -45,7 +45,7 @@ Flaches JSON — ein Key pro Zeile, Wert ist `[project_id, activity_id, "Label"]
 - Key: Kurzname (lowercase, Bindestrich-getrennt) — wird case-insensitive und per Teilmatch gegen die Nutzeranfrage geprüft
 - Wert: Array `[project_id, activity_id, "Label"]`
 - Label dient auch als Match-Ziel
-- **Lookup per grep:** `grep -i <suchbegriff> .claude/kimai-shortcuts.json` liefert die passende Zeile direkt — die Datei muss nicht komplett gelesen werden
+- **Lookup per grep:** `grep -i <suchbegriff> .claude/kimai-shortcuts.json ~/.claude/kimai-shortcuts.json` liefert die passende Zeile direkt — die Datei muss nicht komplett gelesen werden
 - Neue Kombinationen werden im Workflow automatisch ergänzt (Schritt 7)
 
 **Altes Format:** Liefert der grep `"project":` statt eines Arrays, zuerst migrieren:
@@ -140,7 +140,7 @@ python3 "$SKILL_DIR/kimai" ping
 
 **Komplexere Fälle** (kein Shortcut, spezielle Zeitangaben, Updates, Abfragen) → manueller Workflow:
 
-1. **Shortcuts prüfen:** `grep -i <suchbegriff> .claude/kimai-shortcuts.json` ausführen. Jede Zeile hat das Format `"key": [project_id, activity_id, "Label"]`. Grep liefert direkt die passende(n) Zeile(n) — die Datei muss nicht komplett gelesen werden. Bei Treffer: Projekt- und Aktivitäts-ID aus dem Array verwenden, `instance.json` muss nicht gelesen werden.
+1. **Shortcuts prüfen:** `grep -i <suchbegriff> .claude/kimai-shortcuts.json ~/.claude/kimai-shortcuts.json` ausführen (projektlokal vor gemeinsam). Jede Zeile hat das Format `"key": [project_id, activity_id, "Label"]`. Grep liefert direkt die passende(n) Zeile(n) — die Datei muss nicht komplett gelesen werden. Bei Treffer: Projekt- und Aktivitäts-ID aus dem Array verwenden, `instance.json` muss nicht gelesen werden.
 2. **Fallback auf instance.json:** Nur wenn kein Shortcut passt, `instance.json` lesen und dort matchen.
 3. Parameter aus der Nutzeranfrage ableiten (Projekt, Aktivität, Zeitraum, User).
 4. Wenn nicht eindeutig: nachfragen.
