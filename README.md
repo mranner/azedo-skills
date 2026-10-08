@@ -661,11 +661,10 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.63.36
+### 1.63.37
 
-- **`mainwp` - Plugin über alle Sites finden.** Neuer Workflow mit
-  `get-site-plugins-v1` je Site, parallel wie bei den Versionen. Hinweise:
-  `update_version` stammt aus dem letzten Sync, und Sites mit
-  `mainwp_child_outdated` sind nicht abfragbar. Das `specific_items`-Beispiel
-  bei `run-updates-v1` nutzt jetzt den Plugin-Dateipfad
-  (`akismet/akismet.php`), so wie `get-site-plugins-v1` den Slug liefert.
+- **`kanboard`, `kimai` - `kimai:`-Tag nur setzen, wenn er fehlt.** Der
+  Write-back nach einer Kimai-Buchung unter aktivem CR legt den Shortcut nur
+  noch an, wenn der Task noch keinen `kimai:`-Tag trägt. Weicht ein vorhandener
+  Tag ab, wird das gemeldet, nicht überschrieben: Ein Task, der über mehrere
+  Kimai-Projekte gebucht wird, wechselt den Tag nicht mehr mit jeder Buchung.

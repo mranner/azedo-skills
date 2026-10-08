@@ -253,8 +253,11 @@ Wenn ein CR-Kontext aktiv ist und der User Zeit erfasst (via `/kimai`):
 - Beispiel: `--description "CR4326: Login-Validierung implementiert"`
 
 **Write-back:** Nach einer Kimai-Buchung unter aktivem CR den verwendeten Shortcut
-am Task ablegen, falls der `kimai:`-Tag fehlt oder abweicht - automatisch, ohne
-Rückfrage. Beim nächsten `cr <id>` steht er dann im Feld `kimai` bereit.
+am Task ablegen, falls noch kein `kimai:`-Tag gesetzt ist - automatisch, ohne
+Rückfrage. Beim nächsten `cr <id>` steht er dann im Feld `kimai` bereit. Weicht ein
+vorhandener Tag vom verwendeten Shortcut ab, das nur melden, nicht überschreiben:
+Ein Task, der über mehrere Kimai-Projekte gebucht wird, behält so seinen Tag, statt
+mit jeder Buchung zu wechseln.
 
 ```bash
 python3 "$SKILL_DIR/kanboard" set-kimai <task_id> --shortcut <shortcut>

@@ -3,6 +3,14 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.63.37
+
+- **`kanboard`, `kimai` - `kimai:`-Tag nur setzen, wenn er fehlt.** Der
+  Write-back nach einer Kimai-Buchung unter aktivem CR legt den Shortcut nur
+  noch an, wenn der Task noch keinen `kimai:`-Tag trägt. Weicht ein vorhandener
+  Tag ab, wird das gemeldet, nicht überschrieben: Ein Task, der über mehrere
+  Kimai-Projekte gebucht wird, wechselt den Tag nicht mehr mit jeder Buchung.
+
 ### 1.63.36
 
 - **`mainwp` - Plugin über alle Sites finden.** Neuer Workflow mit
