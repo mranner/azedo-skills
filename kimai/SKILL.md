@@ -1,11 +1,10 @@
 ---
 name: kimai
 description: >
-  Kimai Zeiterfassung: Timesheets, Projekte, Kunden, Aktivitäten, Tags und
-  Teams verwalten. Nutze diesen Skill wenn der User Zeiten erfassen, Stunden
-  auswerten, Projekte oder Kunden anlegen/ändern will.
-  Auch aktiv verwenden wenn der User sagt "trag die Stunden ein",
-  "wie viele Stunden diese Woche", "Zeitauswertung", o.ä.
+  Verwaltet die Kimai-Zeiterfassung: Timesheets, Projekte, Kunden, Aktivitäten,
+  Tags und Teams. Wird verwendet, wenn der User Zeiten erfassen, Stunden
+  auswerten, Projekte oder Kunden anlegen oder ändern will, etwa bei
+  "trag die Stunden ein", "wie viele Stunden diese Woche", "Zeitauswertung".
   Trigger: /kimai.
 ---
 

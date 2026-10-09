@@ -36,8 +36,7 @@ python3 "$SKILL_DIR/kimai" update-timesheet <id> \
 
 # Hinweis: `--hourly-rate` setzt den Satz dieses Eintrags. Nötig, wenn eine Rate
 # erst nach dem Buchen gesetzt wurde - Kimai schreibt den Satz beim Anlegen fest,
-# ein Umhängen per --activity zieht ihn nicht nach. Siehe references/stammdaten.md,
-# Abschnitt Stundensätze.
+# ein Umhängen per --activity zieht ihn nicht nach.
 
 # Eintrag löschen
 python3 "$SKILL_DIR/kimai" delete-timesheet <id>

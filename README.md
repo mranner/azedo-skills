@@ -661,10 +661,9 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.63.38
+### 1.63.39
 
-- **`kimai` - gemeinsame Shortcut-Datei als Fallback.** Neben der
-  projektlokalen `.claude/kimai-shortcuts.json` liest `kimai` jetzt
-  `~/.claude/kimai-shortcuts.json` für Kurznamen, die projektlokal fehlen; bei
-  gleichem Key gilt der projektlokale. Damit lässt sich ein `kimai:`-Tag am Task
-  auch in Repos ohne eigene Shortcut-Datei auflösen.
+- **`kimai` - Anthropic-Regeln.** Die `description` steht in der dritten Person
+  („Verwaltet …“, „Wird verwendet, wenn …“) statt Claude direkt anzusprechen.
+  `references/timesheets.md` verweist nicht mehr auf `references/stammdaten.md`;
+  die Stundensätze erreicht man über die Tabelle in der SKILL.md.

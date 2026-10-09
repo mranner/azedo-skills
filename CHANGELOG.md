@@ -3,6 +3,13 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.63.39
+
+- **`kimai` - Anthropic-Regeln.** Die `description` steht in der dritten Person
+  („Verwaltet …“, „Wird verwendet, wenn …“) statt Claude direkt anzusprechen.
+  `references/timesheets.md` verweist nicht mehr auf `references/stammdaten.md`;
+  die Stundensätze erreicht man über die Tabelle in der SKILL.md.
+
 ### 1.63.38
 
 - **`kimai` - gemeinsame Shortcut-Datei als Fallback.** Neben der
