@@ -183,13 +183,7 @@ if (!is_array($data)) {
     exit(1);
 }
 
-// GA4 aktivieren
-$data['ga_enabled'] = true;
-$data['ga_event_action'] = 'CustomEvent';
-$data['ga_event_action_group'] = 'Custom Event';
-$data['ga_custom_event_action'] = $ga_name;
-
-// Google Ads aktivieren (optional — gleichen Event-Name verwenden)
+// GA4 laeuft ueber den Kanal ga_ads (Abschnitt 1), ga_* bleibt unberuehrt
 $data['ga_ads_enabled'] = true;
 $data['ga_ads_event_action'] = 'CustomEvent';
 $data['ga_ads_event_action_group'] = 'Custom Event';
@@ -197,7 +191,7 @@ $data['ga_ads_custom_event_action'] = $ga_name;
 
 update_post_meta($event_id, '_pys_event_data', $data);
 
-echo "OK: Event $event_id — GA4+GoogleAds aktiviert, Name: $ga_name\n";
+echo "OK: Event $event_id — GA4 (ga_ads) aktiviert, Name: $ga_name\n";
 ```
 
 ### 3.4 Event klonen (clone-event)
@@ -363,6 +357,7 @@ if ($t_arr === false) {
 // pys-backup.php — via: wp eval-file pys-backup.php <event_id> --url=<subsite>
 // Gibt base64-encodierte Meta-Werte aus — zum Wiederherstellen aufbewahren
 
+global $wpdb;
 $event_id = (int) $args[0];
 
 foreach (['_pys_event_data', '_pys_event_triggers', '_pys_event_conditions', '_pys_event_state'] as $key) {

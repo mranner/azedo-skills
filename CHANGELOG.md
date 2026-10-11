@@ -3,6 +3,13 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.65.4
+
+- **`wp-pys` - `enable-target` nur noch über `ga_ads`.** Das Snippet setzte
+  zusätzlich `ga_enabled` und die übrigen `ga_*`-Felder, im Widerspruch zum
+  Datenmodell aus 1.65.3: GA4 läuft über den Kanal `ga_ads`, `ga_*` bleibt
+  jetzt unberührt. Im Backup-Snippet fehlte `global $wpdb;`.
+
 ### 1.65.3
 
 - **`wp-pys` - Datenmodell und Klon-Rezept korrigiert.** GA4-Events laufen
