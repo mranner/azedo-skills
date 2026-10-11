@@ -3,7 +3,7 @@
 # md2pdf -- Markdown -> "schoenes" PDF (Typora-naher Look)
 # Pipeline: pandoc -> self-contained HTML (CSS + SVG inline) -> headless Chrome --print-to-pdf
 # Mermaid-Codebloecke (```mermaid) werden via mmdc zu SVG gerendert und eingebettet (optional).
-# version 1.65.4
+# version 1.65.5
 #
 # Usage:  md2pdf <input.md> [output.pdf] [--css <file>] [--no-mermaid]
 #         (ohne output.pdf -> gleicher Name/Ordner mit .pdf; ueberschreibt eine vorhandene .pdf)

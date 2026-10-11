@@ -663,9 +663,11 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.65.4
+### 1.65.5
 
-- **`wp-pys` - `enable-target` nur noch über `ga_ads`.** Das Snippet setzte
-  zusätzlich `ga_enabled` und die übrigen `ga_*`-Felder, im Widerspruch zum
-  Datenmodell aus 1.65.3: GA4 läuft über den Kanal `ga_ads`, `ga_*` bleibt
-  jetzt unberührt. Im Backup-Snippet fehlte `global $wpdb;`.
+- **`wp-pys` - Snippets in `references/snippets.md` ausgelagert.** Die
+  SKILL.md war mit 452 Zeilen knapp an der Grenze von 500 und trug alle acht
+  PHP-Snippets selbst. Sie behält Datenmodell, Zugang, Fallstricke und Workflow
+  und führt die Operationen 3.1-3.7 als Tabelle mit Verweis; die Snippets sind
+  unverändert, nur ihre Verweise auf Abschnitte nennen jetzt die SKILL.md.
+  `allowed-tools` um `Read` ergänzt.

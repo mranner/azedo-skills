@@ -3,6 +3,15 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.65.5
+
+- **`wp-pys` - Snippets in `references/snippets.md` ausgelagert.** Die
+  SKILL.md war mit 452 Zeilen knapp an der Grenze von 500 und trug alle acht
+  PHP-Snippets selbst. Sie behält Datenmodell, Zugang, Fallstricke und Workflow
+  und führt die Operationen 3.1-3.7 als Tabelle mit Verweis; die Snippets sind
+  unverändert, nur ihre Verweise auf Abschnitte nennen jetzt die SKILL.md.
+  `allowed-tools` um `Read` ergänzt.
+
 ### 1.65.4
 
 - **`wp-pys` - `enable-target` nur noch über `ga_ads`.** Das Snippet setzte
