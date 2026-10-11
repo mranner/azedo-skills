@@ -101,10 +101,6 @@ und meldet „Bereits vorhanden" samt ID, statt eine zweite anzulegen - GA4 selb
 lässt Duplikate zu. `create-web-stream` prüft das **nicht**: Ein zweiter Aufruf
 legt einen zweiten Stream mit eigener Messungs-ID an, vorher `list-streams`.
 
-Nach dem Anlegen fehlt der neuen Property noch alles, was eine bestehende
-eingestellt hat: Datenaufbewahrung (Default 2 Monate, siehe unten) und Custom
-Dimensions. `instance.json` kennt sie erst nach einem erneuten `setup`.
-
 ### Reports
 
 ```bash
@@ -236,10 +232,22 @@ dafür nicht. Auf die neue Property erbt der Service Account die Kontorolle,
 
 ## Workflow
 
+### Abfragen
+
 1. `instance.json` pruefen — falls nicht vorhanden, `setup` ausfuehren
 2. Property-ID per grep in `instance.json` nachschlagen
 3. Report/Realtime/Metadata Subcommand mit passenden Parametern ausfuehren
 4. Bei unbekannten Dimensions/Metriken: `metadata` mit `--search` nutzen
+
+### Neue Site einrichten
+
+1. `create-property`, mit `--like` auf eine vergleichbare Property
+2. `list-streams` auf der neuen Property, dann `create-web-stream` - liefert die
+   Messungs-ID (`G-…`) für die Website
+3. `data-retention --set 14` - eine neue Property steht auf 2 Monaten
+4. Custom Dimensions anlegen, falls die Vorlage welche hat (`list-custom-dimensions`
+   auf der Vorlage)
+5. `setup`, damit `instance.json` die neue Property kennt
 
 ## Hinweise
 
@@ -249,6 +257,3 @@ dafür nicht. Auf die neue Property erbt der Service Account die Kontorolle,
 - Sortierung: `-feld` absteigend, `+feld` aufsteigend
 - Filter: einfaches `dimension==wert` Format
 - Realtime-Daten umfassen die letzten 30 Minuten
-- Neue Properties: Service Account in GA4 hinzufuegen — als Betrachter, fuer schreibende
-  Subcommands als Bearbeiter
-  (analytics.google.com → Verwaltung → Property-Zugriffsverwaltung)

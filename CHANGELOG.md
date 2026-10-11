@@ -3,6 +3,14 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.65.1
+
+- **`google-analytics` - `version` liest den Kopfkommentar.** Das Subcommand
+  gab fest `1.39.2` aus; jetzt liest es die Version aus dem `# version`-Kopf,
+  den der Release-Workflow mitzieht. Die SKILL.md führt unter „Workflow" die
+  Reihenfolge für eine neue Site (Property, Stream, Datenaufbewahrung, Custom
+  Dimensions, `setup`) und nennt die nötige GA4-Rolle nicht mehr dreifach.
+
 ### 1.65.0
 
 - **`google-analytics` - Properties und Web-Datenstreams anlegen.** Vier neue
