@@ -192,7 +192,10 @@ Remote-Ziele gelten ungeprüft als gültig, `--check-remotes` verifiziert sie pe
 Unbekanntes Präfix bleibt ein toter Link.
 
 Prüft:
-- **Orphaned pages**: Artikel ohne eingehende Links
+- **Orphaned pages**: Artikel, auf den kein anderer Artikel verlinkt. Links aus
+  `index.md` und `log.md` zählen nicht als eingehend, die Meldung nennt sie aber
+  (`… (nur aus index.md)`) - ein Artikel, den nur der Index kennt, ist im Wiki
+  selbst nicht erreichbar
 - **Dead links**: Wikilinks zu nicht-existierenden Artikeln - in den Artikeln als
   Fehler, in `log.md` und `index.md` als Warnung (beide liegen außerhalb von
   `wiki/` und zählen nur als Quelle, nicht als Ziel; `log.md` ist historisch,

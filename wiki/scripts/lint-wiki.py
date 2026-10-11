@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # stdlib only, no pip dependencies
-# version 1.65.5
+# version 1.65.6
 
 """
 lint-wiki.py — Strukturprüfung für LLM Wikis (Infra + Projekt-Doku).
@@ -11,7 +11,7 @@ Prüft:
 - Wikilinks (tote Links, niedrige Konnektivität)
 - Index-Einträge (fehlende Artikel im Index)
 - Namenskonventionen (nur Kleinbuchstaben, Ziffern, Bindestriche)
-- Verwaiste Seiten (keine eingehenden Links)
+- Verwaiste Seiten (kein anderer Artikel verlinkt hierher; index.md und log.md zählen nicht)
 - Datumsangaben in Überschriften (Logbuch-Muster, siehe Schreibregeln)
 - Optionale Vertrauensfelder verified/stale_after (Format, Ablauf)
 - Optional: Frontmatter-Verweise (z.B. tests, config) gegen ihre Prüfqülle,
@@ -708,11 +708,13 @@ def lint_wiki(wiki_root, check_remotes=False, check_shrink_flag=False):
     # verwaiste Seite und als nicht im Index gelistet. Warnung statt Fehler, weil
     # log.md historisch ist — ein alter Eintrag darf auf einen seither
     # aufgelösten Artikel zeigen, ohne dass der Lauf fehlschlägt.
+    extra_incoming = defaultdict(list)
     for extra_file in (wiki_root / "log.md", index_file):
         if not extra_file.exists():
             continue
         for target in sorted(set(find_wikilinks(extra_file.read_text(encoding="utf-8")))):
             if target in all_slugs:
+                extra_incoming[target].append(extra_file.name)
                 continue
             rp = parse_remote_target(target)
             if rp and rp[0] in local_wikis:
@@ -731,10 +733,12 @@ def lint_wiki(wiki_root, check_remotes=False, check_shrink_flag=False):
             if not ok:
                 warnings.append(f"{articles[src]['rel_path']}: Remote-Pointer [[{rname}:{tslug}]] — {reason}")
 
-    # Verwaiste Seiten
+    # Verwaiste Seiten: zählt nur Links aus anderen Artikeln, index.md und log.md
+    # werden in der Meldung genannt, damit sie nicht wie ein Fehlalarm aussieht.
     for slug in all_slugs:
         if slug not in incoming_links or len(incoming_links[slug]) == 0:
-            warnings.append(f"{articles[slug]['rel_path']}: Verwaiste Seite — keine eingehenden Links")
+            only = f" (nur aus {', '.join(extra_incoming[slug])})" if extra_incoming[slug] else ""
+            warnings.append(f"{articles[slug]['rel_path']}: Verwaiste Seite — kein anderer Artikel verlinkt hierher{only}")
 
     # Index-Einträge prüfen
     if index_file.exists():

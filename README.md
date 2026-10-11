@@ -663,11 +663,12 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.65.5
+### 1.65.6
 
-- **`wp-pys` - Snippets in `references/snippets.md` ausgelagert.** Die
-  SKILL.md war mit 452 Zeilen knapp an der Grenze von 500 und trug alle acht
-  PHP-Snippets selbst. Sie behält Datenmodell, Zugang, Fallstricke und Workflow
-  und führt die Operationen 3.1-3.7 als Tabelle mit Verweis; die Snippets sind
-  unverändert, nur ihre Verweise auf Abschnitte nennen jetzt die SKILL.md.
-  `allowed-tools` um `Read` ergänzt.
+- **`wiki` lint - Meldung „Verwaiste Seite" präzisiert.** Sie lautet jetzt
+  „kein anderer Artikel verlinkt hierher" und nennt, ob der Artikel nur aus
+  `index.md` bzw. `log.md` verlinkt ist (`(nur aus index.md)`). Diese beiden
+  zählen weiterhin nicht als eingehend - ein Artikel, den nur der Index kennt,
+  ist im Wiki selbst nicht erreichbar. Bisher sah die Warnung bei einem im
+  Index gelisteten Artikel wie ein Fehlalarm aus. Testfall in
+  `test-lint-wiki.py`, Doku unter `references/subcommands.md` (lint).

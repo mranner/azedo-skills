@@ -3,6 +3,16 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.65.6
+
+- **`wiki` lint - Meldung „Verwaiste Seite" präzisiert.** Sie lautet jetzt
+  „kein anderer Artikel verlinkt hierher" und nennt, ob der Artikel nur aus
+  `index.md` bzw. `log.md` verlinkt ist (`(nur aus index.md)`). Diese beiden
+  zählen weiterhin nicht als eingehend - ein Artikel, den nur der Index kennt,
+  ist im Wiki selbst nicht erreichbar. Bisher sah die Warnung bei einem im
+  Index gelisteten Artikel wie ein Fehlalarm aus. Testfall in
+  `test-lint-wiki.py`, Doku unter `references/subcommands.md` (lint).
+
 ### 1.65.5
 
 - **`wp-pys` - Snippets in `references/snippets.md` ausgelagert.** Die

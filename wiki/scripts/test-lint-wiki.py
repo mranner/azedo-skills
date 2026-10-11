@@ -4,8 +4,8 @@
 
 """
 test-lint-wiki.py — Testfälle für die Präfix-Auflösung, die
-Frontmatter-Verweise (references), die Abschnittsverweise und den
-Schrumpf-Guard (umgehängte Links) in lint-wiki.py.
+Frontmatter-Verweise (references), die Abschnittsverweise, die verwaisten
+Seiten und den Schrumpf-Guard (umgehängte Links) in lint-wiki.py.
 
 Baut ein Wegwerf-Projekt mit zwei Geschwister-Wikis, einem Verzeichnis ohne
 wiki/-Unterordner und einer wiki-remotes.json, lässt lint-wiki.py darauf laufen
@@ -120,6 +120,8 @@ CASES = [
     ("schriftliches-dividieren.md: Abschnittsverweis [[grenzwert]] \"Folgen und Reihen\"", True),
     ("schriftliches-dividieren.md: Abschnittsverweis [[grenzwert]] \"Delta\"", True),
     ("Abschnittsverweis [[grenzwert]] \"zu", False),
+    ("schriftliches-dividieren.md: Verwaiste Seite — kein anderer Artikel verlinkt hierher (nur aus index.md)", True),
+    ("grenzwert.md: Verwaiste Seite", False),
 ]
 
 
