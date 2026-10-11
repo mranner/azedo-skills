@@ -101,6 +101,10 @@ und meldet „Bereits vorhanden" samt ID, statt eine zweite anzulegen - GA4 selb
 lässt Duplikate zu. `create-web-stream` prüft das **nicht**: Ein zweiter Aufruf
 legt einen zweiten Stream mit eigener Messungs-ID an, vorher `list-streams`.
 
+Unternehmensgröße und Geschäftsziele setzt die Admin API nicht, auch nicht mit
+`--like`. Nach `create-property` in der GA4-Oberfläche nachtragen
+(Verwaltung → Property-Details).
+
 ### Reports
 
 ```bash
@@ -241,7 +245,8 @@ dafür nicht. Auf die neue Property erbt der Service Account die Kontorolle,
 
 ### Neue Site einrichten
 
-1. `create-property`, mit `--like` auf eine vergleichbare Property
+1. `create-property`, mit `--like` auf eine vergleichbare Property;
+   Unternehmensgröße und Geschäftsziele danach in der GA4-Oberfläche setzen
 2. `list-streams` auf der neuen Property, dann `create-web-stream` - liefert die
    Messungs-ID (`G-…`) für die Website
 3. `data-retention --set 14` - eine neue Property steht auf 2 Monaten

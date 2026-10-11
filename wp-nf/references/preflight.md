@@ -49,8 +49,9 @@ if ( is_array( $cache ) && ! empty( $cache['fields'] ) ) {
 }
 
 // 3. Spalte in nf3_fields — bei `default` ist die Spalte die alte Seite,
-//    bei `label` die Meta-Zeile (SKILL.md, Abschnitt 2); verglichen wird so oder so
-$col_map = array( 'default' => 'default_value', 'label' => 'label' );
+//    bei `label` die Meta-Zeile, bei `order` wieder die Spalte (SKILL.md, Abschnitt 2);
+//    verglichen wird so oder so
+$col_map = array( 'default' => 'default_value', 'label' => 'label', 'order' => 'order' );
 $col_val = isset( $col_map[ $key ] )
     ? $wpdb->get_var( $wpdb->prepare(
         "SELECT `{$col_map[$key]}` FROM {$wpdb->prefix}nf3_fields WHERE id=%d", $field_id ) )
@@ -73,7 +74,7 @@ $field_count = $wpdb->get_var( $wpdb->prepare(
 printf( "1 meta         : %s\n", var_export( $meta_val,  true ) );
 printf( "2 cache        : %s\n", var_export( $cache_val, true ) );
 printf( "3 %-12s: %s\n", $col_map[ $key ] ?? 'spalte',
-    isset( $col_map[ $key ] ) ? var_export( $col_val, true ) : '(nur fuer key=default|label)' );
+    isset( $col_map[ $key ] ) ? var_export( $col_val, true ) : '(nur fuer key=default|label|order)' );
 printf( "4 icl_strings  : %s\n", $has_wpml ? var_export( $icl_val, true ) : '(kein WPML)' );
 printf( "5 parent_id    : %s (erwartet %d) | Felder in Form %d: %d\n",
     var_export( $parent_id, true ), $form_id, $form_id, $field_count );
@@ -94,7 +95,9 @@ Abschnitt 4).
 Meldet er `parent_id`, ist der Write auf einer WPML-Site ins Quellformular
 gelaufen — Reparatur in [wpml-writes.md](wpml-writes.md), und zwar bevor weitere Felder geschrieben
 werden. Meldet er `default_value`, `label` oder `icl_strings`, sind das die
-Ablagen, die die Model-API nicht mitschreibt — gezielt nachziehen:
+Ablagen, die die Model-API nicht mitschreibt — gezielt nachziehen. Meldet er
+`order`, steht die neue Reihenfolge nur in der Meta-Zeile; gerendert wird aus der
+Spalte (3c):
 
 ```php
 // 3. Legacy-Spalte
@@ -106,13 +109,18 @@ $wpdb->update( "{$wpdb->prefix}nf3_field_meta",
     array( 'value' => $neu, 'meta_value' => $neu ),
     array( 'parent_id' => $field_id, 'key' => 'label' ) );
 
+// 3c. Spalte bei key=order (dort ist die Meta-Zeile die frische Seite)
+$wpdb->update( "{$wpdb->prefix}nf3_fields",
+    array( 'order' => $neu ), array( 'id' => $field_id ) );
+
 // 4. WPML-Quellstring
 $wpdb->update( "{$wpdb->prefix}icl_strings",
     array( 'value' => $neu ),
     array( 'context' => "ninja-forms-$form_id", 'name' => "default-$field_id" ) );
 ```
 
-Danach den Preflight erneut laufen lassen. Die Alternative ohne SQL ist, das
+Danach den Cache in einem **eigenen** Aufruf neu bauen (`nf-rebuild-cache.php`,
+SKILL.md Abschnitt 4) und den Preflight erneut laufen lassen. Die Alternative ohne SQL ist, das
 Formular einmal ueber das Admin-UI zu speichern — das schreibt beide Ablagen mit,
 ist auf einer Multisite aber je Subsite ein Handgriff.
 

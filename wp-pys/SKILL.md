@@ -28,7 +28,7 @@ Relevante Options:
 | Option | Inhalt |
 |--------|--------|
 | `pys_core` | Core-Settings (Features, Consent-Modus) |
-| `pys_ga` | GA4: `tracking_id`, `main_pixel_enabled` |
+| `pys_ga` | GA4: `tracking_id` (**Array** von Mess-IDs, kein String), `main_pixel_enabled` |
 | `pys_gtm` | GTM: Container-ID |
 | `pys_facebook` | Facebook Pixel |
 | `pys_google_ads` | Google Ads Conversion |
@@ -39,10 +39,24 @@ CPT `pys_event` mit folgenden Post-Meta-Feldern:
 
 | Meta Key | Format | Inhalt |
 |----------|--------|--------|
-| `_pys_event_data` | serialisiertes Array (~91-94 Keys) | Pixel-Ziele (`ga_enabled`, `ga_ads_enabled`), Event-Namen (`ga_ads_custom_event_action`), GTM-dataLayer-Name |
-| `_pys_event_triggers` | serialisierter String | Array von `PixelYourSite\TriggerEvent`-Objekten: `trigger_type` (`css_click`, `ninjaform`), `forms`, `selectors`, `form_submit_mode` |
+| `_pys_event_data` | **einfach** serialisiert — `get_post_meta()` liefert das Array (~91-94 Keys) | Pixel-Ziele (`ga_ads_enabled`, `ga_enabled`), Event-Namen (`ga_ads_custom_event_action`), Pixel-ID (`ga_ads_pixel_id`), GTM-dataLayer-Name |
+| `_pys_event_triggers` | **doppelt** serialisiert — `get_post_meta()` liefert einen String, erst `unserialize()` das Array | Array von `PixelYourSite\TriggerEvent`-Objekten: `trigger_type` (`css_click`, `ninjaform`), `forms` (ninjaform), `triggers` (css_click, siehe unten), `form_submit_mode` |
 | `_pys_event_conditions` | serialisiert | Bedingungen (Seiten, URLs) |
 | `_pys_event_state` | String | `active` oder leer |
+
+### GA4 laeuft ueber den Kanal `ga_ads`
+
+GA4-Events haengen am Kanal **`ga_ads`**: `ga_ads_enabled`,
+`ga_ads_custom_event_action` (Event-Name), `ga_ads_pixel_id`. `ga_enabled` steht
+bei diesen Events auf `false`. Wer nur `ga_*` liest, haelt ein feuerndes
+GA4-Event fuer inaktiv.
+
+### css_click-Selektoren stehen in `triggers`
+
+Die Selektoren eines `css_click`-Triggers liegen in der TriggerEvent-Property
+**`triggers`** als Liste von `{rule, value}` — `value` ist der Selektor. Eine
+Property `selectors` gibt es dort nicht; ein Lesen ueber `selectors` liefert
+still eine leere Liste.
 
 ### Pixel-ID-Aufloesung
 
@@ -104,7 +118,8 @@ foreach ($events as $ev) {
         foreach ($triggers_arr as $t) {
             $type = $t->trigger_type ?? '?';
             if ($type === 'css_click') {
-                $trigger_info[] = "css_click: " . implode(', ', (array)($t->selectors ?? []));
+                $sel = array_map(fn($e) => ((array) $e)['value'] ?? '?', (array)($t->triggers ?? []));
+                $trigger_info[] = "css_click: " . implode(', ', $sel);
             } elseif ($type === 'ninjaform') {
                 $trigger_info[] = "ninjaform: " . implode(', ', (array)($t->forms ?? []));
             } else {
@@ -113,13 +128,14 @@ foreach ($events as $ev) {
         }
     }
 
+    // GA4 laeuft ueber ga_ads (Abschnitt 1), ga_* ist dort false
     $targets = [];
-    if (!empty($data['ga_enabled']))      $targets[] = 'GA4';
-    if (!empty($data['ga_ads_enabled']))   $targets[] = 'GoogleAds';
+    if (!empty($data['ga_ads_enabled']))   $targets[] = 'GA4(ga_ads)';
+    if (!empty($data['ga_enabled']))       $targets[] = 'ga';
     if (!empty($data['facebook_enabled'])) $targets[] = 'Facebook';
     if (!empty($data['gtm_enabled']))      $targets[] = 'GTM';
 
-    $ga_name = $data['ga_custom_event_action'] ?? $data['ga_ads_custom_event_action'] ?? '-';
+    $ga_name = $data['ga_ads_custom_event_action'] ?? $data['ga_custom_event_action'] ?? '-';
 
     printf("ID:%d | %s | state:%s | targets:%s | ga_name:%s | triggers:%s\n",
         $ev->ID,
@@ -212,18 +228,29 @@ if (is_wp_error($new_id)) {
     exit(1);
 }
 
-// Meta kopieren
-foreach (['_pys_event_data', '_pys_event_triggers', '_pys_event_conditions', '_pys_event_state'] as $key) {
-    $raw = get_post_meta($source_id, $key, true);
-    if ($key === '_pys_event_triggers') {
-        // KRITISCH: wp_slash() verwenden! Siehe Abschnitt "Fallstricke"
-        update_post_meta($new_id, $key, wp_slash($raw));
-    } else {
-        update_post_meta($new_id, $key, $raw);
+// Meta als Rohwert kopieren - NICHT ueber add_/update_post_meta (Abschnitt 4)
+global $wpdb;
+$keys = ['_pys_event_data', '_pys_event_triggers', '_pys_event_conditions', '_pys_event_state'];
+$raw  = fn($id, $key) => $wpdb->get_var($wpdb->prepare(
+    "SELECT meta_value FROM {$wpdb->postmeta} WHERE post_id = %d AND meta_key = %s", $id, $key));
+
+foreach ($keys as $key) {
+    $value = $raw($source_id, $key);
+    if ($value === null) continue;
+    $wpdb->insert($wpdb->postmeta, ['post_id' => $new_id, 'meta_key' => $key, 'meta_value' => $value]);
+}
+wp_cache_delete($new_id, 'post_meta');
+
+// Byte-Vergleich Quelle <-> Klon
+$ok = true;
+foreach ($keys as $key) {
+    if ($raw($source_id, $key) !== $raw($new_id, $key)) {
+        echo "FEHLER: $key weicht von der Quelle ab\n";
+        $ok = false;
     }
 }
 
-echo "OK: Event $new_id erstellt (Klon von $source_id)\n";
+echo $ok ? "OK: Event $new_id erstellt (Klon von $source_id, Meta byte-gleich)\n" : "FEHLER: Klon $new_id pruefen\n";
 ```
 
 ### 3.5 Trigger aendern (set-selector / set-forms)
@@ -250,8 +277,15 @@ if (!is_array($triggers) || empty($triggers)) {
 $trigger = $triggers[0]; // Erster (meist einziger) Trigger
 
 if ($type === 'css_click') {
-    $trigger->trigger_type = 'css_click';
-    $trigger->selectors = [$value];
+    // Selektor steht in triggers[] als {rule, value} (Abschnitt 1); rule aus dem Bestand uebernehmen
+    $entries = (array)($trigger->triggers ?? []);
+    if (($trigger->trigger_type ?? '') !== 'css_click' || empty($entries)) {
+        echo "FEHLER: Kein css_click-Eintrag als Vorlage - Event mit css_click-Trigger klonen (3.4)\n";
+        exit(1);
+    }
+    $entry = reset($entries);
+    if (is_array($entry)) { $entry['value'] = $value; } else { $entry->value = $value; }
+    $trigger->triggers = [$entry];
 } elseif ($type === 'ninjaform') {
     $trigger->trigger_type = 'ninjaform';
     $trigger->forms = array_map('intval', explode(',', $value));
@@ -290,11 +324,11 @@ echo "State: " . ($state ?: 'inactive') . "\n";
 if (!is_array($data)) {
     echo "WARNUNG: _pys_event_data ist kein Array!\n";
 } else {
-    echo "GA4: " . ($data['ga_enabled'] ? 'aktiv' : 'inaktiv');
-    echo " | Name: " . ($data['ga_custom_event_action'] ?? '-') . "\n";
-    echo "GoogleAds: " . ($data['ga_ads_enabled'] ? 'aktiv' : 'inaktiv');
+    // GA4 laeuft ueber ga_ads (Abschnitt 1)
+    echo "GA4 (ga_ads): " . (!empty($data['ga_ads_enabled']) ? 'aktiv' : 'inaktiv');
     echo " | Name: " . ($data['ga_ads_custom_event_action'] ?? '-') . "\n";
-    echo "Pixel-ID: " . ($data['pixel_id'] ?? $data['ga_pixel_id'] ?? 'all') . "\n";
+    echo "ga_enabled: " . (!empty($data['ga_enabled']) ? 'true' : 'false') . "\n";
+    echo "Pixel-ID: " . ($data['ga_ads_pixel_id'] ?? 'all') . "\n";
     echo "enable_all_tracking_ids: " . ($data['enable_all_tracking_ids'] ?? '0') . "\n";
 }
 
@@ -310,7 +344,10 @@ if ($t_arr === false) {
         $class = get_class($t);
         echo "[$i] class=$class type={$t->trigger_type}";
         if ($t->trigger_type === 'css_click') {
-            echo " selectors=" . implode(',', (array)($t->selectors ?? []));
+            foreach ((array)($t->triggers ?? []) as $e) {
+                $e = (array) $e;
+                echo " [rule=" . ($e['rule'] ?? '?') . " value=" . ($e['value'] ?? '?') . "]";
+            }
         } elseif ($t->trigger_type === 'ninjaform') {
             echo " forms=" . implode(',', (array)($t->forms ?? []));
         }
@@ -380,11 +417,17 @@ Setzen/Pruefen dieser Klasse siehe [[wp-nf]] (Diagnose-Muster PYS ↔ `element_c
 
 **Regel:** Jeden serialisierten Trigger-String vor dem Speichern mit `wp_slash()` wrappen.
 
-### Robustes Trigger-Klonen
+### Klonen: Rohwert per SQL, nicht ueber add_/update_post_meta
 
-Trigger von einem bestehenden, gueltigen Event **derselben Site** klonen und nur das `forms`-Array per `str_replace` tauschen (Arrays haben keine Byte-Laengen-Praefixe → sicher). Dann mit `wp_slash()` speichern.
+`add_post_meta()`/`update_post_meta()` mit dem Rohwert aus der DB (auch mit
+`wp_slash()`) laufen durch `maybe_serialize()`: ein schon serialisierter String
+wird **nochmals** serialisiert. Der Klon fuehrt dann einen anderen Wert als die
+Quelle, ohne Fehlermeldung.
 
-**NICHT** cross-site kopieren ohne Re-Slash.
+**Regel:** Beim Klonen den Rohwert per `$wpdb->insert` in `postmeta` schreiben,
+danach `wp_cache_delete($id, 'post_meta')` und Quelle gegen Klon byteweise
+vergleichen — so in 3.4. Danach Trigger oder Formulare per 3.5 anpassen, nicht
+per `str_replace` im serialisierten String.
 
 ### sudo strippt Umgebung
 

@@ -663,9 +663,24 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.65.2
+### 1.65.3
 
-- **`google-search-console` - `version` liest den Kopfkommentar.** Wie in
-  1.65.1 bei `google-analytics`: Das Subcommand gab fest `1.20.1` aus und liest
-  die Version jetzt aus dem `# version`-Kopf, den der Release-Workflow mitzieht.
-
+- **`wp-pys` - Datenmodell und Klon-Rezept korrigiert.** GA4-Events laufen
+  über den Kanal `ga_ads` (`ga_ads_enabled`, `ga_ads_custom_event_action`,
+  `ga_ads_pixel_id`), `ga_enabled` steht dort auf `false`; `list-events` und
+  `verify` lesen jetzt `ga_ads_*` und melden solche Events nicht mehr als
+  inaktiv. css-Selektoren stehen in der TriggerEvent-Property `triggers`
+  (`{rule, value}`), nicht in `selectors`; `set-trigger` setzt dort den
+  Selektor. `_pys_event_triggers` ist doppelt, `_pys_event_data` einfach
+  serialisiert, `pys_ga.tracking_id` ein Array. `clone-event` kopiert die Meta
+  als Rohwert per `$wpdb->insert` mit Byte-Vergleich, weil
+  `add_post_meta`/`update_post_meta` einen serialisierten String nochmals
+  serialisieren.
+- **`wp-nf` - `order` und Cache nach SQL-Writes.** `update_setting('order')`
+  schreibt nur die Meta-Zeile, gerendert wird aus `nf3_fields.order`: die
+  Spalte mitschreiben, der Preflight kennt `order`. Nach einem SQL-Write den
+  Cache in einem eigenen Aufruf bauen (`nf-rebuild-cache.php`), sonst schreiben
+  im selben Lauf geladene Feld-Modelle die alten Werte hinein.
+- **`google-analytics` - Hinweis nach `create-property`.** Unternehmensgröße
+  und Geschäftsziele setzt die Admin API nicht; sie werden in der
+  GA4-Oberfläche nachgetragen.

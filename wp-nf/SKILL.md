@@ -167,6 +167,18 @@ nicht, fuehrt aber jede direkte DB-Suche in die Irre — der Preflight
 ([references/preflight.md](references/preflight.md)) kennt `label` deshalb als
 eigenen `<setting_key>`.
 
+### `order` — Meta-Zeile neu, Spalte alt
+
+Bei der Reihenfolge ist es wieder andersherum, und diesmal wirkt es am Frontend:
+`update_setting( 'order', … )` schreibt nur die Meta-Zeile (`key='order'`).
+Cache-Aufbau und Frontend lesen aber die Spalte `nf3_fields.order` — die Felder
+bleiben in der alten Reihenfolge stehen, obwohl Model-API und Meta den neuen
+Wert melden.
+
+Bei einer Umsortierung deshalb die Spalte per `UPDATE` mitschreiben, danach den
+Cache neu bauen (in einem frischen Prozess, siehe Abschnitt 4). Der Preflight
+kennt `order` als `<setting_key>`.
+
 ### Der Form-Cache ist PHP-serialisiert, nicht JSON
 
 `nf3_upgrades.cache` enthaelt `serialize()`-Ausgabe (`a:4:{s:2:"id";…}`). Ein
@@ -268,6 +280,30 @@ damit zur Haelfte wirkungslos. Nach dem Write deshalb **immer** den Preflight
 ([references/preflight.md](references/preflight.md)) fahren und die beiden Ablagen
 bei Bedarf nachziehen.
 
+### Cache nach einem SQL-Write: frischer Prozess
+
+Lief der Write per direktem SQL (Legacy-Spalte, `order`, `parent_id`, Meta per
+`UPDATE`), den Cache **nicht im selben `eval-file`-Lauf** neu bauen. Feld-Modelle,
+die der Lauf vorher schon geladen hat — etwa fuer den Vorher-Wert —, halten die
+alten Werte, und `build_nf_cache()` schreibt genau diese in den Cache. Der Cache
+ist dann frisch gebaut und trotzdem stale.
+
+Stattdessen einen eigenen Aufruf nachschieben:
+
+```php
+<?php
+// nf-rebuild-cache.php <form_id> [<form_id> …]
+//   wp eval-file nf-rebuild-cache.php <form_id> --url=<subsite>
+foreach ( $args as $form_id ) {
+    WPN_Helper::delete_nf_cache( intval( $form_id ) );
+    WPN_Helper::build_nf_cache( intval( $form_id ) );
+    echo "Cache Form $form_id neu gebaut\n";
+}
+```
+
+Fuer den Write ueber die Model-API oben gilt das nicht: dort traegt das Modell
+selbst den neuen Wert.
+
 HTML-Feld-Link-Klasse (Feldtyp `html`) sitzt im Setting **`default`** (der HTML-Markup) —
 dort per gezieltem String-Ersatz die Klasse am `<a>` ergaenzen, dann derselbe
 Cache-/Verify-Ablauf.
@@ -324,3 +360,6 @@ nebeneinanderlegen.
   apache1.acme.com (zwei von elf Feldern betroffen, beide auf
   Uebersetzungsformularen). Der ausloesende Hook in `wpml-ninja-forms` ist
   **nicht** im Quellcode nachgewiesen.
+- `order` nur in der Meta-Zeile und der stale Cache aus einem Neuaufbau im
+  selben Prozess nach SQL-Writes: beobachtet 2026-10-11 beim Einrichten einer
+  Subsite.

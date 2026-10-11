@@ -45,11 +45,10 @@ if ( (int) $before->parent_id !== (int) $after->parent_id ) {
         array( 'parent_id' => $before->parent_id, 'order' => $before->order ),
         array( 'id' => $field_id ) );
 
-    // Caches BEIDER Formulare neu bauen — das Feld fehlt im einen und steht zuviel im anderen
-    foreach ( array( $before->parent_id, $after->parent_id ) as $fid ) {
-        WPN_Helper::delete_nf_cache( $fid );
-        WPN_Helper::build_nf_cache( $fid );
-    }
+    // Caches BEIDER Formulare neu bauen — das Feld fehlt im einen und steht zuviel im anderen.
+    // Nicht hier: dieser Lauf haelt das Feld-Modell mit der falschen parent_id (SKILL.md, Abschnitt 4)
+    printf( "Jetzt: wp eval-file nf-rebuild-cache.php %d %d\n",
+        $before->parent_id, $after->parent_id );
 }
 ```
 
@@ -85,6 +84,7 @@ $wpdb->update( "{$wpdb->prefix}nf3_field_meta",
 ```
 
 Der Cache-Schritt entfaellt dabei nicht — er haengt am Formular, nicht am
-Schreibweg.
+Schreibweg. Nach dem SQL-Write laeuft er als eigener Aufruf
+(`nf-rebuild-cache.php`, SKILL.md Abschnitt 4), nicht im selben Lauf.
 
 Zurueck zur Uebersicht: [SKILL.md](../SKILL.md).
