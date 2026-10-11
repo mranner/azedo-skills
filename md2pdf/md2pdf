@@ -116,7 +116,8 @@ if [[ -n "$CSS_OVERRIDE" ]]; then
     echo "Fehler: CSS-Datei '$CSS_OVERRIDE' nicht gefunden." >&2
     exit 1
   fi
-  CSS_FILE="$CSS_OVERRIDE"
+  # pandoc laeuft in $IN_DIR, relativer Pfad wuerde dort nicht gefunden
+  CSS_FILE="$(cd "$(dirname "$CSS_OVERRIDE")" && pwd)/$(basename "$CSS_OVERRIDE")"
 else
   CSS_FILE="$TMP/style.css"
   cat > "$CSS_FILE" <<'CSS'

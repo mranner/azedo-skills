@@ -3,6 +3,14 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.64.2
+
+- **`md2pdf` - `--css` mit relativem Pfad.** Das Script löst den Pfad jetzt
+  absolut auf, bevor pandoc ins Verzeichnis der Eingabedatei wechselt. Bisher
+  bestand ein relativer Pfad die Existenzprüfung, pandoc fand die Datei danach
+  aber nicht und renderte ohne Fehlermeldung ohne Stylesheet (Times, keine
+  Tabellenrahmen).
+
 ### 1.64.1
 
 - **`md2pdf` - Tabellen brechen über Seiten um.** Das eingebaute CSS hält statt

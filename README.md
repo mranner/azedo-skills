@@ -662,10 +662,10 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.64.1
+### 1.64.2
 
-- **`md2pdf` - Tabellen brechen über Seiten um.** Das eingebaute CSS hält statt
-  der ganzen Tabelle nur noch einzelne Zeilen zusammen
-  (`tr { page-break-inside: avoid; }`), die Kopfzeile wiederholt sich auf den
-  Folgeseiten. Bisher sprang eine Tabelle, die nicht mehr auf die laufende Seite
-  passte, komplett auf die nächste und ließ die vorige fast leer.
+- **`md2pdf` - `--css` mit relativem Pfad.** Das Script löst den Pfad jetzt
+  absolut auf, bevor pandoc ins Verzeichnis der Eingabedatei wechselt. Bisher
+  bestand ein relativer Pfad die Existenzprüfung, pandoc fand die Datei danach
+  aber nicht und renderte ohne Fehlermeldung ohne Stylesheet (Times, keine
+  Tabellenrahmen).
