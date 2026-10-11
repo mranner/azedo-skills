@@ -3,6 +3,12 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.65.2
+
+- **`google-search-console` - `version` liest den Kopfkommentar.** Wie in
+  1.65.1 bei `google-analytics`: Das Subcommand gab fest `1.20.1` aus und liest
+  die Version jetzt aus dem `# version`-Kopf, den der Release-Workflow mitzieht.
+
 ### 1.65.1
 
 - **`google-analytics` - `version` liest den Kopfkommentar.** Das Subcommand

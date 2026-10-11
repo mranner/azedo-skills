@@ -2,7 +2,7 @@
 
 # Google Search Console REST API helper
 # stdlib + cryptography (fuer JWT RS256), keine weiteren pip-Dependencies
-# version 1.65.1
+# version 1.65.2
 
 import argparse
 import datetime
@@ -379,7 +379,12 @@ def cmd_delete_sitemap(args):
 
 
 def cmd_version(args):
-    print("google-search-console 1.20.1")
+    # Version aus dem Kopfkommentar, den der Release-Workflow mitzieht
+    with open(os.path.abspath(__file__)) as f:
+        for line in f:
+            if line.startswith("# version "):
+                print(f"google-search-console {line.split()[2]}")
+                return
 
 
 def main():

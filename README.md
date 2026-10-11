@@ -663,11 +663,9 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.65.1
+### 1.65.2
 
-- **`google-analytics` - `version` liest den Kopfkommentar.** Das Subcommand
-  gab fest `1.39.2` aus; jetzt liest es die Version aus dem `# version`-Kopf,
-  den der Release-Workflow mitzieht. Die SKILL.md führt unter „Workflow" die
-  Reihenfolge für eine neue Site (Property, Stream, Datenaufbewahrung, Custom
-  Dimensions, `setup`) und nennt die nötige GA4-Rolle nicht mehr dreifach.
+- **`google-search-console` - `version` liest den Kopfkommentar.** Wie in
+  1.65.1 bei `google-analytics`: Das Subcommand gab fest `1.20.1` aus und liest
+  die Version jetzt aus dem `# version`-Kopf, den der Release-Workflow mitzieht.
 
