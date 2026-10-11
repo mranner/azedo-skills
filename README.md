@@ -662,12 +662,10 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.64.0
+### 1.64.1
 
-- **`kimai` - neues Subcommand `add-shortcut`.** Schritt 7 („Shortcut
-  ergänzen“) ruft jetzt `kimai add-shortcut <key> <project> <activity> "<Label>"`
-  auf statt eines Einzeilers in der SKILL.md. Das Script sucht die projektlokale
-  `.claude/kimai-shortcuts.json` wie der Lookup aufwärts (sonst `--file`), schreibt
-  eine Zeile pro Key mit der `}` allein in der letzten Zeile und legt ein
-  `~`-Backup an. Ein identischer Eintrag ist ein No-op, ein abweichender unter
-  demselben Key bricht mit Exit 1 ab.
+- **`md2pdf` - Tabellen brechen über Seiten um.** Das eingebaute CSS hält statt
+  der ganzen Tabelle nur noch einzelne Zeilen zusammen
+  (`tr { page-break-inside: avoid; }`), die Kopfzeile wiederholt sich auf den
+  Folgeseiten. Bisher sprang eine Tabelle, die nicht mehr auf die laufende Seite
+  passte, komplett auf die nächste und ließ die vorige fast leer.

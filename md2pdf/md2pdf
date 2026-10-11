@@ -134,7 +134,8 @@ code { font-family: "SF Mono","JetBrains Mono","DejaVu Sans Mono","Liberation Mo
 pre { background: #f6f8fa; border: 1px solid #e6eaef; border-radius: 6px; padding: 12px 14px;
   overflow-x: auto; font-size: .82em; line-height: 1.45; }
 pre code { background: none; padding: 0; }
-table { border-collapse: collapse; width: 100%; margin: .8em 0; font-size: .92em; page-break-inside: avoid; }
+table { border-collapse: collapse; width: 100%; margin: .8em 0; font-size: .92em; }
+tr { page-break-inside: avoid; } thead { display: table-header-group; }
 th,td { border: 1px solid #d0d7de; padding: 6px 10px; text-align: left; vertical-align: top; }
 th { background: #f2f4f7; font-weight: 600; } tr:nth-child(even) td { background: #fafbfc; }
 blockquote { margin: .8em 0; padding: .2em 1em; color: #57606a; border-left: 4px solid #d0d7de; background: #fafbfc; }

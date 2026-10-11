@@ -3,6 +3,14 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.64.1
+
+- **`md2pdf` - Tabellen brechen über Seiten um.** Das eingebaute CSS hält statt
+  der ganzen Tabelle nur noch einzelne Zeilen zusammen
+  (`tr { page-break-inside: avoid; }`), die Kopfzeile wiederholt sich auf den
+  Folgeseiten. Bisher sprang eine Tabelle, die nicht mehr auf die laufende Seite
+  passte, komplett auf die nächste und ließ die vorige fast leer.
+
 ### 1.64.0
 
 - **`kimai` - neues Subcommand `add-shortcut`.** Schritt 7 („Shortcut
