@@ -145,12 +145,11 @@ python3 "$SKILL_DIR/kimai" ping
 4. Wenn nicht eindeutig: nachfragen.
 5. Befehl zusammenbauen und ausführen.
 6. Ergebnis dem User lesbar darstellen.
-7. **Shortcut ergänzen:** Wenn eine neue Projekt/Aktivitäts-Kombination verwendet wurde, die noch nicht in `.claude/kimai-shortcuts.json` steht, per Python-Einzeiler einfügen — **nicht** die Datei als JSON laden und zurückschreiben (das zerstört das Format „ein Key pro Zeile"):
+7. **Shortcut ergänzen:** Wenn eine neue Projekt/Aktivitäts-Kombination verwendet wurde, die noch nicht in `.claude/kimai-shortcuts.json` steht:
    ```bash
-   python3 -c 'import sys,json,pathlib; f,k,p,a,l=sys.argv[1:]; t=pathlib.Path(f); s=t.read_text(); t.with_name(t.name+"~").write_text(s); s=s.rstrip(); assert s.endswith("}"), f+": endet nicht mit }"; t.write_text(s[:-1].rstrip()+"\n,"+json.dumps(k,ensure_ascii=False)+": ["+p+", "+a+", "+json.dumps(l,ensure_ascii=False)+"]\n}\n")' \
-     .claude/kimai-shortcuts.json key project_id activity_id "Label"
+   python3 "$SKILL_DIR/kimai" add-shortcut <key> <project_id> <activity_id> "<Label>"
    ```
-   Hängt eine eigene Zeile mit führendem Komma an und setzt die schließende `}` allein in die letzte Zeile, auch wenn sie vorher an einer Zeile klebte; Backup als `kimai-shortcuts.json~`. Key ist lowercase, Bindestrich-getrennt. Kein `sed '$i…'`: BSD-sed (macOS) verklebt damit mehrere Einträge samt `}` zu einer Sammelzeile, die der grep-Lookup dann komplett liefert.
+   Schreibt eine Zeile pro Key in die projektlokale Datei (Aufwärtssuche wie beim Lookup, sonst `--file <pfad>`), Backup als `kimai-shortcuts.json~`. Ein identischer Eintrag ist ein No-op, ein abweichender unter demselben Key bricht ab. Die Datei nicht von Hand oder per `sed` ergänzen.
 
 ## Hinweise
 

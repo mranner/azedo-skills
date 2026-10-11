@@ -3,6 +3,16 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.64.0
+
+- **`kimai` - neues Subcommand `add-shortcut`.** Schritt 7 („Shortcut
+  ergänzen“) ruft jetzt `kimai add-shortcut <key> <project> <activity> "<Label>"`
+  auf statt eines Einzeilers in der SKILL.md. Das Script sucht die projektlokale
+  `.claude/kimai-shortcuts.json` wie der Lookup aufwärts (sonst `--file`), schreibt
+  eine Zeile pro Key mit der `}` allein in der letzten Zeile und legt ein
+  `~`-Backup an. Ein identischer Eintrag ist ein No-op, ein abweichender unter
+  demselben Key bricht mit Exit 1 ab.
+
 ### 1.63.40
 
 - **`kimai` - Shortcut-Ergänzung ohne `sed '$i…'`.** Schritt 7 fügt neue

@@ -1122,6 +1122,44 @@ def load_shortcuts():
     return shortcuts
 
 
+def cmd_add_shortcut(args):
+    """Append one shortcut line before the closing brace, keeping one key per line."""
+    path = args.file or _find_shortcuts_file()
+    if not path:
+        print("Error: no .claude/kimai-shortcuts.json found upward from cwd, pass --file",
+              file=sys.stderr)
+        sys.exit(1)
+
+    key = args.key.lower()
+    value = [args.project, args.activity, args.label]
+    if os.path.exists(path):
+        with open(path) as f:
+            text = f.read()
+        existing = json.loads(text).get(key)
+        if existing is not None:
+            if existing == value:
+                output({"file": path, "key": key, "value": value, "added": False})
+                return
+            print(f"Error: key '{key}' already exists in {path}: {json.dumps(existing, ensure_ascii=False)}",
+                  file=sys.stderr)
+            sys.exit(1)
+        with open(path + "~", "w") as f:
+            f.write(text)
+        body = text.rstrip()
+        if not body.endswith("}"):
+            print(f"Error: {path} does not end with '}}'", file=sys.stderr)
+            sys.exit(1)
+        body = body[:-1].rstrip()
+        sep = "\n" if body.endswith("{") else "\n,"
+    else:
+        body, sep = "{", "\n"
+
+    line = json.dumps(key, ensure_ascii=False) + ": " + json.dumps(value, ensure_ascii=False)
+    with open(path, "w") as f:
+        f.write(body + sep + line + "\n}\n")
+    output({"file": path, "key": key, "value": value, "added": True})
+
+
 def resolve_shortcut(name):
     """Find a shortcut by case-insensitive partial match on key or label."""
     shortcuts = load_shortcuts()
@@ -1540,6 +1578,16 @@ def main():
     p.add_argument("--description", help="Description text")
     p.add_argument("--begin", help="Explicit start time (ISO datetime), overrides the auto anchor")
     p.set_defaults(func=cmd_log)
+
+    # ── add-shortcut ──
+
+    p = sub.add_parser("add-shortcut", help="Append a shortcut to kimai-shortcuts.json")
+    p.add_argument("key", help="Short name, lowercase, hyphen-separated")
+    p.add_argument("project", type=int, help="Project ID")
+    p.add_argument("activity", type=int, help="Activity ID")
+    p.add_argument("label", help='Label, e.g. "Customer / Activity"')
+    p.add_argument("--file", help="Shortcut file (default: .claude/kimai-shortcuts.json searched upward from cwd)")
+    p.set_defaults(func=cmd_add_shortcut)
 
     # ── import-hours ──
 

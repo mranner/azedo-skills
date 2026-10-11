@@ -110,6 +110,7 @@ Zeiterfassung über die Kimai REST API. Unterstützt:
 - User und Tags auflisten/verwalten
 - Teams: anlegen, ändern, löschen
 - Externe Stunden importieren (ersetzt `kimai_stunden.py`)
+- Shortcuts in `.claude/kimai-shortcuts.json` ergänzen (`add-shortcut`)
 
 **Voraussetzungen:** Python ≥ 3.11
 
@@ -661,10 +662,12 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.63.40
+### 1.64.0
 
-- **`kimai` - Shortcut-Ergänzung ohne `sed '$i…'`.** Schritt 7 fügt neue
-  Shortcuts per Python-Einzeiler statt per `sed` ein. BSD-sed (macOS) hatte
-  damit mehrere Einträge samt schließender `}` zu einer Sammelzeile verklebt,
-  die der grep-Lookup dann komplett lieferte. Der Einzeiler hängt eine eigene
-  Zeile an, setzt die `}` allein in die letzte Zeile und legt ein `~`-Backup an.
+- **`kimai` - neues Subcommand `add-shortcut`.** Schritt 7 („Shortcut
+  ergänzen“) ruft jetzt `kimai add-shortcut <key> <project> <activity> "<Label>"`
+  auf statt eines Einzeilers in der SKILL.md. Das Script sucht die projektlokale
+  `.claude/kimai-shortcuts.json` wie der Lookup aufwärts (sonst `--file`), schreibt
+  eine Zeile pro Key mit der `}` allein in der letzten Zeile und legt ein
+  `~`-Backup an. Ein identischer Eintrag ist ein No-op, ein abweichender unter
+  demselben Key bricht mit Exit 1 ab.
