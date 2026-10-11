@@ -72,17 +72,25 @@ Herkunft mitbringt, ist davon unberuehrt: in `humanizer-de` nennt
 `upstream_version` die Fassung des urspruenglichen Autors und veraltet durch
 unsere Releases nicht.
 
-**Ausnahme: der Kopfkommentar der Scripts.** Elf Scripts in `wiki`, `swaks`,
-`mail-as-me` und `einfache-sprache` fuehren im Dateikopf ein `# version <x.y.z>`.
+**Ausnahme: der Kopfkommentar der Scripts.** Viele Scripts fuehren im Dateikopf
+ein `# version <x.y.z>` - die `.py`-Scripts in `wiki`, `swaks`, `mail-as-me` und
+`einfache-sprache` ebenso wie die Haupt-Scripts ohne Endung (`kanboard`, `imap`,
+`pushover` u.a.).
 Das ist bewusst so entschieden (2026-09-17) und **gehoert zu jedem Release
 mitgezogen**, sonst faellt es in dieselbe Luecke wie das frueher dort gefuehrte
 Frontmatter-Feld - vor der Angleichung stand `audit-wiki.py` auf 1.51.6 und die
 Scripts von `einfache-sprache` auf 1.37.0, waehrend `VERSION` bei 1.59.2 lag:
 
 ```bash
-grep -rl '^# version' --include='*.py' --include='*.sh' . \
+grep -rlI '^# version' --exclude-dir=.git . \
   | xargs sed -i~ 's/^# version .*/# version <neue Version>/'
+find . -name '*~' -not -path './.git/*' -delete
 ```
+
+Der `grep` filtert bewusst nicht nach Endung: ein Filter auf `*.py`/`*.sh`
+uebersah die Scripts ohne Endung, die dadurch auf Staenden bis 1.11.1 liegen
+blieben. Der `find` raeumt die `sed`-Sicherungen weg, damit sie nicht im Commit
+landen.
 
 Commit-Konvention: `CR<id>: <skill> - <was geändert wurde> (<version>)`
 Beispiel: `CR4426: swos - poe-voltage (poe.b i03) + gemeinsame Write-Basis (1.26.1)`
