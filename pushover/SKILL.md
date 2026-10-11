@@ -30,6 +30,12 @@ Credentials werden aus `.env` gelesen (wie kimai/kanboard/telegram): zuerst
 setzen. Environment-Variablen **ueberschreiben** die .env (praktisch fuer
 cron/CI).
 
+Das Script ist damit aus jedem Verzeichnis aufrufbar, auch aus einem Scratchpad.
+Liegt der Token nur in der `.env` eines Projekts, greift er nur aus dessen
+Wurzel - dann `PUSHOVER_ENV` setzen oder den Token nach `~/.env` legen. Ohne
+Token bricht das Script mit `PUSHOVER_TOKEN nicht gesetzt (...)` ab und nennt
+die gelesene Datei.
+
 | Variable             | Zweck                                                        |
 |----------------------|-------------------------------------------------------------|
 | `PUSHOVER_TOKEN`     | Application-API-Token (Pflicht)                             |
@@ -186,7 +192,12 @@ python3 "$SKILL_DIR/pushover" alert --title "..." --host <host> "$MELDUNG"
 
 - **Kein MCP** — reiner HTTPS-Wrapper, kein laufender Prozess.
 - Nachricht max **1024** Zeichen, Titel max 250, Attachment max **5 MB** — das
-  Script bricht bei Ueberschreitung vorab mit klarer Meldung ab.
+  Script bricht bei Ueberschreitung vorab mit klarer Meldung ab
+  (`Nachricht > 1024 Zeichen (n)`) und kürzt nichts.
+- Bei `alert`, `recovery` und `digest` zählt der **fertige** Text: Emoji-Titel,
+  Bullets, Host-Fußzeile, HTML-Tags und Escapes (`&` wird zu `&amp;`). Eine
+  Statusdatei für `digest` deshalb vorher auf das Nötige kürzen, etwa nur die
+  Abweichungen, statt sie ganz durchzureichen.
 - Kontingent: Free-Accounts 10.000 Nachrichten/Monat. Nach jedem `send` zeigt
   das Script (ohne `--json`) das verbleibende Kontingent aus den Response-Headern.
 - Bei `status:0` bricht das Script mit der Pushover-Fehlerbeschreibung ab

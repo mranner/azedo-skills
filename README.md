@@ -662,10 +662,15 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.64.2
+### 1.64.3
 
-- **`md2pdf` - `--css` mit relativem Pfad.** Das Script löst den Pfad jetzt
-  absolut auf, bevor pandoc ins Verzeichnis der Eingabedatei wechselt. Bisher
-  bestand ein relativer Pfad die Existenzprüfung, pandoc fand die Datei danach
-  aber nicht und renderte ohne Fehlermeldung ohne Stylesheet (Times, keine
-  Tabellenrahmen).
+- **`pushover` - fehlender Token bricht mit Meldung ab statt mit `KeyError`.**
+  Fand das Script keinen `PUSHOVER_TOKEN`, endete `send` mit
+  `KeyError: 'PUSHOVER_TOKEN'`: ein vorheriger Aufruf ohne Token-Pflicht hatte
+  die Config schon gecacht, die Prüfung lief danach nicht mehr. Jetzt prüft
+  das Script auch bei gecachter Config und nennt in der Meldung die gelesene
+  Datei und die Suchreihenfolge (`./.env`, `~/.env`, `PUSHOVER_ENV`). Die
+  SKILL.md beschreibt den Aufruf aus fremden Verzeichnissen und dass bei
+  `alert`, `recovery` und `digest` der fertige Text samt Rahmen und
+  HTML-Escapes gegen die 1024 Zeichen zählt.
+

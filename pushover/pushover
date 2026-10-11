@@ -3,7 +3,7 @@
 # Pushover Message API helper (outbound-only)
 # Sendet Notifications via api.pushover.net/1/messages.json.
 # stdlib only, keine pip-Abhaengigkeiten. Lauffaehig auf macOS + FreeBSD.
-# version 1.32.3
+# version 1.64.3
 
 import argparse
 import json
@@ -53,31 +53,30 @@ _config = None
 def load_env(require_token=True):
     """PUSHOVER_* aus .env lesen (gecached). Environment-Variablen haben Vorrang."""
     global _config
-    if _config is not None:
-        return _config
+    if _config is None:
+        config = {}
+        if os.path.exists(ENV_FILE):
+            with open(ENV_FILE) as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith("#"):
+                        continue
+                    if "=" in line:
+                        key, val = line.split("=", 1)
+                        config[key.strip()] = val.strip().strip('"').strip("'")
 
-    config = {}
-    if os.path.exists(ENV_FILE):
-        with open(ENV_FILE) as f:
-            for line in f:
-                line = line.strip()
-                if not line or line.startswith("#"):
-                    continue
-                if "=" in line:
-                    key, val = line.split("=", 1)
-                    config[key.strip()] = val.strip().strip('"').strip("'")
+        # Environment ueberschreibt .env (praktisch fuer cron/CI)
+        for key in ("PUSHOVER_TOKEN", "PUSHOVER_USER", "PUSHOVER_DEVICE",
+                    "PUSHOVER_CA_BUNDLE"):
+            if os.environ.get(key):
+                config[key] = os.environ[key]
+        _config = config
 
-    # Environment ueberschreibt .env (praktisch fuer cron/CI)
-    for key in ("PUSHOVER_TOKEN", "PUSHOVER_USER", "PUSHOVER_DEVICE",
-                "PUSHOVER_CA_BUNDLE"):
-        if os.environ.get(key):
-            config[key] = os.environ[key]
-
-    if require_token and not config.get("PUSHOVER_TOKEN"):
-        die("PUSHOVER_TOKEN nicht gesetzt (weder in %s noch als Env-Variable)."
-            % ENV_FILE)
-
-    _config = config
+    # Pruefung auch bei gecachter Config, sonst KeyError beim Zugriff
+    if require_token and not _config.get("PUSHOVER_TOKEN"):
+        die("PUSHOVER_TOKEN nicht gesetzt (weder in %s noch als Env-Variable). "
+            "Gesucht wird ./.env (nur mit PUSHOVER_TOKEN), dann ~/.env; "
+            "PUSHOVER_ENV=<pfad> setzt die Datei explizit." % ENV_FILE)
     return _config
 
 

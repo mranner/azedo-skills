@@ -3,6 +3,18 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.64.3
+
+- **`pushover` - fehlender Token bricht mit Meldung ab statt mit `KeyError`.**
+  Fand das Script keinen `PUSHOVER_TOKEN`, endete `send` mit
+  `KeyError: 'PUSHOVER_TOKEN'`: ein vorheriger Aufruf ohne Token-Pflicht hatte
+  die Config schon gecacht, die Prüfung lief danach nicht mehr. Jetzt prüft
+  das Script auch bei gecachter Config und nennt in der Meldung die gelesene
+  Datei und die Suchreihenfolge (`./.env`, `~/.env`, `PUSHOVER_ENV`). Die
+  SKILL.md beschreibt den Aufruf aus fremden Verzeichnissen und dass bei
+  `alert`, `recovery` und `digest` der fertige Text samt Rahmen und
+  HTML-Escapes gegen die 1024 Zeichen zählt.
+
 ### 1.64.2
 
 - **`md2pdf` - `--css` mit relativem Pfad.** Das Script löst den Pfad jetzt
