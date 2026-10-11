@@ -230,9 +230,10 @@ Config `~/.claude/forgejo.json` (Vorlage `forgejo.example.json`, anderer Pfad ü
 
 ### google-analytics
 
-Google Analytics 4 Datenabfrage via Service Account. Python-Script (stdlib only, keine pip-Dependencies). Scope pro Subcommand: lesend `analytics.readonly`, schreibend (Custom Dimensions, Datenaufbewahrung) `analytics.edit`:
+Google Analytics 4 Datenabfrage via Service Account. Python-Script (stdlib only, keine pip-Dependencies). Scope pro Subcommand: lesend `analytics.readonly`, schreibend (Custom Dimensions, Datenaufbewahrung, Properties und Streams anlegen) `analytics.edit`:
 
-- Accounts und Properties auflisten
+- Accounts und Properties auflisten, Property-Details (Zeitzone, Währung, Branche) und Datenstreams mit Messungs-ID anzeigen
+- Property anlegen (auch mit Werten einer bestehenden via `--like`, mit Duplikatprüfung) und Web-Stream anlegen
 - Reports: Custom Dimensions, Metrics, Filter, Sortierung, Datumsbereiche
 - Realtime: aktive User, aktuelle Seitenaufrufe
 - Metadata: verfügbare Dimensionen und Metriken einer Property
@@ -242,7 +243,7 @@ Google Analytics 4 Datenabfrage via Service Account. Python-Script (stdlib only,
 
 **Voraussetzungen:** Python >= 3.11, Package `cryptography` (für JWT-Signierung; Installation plattformabhängig, das Script nennt den passenden Weg)
 
-**Setup:** Service Account JSON unter `~/.config/ga4-service-account.json`. Service Account in den GA4-Properties hinterlegen: als Betrachter für die lesenden Subcommands, als **Bearbeiter** für die schreibenden. Dann:
+**Setup:** Service Account JSON unter `~/.config/ga4-service-account.json`. Service Account in den GA4-Properties hinterlegen: als Betrachter für die lesenden Subcommands, als **Bearbeiter** für die schreibenden; zum Anlegen von Properties als Bearbeiter auf Account-Ebene. Dann:
 
 ```bash
 python3 "$SKILL_DIR/google-analytics" setup
@@ -662,15 +663,15 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.64.3
+### 1.65.0
 
-- **`pushover` - fehlender Token bricht mit Meldung ab statt mit `KeyError`.**
-  Fand das Script keinen `PUSHOVER_TOKEN`, endete `send` mit
-  `KeyError: 'PUSHOVER_TOKEN'`: ein vorheriger Aufruf ohne Token-Pflicht hatte
-  die Config schon gecacht, die Prüfung lief danach nicht mehr. Jetzt prüft
-  das Script auch bei gecachter Config und nennt in der Meldung die gelesene
-  Datei und die Suchreihenfolge (`./.env`, `~/.env`, `PUSHOVER_ENV`). Die
-  SKILL.md beschreibt den Aufruf aus fremden Verzeichnissen und dass bei
-  `alert`, `recovery` und `digest` der fertige Text samt Rahmen und
-  HTML-Escapes gegen die 1024 Zeichen zählt.
+- **`google-analytics` - Properties und Web-Datenstreams anlegen.** Vier neue
+  Subcommands über die Admin API: `property-info` zeigt Zeitzone, Währung,
+  Branche und Account einer Property, `list-streams` die Datenstreams mit
+  Messungs-ID. `create-property` legt eine Property an, mit `--like` übernimmt
+  es Zeitzone, Währung und Branche von einer bestehenden; vorab prüft es auf
+  eine gleichnamige Property im Account und legt dann nichts an.
+  `create-web-stream` legt den Web-Stream an und gibt die Messungs-ID aus. Die
+  SKILL.md nennt die nötige Bearbeiter-Rolle auf Account-Ebene für
+  `create-property`.
 

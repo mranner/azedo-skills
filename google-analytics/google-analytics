@@ -2,7 +2,7 @@
 
 # Google Analytics 4 REST API helper
 # stdlib only, no pip dependencies
-# version 1.64.3
+# version 1.65.0
 
 import argparse
 import json
@@ -17,7 +17,8 @@ _token_cache = {}
 _sa_config = None
 
 # OAuth-Scopes. Lesende Aufrufe bleiben auf readonly; nur die schreibenden
-# Admin-Operationen (Custom Dimensions, Datenaufbewahrung) fordern edit an.
+# Admin-Operationen (Custom Dimensions, Datenaufbewahrung, Properties und
+# Datenstreams anlegen) fordern edit an.
 SCOPE_READONLY = "https://www.googleapis.com/auth/analytics.readonly"
 SCOPE_EDIT = "https://www.googleapis.com/auth/analytics.edit"
 
@@ -448,6 +449,119 @@ def cmd_data_retention(args):
     print(f"resetUserDataOnNewActivity\t{result.get('resetUserDataOnNewActivity', '')}")
 
 
+def _get_property(property_id):
+    return api_call("GET", f"{ADMIN_BASE}/properties/{property_id}")
+
+
+def cmd_property_info(args):
+    """Show display name, time zone, currency and industry of a property"""
+    result = _get_property(args.property)
+
+    if args.json:
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return
+
+    for key in ("displayName", "parent", "timeZone", "currencyCode", "industryCategory",
+                "propertyType", "serviceLevel", "createTime"):
+        print(f"{key}\t{result.get(key, '')}")
+
+
+def _fetch_data_streams(property_id):
+    """Alle Datenstreams einer Property holen (paginiert)"""
+    streams = []
+    page_token = None
+    while True:
+        url = f"{ADMIN_BASE}/properties/{property_id}/dataStreams?pageSize=200"
+        if page_token:
+            url += f"&pageToken={urllib.parse.quote(page_token)}"
+        result = api_call("GET", url)
+        streams.extend(result.get("dataStreams", []))
+        page_token = result.get("nextPageToken")
+        if not page_token:
+            break
+    return streams
+
+
+def cmd_list_streams(args):
+    """List data streams of a property"""
+    streams = _fetch_data_streams(args.property)
+
+    if args.json:
+        print(json.dumps(streams, indent=2, ensure_ascii=False))
+        return
+
+    if not streams:
+        print("(keine Datenstreams)")
+        return
+
+    print("streamId\ttype\tmeasurementId\tdefaultUri\tdisplayName")
+    for st in streams:
+        web = st.get("webStreamData", {})
+        print(f"{st['name'].split('/')[-1]}\t{st.get('type', '')}\t{web.get('measurementId', '')}"
+              f"\t{web.get('defaultUri', '')}\t{st.get('displayName', '')}")
+
+
+def cmd_create_property(args):
+    """Create a property in an account (needs Editor role on the account)"""
+    body = {
+        "parent": f"accounts/{args.account}",
+        "displayName": args.display_name,
+    }
+
+    # --like uebernimmt Zeitzone, Waehrung und Branche; explizite Angaben gewinnen.
+    if args.like:
+        src = _get_property(args.like)
+        for key in ("timeZone", "currencyCode", "industryCategory"):
+            if src.get(key):
+                body[key] = src[key]
+    if args.time_zone:
+        body["timeZone"] = args.time_zone
+    if args.currency:
+        body["currencyCode"] = args.currency
+    if args.industry:
+        body["industryCategory"] = args.industry
+
+    if not body.get("timeZone") or not body.get("currencyCode"):
+        print("Fehlt: --time-zone und --currency (oder --like <property-id>)", file=sys.stderr)
+        sys.exit(1)
+
+    # Duplikatschutz: GA4 legt gleichnamige Properties ohne Rueckfrage an, ein
+    # zweiter Aufruf erzeugte sonst eine zweite Property mit eigener ID.
+    url = f"{ADMIN_BASE}/properties?filter=parent:accounts/{args.account}&pageSize=200"
+    for prop in api_call("GET", url).get("properties", []):
+        if prop.get("displayName") == args.display_name:
+            print(f"Bereits vorhanden: {prop['name'].split('/')[-1]}\t{args.display_name} — nichts angelegt")
+            return
+
+    result = api_call("POST", f"{ADMIN_BASE}/properties", body, scope=SCOPE_EDIT)
+
+    if args.json:
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return
+
+    print(f"Angelegt: {result['name'].split('/')[-1]}\t{result.get('displayName')}"
+          f"\t{result.get('timeZone')}\t{result.get('currencyCode')}\t{result.get('industryCategory', '')}")
+
+
+def cmd_create_web_stream(args):
+    """Create a web data stream (needs Editor role on the property)"""
+    body = {
+        "type": "WEB_DATA_STREAM",
+        "displayName": args.display_name,
+        "webStreamData": {"defaultUri": args.url},
+    }
+    result = api_call("POST", f"{ADMIN_BASE}/properties/{args.property}/dataStreams",
+                      body, scope=SCOPE_EDIT)
+
+    if args.json:
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return
+
+    web = result.get("webStreamData", {})
+    print(f"Angelegt: {result['name'].split('/')[-1]}\t{web.get('measurementId', '')}"
+          f"\t{web.get('defaultUri', '')}\t{result.get('displayName', '')}")
+
+
 def cmd_version(args):
     print("google-analytics 1.39.2")
 
@@ -497,6 +611,30 @@ def main():
     p_meta.add_argument("--search", "-s", help="Search filter")
     p_meta.add_argument("--json", action="store_true", help="Raw JSON output")
 
+    # property details and data streams
+    p_pi = sub.add_parser("property-info", help="Show time zone, currency, industry of a property")
+    p_pi.add_argument("--property", "-p", required=True, help="Property ID")
+    p_pi.add_argument("--json", action="store_true", help="Raw JSON output")
+
+    p_ls = sub.add_parser("list-streams", help="List data streams with measurement ID")
+    p_ls.add_argument("--property", "-p", required=True, help="Property ID")
+    p_ls.add_argument("--json", action="store_true", help="Raw JSON output")
+
+    p_cp = sub.add_parser("create-property", help="Create a property (needs Editor role on the account)")
+    p_cp.add_argument("--account", required=True, help="Account ID")
+    p_cp.add_argument("--display-name", required=True, help="Property name")
+    p_cp.add_argument("--time-zone", help="IANA time zone, e.g. Europe/Vienna")
+    p_cp.add_argument("--currency", help="ISO 4217 currency code, e.g. EUR")
+    p_cp.add_argument("--industry", help="Industry category, e.g. NON_PROFIT")
+    p_cp.add_argument("--like", help="Copy time zone, currency, industry from this property ID")
+    p_cp.add_argument("--json", action="store_true", help="Raw JSON output")
+
+    p_cws = sub.add_parser("create-web-stream", help="Create a web data stream (needs Editor role)")
+    p_cws.add_argument("--property", "-p", required=True, help="Property ID")
+    p_cws.add_argument("--url", required=True, help="Website URL incl. scheme, e.g. https://example.org")
+    p_cws.add_argument("--display-name", required=True, help="Stream name")
+    p_cws.add_argument("--json", action="store_true", help="Raw JSON output")
+
     # custom dimensions
     p_lcd = sub.add_parser("list-custom-dimensions", help="List custom dimensions of a property")
     p_lcd.add_argument("--property", "-p", required=True, help="Property ID")
@@ -531,6 +669,10 @@ def main():
         "report": cmd_report,
         "realtime": cmd_realtime,
         "metadata": cmd_metadata,
+        "property-info": cmd_property_info,
+        "list-streams": cmd_list_streams,
+        "create-property": cmd_create_property,
+        "create-web-stream": cmd_create_web_stream,
         "list-custom-dimensions": cmd_list_custom_dimensions,
         "create-custom-dimension": cmd_create_custom_dimension,
         "data-retention": cmd_data_retention,

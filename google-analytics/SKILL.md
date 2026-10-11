@@ -2,11 +2,12 @@
 name: google-analytics
 description: >
   Google Analytics 4: Accounts, Properties, Traffic-Reports, Realtime-Daten,
-  Conversions und Metadaten abfragen. Nutze diesen Skill wenn der User
-  GA4-Daten auswerten, Traffic analysieren, Seitenaufrufe pruefen oder
-  Conversion-Reports erstellen will. Auch aktiv verwenden wenn der User sagt
+  Conversions und Metadaten abfragen; Properties und Web-Datenstreams anlegen,
+  Messungs-IDs auslesen. Nutze diesen Skill wenn der User GA4-Daten auswerten,
+  Traffic analysieren, Seitenaufrufe pruefen, Conversion-Reports erstellen oder
+  eine neue Site in GA4 einrichten will. Auch aktiv verwenden wenn der User sagt
   "wie viele Besucher", "Traffic letzte Woche", "Top-Seiten", "Analytics",
-  "GA4 Report", o.ae.
+  "GA4 Report", "leg eine GA4-Property an", "welche Messungs-ID", o.ae.
   Trigger: /google-analytics, /ga4.
 ---
 
@@ -62,6 +63,47 @@ python3 "$SKILL_DIR/google-analytics" properties --account 123456
 # Alle Properties
 python3 "$SKILL_DIR/google-analytics" properties
 ```
+
+### Property-Details und Datenstreams
+
+```bash
+# Anzeigename, Zeitzone, Währung, Branche, Account
+python3 "$SKILL_DIR/google-analytics" property-info -p 123123123
+
+# Datenstreams mit Messungs-ID (G-…) und URL
+python3 "$SKILL_DIR/google-analytics" list-streams -p 123123123
+```
+
+### Property und Web-Stream anlegen
+
+```bash
+# Property mit expliziten Werten
+python3 "$SKILL_DIR/google-analytics" create-property --account 123456 \
+  --display-name "Beispiel" --time-zone Europe/Vienna --currency EUR \
+  [--industry NON_PROFIT]
+
+# Zeitzone, Währung und Branche von einer bestehenden Property übernehmen
+python3 "$SKILL_DIR/google-analytics" create-property --account 123456 \
+  --display-name "Beispiel" --like 123123123
+
+# Web-Stream in der neuen Property, liefert die Messungs-ID
+python3 "$SKILL_DIR/google-analytics" create-web-stream -p 123123123 \
+  --url https://example.org --display-name "Beispiel"
+```
+
+Explizite Angaben gewinnen gegen `--like`. Ohne `--like` sind `--time-zone`
+(IANA, z.B. `Europe/Vienna`) und `--currency` (ISO 4217) Pflicht; die Branche
+ist ein Enum-Wert der API (`industryCategory`, z.B. `NON_PROFIT`,
+`PEOPLE_AND_SOCIETY`) und wird von der API geprüft.
+
+`create-property` prüft vorab auf eine gleichnamige Property im selben Account
+und meldet „Bereits vorhanden" samt ID, statt eine zweite anzulegen - GA4 selbst
+lässt Duplikate zu. `create-web-stream` prüft das **nicht**: Ein zweiter Aufruf
+legt einen zweiten Stream mit eigener Messungs-ID an, vorher `list-streams`.
+
+Nach dem Anlegen fehlt der neuen Property noch alles, was eine bestehende
+eingestellt hat: Datenaufbewahrung (Default 2 Monate, siehe unten) und Custom
+Dimensions. `instance.json` kennt sie erst nach einem erneuten `setup`.
 
 ### Reports
 
@@ -180,11 +222,17 @@ zurueck, unabhaengig von den Custom Dimensions. Erlaubte Werte: 2, 14 sowie 26/3
 
 ### Schreibende Operationen: Rechte
 
-`create-custom-dimension` und `data-retention --set` fordern den Scope
-`analytics.edit` an; alle uebrigen Subcommands bleiben auf `analytics.readonly`. Der
-Service Account muss dafuer in der Property als **Bearbeiter** hinterlegt sein — als
-*Betrachter* quittiert die API mit `403`. Rolle setzen unter GA4 → Verwaltung →
-Property-Zugriffsverwaltung.
+`create-custom-dimension`, `data-retention --set`, `create-property` und
+`create-web-stream` fordern den Scope `analytics.edit` an; alle uebrigen
+Subcommands bleiben auf `analytics.readonly`. Der Service Account muss dafuer in
+der Property als **Bearbeiter** hinterlegt sein — als *Betrachter* quittiert die
+API mit `403`. Rolle setzen unter GA4 → Verwaltung → Property-Zugriffsverwaltung.
+
+**`create-property` braucht die Bearbeiter-Rolle auf Ebene des Accounts**
+(Verwaltung → Kontozugriffsverwaltung), weil die neue Property noch keine
+eigene Zugriffsliste hat. Rechte, die nur je Property vergeben sind, reichen
+dafür nicht. Auf die neue Property erbt der Service Account die Kontorolle,
+`create-web-stream` geht danach ohne weiteren Schritt.
 
 ## Workflow
 

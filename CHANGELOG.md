@@ -3,6 +3,18 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.65.0
+
+- **`google-analytics` - Properties und Web-Datenstreams anlegen.** Vier neue
+  Subcommands über die Admin API: `property-info` zeigt Zeitzone, Währung,
+  Branche und Account einer Property, `list-streams` die Datenstreams mit
+  Messungs-ID. `create-property` legt eine Property an, mit `--like` übernimmt
+  es Zeitzone, Währung und Branche von einer bestehenden; vorab prüft es auf
+  eine gleichnamige Property im Account und legt dann nichts an.
+  `create-web-stream` legt den Web-Stream an und gibt die Messungs-ID aus. Die
+  SKILL.md nennt die nötige Bearbeiter-Rolle auf Account-Ebene für
+  `create-property`.
+
 ### 1.64.3
 
 - **`pushover` - fehlender Token bricht mit Meldung ab statt mit `KeyError`.**
