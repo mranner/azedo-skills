@@ -3,6 +3,14 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.63.40
+
+- **`kimai` - Shortcut-Ergänzung ohne `sed '$i…'`.** Schritt 7 fügt neue
+  Shortcuts per Python-Einzeiler statt per `sed` ein. BSD-sed (macOS) hatte
+  damit mehrere Einträge samt schließender `}` zu einer Sammelzeile verklebt,
+  die der grep-Lookup dann komplett lieferte. Der Einzeiler hängt eine eigene
+  Zeile an, setzt die `}` allein in die letzte Zeile und legt ein `~`-Backup an.
+
 ### 1.63.39
 
 - **`kimai` - Anthropic-Regeln.** Die `description` steht in der dritten Person

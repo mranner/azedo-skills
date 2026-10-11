@@ -661,9 +661,10 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.63.39
+### 1.63.40
 
-- **`kimai` - Anthropic-Regeln.** Die `description` steht in der dritten Person
-  („Verwaltet …“, „Wird verwendet, wenn …“) statt Claude direkt anzusprechen.
-  `references/timesheets.md` verweist nicht mehr auf `references/stammdaten.md`;
-  die Stundensätze erreicht man über die Tabelle in der SKILL.md.
+- **`kimai` - Shortcut-Ergänzung ohne `sed '$i…'`.** Schritt 7 fügt neue
+  Shortcuts per Python-Einzeiler statt per `sed` ein. BSD-sed (macOS) hatte
+  damit mehrere Einträge samt schließender `}` zu einer Sammelzeile verklebt,
+  die der grep-Lookup dann komplett lieferte. Der Einzeiler hängt eine eigene
+  Zeile an, setzt die `}` allein in die letzte Zeile und legt ein `~`-Backup an.
