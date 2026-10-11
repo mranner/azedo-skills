@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # stdlib only, no pip dependencies
-# version 1.63.33
+# version 1.64.3
 
 """
 lint-wiki.py — Strukturprüfung für LLM Wikis (Infra + Projekt-Doku).
