@@ -3,6 +3,14 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.65.10
+
+- **`wp-cli` - Begründung für `iocage exec -U` korrigiert.** Nicht ein Passwort-Prompt
+  von `sudo` spricht gegen `sudo -u`, sondern dass `jexec` das `-u` abfängt und der
+  Umweg über `sh -c` eine zusätzliche Quoting-Ebene bringt.
+- **Git-`pre-commit` gibt nur noch Fehler aus.** Ein sauberer Lint bleibt still, die
+  Warnungen aus dem Bestand erscheinen nicht mehr bei jedem Commit.
+
 ### 1.65.9
 
 - **Hooks für die Anthropic-Skill-Regeln.** `install.sh` richtet einen Git-`pre-commit`

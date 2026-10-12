@@ -54,7 +54,7 @@ Beispiel (jailer1, apache1.example.com):
 sudo ssh -C root@jailer1.example.at "iocage exec -U wwwexample apache1.example.com -- wp --path=/www/home/wwwexample/www.example.com core version"
 ```
 
-**Immer `--` nach dem Jail-Namen.** `iocage exec` wertet seine eigenen Optionen auch hinter dem Jail-Namen aus und entfernt sie still: `--force`/`-f`, `-p`, `--help`, und `-U`/`-u` samt Wert - letzteres führt den Befehl sogar als anderer wwwuser aus. Ergebnis ist eine wp-cli-Warnung statt der Aktion, oder eine Aktion mit falschen Rechten. Deshalb `iocage exec -U <wwwuser> <jail> -- wp … --force`. `sh -c '…'` nur, wenn im Jail Pipes oder Redirects nötig sind. `-U <wwwuser>` statt `sudo -u`, weil `sudo` im Jail ein Passwort verlangen kann.
+**Immer `--` nach dem Jail-Namen.** `iocage exec` wertet seine eigenen Optionen auch hinter dem Jail-Namen aus und entfernt sie still: `--force`/`-f`, `-p`, `--help`, und `-U`/`-u` samt Wert - letzteres führt den Befehl sogar als anderer wwwuser aus. Ergebnis ist eine wp-cli-Warnung statt der Aktion, oder eine Aktion mit falschen Rechten. Deshalb `iocage exec -U <wwwuser> <jail> -- wp … --force`. `sh -c '…'` nur, wenn im Jail Pipes oder Redirects nötig sind. `-U <wwwuser>` statt `sudo -u`: ein `sudo -u` direkt hinter dem Jail-Namen fängt `jexec` als eigenes `-u` ab, und der Umweg über `sh -c` bringt eine zusätzliche Quoting-Ebene.
 
 ### Quoting
 

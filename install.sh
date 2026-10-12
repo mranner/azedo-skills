@@ -67,7 +67,9 @@ sh \"$REPO_DIR/install.sh\" >/dev/null 2>&1 || true"
 # azedo-skills lint hook (erzeugt von install.sh)
 cd \"\$(git rev-parse --show-toplevel)\" || exit 1
 command -v python3 >/dev/null 2>&1 || { echo 'pre-commit: python3 fehlt, lint-skills.py übersprungen'; exit 0; }
-python3 scripts/lint-skills.py"
+out=\$(python3 scripts/lint-skills.py) && exit 0
+printf '%s\\n' \"\$out\" | grep -v '^WARNUNG'
+exit 1"
     HOOK_FILE="$HOOKS_DIR/pre-commit"
     if [ -e "$HOOK_FILE" ] && ! grep -q 'azedo-skills lint hook' "$HOOK_FILE" 2>/dev/null; then
         echo "  warn  pre-commit Hook existiert bereits (fremd) — nicht ueberschrieben"
