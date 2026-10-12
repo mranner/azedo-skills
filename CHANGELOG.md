@@ -3,6 +3,17 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.65.7
+
+- **`wp-pys` - Lizenz und Updates unter WP-CLI.** Neuer Fallstrick: bis 12.6.3
+  registriert PixelYourSite Pro seinen Updater nur in `admin_init`, unter WP-CLI
+  erscheint deshalb nie ein Update; ab 12.6.7.1 haengt er an `init`. Dazu der
+  `--require`-Workaround fuer aeltere Fassungen und die Lizenzaktivierung einer
+  DEV-Domain per `licenseActivate()` samt Seat-Warnung.
+- **`wp-cli` - Troubleshooting-Zeile fuer Premium-Plugins mit `update: none`.**
+  Updater nicht registriert (Plugin inaktiv, `manage_options`, `admin_init`) oder
+  Domain nicht lizenziert - beides sieht gleich aus.
+
 ### 1.65.6
 
 - **`wiki` lint - Meldung „Verwaiste Seite" präzisiert.** Sie lautet jetzt

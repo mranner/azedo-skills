@@ -146,6 +146,36 @@ danach `wp_cache_delete($id, 'post_meta')` und Quelle gegen Klon byteweise
 vergleichen — so in 3.4 ([references/snippets.md](references/snippets.md)). Danach Trigger oder Formulare per 3.5 anpassen, nicht
 per `str_replace` im serialisierten String.
 
+### Lizenz und Updates unter WP-CLI
+
+Bis 12.6.3 registriert PYS seinen Updater nur in `admin_init` - das feuert unter
+WP-CLI nie, `wp plugin list` meldet `update: none`. Ab 12.6.7.1 haengt er an
+`init` und laesst WP-CLI zu. Fuer das Update einer aelteren Fassung den Hook per
+`--require` nachziehen:
+
+```php
+<?php
+// pys-updater.php
+WP_CLI::add_wp_hook( 'init', function () { \PixelYourSite\PYS()->updatePlugin(); }, 99 );
+```
+
+```bash
+wp transient delete update_plugins
+wp plugin update pixelyoursite-pro --require=/tmp/pys-updater.php
+```
+
+Der Updater liest nur `license_key` aus den Core-Optionen. Ob er ein Paket
+bekommt, entscheidet der Lizenzserver anhand von `home_url()` - eine Kopie auf
+einer anderen Domain (DEV) muss dort aktiviert sein:
+
+```php
+$r = \PixelYourSite\licenseActivate( \PixelYourSite\PYS()->getOption( 'license_key' ), \PixelYourSite\PYS() );
+echo $r->license;   // valid | invalid | no_activations_left ...
+```
+
+Die Aktivierung belegt einen Seat. Bei einer Lizenz mit nur einem Seat nimmt sie
+der Produktion die Aktivierung weg - vorher das Limit pruefen.
+
 ### sudo strippt Umgebung
 
 Parameter an `wp eval-file` immer als Positionsargumente (`$args[0]`, `$args[1]`) uebergeben, nicht als Umgebungsvariablen.

@@ -663,12 +663,14 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.65.6
+### 1.65.7
 
-- **`wiki` lint - Meldung „Verwaiste Seite" präzisiert.** Sie lautet jetzt
-  „kein anderer Artikel verlinkt hierher" und nennt, ob der Artikel nur aus
-  `index.md` bzw. `log.md` verlinkt ist (`(nur aus index.md)`). Diese beiden
-  zählen weiterhin nicht als eingehend - ein Artikel, den nur der Index kennt,
-  ist im Wiki selbst nicht erreichbar. Bisher sah die Warnung bei einem im
-  Index gelisteten Artikel wie ein Fehlalarm aus. Testfall in
-  `test-lint-wiki.py`, Doku unter `references/subcommands.md` (lint).
+- **`wp-pys` - Lizenz und Updates unter WP-CLI.** Neuer Fallstrick: bis 12.6.3
+  registriert PixelYourSite Pro seinen Updater nur in `admin_init`, unter WP-CLI
+  erscheint deshalb nie ein Update; ab 12.6.7.1 haengt er an `init`. Dazu der
+  `--require`-Workaround fuer aeltere Fassungen und die Lizenzaktivierung einer
+  DEV-Domain per `licenseActivate()` samt Seat-Warnung.
+- **`wp-cli` - Troubleshooting-Zeile fuer Premium-Plugins mit `update: none`.**
+  Updater nicht registriert (Plugin inaktiv, `manage_options`, `admin_init`) oder
+  Domain nicht lizenziert - beides sieht gleich aus.
+
