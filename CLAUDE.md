@@ -82,15 +82,17 @@ Frontmatter-Feld - vor der Angleichung stand `audit-wiki.py` auf 1.51.6 und die
 Scripts von `einfache-sprache` auf 1.37.0, waehrend `VERSION` bei 1.59.2 lag:
 
 ```bash
-grep -rlI '^# version' --exclude-dir=.git . \
-  | xargs sed -i~ 's/^# version .*/# version <neue Version>/'
+grep -rlIE '^# version [0-9]+\.[0-9]+\.[0-9]+$' --exclude-dir=.git . \
+  | xargs sed -i~ -E 's/^# version [0-9]+\.[0-9]+\.[0-9]+$/# version <neue Version>/'
 find . -name '*~' -not -path './.git/*' -delete
 ```
 
 Der `grep` filtert bewusst nicht nach Endung: ein Filter auf `*.py`/`*.sh`
 uebersah die Scripts ohne Endung, die dadurch auf Staenden bis 1.11.1 liegen
-blieben. Der `find` raeumt die `sed`-Sicherungen weg, damit sie nicht im Commit
-landen.
+blieben. Das Muster verlangt dagegen die ganze Zeile als Versionsnummer: ein
+lockeres `^# version .*` traf auch eine Kommentarzeile, die mit dem Wort
+"version" begann, und ersetzte ihren Text. Der `find` raeumt die
+`sed`-Sicherungen weg, damit sie nicht im Commit landen.
 
 Commit-Konvention: `CR<id>: <skill> - <was geändert wurde> (<version>)`
 Beispiel: `CR4426: swos - poe-voltage (poe.b i03) + gemeinsame Write-Basis (1.26.1)`

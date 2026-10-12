@@ -3,6 +3,14 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.66.2
+
+- **Versions-Bump trifft nur noch die Versionszeile.** Das `sed` aus `CLAUDE.md`
+  ersetzte jede Zeile, die mit `# version ` begann, und damit auch eine
+  Kommentarzeile in `meta-ads`, deren Text mit dem Wort "version" weiterging.
+  Das Muster verlangt jetzt die ganze Zeile als Versionsnummer; der Kommentar zur
+  festen Graph-API-Version in `meta-ads` ist wiederhergestellt.
+
 ### 1.66.1
 
 - **`meta-ads` - Token in der Ausgabe maskiert.** Meta liefert in Listen-Antworten

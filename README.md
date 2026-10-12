@@ -683,11 +683,10 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.66.1
+### 1.66.2
 
-- **`meta-ads` - Token in der Ausgabe maskiert.** Meta liefert in Listen-Antworten
-  Blätter-Links (`paging.next`/`previous`) mit `access_token=…` im Query-String;
-  `dataset-stats` gab sie ungefiltert aus, der Systemnutzer-Token stand damit im
-  Klartext in der Ausgabe. `emit()` entfernt jetzt `paging` und maskiert
-  `access_token=` in allen Strings, `dataset-stats` blättert über `get_all()` und
-  gibt nur noch die Liste der Einträge aus.
+- **Versions-Bump trifft nur noch die Versionszeile.** Das `sed` aus `CLAUDE.md`
+  ersetzte jede Zeile, die mit `# version ` begann, und damit auch eine
+  Kommentarzeile in `meta-ads`, deren Text mit dem Wort "version" weiterging.
+  Das Muster verlangt jetzt die ganze Zeile als Versionsnummer; der Kommentar zur
+  festen Graph-API-Version in `meta-ads` ist wiederhergestellt.
