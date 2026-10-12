@@ -1,0 +1,336 @@
+#!/usr/bin/env python3
+
+# Meta Graph/Marketing API helper (Datasets, Conversions API, Werbekonten, Insights)
+# stdlib only, no pip dependencies
+# version 1.66.0
+
+import argparse
+import json
+import os
+import sys
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+
+VERSION = "1.66.0"
+
+# Meta lehnt ältere Versionen der Ads API ab ("You are calling a deprecated
+# version 1.66.0
+# App, und die ist nach einem Jahr veraltet - daher fest gesetzt.
+GRAPH_VERSION = "v26.0"
+GRAPH_BASE = f"https://graph.facebook.com/{GRAPH_VERSION}"
+
+CONFIG_PATH = os.path.expanduser("~/.claude/meta-ads.json")
+
+
+def die(msg):
+    print(f"Error: {msg}", file=sys.stderr)
+    sys.exit(1)
+
+
+def load_config():
+    if not os.path.exists(CONFIG_PATH):
+        die(f"{CONFIG_PATH} fehlt. Vorlage: meta-ads.json.example im Skill-Verzeichnis.")
+    with open(CONFIG_PATH) as f:
+        return json.load(f)
+
+
+def get_profile(args):
+    """Profil aus --profile, sonst default_profile, sonst das einzige vorhandene."""
+    cfg = load_config()
+    profiles = cfg.get("profiles") or {}
+    if not profiles:
+        die(f"keine Profile in {CONFIG_PATH}")
+    name = args.profile or cfg.get("default_profile")
+    if not name:
+        if len(profiles) > 1:
+            die("mehrere Profile, keins gewählt: --profile <name> (" + ", ".join(profiles) + ")")
+        name = next(iter(profiles))
+    if name not in profiles:
+        die(f"Profil '{name}' nicht in {CONFIG_PATH} (" + ", ".join(profiles) + ")")
+    prof = dict(profiles[name])
+    prof["name"] = name
+    return prof
+
+
+def read_env_file(path, key):
+    if not os.path.exists(path):
+        return None
+    with open(path) as f:
+        for line in f:
+            line = line.strip()
+            if line.startswith(key + "="):
+                return line.split("=", 1)[1].strip().strip('"').strip("'")
+    return None
+
+
+def get_token(prof):
+    """Token aus der Umgebung, sonst aus ~/.env. Wird nie ausgegeben."""
+    key = prof.get("token_env")
+    if not key:
+        die(f"Profil '{prof['name']}' hat kein token_env")
+    tok = os.environ.get(key) or read_env_file(os.path.expanduser("~/.env"), key)
+    if not tok:
+        die(f"{key} weder in der Umgebung noch in ~/.env gesetzt")
+    return tok
+
+
+def need(prof, field):
+    val = prof.get(field)
+    if not val:
+        die(f"Profil '{prof['name']}' hat kein '{field}' - in {CONFIG_PATH} ergänzen")
+    return str(val)
+
+
+def act(ad_account_id):
+    return ad_account_id if ad_account_id.startswith("act_") else "act_" + ad_account_id
+
+
+def api(token, method, path, params=None, data=None):
+    params = dict(params or {})
+    params["access_token"] = token
+    url = f"{GRAPH_BASE}/{path}"
+    body = None
+    if method == "GET":
+        url += "?" + urllib.parse.urlencode(params)
+    else:
+        body = urllib.parse.urlencode(params).encode()
+    req = urllib.request.Request(url, data=body, method=method)
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return json.load(r)
+    except urllib.error.HTTPError as e:
+        # Fehlertext von Meta ausgeben, nie die URL - sie enthält den Token
+        try:
+            err = json.loads(e.read() or b"{}").get("error", {})
+        except ValueError:
+            err = {}
+        parts = [f"HTTP {e.code}", err.get("message", "")]
+        if err.get("error_user_title"):
+            parts.append(err["error_user_title"])
+        if err.get("error_user_msg") and err.get("error_user_msg") != err.get("error_user_title"):
+            parts.append(err["error_user_msg"])
+        parts.append(f"(code {err.get('code')}, subcode {err.get('error_subcode')})")
+        die(" - ".join(p for p in parts if p))
+    except urllib.error.URLError as e:
+        die(f"Verbindung zu graph.facebook.com fehlgeschlagen: {e.reason}")
+
+
+def get_all(token, path, params):
+    """GET mit Paging über cursors.after."""
+    out = []
+    params = dict(params)
+    while True:
+        res = api(token, "GET", path, params)
+        out.extend(res.get("data", []))
+        after = res.get("paging", {}).get("cursors", {}).get("after")
+        if not after or not res.get("paging", {}).get("next"):
+            return out
+        params["after"] = after
+
+
+def emit(obj):
+    print(json.dumps(obj, ensure_ascii=False, indent=2))
+
+
+def require_yes(args, what):
+    if not args.yes:
+        die(f"{what} ist eine schreibende Aktion - erst nach Freigabe mit --yes ausführen")
+
+
+# --- Subcommands -------------------------------------------------------------
+
+def cmd_version(args):
+    print(f"meta-ads {VERSION} (Graph API {GRAPH_VERSION})")
+
+
+def cmd_profiles(args):
+    cfg = load_config()
+    out = []
+    for name, p in (cfg.get("profiles") or {}).items():
+        out.append({
+            "profile": name,
+            "default": name == cfg.get("default_profile"),
+            "token_env": p.get("token_env"),
+            "business_id": p.get("business_id"),
+            "dataset_id": p.get("dataset_id"),
+            "ad_account_id": p.get("ad_account_id"),
+        })
+    emit(out)
+
+
+def cmd_check(args):
+    prof = get_profile(args)
+    tok = get_token(prof)
+    me = api(tok, "GET", "me", {"fields": "id,name"})
+    perms = api(tok, "GET", "me/permissions").get("data", [])
+    out = {
+        "profile": prof["name"],
+        "token_length": len(tok),
+        "me": me,
+        "permissions": {p["permission"]: p["status"] for p in perms},
+    }
+    if prof.get("business_id"):
+        out["business"] = api(tok, "GET", prof["business_id"],
+                              {"fields": "id,name,verification_status"})
+    emit(out)
+
+
+def cmd_datasets(args):
+    prof = get_profile(args)
+    tok = get_token(prof)
+    emit(get_all(tok, f"{need(prof, 'business_id')}/adspixels",
+                 {"fields": "id,name,creation_time,last_fired_time,is_unavailable"}))
+
+
+def cmd_dataset_info(args):
+    prof = get_profile(args)
+    tok = get_token(prof)
+    ds = args.dataset or need(prof, "dataset_id")
+    emit(api(tok, "GET", ds, {
+        "fields": "id,name,creation_time,last_fired_time,is_unavailable,"
+                  "owner_business,data_use_setting,enable_automatic_matching"}))
+
+
+def cmd_dataset_stats(args):
+    prof = get_profile(args)
+    tok = get_token(prof)
+    ds = args.dataset or need(prof, "dataset_id")
+    params = {"aggregation": args.aggregation}
+    if args.start:
+        params["start_time"] = args.start
+    if args.end:
+        params["end_time"] = args.end
+    emit(api(tok, "GET", f"{ds}/stats", params))
+
+
+def cmd_adaccounts(args):
+    prof = get_profile(args)
+    tok = get_token(prof)
+    biz = need(prof, "business_id")
+    fields = {"fields": "id,name,account_status,currency,timezone_name"}
+    emit({
+        "owned": get_all(tok, f"{biz}/owned_ad_accounts", fields),
+        "client": get_all(tok, f"{biz}/client_ad_accounts", fields),
+    })
+
+
+def cmd_create_dataset(args):
+    prof = get_profile(args)
+    tok = get_token(prof)
+    biz = need(prof, "business_id")
+    # Gleichnamiges Dataset vorher suchen: Meta selbst lässt Duplikate zu
+    for ds in get_all(tok, f"{biz}/adspixels", {"fields": "id,name"}):
+        if ds.get("name") == args.name:
+            emit({"exists": True, **ds})
+            return
+    require_yes(args, "create-dataset")
+    res = api(tok, "POST", f"{biz}/adspixels", {"name": args.name})
+    emit({"created": True, "name": args.name, **res})
+
+
+def cmd_test_event(args):
+    prof = get_profile(args)
+    tok = get_token(prof)
+    ds = args.dataset or need(prof, "dataset_id")
+    event = {
+        "event_name": args.event,
+        "event_time": int(time.time()),
+        "action_source": "website",
+        "user_data": {
+            "client_ip_address": args.ip,
+            "client_user_agent": f"meta-ads-skill/{VERSION}",
+        },
+    }
+    if args.url:
+        event["event_source_url"] = args.url
+    if args.value is not None:
+        event["custom_data"] = {"value": args.value, "currency": args.currency}
+    require_yes(args, "test-event")
+    res = api(tok, "POST", f"{ds}/events", {
+        "data": json.dumps([event]),
+        "test_event_code": args.test_code,
+    })
+    emit(res)
+
+
+def cmd_insights(args):
+    prof = get_profile(args)
+    tok = get_token(prof)
+    acc = act(args.ad_account or need(prof, "ad_account_id"))
+    params = {
+        "level": args.level,
+        "fields": args.fields,
+        "limit": 500,
+    }
+    if args.since or args.until:
+        if not (args.since and args.until):
+            die("--since und --until nur gemeinsam")
+        params["time_range"] = json.dumps({"since": args.since, "until": args.until})
+    else:
+        params["date_preset"] = args.preset
+    emit(get_all(tok, f"{acc}/insights", params))
+
+
+def main():
+    ap = argparse.ArgumentParser(description="Meta Graph/Marketing API helper")
+    ap.add_argument("--profile", "-P", help="Profil aus ~/.claude/meta-ads.json")
+    sub = ap.add_subparsers(dest="cmd", required=True)
+
+    sub.add_parser("version", help="Version und Graph-API-Version")
+    sub.add_parser("profiles", help="Profile aus der Config (ohne Token)")
+    sub.add_parser("check", help="Token prüfen: Identität, Berechtigungen, Portfolio")
+    sub.add_parser("datasets", help="Datasets/Pixel des Portfolios")
+
+    p = sub.add_parser("dataset-info", help="Details eines Datasets")
+    p.add_argument("--dataset", help="Dataset-ID (Default: Profil)")
+
+    p = sub.add_parser("dataset-stats", help="Empfangene Events eines Datasets")
+    p.add_argument("--dataset", help="Dataset-ID (Default: Profil)")
+    p.add_argument("--aggregation", default="event",
+                   help="event, host, url, browser_type, device_type, ... (Default: event)")
+    p.add_argument("--start", help="Unix-Zeit Beginn")
+    p.add_argument("--end", help="Unix-Zeit Ende")
+
+    sub.add_parser("adaccounts", help="Werbekonten des Portfolios (eigene und Kunden)")
+
+    p = sub.add_parser("create-dataset", help="Dataset im Portfolio anlegen (schreibend)")
+    p.add_argument("--name", required=True)
+    p.add_argument("--yes", action="store_true", help="Ausführen statt abbrechen")
+
+    p = sub.add_parser("test-event", help="Test-Event über die Conversions API senden (schreibend)")
+    p.add_argument("--dataset", help="Dataset-ID (Default: Profil)")
+    p.add_argument("--event", default="PageView", help="PageView, ViewContent, AddToCart, InitiateCheckout, Purchase, ...")
+    p.add_argument("--test-code", required=True, help="Testcode aus dem Events Manager (Test-Events)")
+    p.add_argument("--url", help="event_source_url")
+    p.add_argument("--value", type=float, help="Wert, z.B. bei Purchase")
+    p.add_argument("--currency", default="EUR")
+    p.add_argument("--ip", default="127.0.0.1", help="client_ip_address (Default 127.0.0.1)")
+    p.add_argument("--yes", action="store_true", help="Ausführen statt abbrechen")
+
+    p = sub.add_parser("insights", help="Werbe-Insights eines Werbekontos")
+    p.add_argument("--ad-account", help="Werbekonto-ID mit oder ohne act_ (Default: Profil)")
+    p.add_argument("--level", default="campaign", choices=["account", "campaign", "adset", "ad"])
+    p.add_argument("--fields", default="campaign_name,impressions,reach,clicks,spend,actions")
+    p.add_argument("--preset", default="last_7d", help="date_preset, z.B. last_7d, last_30d, this_month")
+    p.add_argument("--since", help="YYYY-MM-DD")
+    p.add_argument("--until", help="YYYY-MM-DD")
+
+    args = ap.parse_args()
+    {
+        "version": cmd_version,
+        "profiles": cmd_profiles,
+        "check": cmd_check,
+        "datasets": cmd_datasets,
+        "dataset-info": cmd_dataset_info,
+        "dataset-stats": cmd_dataset_stats,
+        "adaccounts": cmd_adaccounts,
+        "create-dataset": cmd_create_dataset,
+        "test-event": cmd_test_event,
+        "insights": cmd_insights,
+    }[args.cmd](args)
+
+
+if __name__ == "__main__":
+    main()

@@ -11,7 +11,7 @@ SETTINGS="$HOME/.claude/settings.json"
 
 # Symlinks anlegen
 mkdir -p "$SKILLS_DIR"
-for skill in bridge cloudns einfache-sprache envato forgejo google-analytics google-search-console handoff humanizer-de image-optimize imap jira kanboard kimai lit mail-as-me mainwp md2pdf php-formatting privatebin pushover ripgrep sec-audit-transcripts swaks swos tcsh telegram wetter wie-bitte wiki wp-cli wp-nf wp-pys wp-rest wp-sync-dev; do
+for skill in bridge cloudns einfache-sprache envato forgejo google-analytics google-search-console handoff humanizer-de image-optimize imap jira kanboard kimai lit mail-as-me mainwp md2pdf meta-ads php-formatting privatebin pushover ripgrep sec-audit-transcripts swaks swos tcsh telegram wetter wie-bitte wiki wp-cli wp-nf wp-pys wp-rest wp-sync-dev; do
     if [ -d "$REPO_DIR/$skill" ]; then
         target="$SKILLS_DIR/$skill"
         want="$REPO_DIR/$skill"
@@ -178,6 +178,14 @@ else:
 # Config-Dateien ausserhalb des Repos: nur melden, nie vorbelegen. Eine mit
 # Platzhaltern gefuellte swaks.json wuerde Mail an example.org zustellen statt
 # hoerbar zu scheitern.
+
+if [ ! -f "$HOME/.claude/meta-ads.json" ]; then
+    echo ""
+    echo "HINWEIS: $HOME/.claude/meta-ads.json fehlt — der meta-ads-Skill"
+    echo "kennt sonst keine Kundenprofile und bricht ab:"
+    echo "  cp \"$REPO_DIR/meta-ads/meta-ads.json.example\" \"$HOME/.claude/meta-ads.json\""
+    echo "  \$EDITOR \"$HOME/.claude/meta-ads.json\""
+fi
 
 if [ ! -f "$HOME/.claude/privatebin.json" ]; then
     echo ""

@@ -1,0 +1,12 @@
+{
+  "default_profile": "beispiel",
+
+  "profiles": {
+    "beispiel": {
+      "token_env": "META_TOKEN_BEISPIEL",
+      "business_id": "",
+      "dataset_id": "",
+      "ad_account_id": ""
+    }
+  }
+}

@@ -251,6 +251,26 @@ python3 "$SKILL_DIR/google-analytics" setup
 
 **Trigger:** `/google-analytics`, `/ga4` oder natürliche Sprache wie "wie viele Besucher", "Traffic letzte Woche", "GA4 Report".
 
+### meta-ads
+
+Meta (Facebook/Instagram) über die Graph- und Marketing-API, Python-Script (stdlib only):
+
+- Token prüfen: Identität des Systemnutzers, Berechtigungen, Portfolio
+- Datasets (Pixel) eines Unternehmensportfolios auflisten, Details und empfangene Events je Typ
+- Werbekonten auflisten (eigene und Kunden-Konten), Werbe-Insights pro Konto, Kampagne, Anzeigengruppe oder Anzeige
+- Schreibend nur mit `--yes`: Dataset anlegen (mit Duplikatprüfung), Test-Event über die Conversions API senden
+- Mehrere Kunden über Profile, je Kunde ein eigener Systemnutzer-Token. Die SKILL.md beschreibt die Einrichtung, die nur in der Oberfläche geht (App, Systemnutzer, Token, erstes Dataset, Domain-Verifizierung)
+
+**Voraussetzungen:** Python >= 3.11
+
+**Setup:** `~/.claude/meta-ads.json` nach der Vorlage `meta-ads.json.example` anlegen, den Token unter dem Namen aus `token_env` in `~/.env` eintragen. Dann:
+
+```bash
+python3 "$SKILL_DIR/meta-ads" check
+```
+
+**Trigger:** `/meta-ads` oder natürliche Sprache wie "kommen die Pixel-Events an", "leg ein Dataset an", "Meta-Insights".
+
 ### google-search-console
 
 Google Search Console (GSC) Datenabfrage via Service Account. Python-Script (stdlib + `cryptography`). Scope pro Subcommand: lesend `webmasters.readonly`, schreibend (submit/delete-sitemap) `webmasters`:
@@ -663,10 +683,11 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.65.10
+### 1.66.0
 
-- **`wp-cli` - Begründung für `iocage exec -U` korrigiert.** Nicht ein Passwort-Prompt
-  von `sudo` spricht gegen `sudo -u`, sondern dass `jexec` das `-u` abfängt und der
-  Umweg über `sh -c` eine zusätzliche Quoting-Ebene bringt.
-- **Git-`pre-commit` gibt nur noch Fehler aus.** Ein sauberer Lint bleibt still, die
-  Warnungen aus dem Bestand erscheinen nicht mehr bei jedem Commit.
+- **Neuer Skill `meta-ads`.** Graph- und Marketing-API von Meta mit einem
+  Systemnutzer-Token pro Kundenportfolio: Token prüfen, Datasets auflisten und
+  anlegen, empfangene Events, Test-Events über die Conversions API, Werbekonten und
+  Insights. Schreibende Aufrufe nur mit `--yes`. Die SKILL.md hält die Schritte fest,
+  die nur in der Oberfläche gehen, samt der Stellen, an denen Meta eine Zustimmung
+  zu Nutzungsbedingungen verlangt.

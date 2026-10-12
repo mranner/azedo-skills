@@ -3,6 +3,17 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.66.0
+
+- **Neuer Skill `meta-ads`.** Graph- und Marketing-API von Meta mit einem
+  Systemnutzer-Token pro Kundenportfolio: Token prüfen, Datasets auflisten und
+  anlegen, empfangene Events, Test-Events über die Conversions API, Werbekonten und
+  Insights. Schreibende Aufrufe nur mit `--yes`. Die SKILL.md hält die Schritte fest,
+  die nur in der Oberfläche gehen, samt der Stellen, an denen Meta eine Zustimmung
+  zu Nutzungsbedingungen verlangt. Ein zentraler Systemnutzer für mehrere Kunden
+  wurde verworfen: für fremde Werbekonten verlangt Meta Advanced Access per
+  App-Review samt Unternehmensverifizierung.
+
 ### 1.65.10
 
 - **`wp-cli` - Begründung für `iocage exec -U` korrigiert.** Nicht ein Passwort-Prompt
