@@ -3,6 +3,15 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.66.1
+
+- **`meta-ads` - Token in der Ausgabe maskiert.** Meta liefert in Listen-Antworten
+  Blätter-Links (`paging.next`/`previous`) mit `access_token=…` im Query-String;
+  `dataset-stats` gab sie ungefiltert aus, der Systemnutzer-Token stand damit im
+  Klartext in der Ausgabe. `emit()` entfernt jetzt `paging` und maskiert
+  `access_token=` in allen Strings, `dataset-stats` blättert über `get_all()` und
+  gibt nur noch die Liste der Einträge aus.
+
 ### 1.66.0
 
 - **Neuer Skill `meta-ads`.** Graph- und Marketing-API von Meta mit einem

@@ -2,21 +2,22 @@
 
 # Meta Graph/Marketing API helper (Datasets, Conversions API, Werbekonten, Insights)
 # stdlib only, no pip dependencies
-# version 1.66.0
+# version 1.66.1
 
 import argparse
 import json
 import os
+import re
 import sys
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
 
-VERSION = "1.66.0"
+VERSION = "1.66.1"
 
 # Meta lehnt ältere Versionen der Ads API ab ("You are calling a deprecated
-# version 1.66.0
+# version 1.66.1
 # App, und die ist nach einem Jahr veraltet - daher fest gesetzt.
 GRAPH_VERSION = "v26.0"
 GRAPH_BASE = f"https://graph.facebook.com/{GRAPH_VERSION}"
@@ -130,8 +131,19 @@ def get_all(token, path, params):
         params["after"] = after
 
 
+def redact(obj):
+    """paging-Links tragen den Token im Query-String: entfernen bzw. maskieren."""
+    if isinstance(obj, dict):
+        return {k: redact(v) for k, v in obj.items() if k != "paging"}
+    if isinstance(obj, list):
+        return [redact(v) for v in obj]
+    if isinstance(obj, str):
+        return re.sub(r'access_token=[^&"]+', "access_token=<redacted>", obj)
+    return obj
+
+
 def emit(obj):
-    print(json.dumps(obj, ensure_ascii=False, indent=2))
+    print(json.dumps(redact(obj), ensure_ascii=False, indent=2))
 
 
 def require_yes(args, what):
@@ -202,7 +214,7 @@ def cmd_dataset_stats(args):
         params["start_time"] = args.start
     if args.end:
         params["end_time"] = args.end
-    emit(api(tok, "GET", f"{ds}/stats", params))
+    emit(get_all(tok, f"{ds}/stats", params))
 
 
 def cmd_adaccounts(args):
