@@ -663,14 +663,11 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.65.7
+### 1.65.8
 
-- **`wp-pys` - Lizenz und Updates unter WP-CLI.** Neuer Fallstrick: bis 12.6.3
-  registriert PixelYourSite Pro seinen Updater nur in `admin_init`, unter WP-CLI
-  erscheint deshalb nie ein Update; ab 12.6.7.1 haengt er an `init`. Dazu der
-  `--require`-Workaround fuer aeltere Fassungen und die Lizenzaktivierung einer
-  DEV-Domain per `licenseActivate()` samt Seat-Warnung.
-- **`wp-cli` - Troubleshooting-Zeile fuer Premium-Plugins mit `update: none`.**
-  Updater nicht registriert (Plugin inaktiv, `manage_options`, `admin_init`) oder
-  Domain nicht lizenziert - beides sieht gleich aus.
-
+- **`wp-cli` - PHP-Snippets per stdin an `wp eval-file -`.** Neuer Standard fuer
+  alles ueber einen Einzeiler hinaus: das Snippet liegt lokal und geht per stdin
+  durch SSH, `jexec`/`iocage exec` und `sudo`. Kein Quoting ueber mehrere Shells,
+  keine Datei auf dem Zielsystem; Argumente nach dem `-` stehen in `$args`.
+  Vorlagen fuer ezjail und iocage in Abschnitt 1, allgemeines Muster in
+  Abschnitt 3 und `references/befehle.md`.

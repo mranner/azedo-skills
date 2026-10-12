@@ -190,8 +190,11 @@ wp eval '$users = get_users(["role" => "administrator"]); foreach($users as $u) 
 Fuer komplexere Logik. Die Datei wird mit geladenem WordPress ausgefuehrt.
 
 ```sh
-# Datei auf den Server uebertragen, dann ausfuehren
-wp eval-file /tmp/mein-script.php
+# Standard: lokale Datei per stdin, Argumente landen in $args
+wp eval-file - <arg1> <arg2> < mein-script.php
+
+# Datei liegt bereits auf dem Zielsystem
+wp eval-file /pfad/mein-script.php
 ```
 
 Typische Anwendung: Daten-Migration, Bulk-Updates, Debugging von Plugin-Problemen.

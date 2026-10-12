@@ -62,7 +62,7 @@ SSH → jexec/iocage exec → sudo ergibt drei Quoting-Ebenen. Regeln:
 
 - Aeussere Ebene (SSH): doppelte Anfuehrungszeichen
 - Innere Werte: einfache Anfuehrungszeichen oder Escaping mit `\"`
-- Komplexe PHP-Ausdruecke: besser in eine Datei schreiben und `wp eval-file` verwenden
+- Komplexe PHP-Ausdruecke: nicht inline per `wp eval`, sondern per stdin an `wp eval-file -` (siehe unten)
 - Glob-Argumente in einfache Anfuehrungszeichen: `--search='relevanssi_*'` statt `--search=relevanssi_*`, sonst expandiert die Shell auf dem Jail-Host das Muster, bevor wp-cli es sieht
 
 ```sh
@@ -74,6 +74,19 @@ sudo ssh -C root@server "jexec 2 sudo -u wwwuser wp --path=/www/home/wwwuser/dom
 
 # Glob-Argument — einfach gequotet
 sudo ssh -C root@server "jexec 2 sudo -u wwwuser wp --path=/www/home/wwwuser/domain option list --search='relevanssi_*'"
+```
+
+### PHP-Snippets per stdin
+
+Das Snippet liegt lokal und geht per stdin an `wp eval-file -`. stdin kommt durch
+SSH, `jexec`/`iocage exec` und `sudo` unverändert an:
+
+```sh
+# ezjail
+sudo ssh -C root@<server> "jexec <JID> sudo -u <wwwuser> wp --path=/www/home/<wwwuser>/<domain> eval-file -" < snippet.php
+
+# iocage
+sudo ssh -C root@<server> "iocage exec -U <wwwuser> <jailname> -- wp --path=/www/home/<wwwuser>/<domain> eval-file -" < snippet.php
 ```
 
 ### Preflight
@@ -133,8 +146,19 @@ wp cache flush
 ## 3. Code-Ausfuehrung im WordPress-Kontext
 
 `wp eval '<php>'` und `wp eval-file <datei>` laufen mit vollstaendig geladenem
-WordPress. Komplexe Ausdruecke als Datei ablegen und per `wp eval-file`
-ausfuehren, statt sie durch drei Quoting-Ebenen zu schicken. Beispiele und die
+WordPress. Alles ueber einen Einzeiler hinaus lokal als Datei schreiben und per
+stdin an `wp eval-file -` geben:
+
+```sh
+<zugriff> wp --path=<docroot> eval-file - [<arg1> ...] < snippet.php
+```
+
+- Kein Quoting ueber mehrere Shells - das PHP kommt unveraendert an
+- Keine Datei auf dem Zielsystem, die abgelegt und wieder geloescht werden muss
+- Argumente nach dem `-` stehen im Snippet in `$args`
+- Die Ausgabe laesst sich lokal weiterverarbeiten, z.B. JSON-Snapshots vorher/nachher diffen
+
+Beispiele und die
 Ausgabe-Flags (`--format`, `--fields`, `--skip-plugins`) stehen in
 `references/befehle.md`.
 
