@@ -3,7 +3,7 @@
 # Telegram Bot API helper (outbound-first)
 # Sendet Nachrichten via api.telegram.org/bot<TOKEN>/sendMessage.
 # stdlib only, keine pip-Abhaengigkeiten. Lauffaehig auf macOS + FreeBSD.
-# version 1.65.8
+# version 1.65.9
 
 import argparse
 import json

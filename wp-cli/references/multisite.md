@@ -6,7 +6,7 @@ Inhalt: Befehle, Optionen in `sitemeta`, Custom-Tabellen, Sicherung einer Subsit
 # Alle Sites im Netzwerk
 wp site list
 
-# Befehl auf bestimmter Site ausfuehren
+# Befehl auf bestimmter Site ausführen
 wp --url=sub.example.com plugin list
 
 # Super-Admins verwalten
@@ -22,18 +22,18 @@ Bei Multisite-Installationen **immer** `--url=<site>` angeben, sonst wirkt der B
 
 ## Optionen liegen bei Multisite in `sitemeta`
 
-Bei einer Multisite liest WordPress eine Reihe von Einstellungen ueber
+Bei einer Multisite liest WordPress eine Reihe von Einstellungen über
 `get_site_option()`, also aus `wp_sitemeta` statt aus `wp_options` der einzelnen
-Site. `wp option get` antwortet dort trotzdem mit einem Wert -- der Aufruf schlaegt
+Site. `wp option get` antwortet dort trotzdem mit einem Wert -- der Aufruf schlägt
 nicht fehl, er antwortet **falsch**. Betroffen sind unter anderem
 `auto_update_plugins`, `auto_update_core_major` und `auto_update_core_minor`.
 
-Beide Ebenen koennen gleichzeitig existieren und sich widersprechen. Wer nur
-`option get` fragt, dokumentiert den falschen Zustand und aendert anschliessend an
-der wirkungslosen Stelle, ohne dass etwas auffaellt.
+Beide Ebenen können gleichzeitig existieren und sich widersprechen. Wer nur
+`option get` fragt, dokumentiert den falschen Zustand und ändert anschließend an
+der wirkungslosen Stelle, ohne dass etwas auffällt.
 
 ```sh
-# Erst pruefen, ob Multisite (Exit-Code 1, wenn die Konstante fehlt):
+# Erst prüfen, ob Multisite (Exit-Code 1, wenn die Konstante fehlt):
 wp config get MULTISITE
 
 # FALSCH bei Multisite -- Wert existiert, ist aber wirkungslos:
@@ -47,19 +47,19 @@ wp network meta update 1 auto_update_core_major disabled
 Die `1` ist die Network-ID; bei einer einzelnen Multisite-Installation ist das immer
 `1` (`wp network list` zeigt sie).
 
-**Regel:** Vor jedem `option get`/`option update` auf `MULTISITE` pruefen und bei
+**Regel:** Vor jedem `option get`/`option update` auf `MULTISITE` prüfen und bei
 einer Multisite auf `network meta get|update 1 <option>` verzweigen. Bei einer
-Erhebung ueber mehrere Installationen gilt das ausnahmslos. Ein Plugin mit Status
-`active-network` in `wp plugin list` ist ein zuverlaessiges Indiz fuer eine
+Erhebung über mehrere Installationen gilt das ausnahmslos. Ein Plugin mit Status
+`active-network` in `wp plugin list` ist ein zuverlässiges Indiz für eine
 Multisite.
 
-**Achtung:** `--url` filtert nur auf Standard-WordPress-Tabellen (mit Site-Prefix). Custom-Tabellen wie `wp_*_icl_strings` (WPML) oder andere Plugin-Tabellen ohne Site-Prefix werden von `--url` **nicht** erfasst. Fuer Operationen auf solchen Tabellen `--all-tables` verwenden:
+**Achtung:** `--url` filtert nur auf Standard-WordPress-Tabellen (mit Site-Prefix). Custom-Tabellen wie `wp_*_icl_strings` (WPML) oder andere Plugin-Tabellen ohne Site-Prefix werden von `--url` **nicht** erfasst. Für Operationen auf solchen Tabellen `--all-tables` verwenden:
 
 ```sh
 # FALSCH — findet Custom-Tabellen nicht:
 wp search-replace 'alt' 'neu' --url=sub.example.com
 
-# RICHTIG — alle Tabellen einschliessen:
+# RICHTIG — alle Tabellen einschließen:
 wp search-replace 'alt' 'neu' --all-tables
 ```
 
@@ -67,8 +67,8 @@ wp search-replace 'alt' 'neu' --all-tables
 
 Die Tabellenliste mit `--all-tables-with-prefix`
 bilden, nicht mit `--scope=blog`. `--scope=blog` liefert nur die WP-Kerntabellen
-der Subsite und laesst alle Plugin-Tabellen mit ihrem Prefix weg (WPML, Ninja
-Forms, Smart Slider, ...) - das Backup sieht vollstaendig aus und ist es nicht.
+der Subsite und lässt alle Plugin-Tabellen mit ihrem Prefix weg (WPML, Ninja
+Forms, Smart Slider, ...) - das Backup sieht vollständig aus und ist es nicht.
 Bei einer Subsite mit vielen Plugins standen 15 Tabellen gegen 104.
 
 ```sh
@@ -83,7 +83,7 @@ Der Export geht nach stdout und wird auf dem **Host** gepackt. Im Jail braucht e
 dann kein beschreibbares Verzeichnis, und die Sicherung liegt nicht im Webroot.
 Das Script läuft per STDIN in einem `sh` auf dem Host, damit Tabellenliste und
 Pipe keine Quoting-Ebene überwinden müssen (Beispiel iocage, für ezjail `jexec
-<JID> sudo -u <wwwuser> wp …`):
+<jail> sudo -u <wwwuser> wp …`):
 
 ```sh
 cat <<'SCRIPT' | sudo ssh -C root@<server> sh

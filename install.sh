@@ -61,6 +61,23 @@ sh \"$REPO_DIR/install.sh\" >/dev/null 2>&1 || true"
             echo "  hook  $hook installiert"
         fi
     done
+
+    # pre-commit: blockiert Commits, solange lint-skills.py Fehler meldet
+    LINT_BODY="#!/bin/sh
+# azedo-skills lint hook (erzeugt von install.sh)
+cd \"\$(git rev-parse --show-toplevel)\" || exit 1
+command -v python3 >/dev/null 2>&1 || { echo 'pre-commit: python3 fehlt, lint-skills.py übersprungen'; exit 0; }
+python3 scripts/lint-skills.py"
+    HOOK_FILE="$HOOKS_DIR/pre-commit"
+    if [ -e "$HOOK_FILE" ] && ! grep -q 'azedo-skills lint hook' "$HOOK_FILE" 2>/dev/null; then
+        echo "  warn  pre-commit Hook existiert bereits (fremd) — nicht ueberschrieben"
+    elif [ -e "$HOOK_FILE" ] && [ "$(cat "$HOOK_FILE")" = "$LINT_BODY" ]; then
+        echo "  skip  pre-commit Hook (aktuell)"
+    else
+        printf '%s\n' "$LINT_BODY" > "$HOOK_FILE"
+        chmod +x "$HOOK_FILE"
+        echo "  hook  pre-commit installiert"
+    fi
 fi
 
 # Permissions in settings.json eintragen
@@ -129,7 +146,18 @@ for perm in needed:
         allow.append(perm)
         added.append(perm)
 
-if added or removed:
+# PreToolUse-Hook: Commit in azedo-skills erst nach Pruefung gegen die Anthropic-Regeln
+guard = 'python3 \"$REPO_DIR/scripts/skills-review-guard.py\"'
+pre = data.setdefault('hooks', {}).setdefault('PreToolUse', [])
+bash = next((e for e in pre if e.get('matcher') == 'Bash'), None)
+if bash is None:
+    bash = {'matcher': 'Bash', 'hooks': []}
+    pre.append(bash)
+hook_neu = not any(h.get('command') == guard for h in bash.setdefault('hooks', []))
+if hook_neu:
+    bash['hooks'].append({'type': 'command', 'command': guard})
+
+if added or removed or hook_neu:
     with open(settings_path, 'w') as f:
         json.dump(data, f, indent=2)
         f.write('\n')
@@ -137,10 +165,12 @@ if added or removed:
         print('  drop  ' + p + ' (obsolet: Write wird ignoriert)')
     for p in added:
         print('  perm  ' + p)
+    if hook_neu:
+        print('  hook  PreToolUse skills-review-guard')
     print('')
-    print('Permissions aktualisiert in ' + settings_path)
+    print('Permissions/Hooks aktualisiert in ' + settings_path)
 else:
-    print('  Permissions bereits aktuell.')
+    print('  Permissions und Hooks bereits aktuell.')
 "
 
 # Config-Dateien ausserhalb des Repos: nur melden, nie vorbelegen. Eine mit

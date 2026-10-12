@@ -140,6 +140,17 @@ Exit 0 heisst sauber, Exit 1 nennt die Fehler; Warnungen (unbekannter
 Schluessel, Body ueber 500 Zeilen, verwaister Name in `install.sh`) aendern den
 Exit-Code nicht. Einzelne Skills gehen als Argument.
 
+Zwei Hooks, beide von `install.sh` eingerichtet, setzen das durch:
+
+- **Git `pre-commit`** ruft `lint-skills.py` auf und blockiert den Commit bei Fehlern -
+  auch bei Commits von Hand. Geprüft werden neben dem Frontmatter die mechanischen
+  Anthropic-Regeln: reservierte Wörter im `name`, XML-Tags, Referenzen nur eine Ebene
+  tief, Inhaltsangabe in Referenzen über 100 Zeilen (die letzten beiden als Warnung).
+- **Claude-Code-`PreToolUse`** (`scripts/skills-review-guard.py`) blockiert `git commit`,
+  solange Dateien in einem Skill-Verzeichnis geändert sind, und gibt die Checkliste der
+  Regeln aus, die ein Script nicht prüfen kann. Nach der Prüfung geht der Commit mit
+  `# SKILL_REVIEW_OK` am Befehlsende durch.
+
 Beim Anlegen eines neuen Skills **`install.sh` mitpflegen**: die Skill-Liste dort ist
 hartcodiert. Fehlt der Name, bekommt eine frische Installation keinen Symlink und der
 Skill existiert für den Konsumenten nicht — auf einer Maschine, die ihn schon per

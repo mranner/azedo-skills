@@ -28,6 +28,8 @@ BEKANNTE_SCHLUESSEL = {
 MAX_DESCRIPTION = 1024
 MAX_NAME = 64
 MAX_BODY_ZEILEN = 500
+MAX_REFERENZ_OHNE_INHALT = 100
+RESERVIERT = ("anthropic", "claude")
 
 
 def frontmatter(text):
@@ -111,6 +113,11 @@ def pruefe(verzeichnis):
             fehler.append(f"name '{name}' ist nicht kebab-case")
         if len(name) > MAX_NAME:
             fehler.append(f"name länger als {MAX_NAME} Zeichen")
+        for wort in RESERVIERT:
+            if wort in name:
+                fehler.append(f"name enthält das reservierte Wort '{wort}'")
+        if re.search(r"<[^>]+>", name):
+            fehler.append("name enthält XML-Tags")
 
     # description
 
@@ -132,6 +139,8 @@ def pruefe(verzeichnis):
             fehler.append(
                 f"description hat {len(text_desc)} Zeichen, erlaubt sind {MAX_DESCRIPTION}"
             )
+        if re.search(r"<[A-Za-z/][^>]*>", text_desc):
+            fehler.append("description enthält XML-Tags")
 
     # Version gehört ausschließlich in VERSION
 
@@ -158,7 +167,46 @@ def pruefe(verzeichnis):
             "Inhalt nach references/"
         )
 
+    warnungen.extend(pruefe_referenzen(verzeichnis))
+
     return fehler, warnungen
+
+
+def pruefe_referenzen(verzeichnis):
+    """Referenzdateien: nur eine Ebene tief, ab 100 Zeilen mit Inhaltsangabe.
+
+    Verweist eine Referenz auf die nächste, liest Claude die zweite oft nur
+    angeschnitten. Eine lange Datei ohne Inhaltsangabe am Anfang wird bei
+    einem Teil-Lesen nicht als Ganzes erfasst."""
+
+    warnungen = []
+    ordner = os.path.join(verzeichnis, "references")
+    if not os.path.isdir(ordner):
+        return warnungen
+
+    dateien = sorted(d for d in os.listdir(ordner) if d.endswith(".md"))
+    for datei in dateien:
+        with open(os.path.join(ordner, datei), encoding="utf-8") as f:
+            text = f.read()
+
+        andere = [d for d in dateien if d != datei and re.search(
+            r"(references/|\(|`|\s)" + re.escape(d), text)]
+        if andere:
+            warnungen.append(
+                f"references/{datei} verweist auf {', '.join(andere)} - "
+                "Referenzen nur eine Ebene tief, Verweis in SKILL.md stellen"
+            )
+
+        zeilen = text.splitlines()
+        if len(zeilen) > MAX_REFERENZ_OHNE_INHALT:
+            kopf = "\n".join(zeilen[:15])
+            if not re.search(r"^(Inhalt|## Inhalt|Contents|## Contents)", kopf, re.M | re.I):
+                warnungen.append(
+                    f"references/{datei} hat {len(zeilen)} Zeilen, aber keine "
+                    "Inhaltsangabe ('Inhalt: ...') in den ersten 15 Zeilen"
+                )
+
+    return warnungen
 
 
 def install_liste():

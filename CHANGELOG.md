@@ -3,6 +3,19 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.65.9
+
+- **Hooks für die Anthropic-Skill-Regeln.** `install.sh` richtet einen Git-`pre-commit`
+  ein, der `lint-skills.py` laufen lässt und bei Fehlern blockiert, und trägt in
+  `~/.claude/settings.json` den `PreToolUse`-Hook `scripts/skills-review-guard.py` ein:
+  Commits mit geänderten Skills gehen erst nach der Prüfung gegen eine Checkliste durch
+  (`# SKILL_REVIEW_OK`). `lint-skills.py` prüft zusätzlich reservierte Wörter im `name`,
+  XML-Tags in `name`/`description` (Fehler), verschachtelte Referenzen und fehlende
+  Inhaltsangaben in langen Referenzen (Warnung).
+- **`wp-cli` - echte Umlaute, `jexec` mit Jail-Namen.** Der Skill schreibt durchgehend
+  ä/ö/ü/ß statt ae/oe/ue/ss. Die ezjail-Vorlagen nehmen den Jail-Namen statt der JID -
+  `jexec` versteht beides, die JID wechselt aber bei jedem Jail-Neustart.
+
 ### 1.65.8
 
 - **`wp-cli` - PHP-Snippets per stdin an `wp eval-file -`.** Neuer Standard fuer
