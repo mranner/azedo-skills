@@ -6,7 +6,7 @@
 # um das alternative-Part gelegt. Bei einer Antwort kommt der Zitatblock aus
 # `imap quote` unter Body und Signatur (Top-Posting), die Threading-Header
 # In-Reply-To und References haengen die Antwort an den bestehenden Thread.
-# version 1.66.3
+# version 1.66.4
 
 import argparse
 import hashlib
@@ -69,8 +69,8 @@ def load_config():
 
 # Der Versand selbst laeuft ueber swaks, nicht hier. Diese Funktionen loesen
 # nur auf, WOHIN und MIT WELCHER Anmeldung gesendet wird, und geben das als
-# SWAKS_OPT_*-Umgebungsvariablen aus (--swaks-env). Das Passwort steht damit
-# in der Umgebung des swaks-Prozesses und nicht in dessen Kommandozeile, wo
+# SWAKS_OPT_*-Umgebungsvariablen an swaks weiter (--send). Das Passwort steht
+# damit in der Umgebung des swaks-Prozesses und nicht in dessen Kommandozeile, wo
 # jedes `ps` es mitlesen wuerde.
 #
 # Quelle der Zugangsdaten ist die muttrc — dieselbe Datei, aus der schon der
@@ -276,8 +276,8 @@ def route_env_vars(route):
 
 # Die Exportzeilen enthalten das SMTP-Passwort im Klartext. Ungefiltert
 # ausgegeben landet es in Transcript und Shell-History - in CR4613 genau so
-# passiert, weil ein Maskierungsversuch am sed-Muster scheiterte. Maskieren ist
-# deshalb der Default; den Klartext gibt es nur auf ausdrueckliche Anforderung.
+# passiert, weil ein Maskierungsversuch am sed-Muster scheiterte. Die Ausgabe
+# ist deshalb immer maskiert; den Klartext gibt es nicht (CR4820).
 #
 # Die maskierte Fassung ist eine Anzeige, kein eval-Input: wird sie trotzdem
 # evaluiert, geht der Platzhalter als Passwort an den Relay und der weist die
@@ -292,17 +292,17 @@ ENV_HINWEIS = (
     "an swaks geben. Versendet wird nur mit --send.")
 
 
-def route_env(route, reveal=False):
-    """Dieselben Variablen als Exportzeilen fuer `eval` in einer Shell."""
+def route_env(route):
+    """Dieselben Variablen als Exportzeilen, Passwort maskiert."""
     env = route_env_vars(route)
 
-    if not reveal and env.get("SWAKS_OPT_auth_password"):
+    if env.get("SWAKS_OPT_auth_password"):
         env["SWAKS_OPT_auth_password"] = MASKED
 
     lines = ["export %s='%s'" % (k, v.replace("'", "'\\''"))
              for k, v in env.items()]
 
-    if not reveal and route["auth_password"]:
+    if route["auth_password"]:
         print(ENV_HINWEIS, file=sys.stderr)
 
     return "\n".join(lines)
@@ -703,9 +703,12 @@ if "--draft" in sys.argv[1:]:
 
     sys.exit(1 if errors else 0)
 
+if "--reveal-password" in sys.argv[1:]:
+    sys.exit("build_mail.py: Fehler — --reveal-password gibt es nicht mehr. "
+             "Versendet wird nur mit --send.")
+
 if "--swaks-env" in sys.argv[1:]:
-    print(route_env(resolve_route(config),
-                    reveal="--reveal-password" in sys.argv[1:]))
+    print(route_env(resolve_route(config)))
     sys.exit(0)
 
 if "--show-config" in sys.argv[1:]:
@@ -739,7 +742,7 @@ parser.add_argument("--send", metavar="EML",
                          "swaks aufrufen und das Ergebnis pruefen (Exit-Code, "
                          "Queue-ID, abgelehnte Empfaenger). Envelope ueber --to "
                          "und --from. Das Passwort verlaesst dabei den Prozess "
-                         "nicht — anders als bei --swaks-env.")
+                         "nicht.")
 parser.add_argument("--file-sent", metavar="KONTO",
                     help="Nur mit --send: nach erfolgreichem Versand in "
                          "'Gesendet' dieses imap-Kontos ablegen. Exit 3, wenn "
@@ -753,11 +756,6 @@ parser.add_argument("--swaks-env", action="store_true",
                     help="Reine Anzeige: Versandweg als SWAKS_OPT_*-Exportzeilen "
                          "ausgeben und beenden — Passwort maskiert. Nie per "
                          "eval an swaks geben; versendet wird nur mit --send.")
-parser.add_argument("--reveal-password", action="store_true",
-                    help="Nur mit --swaks-env: das SMTP-Passwort im Klartext "
-                         "ausgeben, damit die Zeilen per eval taugen. Die "
-                         "Ausgabe nie ungefiltert anzeigen — sie landet sonst "
-                         "in Transcript und Shell-History.")
 parser.add_argument("--subject", required=True)
 parser.add_argument("--to", help="Empfaenger. Ohne Angabe gilt 'to' aus swaks.json.")
 parser.add_argument("--cc", help="Sichtbarer Cc:-Header (kommasepariert). Fuer die Zustellung dasselbe --cc beim --send-Aufruf wiederholen.")

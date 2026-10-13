@@ -683,12 +683,11 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.66.3
+### 1.66.4
 
-- **`swaks` - `--swaks-env` als reine Anzeige gekennzeichnet.** Die maskierte
-  Ausgabe wurde von Hand per `eval` an `swaks` gegeben, der Platzhalter
-  `<gesetzt>` ging als Passwort an den Relay (`535`). Der Kopf der SKILL.md und
-  `--help` sagen jetzt, dass die Ausgabe nie per `eval` an `swaks` geht und nur
-  `--send` versendet. Der Hinweis zum maskierten Passwort steht auf stderr statt
-  als Kommentar in stdout, wo ein `ENV=$(...)` ihn verschluckte.
-  `references/versandweg.md` beschreibt den Handaufruf nicht mehr als Weg.
+- **`swaks` - `--reveal-password` entfernt.** Nach 1.66.3 hatte das Flag keinen
+  Zweck mehr, außer im beschriebenen Handaufruf, und den gibt es nicht mehr:
+  `references/antworten.md` verliert den Abschnitt „Handaufruf: Prüfungen
+  nachbauen", die Hinweise in der SKILL.md und in `references/versandweg.md`
+  nennen nur noch `--send`. `--swaks-env` gibt das Passwort immer maskiert aus;
+  wer `--reveal-password` noch übergibt, bekommt Exit 1 mit Verweis auf `--send`.

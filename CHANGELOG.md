@@ -3,6 +3,15 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.66.4
+
+- **`swaks` - `--reveal-password` entfernt.** Nach 1.66.3 hatte das Flag keinen
+  Zweck mehr, außer im beschriebenen Handaufruf, und den gibt es nicht mehr:
+  `references/antworten.md` verliert den Abschnitt „Handaufruf: Prüfungen
+  nachbauen", die Hinweise in der SKILL.md und in `references/versandweg.md`
+  nennen nur noch `--send`. `--swaks-env` gibt das Passwort immer maskiert aus;
+  wer `--reveal-password` noch übergibt, bekommt Exit 1 mit Verweis auf `--send`.
+
 ### 1.66.3
 
 - **`swaks` - `--swaks-env` als reine Anzeige gekennzeichnet.** Die maskierte

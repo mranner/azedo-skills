@@ -262,9 +262,8 @@ Nur die `^<.\*`-Zeile zeigt dann, dass ein Empfänger die Mail nie bekommt.
 Statuscode aus dem Log. Nie „versendet" melden, ohne die Queue-ID gesehen zu
 haben — der Empfänger merkt den Ausfall sonst, der Absender nicht.
 
-Ein Aufruf von `swaks` ohne `--send` ist dafür kein Ersatz. Wo er unumgänglich
-wird, stehen die nachzubauenden Prüfungen in `references/antworten.md`, Abschnitt
-„Handaufruf: Prüfungen nachbauen".
+Ein Aufruf von `swaks` ohne `--send` ist dafür kein Ersatz - einen zweiten
+Versandweg gibt es nicht.
 
 ### Was in der Erfolgsmeldung stehen muss
 
@@ -335,7 +334,7 @@ Die vollstaendige Optionsreferenz liegt daneben und wird bei Bedarf gelesen:
 | Datei | Inhalt |
 |---|---|
 | `references/bausteine.md` | Grundbefehl, Body, mehrere Empfaenger, HTML-Body, Dateianhaenge - alle ueber `--send` |
-| `references/antworten.md` | Antwort auf eine Mail (Zitat + Threading), warum der Versandweg nicht von Hand nachgebaut wird, Prüfungen für einen Handaufruf |
+| `references/antworten.md` | Antwort auf eine Mail (Zitat + Threading), warum der Versandweg nicht von Hand nachgebaut wird |
 | `references/versandweg.md` | Versandweg und Authentifizierung, Kontakte, Signatur, Encoding |
 
 ## Ablauf
@@ -355,8 +354,8 @@ Die vollstaendige Optionsreferenz liegt daneben und wird bei Bedarf gelesen:
 ## Hinweise
 
 - **`--subject` gilt für `build_mail.py`, nicht für `swaks`.** Der Helper verlangt `--subject` **zwingend** (ohne bricht der Bau mit Exit 2 ab); `swaks` selbst kennt die Option **nicht** — bei einem Handaufruf ginge das nur über `--header "Subject: ..."`. Beim Weg über `build_mail.py` steht der Betreff ohnehin schon in der gebauten `.eml` und gehört nicht ein zweites Mal an `swaks`.
-- MX-Routing ist nicht verfügbar (Net::DNS fehlt). Ohne geladenen Versandweg nimmt swaks deshalb **stillschweigend `localhost:25`** — kein Fehler, aber der falsche Weg. `--send` lädt den Weg selbst; beim Aufruf von Hand erst `eval "$ENV"` mit `--swaks-env --reveal-password`.
-- **`--swaks-env` und `--show-config` maskieren das Passwort** (`auth_password: "<gesetzt>"`) — beides ist Anzeige, keine Passwortquelle; der Platzhalter als Passwort quittiert der Relay mit `535 5.7.8 Error: authentication failed`. Der Klartext kommt nur aus `--swaks-env --reveal-password`, und dessen Ausgabe **nie ungefiltert anzeigen** — sie landet sonst in Transcript und Shell-History.
+- MX-Routing ist nicht verfügbar (Net::DNS fehlt). Ohne geladenen Versandweg nimmt swaks deshalb **stillschweigend `localhost:25`** — kein Fehler, aber der falsche Weg. `--send` lädt den Weg selbst.
+- **`--swaks-env` und `--show-config` maskieren das Passwort** (`auth_password: "<gesetzt>"`) — beides ist Anzeige, keine Passwortquelle; der Platzhalter als Passwort quittiert der Relay mit `535 5.7.8 Error: authentication failed`. Den Klartext gibt der Helper nicht heraus; versendet wird nur mit `--send`.
 - Erfolg erkennbar an: `250 2.0.0 Ok: queued as <ID>` **bei Exit-Code 0 und ohne `<**`/`<~*`-Zeile**. Alle drei prüfen — bei mehreren Empfängern ist ein einzelner Reject sonst unsichtbar.
 - Zum Ausprobieren einer Route ohne Zustellung: `--quit-after RCPT` — die Verbindung endet vor `DATA`, es geht nichts raus.
 - Ein `250 Ok` sagt nur, dass der Server die Bytes genommen hat. Ob es die **richtigen** Bytes waren (Datei zwischenzeitlich überschrieben) und ob sie beim Empfänger **lesbar** ankommen (HTML-Part ohne Markup), sagt es nicht — dafür gibt es `--verify`.

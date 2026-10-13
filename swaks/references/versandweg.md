@@ -22,11 +22,8 @@ python3 "$SKILL_DIR/build_mail.py" --send $M/mail.eml \
 nie per `eval` an `swaks` geben - der Platzhalter ginge als Passwort an den
 Relay, und die Sitzung endet mit `535`. Ist ein Passwort maskiert, meldet der
 Helper das zusätzlich auf stderr, damit der Hinweis auch dann erscheint, wenn
-stdout in einer Variable landet.
-
-`--reveal-password` gibt das Passwort im Klartext aus. **Diese Ausgabe nie
-ungefiltert anzeigen** - sie landet sonst in Transcript und Shell-History. Ein
-zweiter Versandweg ist das nicht: versendet wird nur mit `--send`.
+stdout in einer Variable landet. Den Klartext gibt der Helper nicht heraus;
+versendet wird nur mit `--send`.
 
 Zur Kontrolle des Weges ist `--show-config` da (Passwort ebenfalls maskiert):
 
