@@ -4,7 +4,7 @@
 # Wiener Sachtextformel 1-4, LIX, Flesch (deutsche Fassung nach Amstad),
 # Satzlaengenverteilung und die laengsten Saetze.
 # Formeln und ihre Grenzen: references/lesbarkeitsmasse.md
-# version 1.67.1
+# version 1.67.2
 
 import argparse
 

@@ -200,7 +200,7 @@ def pruefe_referenzen(verzeichnis):
         zeilen = text.splitlines()
         if len(zeilen) > MAX_REFERENZ_OHNE_INHALT:
             kopf = "\n".join(zeilen[:15])
-            if not re.search(r"^(Inhalt|## Inhalt|Contents|## Contents)", kopf, re.M | re.I):
+            if not re.search(r"^(\*\*)?(Inhalt|## Inhalt|Contents|## Contents)", kopf, re.M | re.I):
                 warnungen.append(
                     f"references/{datei} hat {len(zeilen)} Zeilen, aber keine "
                     "Inhaltsangabe ('Inhalt: ...') in den ersten 15 Zeilen"

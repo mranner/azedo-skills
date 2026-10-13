@@ -3,6 +3,15 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.67.2
+
+- **Lint erkennt `**Inhalt:**`.** Die Prüfung auf eine Inhaltsangabe verlangte
+  `Inhalt` am Zeilenanfang und übersah damit die fett gesetzte Form, die 25
+  Referenzdateien verwenden - 23 Warnungen waren falsch.
+- **`swaks` - Referenzen nur eine Ebene tief.** `antworten.md` und
+  `bausteine.md` verweisen nicht mehr aufeinander bzw. auf `versandweg.md`;
+  `bausteine.md` hat eine Inhaltsangabe.
+
 ### 1.67.1
 
 - **`swaks` - Bindestrich statt Gedankenstrich** im stderr-Hinweis von

@@ -1,10 +1,10 @@
 # swaks - Bausteine
 
-Grundbefehl, Body, Empfänger, HTML, Anhänge.
+**Inhalt:** Grundbefehl · Mehrere Empfänger · Cc und Bcc · HTML-Body · Dateianhang · Mehrere Anhänge
 
 Alle Beispiele gehen über `build_mail.py`; gesendet wird mit `--send`. Ein
 `swaks`-Aufruf von Hand kommt hier nicht mehr vor - er bräuchte Zugangsdaten,
-die der Helper bewusst nicht herausgibt (siehe `versandweg.md`).
+die der Helper bewusst nicht herausgibt.
 
 Zwei Zeilen stehen vor jedem Beispiel und werden dort nicht wiederholt:
 
