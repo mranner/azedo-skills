@@ -149,6 +149,8 @@ Posteingang-Triage über mehrere IMAP-Konten — das Gegenstück zu `swaks`. Unt
 - Zugangsdaten aus der `~/.muttrc` (`account-hook`), keine zweite Credential-Datei; Backticks und
   `source` werden ausgewertet, also auch `imap_pass=` aus einem Keystore
 - Mails auflisten (`list`, ohne Konto über alle Konten, `--unseen`/`--since`) und lesen (`read`)
+- Server-Suche in `list` nach Betreff, Absender, Empfänger und Zeitraum (`--subject`, `--from`, `--to`,
+  `--date-from`/`--date-to`) über den ganzen Ordner, `-n 0` liefert alle Treffer
 - `fetch` holt einen Stapel Mails mit **einem** Login (`--uids`/`--uid-file`, `-o` schreibt je UID
   eine Datei) — das lesende Gegenstück zu `batch`
 - `quote` erzeugt den Zitatblock für eine Antwort im Thunderbird-Format (`--format text|html`,
@@ -683,11 +685,14 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.66.4
+### 1.67.0
 
-- **`swaks` - `--reveal-password` entfernt.** Nach 1.66.3 hatte das Flag keinen
-  Zweck mehr, außer im beschriebenen Handaufruf, und den gibt es nicht mehr:
-  `references/antworten.md` verliert den Abschnitt „Handaufruf: Prüfungen
-  nachbauen", die Hinweise in der SKILL.md und in `references/versandweg.md`
-  nennen nur noch `--send`. `--swaks-env` gibt das Passwort immer maskiert aus;
-  wer `--reveal-password` noch übergibt, bekommt Exit 1 mit Verweis auf `--send`.
+- **`imap list` - Server-Suche.** Neue Filter `--subject`, `--from`, `--to`
+  (Teilstring, Umlaute als UTF-8-Literal) und `--date-from`/`--date-to`
+  (`YYYY-MM-DD`, inklusive) laufen als IMAP-`SEARCH` über den ganzen Ordner;
+  `-n` begrenzt danach nur die Treffer. Bisher half nur ein hohes `-n` mit
+  lokalem Filtern, ältere Mails blieben so außer Reichweite. `--unseen` und
+  `--since` gelten jetzt gemeinsam statt `--unseen` allein.
+- **`imap list` - Kopfdaten in Blöcken.** Alle UIDs gingen in ein einziges
+  `UID FETCH`; bei rund 35000 Mails beendete Cyrus die Verbindung mit
+  `Fatal error: word too long`. Der Abruf läuft jetzt in Blöcken zu 1000 UIDs.

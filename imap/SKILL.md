@@ -5,9 +5,10 @@ description: >
   Mails einsortieren, als Spam markieren, löschen, zwischen Konten kopieren
   oder verschieben, Anhänge herausschreiben, Zitatblock für eine Antwort
   erzeugen, die Adressen eines ganzen Threads sammeln, eine Message-ID
-  auflösen, eine versendete .eml in "Gesendet" ablegen. Auch bei "geh meine
-  Inbox durch", "was ist heute reingekommen", "räum den Posteingang auf",
-  "hol den Anhang aus der Mail", "wer war in dem Thread alles dabei".
+  auflösen, Mails nach Betreff, Absender, Empfänger oder Zeitraum suchen, eine
+  versendete .eml in "Gesendet" ablegen. Auch bei "geh meine Inbox durch",
+  "was ist heute reingekommen", "räum den Posteingang auf", "hol den Anhang
+  aus der Mail", "wer war in dem Thread alles dabei", "such die Mail zu X".
   Trigger: /imap.
 ---
 
@@ -33,7 +34,7 @@ ohne `--account` alle Konten ab. Einrichtung, Keystore und Kontonamen im Detail:
 |---|---|
 | `accounts` | konfigurierte Konten (ohne Passwörter) |
 | `folders -a <konto>` | Ordnerliste, Separator, Sonderordner, Server-Capabilities |
-| `list [-a <konto>]` | Kopfdaten ohne Body |
+| `list [-a <konto>]` | Kopfdaten ohne Body, mit Server-Suche nach Betreff, Absender, Empfänger, Zeitraum |
 | `find -m <message-id>` | Message-ID zu Konto, Ordner und UID auflösen |
 | `read <uid> -a <konto>` | Textkörper einer Mail |
 | `fetch --uids <liste> -a <konto>` | mehrere Mails mit **einem** Login |
@@ -48,6 +49,8 @@ ohne `--account` alle Konten ab. Einrichtung, Keystore und Kontonamen im Detail:
 python3 "$SKILL_DIR/imap" list --json                     # beide Konten
 python3 "$SKILL_DIR/imap" list -a office --unseen -n 30
 python3 "$SKILL_DIR/imap" list -a mail --since 3          # letzte 3 Tage
+python3 "$SKILL_DIR/imap" list -a office -f "<ordner>" --subject budget \
+    --date-from 2026-01-01 --date-to 2026-06-30 -n 0     # Server-Suche, alle Treffer
 python3 "$SKILL_DIR/imap" read 8841 -a office --json
 python3 "$SKILL_DIR/imap" read 8841 -a office --headers
 python3 "$SKILL_DIR/imap" read 8841 -a office --raw | less
@@ -59,6 +62,13 @@ Für die eigene Weiterverarbeitung immer `--json` verwenden.
 `list` holt nur Envelopes (Von, Betreff, Datum, Flags, Größe) -- das ist auch
 bei mehreren hundert Mails schnell. Bodies erst bei Bedarf per `read`
 nachladen, und nur für die Mails, die wirklich zusammengefasst werden.
+
+**Suchen über den Server, nicht lokal filtern.** `--subject`, `--from` und `--to`
+(Teilstring, ohne Groß/Klein, Umlaute gehen) sowie `--date-from`/`--date-to`
+(`YYYY-MM-DD`, beide inklusive) laufen als IMAP-`SEARCH` über den ganzen Ordner;
+mehrere Bedingungen gelten gemeinsam, auch mit `--unseen` und `--since`. `-n`
+begrenzt danach nur die Treffer auf die neuesten, `-n 0` liefert alle. Ein hohes
+`-n` mit lokalem Filtern lässt ältere Mails außer Reichweite.
 
 **BODY.PEEK:** `read` setzt `\Seen` nicht. Ein Posteingang ist nach einer
 Durchsicht also nicht plötzlich komplett gelesen.

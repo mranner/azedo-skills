@@ -3,9 +3,10 @@
 # IMAP-Helper für Posteingang-Triage
 # Liest Zugangsdaten aus muttrc, arbeitet gegen mehrere Konten.
 # stdlib only, keine pip-Abhängigkeiten. Lauffähig auf macOS + FreeBSD.
-# version 1.66.4
+# version 1.67.0
 
 import argparse
+import datetime
 import email
 import email.header
 import email.utils
@@ -46,6 +47,11 @@ MIN_QUOTE_TEXT = 20
 # beherrschbar, ohne die Roundtrips wieder auf einen je Mail zu treiben
 
 FETCH_CHUNK = 50
+
+# UIDs je FETCH bei den Kopfdaten - Cyrus beendet die Verbindung mit "word too
+# long", wenn die UID-Liste eines Befehls zu lang wird (bei rund 35000 UIDs)
+
+ENVELOPE_CHUNK = 1000
 
 # Längste zulässige Antwortzeile: ein SEARCH über einen gewachsenen Ordner
 # liefert alle UIDs in einer Zeile. 1 MB entspricht dem Default von Python 3.12,
@@ -360,10 +366,38 @@ class Account:
             return []
         return data[0].split()
 
-    def envelopes(self, folder="INBOX", limit=DEFAULT_LIMIT, criteria="ALL"):
+    def search_texts(self, criteria, texts):
+        """SEARCH mit Textbedingungen wie SUBJECT oder FROM.
+
+        Ein Suchtext mit Umlauten muss als UTF-8-Literal hinaus, und imaplib
+        kennt nur ein Literal je Befehl, am Ende der Zeile. Jeder solche Text
+        bekommt deshalb ein eigenes SEARCH, die Treffer werden geschnitten."""
+        plain = [t for t in texts if t[1].isascii()]
+        wide = [t for t in texts if not t[1].isascii()]
+
+        base = list(criteria)
+        for key, value in plain:
+            base += [key, '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"']
+
+        if not wide:
+            return self.search_uids(" ".join(base) or "ALL")
+
+        hits = None
+        for key, value in wide:
+            self.conn.literal = value.encode("utf-8")
+            typ, data = self.conn.uid("SEARCH", "CHARSET", "UTF-8", *base, key)
+            if typ != "OK":
+                die(f"[{self.alias}] SEARCH fehlgeschlagen: {as_text(data)}")
+            found = set(data[0].split()) if data and data[0] else set()
+            hits = found if hits is None else hits & found
+
+        return sorted(hits, key=int)
+
+    def envelopes(self, folder="INBOX", limit=DEFAULT_LIMIT, criteria=("ALL",),
+                  texts=()):
         """Kopfdaten holen - ohne Body, ohne \\Seen zu setzen."""
         self.select(folder, readonly=True)
-        uids = self.search_uids(criteria)
+        uids = self.search_texts(criteria, texts)
         if not uids:
             return []
         uids = uids[-limit:] if limit else uids
@@ -375,17 +409,17 @@ class Account:
         Aus envelopes() herausgezogen, damit auch eine Suche über die
         Message-ID (find) dieselben Felder liefert und nicht eine zweite,
         leicht abweichende Ausgabestruktur entsteht."""
-        if not uids:
-            return []
-        uid_set = ",".join(str(u) for u in uids)
-
-        typ, data = self.conn.uid(
-            "FETCH", uid_set,
-            "(FLAGS INTERNALDATE RFC822.SIZE "
-            "BODY.PEEK[HEADER.FIELDS (FROM TO SUBJECT DATE MESSAGE-ID LIST-ID)])"
-        )
-        if typ != "OK":
-            die(f"[{self.alias}] FETCH fehlgeschlagen: {as_text(data)}")
+        data = []
+        for i in range(0, len(uids), ENVELOPE_CHUNK):
+            block = uids[i:i + ENVELOPE_CHUNK]
+            typ, part = self.conn.uid(
+                "FETCH", ",".join(str(u) for u in block),
+                "(FLAGS INTERNALDATE RFC822.SIZE "
+                "BODY.PEEK[HEADER.FIELDS (FROM TO SUBJECT DATE MESSAGE-ID LIST-ID)])"
+            )
+            if typ != "OK":
+                die(f"[{self.alias}] FETCH fehlgeschlagen: {as_text(part)}")
+            data.extend(part)
 
         out = []
         for meta, header_bytes in walk_fetch(data):
@@ -1383,17 +1417,25 @@ def cmd_list(args, accounts):
     targets = ([pick_account(accounts, args.account)] if args.account
                else sorted(accounts.values(), key=lambda a: a["alias"]))
 
-    criteria = "ALL"
+    criteria = []
     if args.unseen:
-        criteria = "UNSEEN"
-    elif args.since:
+        criteria.append("UNSEEN")
+    if args.since:
         since = time.strftime("%d-%b-%Y", time.localtime(time.time() - args.since * 86400))
-        criteria = f'SINCE "{since}"'
+        criteria += ["SINCE", since]
+    if args.date_from:
+        criteria += ["SINCE", imap_date(args.date_from)]
+    if args.date_to:
+        criteria += ["BEFORE", imap_date(args.date_to, 1)]
+
+    texts = [(key, value) for key, value in (("SUBJECT", args.subject),
+                                             ("FROM", args.sender),
+                                             ("TO", args.to)) if value]
 
     result = []
     for cfg in targets:
         with Account(cfg) as a:
-            result.extend(a.envelopes(args.folder, args.limit, criteria))
+            result.extend(a.envelopes(args.folder, args.limit, criteria, texts))
 
     if args.json:
         out_json(result)
@@ -1405,6 +1447,16 @@ def cmd_list(args, accounts):
         print(f"{flag} {m['account']}/{m['uid']:<7} {short(sender_short(m['from']), 26):<26} "
               f"{short(m['subject'], 58):<58} {date}")
     print(f"\n{len(result)} Mails")
+
+
+def imap_date(value, shift=0):
+    """YYYY-MM-DD ins IMAP-Datumsformat; shift=1 macht aus dem inklusiven
+    Enddatum das exklusive BEFORE."""
+    try:
+        day = datetime.date.fromisoformat(value) + datetime.timedelta(days=shift)
+    except ValueError:
+        die(f"Datum '{value}' nicht im Format YYYY-MM-DD")
+    return day.strftime("%d-%b-%Y")
 
 
 def cmd_find(args, accounts):
@@ -2382,6 +2434,11 @@ def build_parser():
     sp.add_argument("--limit", "-n", type=int, default=DEFAULT_LIMIT)
     sp.add_argument("--unseen", action="store_true", help="nur ungelesene")
     sp.add_argument("--since", type=int, metavar="TAGE")
+    sp.add_argument("--subject", help="Betreff enthält (Server-Suche)")
+    sp.add_argument("--from", dest="sender", help="Absender enthält (Server-Suche)")
+    sp.add_argument("--to", help="Empfänger enthält (Server-Suche)")
+    sp.add_argument("--date-from", metavar="YYYY-MM-DD", help="ab diesem Tag (inklusive)")
+    sp.add_argument("--date-to", metavar="YYYY-MM-DD", help="bis zu diesem Tag (inklusive)")
     sp.set_defaults(func=cmd_list)
 
     sp = sub.add_parser("find", parents=[common],
