@@ -25,6 +25,10 @@ geht keine Mail raus. Auch die einfacheren Fälle in
 `references/bausteine.md` gehen über den Helper - einen zweiten Versandweg gibt
 es nicht.
 
+**`--swaks-env` ist eine reine Anzeige.** Die Ausgabe nie per `eval` an `swaks`
+geben, auch nicht als Rezept in einem Projekt-Workflow - versendet wird nur
+mit `--send`.
+
 ## Defaults (`.claude/swaks.json`)
 
 Empfänger, Absender, Server und Message-ID-Domain stehen in einer Config-Datei,

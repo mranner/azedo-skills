@@ -6,7 +6,7 @@
 # um das alternative-Part gelegt. Bei einer Antwort kommt der Zitatblock aus
 # `imap quote` unter Body und Signatur (Top-Posting), die Threading-Header
 # In-Reply-To und References haengen die Antwort an den bestehenden Thread.
-# version 1.66.2
+# version 1.66.3
 
 import argparse
 import hashlib
@@ -282,14 +282,14 @@ def route_env_vars(route):
 # Die maskierte Fassung ist eine Anzeige, kein eval-Input: wird sie trotzdem
 # evaluiert, geht der Platzhalter als Passwort an den Relay und der weist die
 # Sitzung mit '535' ab. Laut und folgenlos - es geht keine Mail raus und kein
-# Passwort ueber die Leitung.
+# Passwort ueber die Leitung. Der Hinweis geht auf stderr, weil ein
+# `ENV=$(...)` stdout schluckt und ein Kommentar dort nie zu sehen war.
 
 MASKED = "<gesetzt>"
 
 ENV_HINWEIS = (
-    "# Anzeige mit maskiertem Passwort. Zum Versenden 'build_mail.py --send'\n"
-    "# verwenden; wird der Weg von Hand gebraucht, '--swaks-env "
-    "--reveal-password'.")
+    "build_mail.py: Hinweis — Anzeige mit maskiertem Passwort, nicht per eval "
+    "an swaks geben. Versendet wird nur mit --send.")
 
 
 def route_env(route, reveal=False):
@@ -303,7 +303,7 @@ def route_env(route, reveal=False):
              for k, v in env.items()]
 
     if not reveal and route["auth_password"]:
-        lines.insert(0, ENV_HINWEIS)
+        print(ENV_HINWEIS, file=sys.stderr)
 
     return "\n".join(lines)
 
@@ -750,9 +750,9 @@ parser.add_argument("--draft", metavar="EML",
 parser.add_argument("--account", metavar="KONTO",
                     help="Nur mit --draft: imap-Konto fuer den Entwurf.")
 parser.add_argument("--swaks-env", action="store_true",
-                    help="Versandweg als SWAKS_OPT_*-Exportzeilen ausgeben und "
-                         "beenden — Passwort maskiert. Fuer den Versand ist "
-                         "--send der Weg; diese Ausgabe dient der Kontrolle.")
+                    help="Reine Anzeige: Versandweg als SWAKS_OPT_*-Exportzeilen "
+                         "ausgeben und beenden — Passwort maskiert. Nie per "
+                         "eval an swaks geben; versendet wird nur mit --send.")
 parser.add_argument("--reveal-password", action="store_true",
                     help="Nur mit --swaks-env: das SMTP-Passwort im Klartext "
                          "ausgeben, damit die Zeilen per eval taugen. Die "

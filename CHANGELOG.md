@@ -3,6 +3,16 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.66.3
+
+- **`swaks` - `--swaks-env` als reine Anzeige gekennzeichnet.** Die maskierte
+  Ausgabe wurde von Hand per `eval` an `swaks` gegeben, der Platzhalter
+  `<gesetzt>` ging als Passwort an den Relay (`535`). Der Kopf der SKILL.md und
+  `--help` sagen jetzt, dass die Ausgabe nie per `eval` an `swaks` geht und nur
+  `--send` versendet. Der Hinweis zum maskierten Passwort steht auf stderr statt
+  als Kommentar in stdout, wo ein `ENV=$(...)` ihn verschluckte.
+  `references/versandweg.md` beschreibt den Handaufruf nicht mehr als Weg.
+
 ### 1.66.2
 
 - **Versions-Bump trifft nur noch die Versionszeile.** Das `sed` aus `CLAUDE.md`

@@ -17,23 +17,16 @@ python3 "$SKILL_DIR/build_mail.py" --send $M/mail.eml \
   --to "empfaenger@example.com" --from <absender>
 ```
 
-`--swaks-env` bleibt für den Aufruf von Hand — es gibt dieselben Variablen als
-Exportzeilen aus, `swaks` liest sie dann selbst aus der Umgebung statt aus der
-Kommandozeile, wo jedes `ps` sie mitliest. Damit die Zeilen per `eval` taugen,
-braucht es `--reveal-password`:
+`--swaks-env` ist eine **reine Anzeige**: es gibt den Versandweg als
+`SWAKS_OPT_*`-Exportzeilen aus, das Passwort maskiert (`<gesetzt>`). Die Ausgabe
+nie per `eval` an `swaks` geben - der Platzhalter ginge als Passwort an den
+Relay, und die Sitzung endet mit `535`. Ist ein Passwort maskiert, meldet der
+Helper das zusätzlich auf stderr, damit der Hinweis auch dann erscheint, wenn
+stdout in einer Variable landet.
 
-```bash
-ENV=$(python3 "$SKILL_DIR/build_mail.py" --swaks-env --reveal-password) \
-  && test -n "$ENV" \
-  && eval "$ENV"
-```
-
-**Die Ausgabe nie ungefiltert anzeigen** — mit `--reveal-password` enthält sie
-das Passwort im Klartext und landet sonst in Transcript und Shell-History. Ohne
-das Flag ist das Passwort maskiert (`<gesetzt>`); diese Fassung ist eine
-Anzeige und kein `eval`-Input. Wird sie doch evaluiert, geht der Platzhalter
-als Passwort an den Relay und die Sitzung endet mit `535` — laut und folgenlos,
-es geht keine Mail raus.
+`--reveal-password` gibt das Passwort im Klartext aus. **Diese Ausgabe nie
+ungefiltert anzeigen** - sie landet sonst in Transcript und Shell-History. Ein
+zweiter Versandweg ist das nicht: versendet wird nur mit `--send`.
 
 Zur Kontrolle des Weges ist `--show-config` da (Passwort ebenfalls maskiert):
 

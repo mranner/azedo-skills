@@ -683,10 +683,12 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.66.2
+### 1.66.3
 
-- **Versions-Bump trifft nur noch die Versionszeile.** Das `sed` aus `CLAUDE.md`
-  ersetzte jede Zeile, die mit `# version ` begann, und damit auch eine
-  Kommentarzeile in `meta-ads`, deren Text mit dem Wort "version" weiterging.
-  Das Muster verlangt jetzt die ganze Zeile als Versionsnummer; der Kommentar zur
-  festen Graph-API-Version in `meta-ads` ist wiederhergestellt.
+- **`swaks` - `--swaks-env` als reine Anzeige gekennzeichnet.** Die maskierte
+  Ausgabe wurde von Hand per `eval` an `swaks` gegeben, der Platzhalter
+  `<gesetzt>` ging als Passwort an den Relay (`535`). Der Kopf der SKILL.md und
+  `--help` sagen jetzt, dass die Ausgabe nie per `eval` an `swaks` geht und nur
+  `--send` versendet. Der Hinweis zum maskierten Passwort steht auf stderr statt
+  als Kommentar in stdout, wo ein `ENV=$(...)` ihn verschluckte.
+  `references/versandweg.md` beschreibt den Handaufruf nicht mehr als Weg.
