@@ -3,6 +3,14 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.68.0
+
+- **Neuer Skill `bang`.** Ein langer oder mehrzeiliger Befehl, den der User per
+  `!` ausführen soll, geht als Wegwerf-Script nach `.tmp/bang-<slug>-<hex>.sh`;
+  der User bekommt nur `! sh .tmp/bang-….sh`. Das Script löscht sich in der
+  ersten Zeile selbst, Remote-Befehle laufen per STDIN-Heredoc an `sh`. Greift
+  selbsttätig ab 80 Zeichen, Heredoc oder mehreren Zeilen.
+
 ### 1.67.3
 
 - **Lint ohne Warnungen.** Referenzdateien verweisen nicht mehr direkt

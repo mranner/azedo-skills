@@ -681,14 +681,26 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 **Trigger:** `/cloudns` oder natürliche Sprache wie "setz den CNAME", "trag den A-Record ein", "welche Records hat die Zone".
 
+### bang
+
+Kurzer `!`-Einzeiler statt eines langen Befehlsblocks. Muss der User einen Befehl selbst per `!` ausführen (Permission-Denial, Root per `sudo ssh`, interaktiv) und wäre der länger als 80 Zeichen oder mehrzeilig, schreibt Claude ihn in ein Wegwerf-Script und gibt nur den Aufruf aus. Reiner Referenz-Skill (nur SKILL.md, kein Script):
+
+- Ablage `.tmp/bang-<slug>-<hex>.sh`, Aufruf `! sh .tmp/bang-….sh` unter 80 Zeichen
+- Erste Zeile `rm -f -- "$0"`: das Script läuft vollständig, die Datei ist trotzdem sofort weg, auch bei Fehler oder Ctrl-C; der Exit-Code kommt an
+- Remote-Befehle per STDIN-Heredoc an `sh` - keine csh- und Quoting-Fallen
+- Inhalt steht vor dem Aufruf im Chat; nach einem Fehlschlag erst Zustand prüfen, dann ein neues Script nur mit den fehlenden Schritten
+- Kein Weg um Freigaben: gilt nur für Befehle, die ohnehin per `!` an den User gehen
+
+**Trigger:** selbsttätig vor einem langen `!`-Befehl, oder `/bang` für den zuletzt ausgegebenen.
+
 ## Changelog
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.67.3
+### 1.68.0
 
-- **Lint ohne Warnungen.** Referenzdateien verweisen nicht mehr direkt
-  aufeinander (`humanizer-de`, `mail-as-me`, `wiki`, `wp-cli`, `wp-nf`); sie
-  nennen den Abschnitt und die Referenz, der Einstieg läuft über die SKILL.md.
-  `regelkatalog.md` und `textsorten.md` (`einfache-sprache`) sowie
-  `patterns.md` (`humanizer-de`) haben eine Inhaltsangabe.
+- **Neuer Skill `bang`.** Ein langer oder mehrzeiliger Befehl, den der User per
+  `!` ausführen soll, geht als Wegwerf-Script nach `.tmp/bang-<slug>-<hex>.sh`;
+  der User bekommt nur `! sh .tmp/bang-….sh`. Das Script löscht sich in der
+  ersten Zeile selbst, Remote-Befehle laufen per STDIN-Heredoc an `sh`. Greift
+  selbsttätig ab 80 Zeichen, Heredoc oder mehreren Zeilen.
