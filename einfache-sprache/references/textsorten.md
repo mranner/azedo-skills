@@ -1,5 +1,7 @@
 # Textsortenprofile
 
+**Inhalt:** Website- und Marketingtext · Behörden- und Formulartext · Technische Dokumentation und Anleitung · E-Mail an Kunden · Wenn die Textsorte nicht passt
+
 Die Zielstufe sagt, wie stark vereinfacht wird. Die Textsorte sagt, **woran**
 gearbeitet wird - und was unangetastet bleibt. Beides zusammen ergibt den
 Auftrag.

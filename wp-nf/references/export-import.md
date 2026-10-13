@@ -49,7 +49,7 @@ Merke:
   = importieren, altes danach ggf. per `wp ninja-forms delete form <id>` entfernen. Zum
   **Klonen** (z.B. DE→FR): auf der Quelle exportieren, auf der Ziel-Subsite importieren.
 - Form-IDs im Export sind die der Quelle; beim Import neu vergeben → Referenzierung weiter
-  ueber den Titel ([snippets-read.md](snippets-read.md)).
+  ueber den Titel (Lese-Snippets laut SKILL.md).
 - Die `.nff` ins Jail-`/tmp` schreiben, fuer ein echtes Backup vom Host abholen, danach im
   Jail aufraeumen.
 

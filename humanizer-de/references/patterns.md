@@ -1,5 +1,7 @@
 # Humanizer-de Pattern Catalog
 
+**Inhalt:** Kurzreferenz · Statistische Detektoren · Die 66 Muster (Sprache und Tonfall, Stil, Kommunikation, Auszeichnungstext, Verschiedenes, Rhetorik und Struktur, Argumentation und Evidenz, Ergänzungen, Typografie und Format, Titel- und Satzbau)
+
 Vollstaendiger Musterkatalog fuer Humanizer (Deutsch) v5.2.0. Nur bei konkreter Musterdiagnose, Audit oder Grenzfaellen laden.
 
 ## Kurzreferenz

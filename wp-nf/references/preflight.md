@@ -14,10 +14,10 @@ und „geaendert, steht aber noch alt da" (Legacy-Spalte bzw. WPML-Quellstring).
 
 Als **fuenfte Pruefgroesse** kommen `parent_id` und die Feldzahl des Formulars
 dazu. Sie sind keine Wertablage, sondern die Stelle, an der ein Write auf einer
-WPML-Site danebengeht ([wpml-writes.md](wpml-writes.md)): der Wert stimmt dann in
+WPML-Site danebengeht (WPML-Writes laut SKILL.md): der Wert stimmt dann in
 allen vier Ablagen, das Feld haengt aber am falschen Formular. Die Feldzahl hat keinen Sollwert in
 der DB — sie wird gegen den `.nff`-Export von **vor** dem Write gehalten
-([export-import.md](export-import.md)).
+(Export/Import laut SKILL.md).
 
 ```php
 <?php
@@ -93,7 +93,7 @@ echo $drift
 Meldet der Lauf `cache`, fehlt `delete_nf_cache()`/`build_nf_cache()` (SKILL.md,
 Abschnitt 4).
 Meldet er `parent_id`, ist der Write auf einer WPML-Site ins Quellformular
-gelaufen — Reparatur in [wpml-writes.md](wpml-writes.md), und zwar bevor weitere Felder geschrieben
+gelaufen — Reparatur in der WPML-Writes-Referenz laut SKILL.md, und zwar bevor weitere Felder geschrieben
 werden. Meldet er `default_value`, `label` oder `icl_strings`, sind das die
 Ablagen, die die Model-API nicht mitschreibt — gezielt nachziehen. Meldet er
 `order`, steht die neue Reihenfolge nur in der Meta-Zeile; gerendert wird aus der

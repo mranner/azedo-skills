@@ -93,7 +93,7 @@ wp option list --search="*woo*"             # Options durchsuchen
 
 **Bei Multisite zuerst prüfen, ob die Option überhaupt in `wp_options` liegt.**
 Eine Reihe von Einstellungen kommt dort aus `wp_sitemeta`; `wp option get` liefert
-trotzdem einen Wert, nur steuert der nichts. Siehe [multisite.md](multisite.md), „Optionen liegen bei
+trotzdem einen Wert, nur steuert der nichts. Siehe die Multisite-Referenz laut SKILL.md, „Optionen liegen bei
 Multisite in `sitemeta`".
 
 ## Cache

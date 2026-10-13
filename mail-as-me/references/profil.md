@@ -30,7 +30,7 @@ python3 "$SKILL_DIR/extract.py" --input <ordner|datei> \
    - Empfänger/Domain → Register (`register_map`).
    - Versand-Identität: eigene Absenderadresse und die imap-Konten für
      Gesendet und Entwürfe (`send.from`, `send.account`, `draft.account`;
-     ohne IMAP-Konto `send.bcc`, siehe [versand.md](versand.md)).
+     ohne IMAP-Konto `send.bcc`, siehe die Versand-Referenz laut SKILL.md).
 4. **Profil schreiben.** `config.json` aus dem Interview, `referenz.md` aus
    `templates/referenz.template.md` mit den abgeleiteten Markern + Beispiel-Index
    füllen. Ein erneuter Lauf erweitert den Korpus, bestehende `clean/` bleiben.

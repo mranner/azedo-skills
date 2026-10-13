@@ -234,7 +234,7 @@ Für **Remote-Wikis** nicht erlaubt (schreibend) — dort `<remote>:handoff` nut
 ### verified / stale_after setzen
 
 Zwei optionale Frontmatter-Felder, Format in
-[Frontmatter-Schemas](frontmatter-schemas.md#optionale-vertrauensfelder).
+„Frontmatter-Schemas" (Referenz laut SKILL.md).
 
 `verified` beim **ingest/compile** ergänzen, wenn der Inhalt in derselben
 Sitzung an einem echten System geprüft wurde — nicht, wenn er nur
@@ -247,7 +247,7 @@ Zertifikatslaufzeit, geplante Migration). Meldet der Lint eine Entity als
 entfernen, wenn der Bezug weggefallen ist. Das bloße Hochsetzen ohne Prüfung
 macht das Feld wertlos.
 
-Nach einem Umbau den [Schrumpf-Guard](subcommands.md#schrumpf-guard---check-shrink)
+Nach einem Umbau den „Schrumpf-Guard" (Referenz laut SKILL.md)
 laufen lassen: `refactor` schreibt ganze Artikel neu, und dabei fällt am
 ehesten etwas heraus, das niemand vermisst hat - ein Abschnitt, ein Verweis.
 
@@ -267,7 +267,7 @@ Zeigt:
   (`grep -rl "^status: offen" <WIKI_ROOT>/wiki/`); gibt es keinen, entfällt der Block
 
 Bei einem **Remote-Wiki** die Quellen per SSH lesen (`ssh <host> "cat/grep …"`, siehe
-[Remote-Wikis](remote-wikis.md#remote-wikis-read-only)); Lint entfällt (läuft nur auf lokaler
+„Remote-Wikis", Referenz laut SKILL.md); Lint entfällt (läuft nur auf lokaler
 Kopie).
 
 ### handoff
@@ -285,7 +285,7 @@ lokales Wiki direkt `ingest`/`compile` nutzen.
 
 Workflow:
 1. Ziel-Wiki per SSH lesen (Baustein-1-Read, siehe
-   [Remote-Wikis](remote-wikis.md#remote-wikis-read-only)): `wiki-schema.json` (Pflichtfelder +
+   „Remote-Wikis", Referenz laut SKILL.md): `wiki-schema.json` (Pflichtfelder +
    erlaubte Typen) und `index.md`. Damit kennst du die exakte Zielform **und** ob die
    Entity schon existiert.
 2. Entity-Slug + Typ bestimmen. Existiert der Slug remote (via `index.md` bzw.
@@ -298,7 +298,7 @@ Workflow:
    entscheidet, Transport ist ausdrücklich user-ausgelöst:
    - **Kanboard-Attachment** (`/kanboard`): Note an einen Task hängen (Review-Queue).
    - **scp** nach `<host>:<path>/raw/inbox/` (Pfad aus der
-     [Remote-Config](remote-wikis.md#konfiguration-wiki-remotesjson)).
+     „Remote-Config", Referenz laut SKILL.md).
    - **Mail** (`/swaks`) als Anhang.
 
 Format (Kopf-Frontmatter + Body im Zielschema; Werte sind Beispiele, `source-date` =

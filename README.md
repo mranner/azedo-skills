@@ -685,11 +685,10 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.67.2
+### 1.67.3
 
-- **Lint erkennt `**Inhalt:**`.** Die Prüfung auf eine Inhaltsangabe verlangte
-  `Inhalt` am Zeilenanfang und übersah damit die fett gesetzte Form, die 25
-  Referenzdateien verwenden - 23 Warnungen waren falsch.
-- **`swaks` - Referenzen nur eine Ebene tief.** `antworten.md` und
-  `bausteine.md` verweisen nicht mehr aufeinander bzw. auf `versandweg.md`;
-  `bausteine.md` hat eine Inhaltsangabe.
+- **Lint ohne Warnungen.** Referenzdateien verweisen nicht mehr direkt
+  aufeinander (`humanizer-de`, `mail-as-me`, `wiki`, `wp-cli`, `wp-nf`); sie
+  nennen den Abschnitt und die Referenz, der Einstieg läuft über die SKILL.md.
+  `regelkatalog.md` und `textsorten.md` (`einfache-sprache`) sowie
+  `patterns.md` (`humanizer-de`) haben eine Inhaltsangabe.

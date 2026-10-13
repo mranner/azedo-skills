@@ -2,7 +2,7 @@
 
 **Inhalt:** QGIR: Moduswahl · Evidenz · Claim-Delta · Struktur · Floskeln und Schablonen · Evidenz zweiter Ordnung · Format und Markdown · Modusmatrix · Profil-Konflikte
 
-Nutze diese Tabellen vor `references/patterns.md`, wenn Befunde ueberlappen. Sie sind die verbindliche Kurzlogik fuer v5.2.0.
+Nutze diese Tabellen vor dem Musterkatalog, wenn Befunde ueberlappen. Sie sind die verbindliche Kurzlogik fuer v5.2.0.
 
 ## QGIR: Moduswahl
 

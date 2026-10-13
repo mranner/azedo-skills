@@ -3,6 +3,14 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.67.3
+
+- **Lint ohne Warnungen.** Referenzdateien verweisen nicht mehr direkt
+  aufeinander (`humanizer-de`, `mail-as-me`, `wiki`, `wp-cli`, `wp-nf`); sie
+  nennen den Abschnitt und die Referenz, der Einstieg läuft über die SKILL.md.
+  `regelkatalog.md` und `textsorten.md` (`einfache-sprache`) sowie
+  `patterns.md` (`humanizer-de`) haben eine Inhaltsangabe.
+
 ### 1.67.2
 
 - **Lint erkennt `**Inhalt:**`.** Die Prüfung auf eine Inhaltsangabe verlangte

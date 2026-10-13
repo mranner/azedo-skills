@@ -43,7 +43,7 @@ Quelle ins Wiki aufnehmen. Kopiert die Originaldatei unverändert nach `raw/`.
 ```
 
 Nur für **lokale** Wikis. Ist `<name>` ein Remote (siehe
-[Remote-Wikis](remote-wikis.md#remote-wikis-read-only)), abbrechen: Remote ist read-only, neue
+„Remote-Wikis", Referenz laut SKILL.md), abbrechen: Remote ist read-only, neue
 Erkenntnisse manuell auf dem Zielhost einpflegen.
 
 Workflow:
@@ -65,7 +65,7 @@ Ohne Argument: alle noch nicht kompilierten Quellen in `raw/` verarbeiten.
 Mit Argument: nur die angegebene Quelle.
 
 Nur für **lokale** Wikis. Ist `<name>` ein Remote (siehe
-[Remote-Wikis](remote-wikis.md#remote-wikis-read-only)), abbrechen: Remote ist read-only.
+„Remote-Wikis", Referenz laut SKILL.md), abbrechen: Remote ist read-only.
 
 Workflow:
 1. Quelle lesen und Entity-Typen identifizieren — erlaubte Typen laut
@@ -85,9 +85,9 @@ Workflow:
 **Vor Schritt 2 gelten die [Schreibregeln](../SKILL.md#schreibregeln)** - Aufnahmefilter
 (gehört es überhaupt hinein), Dichtegebot und „aktualisieren heißt ersetzen".
 
-Detaillierte Compile-Regeln (Cross-Referencing, Compile-Checkliste): [compilation-guide.md](compilation-guide.md)
+Detaillierte Compile-Regeln (Cross-Referencing, Compile-Checkliste): Compile-Referenz laut SKILL.md
 
-Entity-Templates (Infra-Modell; für Projekt-Wikis gilt deren `<WIKI_ROOT>/CLAUDE.md`): [frontmatter-schemas.md](frontmatter-schemas.md)
+Entity-Templates (Infra-Modell; für Projekt-Wikis gilt deren `<WIKI_ROOT>/CLAUDE.md`): Frontmatter-Referenz laut SKILL.md
 
 ### harvest
 
@@ -161,11 +161,11 @@ Workflow:
 Ein Präfix-Pointer `[[<präfix>:<slug>]]` in einem gefundenen Artikel darf in Schritt 4
 mitgelesen werden: zeigt er auf ein Nachbar-Wiki unter `wiki/`, ist das eine ganz
 normale lokale Datei (`wiki/<präfix>/wiki/**/<slug>.md`); zeigt er auf ein Remote-Wiki,
-per SSH (siehe [Hints](remote-wikis.md#auf-entities-anderer-wikis-verweisen-hints)).
+per SSH (siehe „Hints", Referenz laut SKILL.md).
 
 Bei einem **Remote-Wiki** dieselben Schritte, aber `index.md` und Entities per SSH
 lesen statt lokal (`ssh <host> "cat/grep …"`, siehe
-[Remote-Wikis](remote-wikis.md#remote-wikis-read-only)). Schritt 6 (Speichern) entfällt — Remote
+„Remote-Wikis", Referenz laut SKILL.md). Schritt 6 (Speichern) entfällt — Remote
 ist read-only.
 
 ### lint
@@ -184,10 +184,10 @@ Das erlaubte Entity-Modell (Typen + Pflichtfelder) liest der Linter aus
 `<WIKI_ROOT>/wiki-schema.json`; fehlt die Datei, gilt das Infra-Default.
 
 Präfix-Pointer `[[<präfix>:<slug>]]` (siehe
-[Hints](remote-wikis.md#auf-entities-anderer-wikis-verweisen-hints)) löst der Linter
+„Hints", Referenz laut SKILL.md) löst der Linter
 erst gegen die Nachbar-Wikis unter `wiki/` auf - dort wird das Ziel direkt geprüft,
 ein fehlender Slug ist ein Fehler - und danach gegen die
-[Remote-Config](remote-wikis.md#konfiguration-wiki-remotesjson);
+„Remote-Config" (Referenz laut SKILL.md);
 Remote-Ziele gelten ungeprüft als gültig, `--check-remotes` verifiziert sie per SSH.
 Unbekanntes Präfix bleibt ein toter Link.
 
@@ -212,7 +212,7 @@ Prüft:
   aber auf den Rumpf, während das Thema längst woanders steht - diese Warnung
   ist der einzige Hinweis darauf
 - **Vertrauensfelder**: Format von `verified` und `stale_after`, abgelaufene Inhalte
-  (siehe [Frontmatter-Schemas](frontmatter-schemas.md#optionale-vertrauensfelder))
+  (siehe „Frontmatter-Schemas", Referenz laut SKILL.md)
 - **Frontmatter-Verweise** (optional): Einträge wie `tests:` oder `config:`, die
   in ihrer Prüfquelle nicht mehr vorkommen - etwa nach dem Umbenennen eines Tests.
   Nur mit `references` in der `wiki-schema.json`, ohne diesen Eintrag entfällt der Check:

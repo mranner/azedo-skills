@@ -1,5 +1,7 @@
 # Regelkatalog Einfache Sprache
 
+**Inhalt:** Textebene (T) · Satzebene (S) · Wortebene (W) · Gestaltung (G)
+
 Die Regeln sind nach den vier Ebenen der DIN 8581-1 geordnet: Text, Satz, Wort,
 Gestaltung. Die IDs entsprechen den Befund-Kennungen der Linter, damit sich eine
 Lint-Zeile ohne Umweg auf eine Regel zurückführen lässt.
