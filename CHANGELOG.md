@@ -3,6 +3,11 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.67.1
+
+- **`swaks` - Bindestrich statt Gedankenstrich** im stderr-Hinweis von
+  `--swaks-env` und in der Fehlermeldung zu `--reveal-password`.
+
 ### 1.67.0
 
 - **`imap list` - Server-Suche.** Neue Filter `--subject`, `--from`, `--to`

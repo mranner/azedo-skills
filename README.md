@@ -685,14 +685,7 @@ Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwor
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.67.0
+### 1.67.1
 
-- **`imap list` - Server-Suche.** Neue Filter `--subject`, `--from`, `--to`
-  (Teilstring, Umlaute als UTF-8-Literal) und `--date-from`/`--date-to`
-  (`YYYY-MM-DD`, inklusive) laufen als IMAP-`SEARCH` über den ganzen Ordner;
-  `-n` begrenzt danach nur die Treffer. Bisher half nur ein hohes `-n` mit
-  lokalem Filtern, ältere Mails blieben so außer Reichweite. `--unseen` und
-  `--since` gelten jetzt gemeinsam statt `--unseen` allein.
-- **`imap list` - Kopfdaten in Blöcken.** Alle UIDs gingen in ein einziges
-  `UID FETCH`; bei rund 35000 Mails beendete Cyrus die Verbindung mit
-  `Fatal error: word too long`. Der Abruf läuft jetzt in Blöcken zu 1000 UIDs.
+- **`swaks` - Bindestrich statt Gedankenstrich** im stderr-Hinweis von
+  `--swaks-env` und in der Fehlermeldung zu `--reveal-password`.

@@ -2,7 +2,7 @@
 
 # Forgejo-Helfer - Bare-Repos uebernehmen und den HTTPS-Zugang pruefen
 # stdlib only, keine pip-Abhaengigkeiten. Lauffaehig auf FreeBSD, Linux und macOS.
-# version 1.67.0
+# version 1.67.1
 
 import argparse
 import json

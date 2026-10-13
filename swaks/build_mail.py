@@ -6,7 +6,7 @@
 # um das alternative-Part gelegt. Bei einer Antwort kommt der Zitatblock aus
 # `imap quote` unter Body und Signatur (Top-Posting), die Threading-Header
 # In-Reply-To und References haengen die Antwort an den bestehenden Thread.
-# version 1.67.0
+# version 1.67.1
 
 import argparse
 import hashlib
@@ -288,7 +288,7 @@ def route_env_vars(route):
 MASKED = "<gesetzt>"
 
 ENV_HINWEIS = (
-    "build_mail.py: Hinweis — Anzeige mit maskiertem Passwort, nicht per eval "
+    "build_mail.py: Hinweis - Anzeige mit maskiertem Passwort, nicht per eval "
     "an swaks geben. Versendet wird nur mit --send.")
 
 
@@ -704,7 +704,7 @@ if "--draft" in sys.argv[1:]:
     sys.exit(1 if errors else 0)
 
 if "--reveal-password" in sys.argv[1:]:
-    sys.exit("build_mail.py: Fehler — --reveal-password gibt es nicht mehr. "
+    sys.exit("build_mail.py: Fehler - --reveal-password gibt es nicht mehr. "
              "Versendet wird nur mit --send.")
 
 if "--swaks-env" in sys.argv[1:]:
