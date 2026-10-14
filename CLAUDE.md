@@ -114,6 +114,11 @@ bei …" mit woertlichen Nutzerformulierungen, zum Schluss `Trigger: /name.`
 Festgelegt 2026-09-08, damit die Frage nicht bei jedem neuen Skill neu
 aufgemacht wird.
 
+Seit 2026-10-14 gilt dabei **eine woertliche Formulierung pro Fall**: Synonyme
+fuer denselben Fall werden zusammengelegt, weil die `description` in jedem Turn
+im Kontext liegt. Begruendung und die uebrigen Schreibregeln: Skill
+`writing-for-agents`.
+
 ### Notation
 
 Die `description` im Frontmatter gehoert als Block-Scalar notiert:

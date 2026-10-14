@@ -3,6 +3,23 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.70.0
+
+- **Neuer Skill `writing-for-agents`.** Regeln für Texte, die ein Agent liest
+  (Skills, CLAUDE.md, Memory, Wiki-Procedures): Context Pointer,
+  Informationshierarchie, Abschlusskriterien, Leitbegriffe, Ausdünnen und
+  No-ops, dazu die Ablageorte mit ihren Kontextkosten. Angepasster Fork von
+  `mattpocock/skills` (MIT). Drei Punkte neu entschieden: eine wörtliche
+  Nutzerformulierung pro Fall in der `description` (Synonyme zusammengelegt),
+  FALSCH/RICHTIG-Paare nur noch für Fehlerbilder, sonst positiv formulieren,
+  Doppelung neben einem Pointer nur nach belegtem Versagen.
+- **Neuer Skill `retro`** (nur per `/retro`). Retrospektive einer Session:
+  schlägt Verbesserungen an CLAUDE.md, Memory, Skills, Wiki und Hooks vor,
+  je Kandidat mit Beleg aus der Session, setzt nichts selbst um. Angepasster
+  Fork von `mattpocock/skills` (MIT), Maßstab ist `writing-for-agents`.
+- **Description-Regel** in der Repo-`CLAUDE.md` und in der Checkliste von
+  `skills-review-guard.py` auf eine Formulierung pro Fall umgestellt.
+
 ### 1.69.4
 
 - **`wp-azedo` - Checkliste, Einleitung:** nennt neben passierten Fehlern auch

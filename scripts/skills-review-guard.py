@@ -17,7 +17,7 @@ import sys
 
 CHECKLISTE = """Vor dem Commit die geänderten Skills gegen die Anthropic-Regeln prüfen:
 
-1. description: sagt was der Skill tut und wann er greift, mit wörtlichen Nutzerformulierungen; deckt die Änderung ab
+1. description: sagt was der Skill tut und wann er greift, eine wörtliche Nutzerformulierung pro Fall; deckt die Änderung ab
 2. Knapp: nur was Claude nicht ohnehin weiß, keine Grundlagen-Erklärungen
 3. Ein Standardweg statt mehrerer Optionen; Ausweichweg nur mit Bedingung
 4. Begriffe, Schreibweise (echte Umlaute) und Vorlagen einheitlich - im Skill und gegenüber dem Wiki

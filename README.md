@@ -705,11 +705,51 @@ Kurzer `!`-Einzeiler statt eines langen Befehlsblocks. Muss der User einen Befeh
 
 **Trigger:** selbsttätig vor einem langen `!`-Befehl, oder `/bang` für den zuletzt ausgegebenen.
 
+### writing-for-agents
+
+Regeln für Texte, die ein Agent liest: Skills, CLAUDE.md, Memory-Einträge und Wiki-Procedures. Reiner Referenz-Skill, vendorisierter, angepasster Fork von [mattpocock/skills](https://github.com/mattpocock/skills/tree/main/skills/productivity/writing-for-agents) (MIT):
+
+- Ablageorte mit ihren Kontextkosten (immer geladen vs. hinter einem Pointer; `@`-Include zählt als immer geladen)
+- Context Pointer: eine wörtliche Nutzerformulierung pro Fall, Leitbegriff nach vorn
+- Informationshierarchie, Abschlusskriterien, Leitbegriffe, Ausdünnen und No-ops
+- Verbote nach Textart: Anweisungen positiv, FALSCH/RICHTIG-Paare für Fehlerbilder
+- Doppelung neben einem Pointer nur nach belegtem Versagen, mit Begründung an der Kopie
+- `references/skill-mechanik.md`: Aufruf durch Modell oder User, Router-Skills
+
+**Lizenz:** MIT (c) 2026 Matt Pocock. Siehe `writing-for-agents/LICENSE`.
+
+**Trigger:** beim Anlegen oder Ändern von Skills, CLAUDE.md, Memory und Wiki-Procedures, oder `/writing-for-agents`.
+
+### retro
+
+Retrospektive einer Session: schlägt Verbesserungen an der Umgebung des Agents vor, nicht am Ergebnis. Nur per `/retro` aufrufbar, vendorisierter, angepasster Fork von [mattpocock/skills](https://github.com/mattpocock/skills/tree/main/skills/engineering/retro) (MIT):
+
+- Aktuelle Session oder eine frühere aus `~/.claude/projects/`
+- Kategorien: Navigation, automatische Prüfungen, Regeln (mechanisch → Check), ständig geladene Texte, Korrekturen, Tool-Ökonomie, No-ops, Informationszugang
+- Je Kandidat Beleg, Ort der Änderung und Vorschlag, nach Schwere geordnet; nichts wird umgesetzt
+- Maßstab ist `writing-for-agents`
+
+**Lizenz:** MIT (c) 2026 Matt Pocock. Siehe `retro/LICENSE`.
+
+**Trigger:** `/retro`, optional mit Session-ID oder Stichwort.
+
 ## Changelog
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.69.4
+### 1.70.0
 
-- **`wp-azedo` - Checkliste, Einleitung:** nennt neben passierten Fehlern auch
-  solche, die im Code und per Test belegt sind.
+- **Neuer Skill `writing-for-agents`.** Regeln für Texte, die ein Agent liest
+  (Skills, CLAUDE.md, Memory, Wiki-Procedures): Context Pointer,
+  Informationshierarchie, Abschlusskriterien, Leitbegriffe, Ausdünnen und
+  No-ops, dazu die Ablageorte mit ihren Kontextkosten. Angepasster Fork von
+  `mattpocock/skills` (MIT). Drei Punkte neu entschieden: eine wörtliche
+  Nutzerformulierung pro Fall in der `description` (Synonyme zusammengelegt),
+  FALSCH/RICHTIG-Paare nur noch für Fehlerbilder, sonst positiv formulieren,
+  Doppelung neben einem Pointer nur nach belegtem Versagen.
+- **Neuer Skill `retro`** (nur per `/retro`). Retrospektive einer Session:
+  schlägt Verbesserungen an CLAUDE.md, Memory, Skills, Wiki und Hooks vor,
+  je Kandidat mit Beleg aus der Session, setzt nichts selbst um. Angepasster
+  Fork von `mattpocock/skills` (MIT), Maßstab ist `writing-for-agents`.
+- **Description-Regel** in der Repo-`CLAUDE.md` und in der Checkliste von
+  `skills-review-guard.py` auf eine Formulierung pro Fall umgestellt.
