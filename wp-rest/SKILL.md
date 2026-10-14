@@ -29,10 +29,14 @@ trägt nur die Rechte seines Benutzers.
 |---|---|
 | **wp-rest** | Inhalte: Beiträge, Seiten, Medien, Terms, Blöcke, Templates, Global Styles, WooCommerce |
 | `wp-cli` | Administration per SSH im Jail: Cache, Plugins, Themes, Datenbank, search-replace |
-| `wordpress-pro` | Entwicklung eigener Endpunkte, Blöcke, Hardening |
+| `wp-rest-api` | REST-Endpunkte **bauen** (`register_rest_route`, Schema, Rechte) |
 | `wp-nf`, `wp-pys` | Ninja Forms, PixelYourSite |
 | `mainwp` | Dashboard, Updates netzwerkübergreifend |
 | `novamira` | voller PHP-/Dateisystemzugriff, nur für DEV/Staging |
+
+wp-rest **nutzt** die REST-API, um Inhalte zu pflegen; wer einen eigenen Endpunkt
+schreibt, ist bei `wp-rest-api` richtig. Die Gesamtübersicht aller
+WordPress-Skills steht in `wp-azedo`.
 
 **Was die REST-API nicht kann** - dafür bleibt `wp-cli` zuständig:
 Theme-Dateien schreiben, Plugins aktivieren, Cache leeren, Datenbank-Operationen,

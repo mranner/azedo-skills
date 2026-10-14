@@ -382,6 +382,18 @@ Referenz-Skill für tcsh — Remote-Administration auf FreeBSD-Servern. Root-She
 
 **Trigger:** Wird automatisch angewendet bei SSH-Befehlen auf FreeBSD-Servern.
 
+### wp-azedo
+
+Einstieg und Routing für jede WordPress-Aufgabe. Macht selbst keine WordPress-Arbeit, sondern klärt zwei Fragen und leitet weiter:
+
+- **Wo liegt die Site?** Umgebung, Zugang und Repo über das Infra-Wiki statt Host abklopfen
+- **Was ist die Aufgabe?** Routing-Tabelle: Code (Block-Theme, Blöcke, Patterns, Plugin, REST-Endpunkt, Performance) zu den offiziellen WordPress-Skills, Betrieb und Inhalte zu `wp-cli`, `wp-rest`, `wp-nf`, `wp-pys`, `mainwp`, `novamira`; ersetzt `wordpress-router`
+- azedo-Regeln, die in den offiziellen Skills fehlen: kein Docker, `php-formatting` statt WPCS, `eval-file -` wegen tcsh, kein `--allow-root`, Locale vor Core-Updates, Code in Git und Inhalte in der DB
+- `references/`: ACF (Local JSON, Blöcke, Lizenz), Abnahme-Checkliste für Block-Themes, Go-Live-Liste
+- **Voraussetzung:** die offiziellen Skills aus `https://github.com/WordPress/agent-skills`, geklont nach `~/.claude/vendor/wordpress-agent-skills` und je Skill nach `~/.claude/skills/` verlinkt (ohne `wordpress-router` und WooCommerce) - `install.sh` richtet sie nicht ein
+
+**Trigger:** `/wp-azedo` oder vor jeder Arbeit an einer WordPress-Site, einem Theme oder Plugin ("bau ein Theme", "Go-Live vorbereiten").
+
 ### wp-cli
 
 Referenz-Skill für `wp` CLI — WordPress-Administration auf FreeBSD-Servern mit Jails. Kein eigenes Script, reine SKILL.md mit:
@@ -697,12 +709,16 @@ Kurzer `!`-Einzeiler statt eines langen Befehlsblocks. Muss der User einen Befeh
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.68.2
+### 1.69.0
 
-- **`wp-nf` - Formular aus Definition anlegen statt `import_form()`.** Per CLI
-  legt `import_form()` Formular und Actions an, die Felder aber leer: die
-  Feld-Settings schreibt der Hintergrundprozess `update-fields`, der vom CLI aus
-  nicht anläuft. `references/export-import.md` warnt davor und ersetzt das
-  Import-Snippet durch `nf-create-form.php`: Aufbau über die Model-API, Abgleich
-  der Spalten `order`, `required` und `label_pos` aus der Meta, Cache im eigenen
-  Aufruf. An einer Kopie gegen das Original verifiziert (Ninja Forms 3.15.5).
+- **Neuer Skill `wp-azedo`.** Einstieg und Routing für WordPress-Aufgaben:
+  klärt über das Infra-Wiki, wo die Site liegt, und leitet je Aufgabe an die
+  offiziellen WordPress-Skills (Code) oder die azedo-Skills (Betrieb, Inhalte)
+  weiter. Bringt die azedo-Regeln mit (kein Docker, `php-formatting`,
+  `eval-file -`, kein `--allow-root`, Locale vor Core-Updates) und in
+  `references/` ACF, Abnahme-Checkliste und Go-Live-Liste. Die offiziellen
+  Skills installiert `install.sh` nicht; README und SKILL.md nennen Quelle und
+  Ablage.
+- **`wp-rest` und `wp-cli` - Verweise auf `wp-azedo`.** `wp-rest` grenzt sich
+  gegen `wp-rest-api` ab (Inhalte pflegen statt Endpunkte bauen); der Verweis
+  auf den nicht mehr eingebundenen `wordpress-pro` entfällt in beiden.

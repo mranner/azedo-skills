@@ -15,7 +15,7 @@ allowed-tools: [Bash]
 
 Referenz für die Verwaltung von WordPress-Installationen via `wp` CLI auf FreeBSD-Servern mit Jails.
 
-Ergänzt den **wordpress-pro** Skill (Entwicklung: Themes, Plugins, Gutenberg) um den **Betrieb** (Administration, DB-Ops, Debugging, Migrationen).
+Deckt den **Betrieb** ab (Administration, DB-Ops, Debugging, Migrationen). Einstieg für jede WordPress-Aufgabe ist **`wp-azedo`**: dort steht, welcher Skill für Entwicklung (Themes, Blöcke, Plugins) zuständig ist.
 
 ---
 
