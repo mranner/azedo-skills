@@ -1,6 +1,6 @@
 # Abnahme-Checkliste Block-Theme
 
-Jeder Punkt stammt aus einem Fehler, der in einem Projekt tatsächlich passiert ist.
+Jeder Punkt stammt aus einem Projekt: ein Fehler, der dort passiert ist, oder einer, der im Code und per Test belegt ist.
 
 ## Aufbau
 

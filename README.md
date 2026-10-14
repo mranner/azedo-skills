@@ -709,9 +709,7 @@ Kurzer `!`-Einzeiler statt eines langen Befehlsblocks. Muss der User einen Befeh
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.69.3
+### 1.69.4
 
-- **`wp-azedo` - Checkliste, Navigation:** Ein `render_block_*`-Filter bekommt
-  in `$block['attrs']` die gespeicherten Werte, gebundene stehen nur in
-  `$instance->attributes`. Geprüft an WP 7.1.3 mit einem Link, dessen
-  gespeicherte URL vom Permalink abweicht.
+- **`wp-azedo` - Checkliste, Einleitung:** nennt neben passierten Fehlern auch
+  solche, die im Code und per Test belegt sind.

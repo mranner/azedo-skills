@@ -3,6 +3,11 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.69.4
+
+- **`wp-azedo` - Checkliste, Einleitung:** nennt neben passierten Fehlern auch
+  solche, die im Code und per Test belegt sind.
+
 ### 1.69.3
 
 - **`wp-azedo` - Checkliste, Navigation:** Ein `render_block_*`-Filter bekommt
