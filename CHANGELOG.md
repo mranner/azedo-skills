@@ -3,6 +3,13 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.69.3
+
+- **`wp-azedo` - Checkliste, Navigation:** Ein `render_block_*`-Filter bekommt
+  in `$block['attrs']` die gespeicherten Werte, gebundene stehen nur in
+  `$instance->attributes`. Geprüft an WP 7.1.3 mit einem Link, dessen
+  gespeicherte URL vom Permalink abweicht.
+
 ### 1.69.2
 
 - **`wp-azedo` - Abnahme-Checkliste ergänzt** um Befunde aus einem

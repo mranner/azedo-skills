@@ -24,6 +24,7 @@ Jeder Punkt stammt aus einem Fehler, der in einem Projekt tatsächlich passiert 
 ## Navigation
 
 - [ ] Menüs als `wp_navigation` mit Seiten-Links, keine festen URLs im Pattern. Auch der Seiten-Link speichert die URL fest und folgt einer Slug-Änderung nicht - erst das Binding `"metadata":{"bindings":{"url":{"source":"core/post-data","args":{"field":"link"}}}}` (ab WP 6.9) rendert den aktuellen Permalink zur `id`.
+- [ ] Ein eigener `render_block_core/navigation-link`-Filter liest gebundene Werte aus `$instance->attributes` (3. Parameter), nicht aus `$block['attrs']` - dort steht weiter die gespeicherte URL, ein Vergleich etwa für `aria-current` trifft nach einer Slug-Änderung still nicht mehr.
 - [ ] Im Pattern das Menü über seinen Slug finden (`get_page_by_path($slug, OBJECT, 'wp_navigation')`), nicht über die ID.
 - [ ] Eigene Regeln für das Overlay-Menü brauchen mindestens Spezifität (0,3,1); core setzt manche Werte mit dreifacher Klasse.
 - [ ] Navigationsblock mit Textfarbe, sonst färbt core das offene Menü schwarz.
