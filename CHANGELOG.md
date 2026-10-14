@@ -3,6 +3,16 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.69.2
+
+- **`wp-azedo` - Abnahme-Checkliste ergänzt** um Befunde aus einem
+  Kundentheme: `get_block_wrapper_attributes()` in `render.php` (bei
+  ACF-Blöcken samt `"align": false`), `filemtime` auch in `view.asset.php`,
+  `/wp-json/wp/v2/users` für Gäste sperren, `WP_DEVELOPMENT_MODE` auf DEV gegen
+  den Pattern-Cache. Die Navigationsregel ist korrigiert: ein Seiten-Link folgt
+  einer Slug-Änderung nur mit dem Binding `core/post-data`, sonst rendert core
+  die gespeicherte URL (geprüft an WP 7.1.3).
+
 ### 1.69.1
 
 - **`wp-azedo` - Description ergänzt.** Lädt jetzt auch ohne das Wort

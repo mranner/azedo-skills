@@ -8,6 +8,8 @@ Jeder Punkt stammt aus einem Fehler, der in einem Projekt tatsächlich passiert 
 - [ ] `screenshot.png` (1200×900) im Theme - sonst leere Kachel unter Design → Themes.
 - [ ] Templates vollständig: `index`, `front-page` bzw. `home`, `page`, `single`, `archive`, `search`, `404`. Fehlende fallen auf `index.html` zurück und zeigen dann oft eine leere Seite.
 - [ ] Nicht benötigte Archive (Autor, Taxonomien ohne eigene Seite) abschalten, statt sie leer auszuliefern. Autorenarchive verraten Benutzernamen.
+- [ ] `/wp-json/wp/v2/users` für Gäste sperren (`rest_pre_dispatch`, 401). Das Abschalten der Autorenarchive allein reicht nicht, der Endpunkt nennt Slug und Autoren-URL.
+- [ ] DEV: `WP_DEVELOPMENT_MODE` auf `theme`. Sonst cacht WordPress die Liste der Pattern-Dateien: eine neue Datei unter `patterns/` erscheint erst nach `wp_get_theme()->delete_pattern_cache()`, bis dahin rendert `wp:pattern` nichts.
 - [ ] Jede PHP-Datei im Theme und im mu-plugin beginnt mit `defined('ABSPATH') || exit;`.
 
 ## Gestaltung
@@ -21,7 +23,7 @@ Jeder Punkt stammt aus einem Fehler, der in einem Projekt tatsächlich passiert 
 
 ## Navigation
 
-- [ ] Menüs als `wp_navigation` mit Seiten-Links (folgen Slug-Änderungen), keine festen URLs im Pattern.
+- [ ] Menüs als `wp_navigation` mit Seiten-Links, keine festen URLs im Pattern. Auch der Seiten-Link speichert die URL fest und folgt einer Slug-Änderung nicht - erst das Binding `"metadata":{"bindings":{"url":{"source":"core/post-data","args":{"field":"link"}}}}` (ab WP 6.9) rendert den aktuellen Permalink zur `id`.
 - [ ] Im Pattern das Menü über seinen Slug finden (`get_page_by_path($slug, OBJECT, 'wp_navigation')`), nicht über die ID.
 - [ ] Eigene Regeln für das Overlay-Menü brauchen mindestens Spezifität (0,3,1); core setzt manche Werte mit dreifacher Klasse.
 - [ ] Navigationsblock mit Textfarbe, sonst färbt core das offene Menü schwarz.
@@ -31,6 +33,8 @@ Jeder Punkt stammt aus einem Fehler, der in einem Projekt tatsächlich passiert 
 
 - [ ] `block.json`: `apiVersion` 3, `textdomain`, `example`; Frontend-Script als `viewScriptModule`, wo möglich.
 - [ ] Assets je Block über `block.json` (`style`, `viewScript…`), damit sie nur bei Bedarf laden.
+- [ ] `get_block_wrapper_attributes()` am äußersten Element jeder `render.php`, sonst kommen Zusatzklasse und Anker aus dem Editor im Frontend nicht an. ACF-Blöcke dazu mit `"align": false` in `supports`, sonst setzt core eine leere Klasse `align`.
+- [ ] Version in `view.asset.php` per `filemtime(__DIR__ . '/view.js')`, nicht fest `'1'`.
 
 ## Prüfung
 

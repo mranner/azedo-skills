@@ -709,9 +709,12 @@ Kurzer `!`-Einzeiler statt eines langen Befehlsblocks. Muss der User einen Befeh
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.69.1
+### 1.69.2
 
-- **`wp-azedo` - Description ergänzt.** Lädt jetzt auch ohne das Wort
-  WordPress: mu-plugin, REST-Endpunkt, DB-Export und Plugin-Updates einer Site
-  stehen als Anlässe drin. Trigger-Test mit vier typischen Anfragen und je
-  zwei Läufen: vorher 5 von 8, jetzt 8 von 8.
+- **`wp-azedo` - Abnahme-Checkliste ergänzt** um Befunde aus einem
+  Kundentheme: `get_block_wrapper_attributes()` in `render.php` (bei
+  ACF-Blöcken samt `"align": false`), `filemtime` auch in `view.asset.php`,
+  `/wp-json/wp/v2/users` für Gäste sperren, `WP_DEVELOPMENT_MODE` auf DEV gegen
+  den Pattern-Cache. Die Navigationsregel ist korrigiert: ein Seiten-Link folgt
+  einer Slug-Änderung nur mit dem Binding `core/post-data`, sonst rendert core
+  die gespeicherte URL (geprüft an WP 7.1.3).
