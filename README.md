@@ -455,14 +455,14 @@ Referenz-Skill für PixelYourSite Pro Event-Verwaltung in WordPress-(Multi-)Site
 
 ### wp-nf
 
-Referenz-Skill für Ninja-Forms-Administration in WordPress-(Multi-)Sites per WP-CLI (FreeBSD-Jail). Kein eigenes Script, reine SKILL.md mit PHP-Snippets, verifiziert an NF 3.14.8:
+Referenz-Skill für Ninja-Forms-Administration in WordPress-(Multi-)Sites per WP-CLI (FreeBSD-Jail). Kein eigenes Script, reine SKILL.md mit PHP-Snippets, verifiziert an NF 3.14.8, das Anlegen aus Definition an 3.15.5:
 
 - Datenmodell + Footguns: `nf3_forms`/`nf3_fields`/`nf3_field_meta`, `element_class` liegt in der Meta-Tabelle (keine `settings`-Spalte); Render-Quelle ist der Form-Cache (`nf3_upgrades`), `use_cache()` hart `true`
 - Ein Feldwert liegt an **vier** Stellen: Meta, Form-Cache, Legacy-Spalte `nf3_fields.default_value` und WPML-Quellstring in `icl_strings` — die letzten beiden schreibt die Model-API nicht mit
 - Der Form-Cache ist **PHP-serialisiert**, nicht JSON (`unserialize()`; `json_decode()` liefert still `null` und erzeugt Fehlalarme), Keys `id`/`fields`/`actions`/`settings`
 - Formulare auflisten + Titel→ID-Mapping (native `wp ninja-forms list` oder Snippet), Felder + Settings dumpen (Model-API)
 - `element_class`/HTML-Link-Klasse setzen — Backup (Form-Export) → Write → Cache invalidieren → Verify
-- Export/Import (`.nff`, Backend-identisch): Backup und Klonen zwischen Subsites; Import legt immer ein neues Formular an
+- Export (`.nff`, Backend-identisch) und Anlegen aus Definition über die Model-API: Backup, Wiederherstellen und Klonen zwischen Subsites; `import_form()` per CLI lässt die Felder leer (Hintergrundprozess läuft nicht an)
 - WPML-Falle beim Write: `save()` kann die `parent_id` ändern und das Feld ins Quellformular verschieben — `parent_id` vor/nach jedem Write prüfen, Rücksetzen per direktem `UPDATE` (dort sitzt kein Hook), Caches beider Formulare neu bauen; dazu die Abwägung Model-API gegen direktes SQL
 - `update_setting('label', …)` schreibt die Spalte `nf3_fields.label` und lässt die gleichnamige Meta-Zeile alt stehen — dieselbe Drift, nur mit vertauschten Rollen
 - Preflight/Verify: Drift über alle vier Ablagen prüfen (Signatur des stillen „geändert, ändert sich nichts"-Fehlers) inkl. Nachzieh-UPDATEs, plus `parent_id` und Feldzahl je Formular als fünfte Prüfgröße
@@ -697,11 +697,12 @@ Kurzer `!`-Einzeiler statt eines langen Befehlsblocks. Muss der User einen Befeh
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.68.1
+### 1.68.2
 
-- **`kimai` - `--user all` bei `list-timesheets`.** Ohne Angabe liefert die
-  API nur die eigenen Buchungen; eine Projektauswertung ohne `--user all`
-  unterschlug rund 90 % der Stunden. Der Hinweis steht jetzt in
-  `references/timesheets.md`.
-- **`mail-as-me` - Anhänge im Versand-Ablauf.** `references/versand.md` nennt
-  `--attach <datei>` am Bau-Aufruf; Bau, `--verify` und `--send` bleiben gleich.
+- **`wp-nf` - Formular aus Definition anlegen statt `import_form()`.** Per CLI
+  legt `import_form()` Formular und Actions an, die Felder aber leer: die
+  Feld-Settings schreibt der Hintergrundprozess `update-fields`, der vom CLI aus
+  nicht anläuft. `references/export-import.md` warnt davor und ersetzt das
+  Import-Snippet durch `nf-create-form.php`: Aufbau über die Model-API, Abgleich
+  der Spalten `order`, `required` und `label_pos` aus der Meta, Cache im eigenen
+  Aufruf. An einer Kopie gegen das Original verifiziert (Ninja Forms 3.15.5).

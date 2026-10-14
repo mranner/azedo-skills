@@ -4,7 +4,8 @@ description: >
   Ninja Forms in WordPress-(Multi-)Sites per WP-CLI im FreeBSD-Jail:
   Formulare auflisten, Felder und Settings auslesen, CSS-Klassen
   (element_class) für Click-Tracking setzen, Formulare exportieren und
-  importieren (Backup, Klonen) - reproduzierbar statt über das Admin-UI;
+  aus der Definition neu anlegen (Backup, Klonen) - reproduzierbar statt
+  über das Admin-UI;
   kennt die vier Ablagen eines Feldwerts (Meta, Form-Cache, Legacy-Spalte,
   WPML-Quellstring). Auch bei "Ninja Forms", "NF-Formular", "nf3_fields",
   "Formular exportieren".
@@ -30,7 +31,8 @@ Grenzt an zwei Nachbar-Skills und dupliziert deren Wissen bewusst **nicht**:
 Belegte Evidenzbasis: CR4266 (Kundenprojekt, GA4-CSS-Click-Events auf einem Shared-Webhost),
 CR4630/CR4633 (Bild-URLs in HTML-Feldern einer mehrsprachigen Multisite),
 CR4656 (Model-API-Write verschiebt ein Feld zwischen WPML-Formularen).
-Verifiziert gegen **Ninja Forms 3.14.8** auf apache1.acme.com.
+Verifiziert gegen **Ninja Forms 3.14.8** auf apache1.acme.com; das Anlegen aus
+Definition und der leere Import per CLI an **3.15.5**.
 
 ## Referenzdateien
 
@@ -43,7 +45,7 @@ daneben:
 | `references/snippets-read.md` | Formulare auflisten (Titel→ID), Felder + Settings dumpen — der uebliche erste Schritt, aenderungsfrei |
 | `references/wpml-writes.md` | Ein Write auf einem WPML-Uebersetzungsformular kann das Feld ins Quellformular verschieben — `parent_id`-Guard, Reparatur, und die Abwaegung Model-API gegen direktes SQL |
 | `references/preflight.md` | Drift ueber die vier Ablagen plus `parent_id`/Feldzahl — vor und nach **jedem** Write, sonst bleibt ein halb wirkungsloser Fix unbemerkt |
-| `references/export-import.md` | `.nff`-Export als Backup vor dem Write und als Sollwert der Feldzahl; Import zum Klonen zwischen Subsites |
+| `references/export-import.md` | `.nff`-Export als Backup vor dem Write und als Sollwert der Feldzahl; Anlegen aus Definition zum Klonen und Wiederherstellen — `import_form()` per CLI laesst die Felder leer |
 
 ---
 
@@ -196,6 +198,10 @@ Struktur zur Orientierung:
 
 ### Weitere Footguns
 
+- **`import_form()` per CLI legt die Felder leer an** — die Feld-Settings schreibt ein
+  Hintergrundprozess, der vom CLI aus nicht anlaeuft. Klonen und Wiederherstellen
+  deshalb ueber die Model-API, siehe
+  [references/export-import.md](references/export-import.md).
 - `options` (z.B. bei `listradio`/`checkbox`) ist ein **serialisiertes Array**; jede
   Option hat `label` + `value`.
 - HTML-Feld-Inhalt (Feldtyp `html`) steht im Meta-Key **`default`** — dort sitzt z.B.
@@ -360,6 +366,10 @@ nebeneinanderlegen.
   apache1.acme.com (zwei von elf Feldern betroffen, beide auf
   Uebersetzungsformularen). Der ausloesende Hook in `wpml-ninja-forms` ist
   **nicht** im Quellcode nachgewiesen.
+- `import_form()` per CLI mit leeren Feldern (Hintergrundprozess `update-fields`
+  in `includes/Database/Models/Form.php`) und das Anlegen ueber die Model-API mit
+  Spaltenabgleich: Ninja Forms 3.15.5, beobachtet und an einer Kopie gegen das
+  Original verifiziert 2026-10-14.
 - `order` nur in der Meta-Zeile und der stale Cache aus einem Neuaufbau im
   selben Prozess nach SQL-Writes: beobachtet 2026-10-11 beim Einrichten einer
   Subsite.

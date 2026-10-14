@@ -3,6 +3,16 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.68.2
+
+- **`wp-nf` - Formular aus Definition anlegen statt `import_form()`.** Per CLI
+  legt `import_form()` Formular und Actions an, die Felder aber leer: die
+  Feld-Settings schreibt der Hintergrundprozess `update-fields`, der vom CLI aus
+  nicht anläuft. `references/export-import.md` warnt davor und ersetzt das
+  Import-Snippet durch `nf-create-form.php`: Aufbau über die Model-API, Abgleich
+  der Spalten `order`, `required` und `label_pos` aus der Meta, Cache im eigenen
+  Aufruf. An einer Kopie gegen das Original verifiziert (Ninja Forms 3.15.5).
+
 ### 1.68.1
 
 - **`kimai` - `--user all` bei `list-timesheets`.** Ohne Angabe liefert die
