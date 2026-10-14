@@ -4,7 +4,7 @@ description: >
   Retrospektive einer Session: schlägt Verbesserungen an der Umgebung des
   Agents vor (CLAUDE.md, Memory, Skills, Wiki, Hooks). Trigger: /retro.
 disable-model-invocation: true
-argument-hint: "Session-ID oder Stichwort (optional, sonst die aktuelle Session)"
+argument-hint: "Session-ID oder Stichwort (optional, sonst die aktuelle oder die letzte Session)"
 ---
 
 Der User will eine **Retrospektive**. Du schlägst Verbesserungen an der **Umgebung** des Agents vor, damit künftige Läufe besser werden - nicht am Ergebnis der Session.
@@ -13,7 +13,13 @@ Der User will eine **Retrospektive**. Du schlägst Verbesserungen an der **Umgeb
 
 1. Skill `writing-for-agents` laden. Er ist der Maßstab für jeden Vorschlag an einem Text, den ein Agent liest.
 
-2. Die Session lesen. Ohne Argument ist es die aktuelle - sie steht schon im Kontext. Eine andere liegt als `~/.claude/projects/<arbeitsverzeichnis>/<session-id>.jsonl`, das Arbeitsverzeichnis mit `/` als `-` geschrieben. Per Stichwort finden: `grep -l '<stichwort>' ~/.claude/projects/*/*.jsonl`. Die Logs sind groß: mit `jq` auf die Nachrichten filtern statt ganz einlesen.
+2. Die Session lesen. Ohne Argument ist es die aktuelle, sofern sie vor `/retro` schon Arbeit enthält - dann steht sie im Kontext. Sonst, oder mit Session-ID oder Stichwort als Argument, die Kurzfassung des Logs holen:
+
+   ```bash
+   "$SKILL_DIR/scripts/session-digest" [<session-id> | <stichwort>]
+   ```
+
+   `$SKILL_DIR` ist das Base Directory dieses Skills. Ohne Argument nimmt das Script die neueste Session des Arbeitsverzeichnisses außer der laufenden. Es liefert User-Texte, Agent-Texte, Tool-Aufrufe und Tool-Fehler je eine Zeile, gekürzt. Ein Detail daraus mit `jq` im Log nachlesen, dessen Pfad in der ersten Zeile steht.
 
    Fertig, wenn feststeht, wo der Agent Zeit verlor, wo er korrigiert wurde und wo ein Befehl scheiterte.
 

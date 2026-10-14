@@ -3,6 +3,16 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.70.1
+
+- **`retro`:** Ohne Argument nimmt der Skill die aktuelle Session nur, wenn sie
+  vor `/retro` schon Arbeit enthält, sonst die letzte. Das neue Script
+  `scripts/session-digest` liefert die Kurzfassung eines Session-Logs (letzte,
+  per Session-ID oder per Stichwort), statt dass der Agent jedes Mal einen
+  eigenen `jq`-Filter baut.
+- **Commit-Konvention** in der Repo-`CLAUDE.md`: Präfix `CR<id>: ` nur bei
+  aktivem CR-Kontext, wie im `kanboard`-Skill.
+
 ### 1.70.0
 
 - **Neuer Skill `writing-for-agents`.** Regeln für Texte, die ein Agent liest

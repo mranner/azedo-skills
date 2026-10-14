@@ -724,7 +724,7 @@ Regeln für Texte, die ein Agent liest: Skills, CLAUDE.md, Memory-Einträge und 
 
 Retrospektive einer Session: schlägt Verbesserungen an der Umgebung des Agents vor, nicht am Ergebnis. Nur per `/retro` aufrufbar, vendorisierter, angepasster Fork von [mattpocock/skills](https://github.com/mattpocock/skills/tree/main/skills/engineering/retro) (MIT):
 
-- Aktuelle Session oder eine frühere aus `~/.claude/projects/`
+- Aktuelle Session, sonst die letzte oder eine per ID/Stichwort; `scripts/session-digest` liefert die Kurzfassung des Logs
 - Kategorien: Navigation, automatische Prüfungen, Regeln (mechanisch → Check), ständig geladene Texte, Korrekturen, Tool-Ökonomie, No-ops, Informationszugang
 - Je Kandidat Beleg, Ort der Änderung und Vorschlag, nach Schwere geordnet; nichts wird umgesetzt
 - Maßstab ist `writing-for-agents`
@@ -737,19 +737,12 @@ Retrospektive einer Session: schlägt Verbesserungen an der Umgebung des Agents 
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.70.0
+### 1.70.1
 
-- **Neuer Skill `writing-for-agents`.** Regeln für Texte, die ein Agent liest
-  (Skills, CLAUDE.md, Memory, Wiki-Procedures): Context Pointer,
-  Informationshierarchie, Abschlusskriterien, Leitbegriffe, Ausdünnen und
-  No-ops, dazu die Ablageorte mit ihren Kontextkosten. Angepasster Fork von
-  `mattpocock/skills` (MIT). Drei Punkte neu entschieden: eine wörtliche
-  Nutzerformulierung pro Fall in der `description` (Synonyme zusammengelegt),
-  FALSCH/RICHTIG-Paare nur noch für Fehlerbilder, sonst positiv formulieren,
-  Doppelung neben einem Pointer nur nach belegtem Versagen.
-- **Neuer Skill `retro`** (nur per `/retro`). Retrospektive einer Session:
-  schlägt Verbesserungen an CLAUDE.md, Memory, Skills, Wiki und Hooks vor,
-  je Kandidat mit Beleg aus der Session, setzt nichts selbst um. Angepasster
-  Fork von `mattpocock/skills` (MIT), Maßstab ist `writing-for-agents`.
-- **Description-Regel** in der Repo-`CLAUDE.md` und in der Checkliste von
-  `skills-review-guard.py` auf eine Formulierung pro Fall umgestellt.
+- **`retro`:** Ohne Argument nimmt der Skill die aktuelle Session nur, wenn sie
+  vor `/retro` schon Arbeit enthält, sonst die letzte. Das neue Script
+  `scripts/session-digest` liefert die Kurzfassung eines Session-Logs (letzte,
+  per Session-ID oder per Stichwort), statt dass der Agent jedes Mal einen
+  eigenen `jq`-Filter baut.
+- **Commit-Konvention** in der Repo-`CLAUDE.md`: Präfix `CR<id>: ` nur bei
+  aktivem CR-Kontext, wie im `kanboard`-Skill.

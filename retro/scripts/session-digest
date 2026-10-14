@@ -1,0 +1,57 @@
+#!/usr/bin/env python3
+# version 1.70.1
+"""Kurzfassung eines Session-Logs fuer die Retrospektive.
+
+Aufruf: session-digest [<session-id> | <stichwort>]
+Ohne Argument: die neueste Session des Arbeitsverzeichnisses ausser der laufenden.
+Ausgabe: je Zeile User-Text, Agent-Text, Tool-Aufruf oder Tool-Fehler, gekuerzt.
+"""
+
+import json
+import os
+import re
+import sys
+from pathlib import Path
+
+proj = Path.home() / ".claude/projects" / re.sub(r"[^A-Za-z0-9]", "-", os.getcwd())
+logs = sorted(proj.glob("*.jsonl"), key=lambda p: p.stat().st_mtime, reverse=True)
+
+arg = sys.argv[1] if len(sys.argv) > 1 else None
+if arg is None:
+    # Die neueste Datei ist die laufende Session
+    log = logs[1]
+elif (proj / f"{arg}.jsonl").exists():
+    log = proj / f"{arg}.jsonl"
+else:
+    hits = [p for p in logs[1:] if arg in p.read_text(errors="replace")]
+    if not hits:
+        sys.exit(f"keine Session mit '{arg}' in {proj}")
+    log = hits[0]
+
+print(f"# {log}")
+
+
+def short(s, n):
+    s = " ".join(str(s).split())
+    return s if len(s) <= n else s[:n] + " …"
+
+
+for line in log.open(errors="replace"):
+    try:
+        e = json.loads(line)
+    except ValueError:
+        continue
+    if e.get("type") not in ("user", "assistant"):
+        continue
+    content = e["message"]["content"]
+    if isinstance(content, str):
+        content = [{"type": "text", "text": content}]
+    for c in content:
+        t = c.get("type")
+        if t == "text":
+            print(f"{e['type']}: {short(c['text'], 800)}")
+        elif t == "tool_use":
+            inp = c["input"]
+            print(f"  TOOL {c['name']}: {short(inp.get('command') or inp.get('file_path') or json.dumps(inp, ensure_ascii=False), 300)}")
+        elif t == "tool_result" and c.get("is_error"):
+            print(f"  FEHLER: {short(c.get('content'), 300)}")

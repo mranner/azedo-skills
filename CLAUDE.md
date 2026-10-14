@@ -94,7 +94,8 @@ lockeres `^# version .*` traf auch eine Kommentarzeile, die mit dem Wort
 "version" begann, und ersetzte ihren Text. Der `find` raeumt die
 `sed`-Sicherungen weg, damit sie nicht im Commit landen.
 
-Commit-Konvention: `CR<id>: <skill> - <was geändert wurde> (<version>)`
+Commit-Konvention: `CR<id>: <skill> - <was geändert wurde> (<version>)`, das
+Präfix `CR<id>: ` nur bei aktivem CR-Kontext, sonst ohne Präfix.
 Beispiel: `CR4426: swos - poe-voltage (poe.b i03) + gemeinsame Write-Basis (1.26.1)`
 
 ## Neuer Skill
