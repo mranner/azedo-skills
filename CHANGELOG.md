@@ -3,6 +3,13 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.69.1
+
+- **`wp-azedo` - Description ergänzt.** Lädt jetzt auch ohne das Wort
+  WordPress: mu-plugin, REST-Endpunkt, DB-Export und Plugin-Updates einer Site
+  stehen als Anlässe drin. Trigger-Test mit vier typischen Anfragen und je
+  zwei Läufen: vorher 5 von 8, jetzt 8 von 8.
+
 ### 1.69.0
 
 - **Neuer Skill `wp-azedo`.** Einstieg und Routing für WordPress-Aufgaben:

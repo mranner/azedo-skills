@@ -7,10 +7,12 @@ description: >
   zu den offiziellen WordPress-Skills, für Betrieb und Inhalte zu den azedo-Skills
   (wp-cli, wp-rest, wp-nf, wp-pys, mainwp, novamira). Bringt die azedo-Regeln
   mit, die dort fehlen: Umgebung ohne Docker, Code-Stil, ACF, Abnahme-Checkliste.
-  Nutze diesen Skill wenn der User an einer WordPress-Site, einem Theme oder
-  Plugin arbeiten will, bevor ein anderer wp-*-Skill geladen wird. Auch bei
-  "bau ein Theme", "neuer Block", "richte die Seite ein", "Go-Live vorbereiten",
-  "prüf das Theme". Trigger: /wp-azedo.
+  Nutze diesen Skill wenn der User an einer WordPress-Site, einem Theme,
+  Plugin oder mu-plugin arbeiten will, bevor ein anderer wp-*-Skill geladen
+  wird - auch wenn das Wort WordPress nicht fällt. Auch bei "bau ein Theme",
+  "neuer Block", "REST-Endpunkt im mu-plugin", "exportier die DB der Site",
+  "Plugins updaten", "ändere den Text auf der Seite", "richte die Seite ein",
+  "Go-Live vorbereiten", "prüf das Theme". Trigger: /wp-azedo.
 ---
 
 # wp-azedo -- Einstieg und Routing für WordPress

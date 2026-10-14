@@ -709,16 +709,9 @@ Kurzer `!`-Einzeiler statt eines langen Befehlsblocks. Muss der User einen Befeh
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.69.0
+### 1.69.1
 
-- **Neuer Skill `wp-azedo`.** Einstieg und Routing für WordPress-Aufgaben:
-  klärt über das Infra-Wiki, wo die Site liegt, und leitet je Aufgabe an die
-  offiziellen WordPress-Skills (Code) oder die azedo-Skills (Betrieb, Inhalte)
-  weiter. Bringt die azedo-Regeln mit (kein Docker, `php-formatting`,
-  `eval-file -`, kein `--allow-root`, Locale vor Core-Updates) und in
-  `references/` ACF, Abnahme-Checkliste und Go-Live-Liste. Die offiziellen
-  Skills installiert `install.sh` nicht; README und SKILL.md nennen Quelle und
-  Ablage.
-- **`wp-rest` und `wp-cli` - Verweise auf `wp-azedo`.** `wp-rest` grenzt sich
-  gegen `wp-rest-api` ab (Inhalte pflegen statt Endpunkte bauen); der Verweis
-  auf den nicht mehr eingebundenen `wordpress-pro` entfällt in beiden.
+- **`wp-azedo` - Description ergänzt.** Lädt jetzt auch ohne das Wort
+  WordPress: mu-plugin, REST-Endpunkt, DB-Export und Plugin-Updates einer Site
+  stehen als Anlässe drin. Trigger-Test mit vier typischen Anfragen und je
+  zwei Läufen: vorher 5 von 8, jetzt 8 von 8.
