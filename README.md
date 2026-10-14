@@ -697,10 +697,11 @@ Kurzer `!`-Einzeiler statt eines langen Befehlsblocks. Muss der User einen Befeh
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.68.0
+### 1.68.1
 
-- **Neuer Skill `bang`.** Ein langer oder mehrzeiliger Befehl, den der User per
-  `!` ausführen soll, geht als Wegwerf-Script nach `.tmp/bang-<slug>-<hex>.sh`;
-  der User bekommt nur `! sh .tmp/bang-….sh`. Das Script löscht sich in der
-  ersten Zeile selbst, Remote-Befehle laufen per STDIN-Heredoc an `sh`. Greift
-  selbsttätig ab 80 Zeichen, Heredoc oder mehreren Zeilen.
+- **`kimai` - `--user all` bei `list-timesheets`.** Ohne Angabe liefert die
+  API nur die eigenen Buchungen; eine Projektauswertung ohne `--user all`
+  unterschlug rund 90 % der Stunden. Der Hinweis steht jetzt in
+  `references/timesheets.md`.
+- **`mail-as-me` - Anhänge im Versand-Ablauf.** `references/versand.md` nennt
+  `--attach <datei>` am Bau-Aufruf; Bau, `--verify` und `--send` bleiben gleich.

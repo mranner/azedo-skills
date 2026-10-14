@@ -9,6 +9,7 @@ python3 "$SKILL_DIR/kimai" list-timesheets \
   [--user <id>] [--project <id>] [--activity <id>] \
   [--begin <iso-datetime>] [--end <iso-datetime>] \
   [--exported <0|1>] [--size <n>] [--page <n>]
+# --user all für Auswertungen über alle User; ohne Angabe kommen nur die eigenen Buchungen.
 
 # Einzelnen Eintrag anzeigen
 python3 "$SKILL_DIR/kimai" get-timesheet <id>

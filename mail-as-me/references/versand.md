@@ -91,6 +91,9 @@ sucht es dort (ein `grep` auf die rohe `.eml` findet es nicht, der Body ist
 quoted-printable kodiert). Details im swaks-Skill, Abschnitt "Vor dem Versand
 prüfen".
 
+**Anhänge:** pro Datei ein `--attach <absoluter pfad>` an den Bau-Aufruf; Bau,
+`--verify` und `--send` laufen unverändert.
+
 **Nur Text und kein HTML-Entwurf?** Dann `--html-file` weglassen, nicht die
 Textdatei ein zweites Mal angeben. Ein HTML-Part aus rohem Text hat kein
 einziges Tag und kommt beim Empfänger in einer einzigen Zeile an - Aufzählung,

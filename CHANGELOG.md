@@ -3,6 +3,15 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.68.1
+
+- **`kimai` - `--user all` bei `list-timesheets`.** Ohne Angabe liefert die
+  API nur die eigenen Buchungen; eine Projektauswertung ohne `--user all`
+  unterschlug rund 90 % der Stunden. Der Hinweis steht jetzt in
+  `references/timesheets.md`.
+- **`mail-as-me` - Anhänge im Versand-Ablauf.** `references/versand.md` nennt
+  `--attach <datei>` am Bau-Aufruf; Bau, `--verify` und `--send` bleiben gleich.
+
 ### 1.68.0
 
 - **Neuer Skill `bang`.** Ein langer oder mehrzeiliger Befehl, den der User per
