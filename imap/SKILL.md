@@ -33,6 +33,7 @@ ohne `--account` alle Konten ab. Einrichtung, Keystore und Kontonamen im Detail:
 | `accounts` | konfigurierte Konten (ohne Passwörter) |
 | `folders -a <konto>` | Ordnerliste, Separator, Sonderordner, Server-Capabilities |
 | `list [-a <konto>]` | Kopfdaten ohne Body, mit Server-Suche nach Betreff, Absender, Empfänger, Zeitraum, Größe; `-f` mehrfach oder `--all-folders` |
+| `next-uid -a <konto>` | UIDNEXT eines Ordners - Start-Marker für Testläufe |
 | `find -m <message-id>` | Message-ID zu Konto, Ordner und UID auflösen |
 | `read <uid> -a <konto>` | Textkörper einer Mail |
 | `fetch --uids <liste> -a <konto>` | mehrere Mails mit **einem** Login |
@@ -251,9 +252,11 @@ ok / einzeln anpassen?
   sobald sie nicht aus der INBOX stammt -- ein fehlendes `-f` liefert keinen
   Fehler, sondern die falsche Mail. Wo nur die Message-ID bekannt ist, `find`
   bzw. `quote --message-id` verwenden, statt die UID zu suchen.
-- **`list` sortiert aufsteigend nach UID** - die neueste Mail steht am Ende,
-  der Date-Header zählt nicht. Die Start-UID eines Testlaufs ist die eine Zeile
-  von `list -n 1`, nicht der erste Eintrag einer längeren Liste.
+- **Start-Marker eines Testlaufs ist `next-uid`.** Vor dem Lauf `S` merken,
+  danach liefert `list --since-uid S` genau die neuen Mails - unabhängig von
+  Date-Header und Zeitzone. `list -n 1` taugt dafür nicht: es liefert die
+  höchste *vorhandene* UID, bei leerem Ordner keine und nach dem Löschen
+  eine zu niedrige.
 - **Zitate nie selbst tippen.** Für eine Antwort immer `quote` aufrufen. Ein
   von Hand gesetztes `> ` sieht auf den ersten Blick gleich aus, weicht aber bei
   jeder Mail leicht ab und ignoriert `format=flowed` und die Threading-Header.

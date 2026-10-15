@@ -3,7 +3,7 @@
 # IMAP-Helper für Posteingang-Triage
 # Liest Zugangsdaten aus muttrc, arbeitet gegen mehrere Konten.
 # stdlib only, keine pip-Abhängigkeiten. Lauffähig auf macOS + FreeBSD.
-# version 1.71.6
+# version 1.71.7
 
 import argparse
 import datetime
@@ -365,6 +365,19 @@ class Account:
         if typ != "OK":
             die(f"[{self.alias}] Ordner '{folder}' nicht waehlbar: {as_text(data)}")
         self._selected = (folder, readonly)
+
+    def uidnext(self, folder="INBOX"):
+        """UIDNEXT und UIDVALIDITY per STATUS - ohne den Ordner zu wählen.
+
+        Anders als die höchste vorhandene UID stimmt UIDNEXT auch bei leerem
+        Ordner und nach Löschen oder Verschieben."""
+        if folder.lower() in SPECIAL_FALLBACK:
+            folder = self.special_folder(folder) or folder
+        typ, data = self.conn.status(quote_mailbox(folder), "(UIDNEXT UIDVALIDITY)")
+        if typ != "OK":
+            die(f"[{self.alias}] STATUS fehlgeschlagen: {as_text(data)}")
+        meta = as_text(data)
+        return folder, find_int(meta, "UIDNEXT"), find_int(meta, "UIDVALIDITY")
 
     def search_uids(self, criteria):
         typ, data = self.conn.uid("SEARCH", None, criteria)
@@ -1398,6 +1411,17 @@ def cmd_accounts(args, accounts):
         print(f"{a['alias']:<10} {a['user']}@{a['host']}:{a['port']}{mark}")
 
 
+def cmd_next_uid(args, accounts):
+    acc = pick_account(accounts, args.account)
+    with Account(acc) as a:
+        folder, uidnext, validity = a.uidnext(args.folder)
+    if args.json:
+        out_json({"account": a.alias, "folder": folder,
+                  "uidnext": uidnext, "uidvalidity": validity})
+        return
+    print(uidnext)
+
+
 def cmd_folders(args, accounts):
     acc = pick_account(accounts, args.account)
     with Account(acc) as a:
@@ -1442,6 +1466,8 @@ def cmd_list(args, accounts):
         criteria += ["BEFORE", imap_date(args.date_to, 1)]
     if args.larger:
         criteria += ["LARGER", str(parse_size(args.larger))]
+    if args.since_uid:
+        criteria += ["UID", f"{args.since_uid}:*"]
 
     texts = [(key, value) for key, value in (("SUBJECT", args.subject),
                                              ("FROM", args.sender),
@@ -1459,6 +1485,12 @@ def cmd_list(args, accounts):
             for folder in (selectable_folders(a) if args.all_folders else folders):
                 result.extend(a.envelopes(folder, 0 if by_size else args.limit,
                                           criteria, texts))
+
+    # UID S:* liefert laut RFC 3501 mindestens die letzte Mail, auch wenn ihre
+    # UID unter S liegt
+
+    if args.since_uid:
+        result = [m for m in result if m["uid"] >= args.since_uid]
 
     if by_size:
         result.sort(key=lambda m: m["size"] or 0, reverse=True)
@@ -2617,6 +2649,13 @@ def build_parser():
     sp = sub.add_parser("accounts", parents=[common], help="konfigurierte Konten zeigen")
     sp.set_defaults(func=cmd_accounts)
 
+    sp = sub.add_parser("next-uid", parents=[common],
+                        help="UIDNEXT eines Ordners - Start-Marker für Testläufe")
+    sp.add_argument("--account", "-a")
+    sp.add_argument("--folder", "-f", default="INBOX",
+                    help="Ordner oder Sonderrolle, Default INBOX")
+    sp.set_defaults(func=cmd_next_uid)
+
     sp = sub.add_parser("folders", parents=[common], help="Ordner und Sonderordner eines Kontos")
     sp.add_argument("--account", "-a")
     sp.set_defaults(func=cmd_folders)
@@ -2635,6 +2674,8 @@ def build_parser():
     sp.add_argument("--sort", choices=("uid", "size"), default="uid",
                     help="size: größte zuerst, -n gilt dann über alle Ordner")
     sp.add_argument("--since", type=int, metavar="TAGE")
+    sp.add_argument("--since-uid", type=int, metavar="UID",
+                    help="nur Mails ab dieser UID (inklusive), Wert aus next-uid")
     sp.add_argument("--subject", help="Betreff enthält (Server-Suche)")
     sp.add_argument("--from", dest="sender", help="Absender enthält (Server-Suche)")
     sp.add_argument("--to", help="Empfänger enthält (Server-Suche)")

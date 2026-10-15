@@ -3,6 +3,16 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.71.7
+
+- **`imap`: `next-uid` und `list --since-uid`.** `next-uid` liest `UIDNEXT`
+  eines Ordners per `STATUS` (JSON zusätzlich mit `uidvalidity`) - der
+  Start-Marker eines Testlaufs, der auch bei leerem Ordner und nach Löschen
+  stimmt. `list --since-uid S` sucht serverseitig mit `UID S:*` und filtert
+  zusätzlich auf `uid >= S`, weil `S:*` immer mindestens die letzte Mail
+  liefert. Der Fallstrick aus 1.71.3 („Start-UID = `list -n 1`") ist dadurch
+  ersetzt: `list -n 1` liefert nur die höchste vorhandene UID.
+
 ### 1.71.6
 
 - **Descriptions gekürzt** auf eine Nutzerformulierung pro Fall, Synonyme
