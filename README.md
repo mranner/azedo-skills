@@ -752,15 +752,12 @@ Retrospektive einer Session: schlägt Verbesserungen an der Umgebung des Agents 
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.72.0
+### 1.72.1
 
-- **Neuer Skill `wp-rcb`:** Real Cookie Banner per WP-CLI. `rcb.php` läuft per
-  `wp eval-file -` über STDIN auf dem Server (Lesen: `services`, `service`,
-  `blockers`, `banner-links`, `settings`, `revisions`, `export`; Schreiben mit
-  Vorschau und Sicherung unter `backup`: `import`, `set-code`, `set-setting`,
-  `clear-cache`). Das lokale Script `rcb` baut die Payload samt Eingabedatei,
-  zeigt mit `frontend` den ausgelieferten Dienst-Code und vergleicht mit `diff`
-  zwei Exporte oder Einstellungen. Der Import prüft die RCB-Version, meldet
-  Duplikate durch abweichende Slugs und schreibt Cookie-Hosts auf die
-  Ziel-Domain um.
-- **`wp-azedo`:** Routing auf `wp-rcb`.
+- **`wp-rcb`: Import-Vorschau vollständig.** Ein Test auf DEV zeigte, dass der
+  Import auch Banner-Texte/-Design und Name/Beschreibung bestehender Gruppen
+  überschreibt. Die Vorschau listet das jetzt (`banner`, `groups` mit
+  „unverändert" bzw. „überschreiben") und warnt vor Cookie-Hosts, die weder zur
+  Quell- noch zur Ziel-Domain passen (DEV-Klone mit Live-Domain). SKILL.md:
+  Rücknahme über `backup` + `import yes`, Werte mit Leerzeichen nur per
+  `--input`.

@@ -42,7 +42,12 @@ python3 "$SKILL_DIR/rcb" php --input <datei> | sudo ssh -C root@<host> "… wp e
 ```
 
 Argumente sind Wörter oder `name=wert` (`revisions grep=office@ limit=5`) -
-WP-CLI nimmt `--optionen` hinter `eval-file` nicht an.
+WP-CLI nimmt `--optionen` hinter `eval-file` nicht an. Ein Wert mit
+Leerzeichen oder Sonderzeichen (`set-setting`, `set-code`) geht über
+`--input`, nie als Argument: SSH, tcsh und `sh -c` zerlegen ihn sonst.
+
+PHP-Warnungen von Plugins landen auf stderr, das JSON auf stdout - beim
+Weiterverarbeiten nur stdout lesen (`2>/dev/null` oder in eine Datei).
 
 ## Befehle (rcb.php, auf dem Server)
 
@@ -99,11 +104,23 @@ muss, entscheidet der Mensch dort ("Neue Einwilligung anfordern").
 - **Version muss gleich sein.** RCB selbst prüft das nicht; `rcb.php` bricht
   mit `yes` ab, solange `problems` nicht leer ist.
 - **Cookie-Hosts** tragen die Domain der Quell-Site; `rcb.php` schreibt sie beim
-  Import auf die Ziel-Domain um.
+  Import auf die Ziel-Domain um. Hosts, die zu keiner der beiden passen (ein
+  DEV-Klon trägt oft noch die Live-Domain), meldet die Vorschau als Warnung.
 - **Nicht importiert** (nur Meldung): Einstellungen mit Seiten-IDs
   (Kontaktformular, Cookie-Richtlinie, ausgeblendete Seiten), Consent-Forwarding,
   TCF, Geo-Restriction. Diese per `set-setting` nachziehen.
+- **Überschreibt ohne Rückfrage** die Banner-Texte und das Design
+  (`customizeBanner`) sowie Name und Beschreibung bestehender Gruppen. Die
+  Vorschau listet die betroffenen Felder unter `banner` und `groups`; soll nur
+  ein Teil übertragen werden, die Exportdatei vorher auf diese Schlüssel kürzen.
 - `group=<slug>` ist nur die Ersatzgruppe für Dienste, deren Gruppe fehlt.
+
+**Zurücknehmen:** `backup` aus der Import-Ausgabe als eigene Datei speichern und
+mit `import yes` wieder einspielen - das stellt Einstellungen, Banner und
+Gruppen her. Neu angelegte Dienste, Blocker und Gruppen bleiben dabei stehen;
+sie per `wp post delete <id> --force` bzw. `wp term delete rcb-cookie-group
+<slug> --by=slug` entfernen. Abschluss: neuer `export`, `rcb diff` gegen die
+Sicherung zeigt 0 Unterschiede.
 
 ## Multisite und WPML
 

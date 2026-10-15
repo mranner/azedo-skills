@@ -349,15 +349,18 @@ function rcb_import_plan($json)
 	};
 	$services = $existing('rcb-cookie');
 	$blockers = $existing('rcb-blocker');
-	$groups = get_terms(['taxonomy' => 'rcb-cookie-group', 'hide_empty' => false, 'fields' => 'id=>slug']);
-
-	$groupNames = get_terms(['taxonomy' => 'rcb-cookie-group', 'hide_empty' => false, 'fields' => 'id=>name']);
+	$current = Export::instance()->appendCookieGroups()->appendCustomizeBanner()->finish();
+	$groups = array_column($current['cookieGroups'], 'slug', 'term_id');
+	$groupNames = array_column($current['cookieGroups'], 'name', 'term_id');
+	$groupRows = array_column($current['cookieGroups'], null, 'slug');
 
 	foreach ((array) ($json['cookieGroups'] ?? []) as $g) {
 		$other = array_search($g['name'], $groupNames, true);
 
-		if (in_array($g['slug'], $groups, true)) {
-			$plan['groups'][$g['slug']] = 'umbenennen/Beschreibung';
+		if (isset($groupRows[$g['slug']])) {
+			$row = $groupRows[$g['slug']];
+			$same = $row['name'] === $g['name'] && $row['description'] === $g['description'];
+			$plan['groups'][$g['slug']] = $same ? 'unverändert' : 'Name/Beschreibung überschreiben';
 		} elseif ($other !== false) {
 			$plan['groups'][$g['slug']] = "anlegen - DUPLIKAT: Name existiert als {$groups[$other]}";
 			$plan['problems'][] = "Gruppe '{$g['name']}' gibt es schon unter anderem Slug";
@@ -403,6 +406,12 @@ function rcb_import_plan($json)
 
 	}
 
+	// Banner-Texte und -Design überschreibt RCB ohne Rückfrage
+
+	if (isset($json['customizeBanner'])) {
+		$plan['banner'] = rcb_changed_keys($current['customizeBanner'], $json['customizeBanner']);
+	}
+
 	$from = rcb_bare_host($there['home'] ?? '');
 	$to = rcb_bare_host($here['home']);
 
@@ -410,7 +419,44 @@ function rcb_import_plan($json)
 		$plan['hosts'] = "Cookie-Hosts werden von $from auf $to umgeschrieben";
 	}
 
+	// Ein DEV-Klon trägt oft noch die Live-Domain in den Hosts - das Umschreiben greift dann nicht
+
+	foreach ((array) ($json['cookies'] ?? []) as $c) {
+
+		if ($plan['services'][$c['post_name']] === 'überspringen (existiert)') {
+			continue;
+		}
+
+		foreach ((array) ($c['metas']['technicalDefinitions'] ?? []) as $def) {
+			$host = $def['host'] ?? '';
+
+			if (strpos($host, '.') !== false && strpos($host, $from) === false && strpos($host, $to) === false) {
+				$plan['warnings'][] = "Host '$host' von '{$c['post_title']}' passt weder zu $from noch zu $to";
+			}
+
+		}
+
+	}
+
 	return $plan;
+}
+
+function rcb_changed_keys($old, $new, $path = '')
+{
+	$changed = [];
+
+	foreach ((array) $new as $key => $value) {
+		$sub = $path === '' ? $key : "$path.$key";
+
+		if (is_array($value) && isset($old[$key]) && is_array($old[$key])) {
+			$changed = array_merge($changed, rcb_changed_keys($old[$key], $value, $sub));
+		} elseif (!array_key_exists($key, (array) $old) || $old[$key] !== $value) {
+			$changed[] = $sub;
+		}
+
+	}
+
+	return $changed;
 }
 
 function rcb_bare_host($url)

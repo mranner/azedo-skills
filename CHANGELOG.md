@@ -3,6 +3,16 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.72.1
+
+- **`wp-rcb`: Import-Vorschau vollständig.** Ein Test auf DEV zeigte, dass der
+  Import auch Banner-Texte/-Design und Name/Beschreibung bestehender Gruppen
+  überschreibt. Die Vorschau listet das jetzt (`banner`, `groups` mit
+  „unverändert" bzw. „überschreiben") und warnt vor Cookie-Hosts, die weder zur
+  Quell- noch zur Ziel-Domain passen (DEV-Klone mit Live-Domain). SKILL.md:
+  Rücknahme über `backup` + `import yes`, Werte mit Leerzeichen nur per
+  `--input`.
+
 ### 1.72.0
 
 - **Neuer Skill `wp-rcb`:** Real Cookie Banner per WP-CLI. `rcb.php` läuft per
