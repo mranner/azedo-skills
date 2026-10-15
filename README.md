@@ -151,6 +151,8 @@ Posteingang-Triage über mehrere IMAP-Konten — das Gegenstück zu `swaks`. Unt
 - Mails auflisten (`list`, ohne Konto über alle Konten, `--unseen`/`--since`) und lesen (`read`)
 - Server-Suche in `list` nach Betreff, Absender, Empfänger und Zeitraum (`--subject`, `--from`, `--to`,
   `--date-from`/`--date-to`) über den ganzen Ordner, `-n 0` liefert alle Treffer
+- Übergroße Mails finden: `list --larger 10M --sort size`, über mehrere Ordner (`-f` mehrfach) oder
+  `--all-folders`
 - `fetch` holt einen Stapel Mails mit **einem** Login (`--uids`/`--uid-file`, `-o` schreibt je UID
   eine Datei) — das lesende Gegenstück zu `batch`
 - `quote` erzeugt den Zitatblock für eine Antwort im Thunderbird-Format (`--format text|html`,
@@ -739,12 +741,9 @@ Retrospektive einer Session: schlägt Verbesserungen an der Umgebung des Agents 
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.71.0
+### 1.71.1
 
-- **`imap`: neuer Befehl `delete-attachment`.** Entfernt Anhänge aus einer Mail
-  im Postfach wie Thunderbirds "Löschen": die bereinigte Fassung kommt per
-  `APPEND` mit Flags und INTERNALDATE in denselben Ordner, erst danach geht das
-  Original in den Papierkorb (nie expunge, die UID ändert sich). Platzhalter
-  wie bei Thunderbird (`text/x-moz-deleted`, `X-Mozilla-Altered`). Auswahl wie
-  bei `save-attachment`, `--save` schreibt vorher heraus, `--dry-run`.
-  Signierte und verschlüsselte Mails werden abgelehnt.
+- **`imap list`:** `--larger <größe>` sucht übergroße Mails per IMAP-`SEARCH
+  LARGER`, `--sort size` zeigt die größten zuerst (`-n` dann über alle Ordner).
+  `-f` ist mehrfach angebbar, `--all-folders` durchsucht alle Ordner eines
+  Kontos; die Textausgabe nennt dann den Ordner zur UID.

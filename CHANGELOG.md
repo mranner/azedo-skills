@@ -3,6 +3,13 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.71.1
+
+- **`imap list`:** `--larger <größe>` sucht übergroße Mails per IMAP-`SEARCH
+  LARGER`, `--sort size` zeigt die größten zuerst (`-n` dann über alle Ordner).
+  `-f` ist mehrfach angebbar, `--all-folders` durchsucht alle Ordner eines
+  Kontos; die Textausgabe nennt dann den Ordner zur UID.
+
 ### 1.71.0
 
 - **`imap`: neuer Befehl `delete-attachment`.** Entfernt Anhänge aus einer Mail

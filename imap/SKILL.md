@@ -34,7 +34,7 @@ ohne `--account` alle Konten ab. Einrichtung, Keystore und Kontonamen im Detail:
 |---|---|
 | `accounts` | konfigurierte Konten (ohne Passwörter) |
 | `folders -a <konto>` | Ordnerliste, Separator, Sonderordner, Server-Capabilities |
-| `list [-a <konto>]` | Kopfdaten ohne Body, mit Server-Suche nach Betreff, Absender, Empfänger, Zeitraum |
+| `list [-a <konto>]` | Kopfdaten ohne Body, mit Server-Suche nach Betreff, Absender, Empfänger, Zeitraum, Größe; `-f` mehrfach oder `--all-folders` |
 | `find -m <message-id>` | Message-ID zu Konto, Ordner und UID auflösen |
 | `read <uid> -a <konto>` | Textkörper einer Mail |
 | `fetch --uids <liste> -a <konto>` | mehrere Mails mit **einem** Login |
@@ -51,6 +51,8 @@ python3 "$SKILL_DIR/imap" list -a office --unseen -n 30
 python3 "$SKILL_DIR/imap" list -a mail --since 3          # letzte 3 Tage
 python3 "$SKILL_DIR/imap" list -a office -f "<ordner>" --subject budget \
     --date-from 2026-01-01 --date-to 2026-06-30 -n 0     # Server-Suche, alle Treffer
+python3 "$SKILL_DIR/imap" list -a office --all-folders --larger 10M --sort size -n 20
+python3 "$SKILL_DIR/imap" list -a office -f INBOX -f sent --larger 5M   # -f mehrfach
 python3 "$SKILL_DIR/imap" read 8841 -a office --json
 python3 "$SKILL_DIR/imap" read 8841 -a office --headers
 python3 "$SKILL_DIR/imap" read 8841 -a office --raw | less
@@ -67,7 +69,9 @@ nachladen, und nur für die Mails, die wirklich zusammengefasst werden.
 (Teilstring, ohne Groß/Klein, Umlaute gehen) sowie `--date-from`/`--date-to`
 (`YYYY-MM-DD`, beide inklusive) laufen als IMAP-`SEARCH` über den ganzen Ordner;
 mehrere Bedingungen gelten gemeinsam, auch mit `--unseen` und `--since`. `-n`
-begrenzt danach nur die Treffer auf die neuesten, `-n 0` liefert alle. Ein hohes
+begrenzt danach nur die Treffer auf die neuesten, `-n 0` liefert alle.
+`--larger 10M` (K/M/G) sucht ebenfalls am Server; mit `--sort size` kommen die
+größten zuerst, und `-n` gilt dann über alle durchsuchten Ordner zusammen. Ein hohes
 `-n` mit lokalem Filtern lässt ältere Mails außer Reichweite.
 
 **BODY.PEEK:** `read` setzt `\Seen` nicht. Ein Posteingang ist nach einer
