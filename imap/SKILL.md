@@ -80,14 +80,18 @@ Bcc-Leak, MIME); wann welche Variante passt: [references/header.md](references/h
 
 | Aktion | Wirkung |
 |---|---|
-| `move <uid> -t <ziel>` | verschieben |
-| `copy <uid> -t <ziel>` | kopieren |
-| `spam <uid>` | in den Junk-Ordner |
-| `delete <uid>` | in den Papierkorb -- **nie** expunge |
+| `move <uid>… -t <ziel>` | verschieben |
+| `copy <uid>… -t <ziel>` | kopieren |
+| `spam <uid>…` | in den Junk-Ordner |
+| `delete <uid>…` | in den Papierkorb -- **nie** expunge |
 | `seen` / `unseen` | Gelesen-Status |
 | `flag` / `unflag` | Markierung |
 | `append <datei.eml>` | eine lokale `.eml` in einen Ordner legen (Default: Gesendet) |
 | `empty-trash -a <konto>` | Papierkorb endgültig leeren; ohne `--force` nur zählen |
+
+`move` bis `unflag` nehmen mehrere UIDs, durch Leerzeichen getrennt
+(`delete 8815 8819 8820`), und erledigen sie mit einem Login. Gemischte
+Aktionen, Ordner oder Konten gehen per [Batch](#batch----der-normalfall-für-aktionen).
 
 Als `-t/--target` sind **Sonderrollen** erlaubt: `junk`, `trash`, `archive`,
 `sent`, `drafts`. Die werden per SPECIAL-USE beim Server aufgelöst, sonst über
