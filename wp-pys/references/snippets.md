@@ -12,6 +12,7 @@ Fallstricke (Abschnitt 1 und 4) setzen sie voraus.
 - 3.5 Trigger aendern (set-selector / set-forms) - write
 - 3.6 Verifizieren (verify) - read
 - 3.7 Backup / Restore
+- 3.9 Plugin-Option setzen (set-option) - write
 
 ## 3.1 Events auflisten (list-events)
 
@@ -306,6 +307,66 @@ $wpdb->update(
 );
 
 echo "OK: $key von Event $event_id wiederhergestellt\n";
+```
+
+## 3.9 Plugin-Option setzen (set-option)
+
+Aendert genau einen Schluessel einer Option in `pys_options`. Ohne `run` nur
+Probelauf. Die Ausgabe enthaelt den alten Rohwert base64-codiert - das ist das
+Backup (Restore: `$wpdb->update($table, ['option_value' => base64_decode(...)], ['option_name' => <option>])`).
+
+```php
+<?php
+// pys-set-option.php — via: wp eval-file pys-set-option.php <option> <schluessel> <wert> [run] --url=<subsite>
+// $args[0] = Option (z.B. pys_core), $args[1] = Schluessel, $args[2] = neuer Wert, $args[3] = "run" schreibt
+// Beispiel: pys_core gdpr_real_cookie_banner_integration_enabled true
+
+global $wpdb;
+$table = $wpdb->prefix . 'pys_options';
+[$option, $key, $value] = $args;
+$run = ($args[3] ?? '') === 'run';
+
+$read = fn() => $wpdb->get_var($wpdb->prepare("SELECT option_value FROM $table WHERE option_name = %s", $option));
+$raw  = $read();
+$data = maybe_unserialize($raw);
+if (!is_array($data)) {
+    echo "FEHLER: $option fehlt in $table oder ist kein Array\n";
+    exit(1);
+}
+if (!array_key_exists($key, $data)) {
+    echo "FEHLER: Schluessel $key existiert nicht in $option - Tippfehler? (nur bestehende Schluessel)\n";
+    exit(1);
+}
+
+// Guard: alter Wert muss skalar sein, neuer Wert bekommt dessen Typ
+$old = $data[$key];
+if (is_bool($old)) {
+    if (!in_array($value, ['true', 'false'], true)) {
+        echo "FEHLER: $key ist bool, erlaubt: true/false\n";
+        exit(1);
+    }
+    $new = $value === 'true';
+} elseif (is_int($old)) {
+    $new = (int) $value;
+} elseif (is_string($old)) {
+    $new = $value;
+} else {
+    echo "FEHLER: $key ist " . gettype($old) . " - nur skalare Werte\n";
+    exit(1);
+}
+
+echo "$option.$key: " . var_export($old, true) . " -> " . var_export($new, true) . "\n";
+echo "Backup $option=" . base64_encode($raw) . "\n";
+if ($old === $new) { echo "OK: unveraendert\n"; exit(0); }
+if (!$run) { echo "Probelauf - mit 'run' schreiben\n"; exit(0); }
+
+$data[$key] = $new;
+$wpdb->update($table, ['option_value' => maybe_serialize($data)], ['option_name' => $option]);
+
+// Gegenlesen: Wert gesetzt, Schluesselanzahl unveraendert
+$check = maybe_unserialize($read());
+$ok = is_array($check) && count($check) === count($data) && $check[$key] === $new;
+echo $ok ? "OK: $option.$key gesetzt (" . count($check) . " Schluessel)\n" : "FEHLER: Gegenlesen weicht ab - Backup zurueckspielen\n";
 ```
 
 Zurueck zur Uebersicht: [SKILL.md](../SKILL.md).

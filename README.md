@@ -461,11 +461,11 @@ python3 ~/.claude/skills/mainwp/mainwp setup
 Referenz-Skill für PixelYourSite Pro Event-Verwaltung in WordPress-(Multi-)Sites per WP-CLI. Kein eigenes Script, reine SKILL.md mit PHP-Snippets:
 
 - Datenmodell: `pys_event` CPT, `wp_{blog}_pys_options`, serialisierte Meta-Felder
-- Events auflisten, Plugin-Config lesen, Pixel-Ziele aktivieren
+- Events auflisten, Plugin-Config lesen und einzelne Optionen setzen, Pixel-Ziele aktivieren
 - Events klonen, Trigger ändern (CSS-Click, Ninja Forms)
 - Verifizieren (Trigger-Deserialisierung prüfen), Backup/Restore
 - Ninja-Form-IDs nachschlagen (site-spezifisch bei Multisite)
-- Fallstricke: `wp_slash()` bei Triggers, `$args[]` statt Env-Vars, login-gated Formulare
+- Fallstricke: `wp_slash()` bei Triggers, `$args[]` statt Env-Vars, login-gated Formulare, Consent mit Real Cookie Banner
 
 **Trigger:** `/wp-pys` oder natürliche Sprache wie "PYS Events auflisten", "GA4 Event einrichten", "PixelYourSite".
 
@@ -741,9 +741,12 @@ Retrospektive einer Session: schlägt Verbesserungen an der Umgebung des Agents 
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.71.1
+### 1.71.2
 
-- **`imap list`:** `--larger <größe>` sucht übergroße Mails per IMAP-`SEARCH
-  LARGER`, `--sort size` zeigt die größten zuerst (`-n` dann über alle Ordner).
-  `-f` ist mehrfach angebbar, `--all-folders` durchsucht alle Ordner eines
-  Kontos; die Textausgabe nennt dann den Ordner zur UID.
+- **`wp-pys`: neue Operation `set-option` (3.9).** Setzt einen bestehenden,
+  skalaren Schlüssel einer Option in `wp_{blog}_pys_options` (z.B.
+  `pys_core.gdpr_real_cookie_banner_integration_enabled`): Probelauf ohne `run`,
+  Typ-Guard, alter Rohwert als base64-Backup, danach Gegenlesen samt
+  Schlüsselanzahl. Consent-Abschnitt: GA wartet nur auf den Real Cookie Banner,
+  wenn der PYS-Schalter `true` **und** `rcb-banner-active = 1` ist, sonst
+  `gcs=G111`. GA4-Tests headed, weil GA4 `HeadlessChrome` als Bot verwirft.

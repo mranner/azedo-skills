@@ -2,9 +2,9 @@
 name: wp-pys
 description: >
   PixelYourSite Pro in WordPress-(Multi-)Sites per WP-CLI: Events auslesen,
-  Pixel-Ziele aktivieren, Trigger ändern, Events klonen - reproduzierbar
-  statt über das Admin-UI. Auch bei "PixelYourSite", "PYS-Event", "GA4-Event
-  anlegen", "Tracking-Event", "CSS-Click-Event".
+  Pixel-Ziele aktivieren, Trigger ändern, Events klonen, Plugin-Optionen
+  setzen - reproduzierbar statt über das Admin-UI. Auch bei "PixelYourSite", "PYS-Event", "GA4-Event
+  anlegen", "Tracking-Event", "CSS-Click-Event", "PYS-Einstellung ändern".
   Trigger: /wp-pys.
 allowed-tools: [Bash, Read]
 ---
@@ -108,6 +108,7 @@ und werden erst beim Ausfuehren gebraucht:
 | 3.5 | Trigger aendern (`set-trigger`) - css-Selektor oder NF-Formulare | write |
 | 3.6 | Verifizieren (`verify`) - Trigger-Deserialisierung und Pixel-Ziele | read |
 | 3.7 | Backup / Restore - Meta base64-codiert sichern und zurueckschreiben | write |
+| 3.9 | Plugin-Option setzen (`set-option`) - ein Schluessel in `pys_options`, Probelauf ohne `run` | write |
 
 Vor jedem Write 3.7 (Backup), danach 3.6 (Verify) - siehe Abschnitt 5.
 
@@ -190,7 +191,18 @@ Foerderer-Formulare (z.B. Kuendigungsformulare) sind hinter Login (Einmalcode) v
 
 ### Consent (Real Cookie Banner)
 
-GA4-Events werden erst nach Cookie-Consent gesendet. Die Event-Config (`pysOptions`) wird aber serverseitig unabhaengig vom Consent gerendert — serverseitige Verifikation (Abschnitt 3.6) funktioniert also immer.
+PYS wartet mit GA nur dann auf die Einwilligung, wenn **beides** gilt:
+`pys_core.gdpr_real_cookie_banner_integration_enabled = true` (3.2 lesen, 3.9
+setzen) **und** `wp option get rcb-banner-active` = `1`. Sonst sendet PYS ohne
+Einwilligung - erkennbar an `gcs=G111` im GA-Hit.
+
+Die Event-Config (`pysOptions`) wird serverseitig unabhaengig vom Consent gerendert — serverseitige Verifikation (Abschnitt 3.6) funktioniert also immer.
+
+### GA4-Test im Browser: headed
+
+GA4 filtert Headless-Browser (`HeadlessChrome` im User-Agent) als Bot: der Hit
+bekommt `204`, Realtime bleibt trotzdem leer. GA-Tests per
+`playwright-cli open --headed`.
 
 ---
 
