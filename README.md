@@ -391,7 +391,7 @@ Referenz-Skill für tcsh — Remote-Administration auf FreeBSD-Servern. Root-She
 Einstieg und Routing für jede WordPress-Aufgabe. Macht selbst keine WordPress-Arbeit, sondern klärt zwei Fragen und leitet weiter:
 
 - **Wo liegt die Site?** Umgebung, Zugang und Repo über das Infra-Wiki statt Host abklopfen
-- **Was ist die Aufgabe?** Routing-Tabelle: Code (Block-Theme, Blöcke, Patterns, Plugin, REST-Endpunkt, Performance) zu den offiziellen WordPress-Skills, Betrieb und Inhalte zu `wp-cli`, `wp-rest`, `wp-nf`, `wp-pys`, `mainwp`, `novamira`; ersetzt `wordpress-router`
+- **Was ist die Aufgabe?** Routing-Tabelle: Code (Block-Theme, Blöcke, Patterns, Plugin, REST-Endpunkt, Performance) zu den offiziellen WordPress-Skills, Betrieb und Inhalte zu `wp-cli`, `wp-rest`, `wp-nf`, `wp-pys`, `wp-rcb`, `mainwp`, `novamira`; ersetzt `wordpress-router`
 - azedo-Regeln, die in den offiziellen Skills fehlen: kein Docker, `php-formatting` statt WPCS, `eval-file -` wegen tcsh, kein `--allow-root`, Locale vor Core-Updates, Code in Git und Inhalte in der DB
 - `references/`: ACF (Local JSON, Blöcke, Lizenz), Abnahme-Checkliste für Block-Themes, Go-Live-Liste
 - **Voraussetzung:** die offiziellen Skills aus `https://github.com/WordPress/agent-skills`, geklont nach `~/.claude/vendor/wordpress-agent-skills` und je Skill nach `~/.claude/skills/` verlinkt (ohne `wordpress-router` und WooCommerce) - `install.sh` richtet sie nicht ein
@@ -468,6 +468,17 @@ Referenz-Skill für PixelYourSite Pro Event-Verwaltung in WordPress-(Multi-)Site
 - Fallstricke: `wp_slash()` bei Triggers, `$args[]` statt Env-Vars, login-gated Formulare, Consent mit Real Cookie Banner
 
 **Trigger:** `/wp-pys` oder natürliche Sprache wie "PYS Events auflisten", "GA4 Event einrichten", "PixelYourSite".
+
+### wp-rcb
+
+Real Cookie Banner (auch Pro) per WP-CLI. `rcb.php` läuft per `wp eval-file -` über STDIN auf dem Server und ruft die Export-/Import-Klassen von RCB direkt auf; das lokale Script `rcb` baut die Payload, liest das Frontend und vergleicht:
+
+- Lesen: Dienste, Content Blocker, Banner-Links, Einstellungen, Revisionen, Export
+- Frontend: welche Dienste eine Seite mit welchem Code ausliefert (`base64-encoded:` dekodiert)
+- Vergleich zweier Sites per Export oder Einstellungen
+- Schreiben mit Vorschau und automatischer Sicherung: Import (Duplikat- und Versionsprüfung, Cookie-Hosts auf die Ziel-Domain), Code-Felder, Einstellungen, Cache
+
+**Trigger:** `/wp-rcb` oder natürliche Sprache wie "welche Dienste hat der Cookie-Banner", "übertrag den Cookie-Banner auf die andere Seite".
 
 ### wp-nf
 
@@ -741,12 +752,15 @@ Retrospektive einer Session: schlägt Verbesserungen an der Umgebung des Agents 
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.71.7
+### 1.72.0
 
-- **`imap`: `next-uid` und `list --since-uid`.** `next-uid` liest `UIDNEXT`
-  eines Ordners per `STATUS` (JSON zusätzlich mit `uidvalidity`) - der
-  Start-Marker eines Testlaufs, der auch bei leerem Ordner und nach Löschen
-  stimmt. `list --since-uid S` sucht serverseitig mit `UID S:*` und filtert
-  zusätzlich auf `uid >= S`, weil `S:*` immer mindestens die letzte Mail
-  liefert. Der Fallstrick aus 1.71.3 („Start-UID = `list -n 1`") ist dadurch
-  ersetzt: `list -n 1` liefert nur die höchste vorhandene UID.
+- **Neuer Skill `wp-rcb`:** Real Cookie Banner per WP-CLI. `rcb.php` läuft per
+  `wp eval-file -` über STDIN auf dem Server (Lesen: `services`, `service`,
+  `blockers`, `banner-links`, `settings`, `revisions`, `export`; Schreiben mit
+  Vorschau und Sicherung unter `backup`: `import`, `set-code`, `set-setting`,
+  `clear-cache`). Das lokale Script `rcb` baut die Payload samt Eingabedatei,
+  zeigt mit `frontend` den ausgelieferten Dienst-Code und vergleicht mit `diff`
+  zwei Exporte oder Einstellungen. Der Import prüft die RCB-Version, meldet
+  Duplikate durch abweichende Slugs und schreibt Cookie-Hosts auf die
+  Ziel-Domain um.
+- **`wp-azedo`:** Routing auf `wp-rcb`.

@@ -3,6 +3,19 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.72.0
+
+- **Neuer Skill `wp-rcb`:** Real Cookie Banner per WP-CLI. `rcb.php` läuft per
+  `wp eval-file -` über STDIN auf dem Server (Lesen: `services`, `service`,
+  `blockers`, `banner-links`, `settings`, `revisions`, `export`; Schreiben mit
+  Vorschau und Sicherung unter `backup`: `import`, `set-code`, `set-setting`,
+  `clear-cache`). Das lokale Script `rcb` baut die Payload samt Eingabedatei,
+  zeigt mit `frontend` den ausgelieferten Dienst-Code und vergleicht mit `diff`
+  zwei Exporte oder Einstellungen. Der Import prüft die RCB-Version, meldet
+  Duplikate durch abweichende Slugs und schreibt Cookie-Hosts auf die
+  Ziel-Domain um.
+- **`wp-azedo`:** Routing auf `wp-rcb`.
+
 ### 1.71.7
 
 - **`imap`: `next-uid` und `list --since-uid`.** `next-uid` liest `UIDNEXT`

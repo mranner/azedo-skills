@@ -1,0 +1,124 @@
+---
+name: wp-rcb
+description: >
+  Real Cookie Banner (devowl, auch Pro) per WP-CLI: Dienste, Content Blocker,
+  Banner-Links, Einstellungen und Revisionen lesen, ausgelieferten Dienst-Code
+  im Frontend prüfen, Einrichtung exportieren, zwischen Sites vergleichen und
+  importieren, Code-Felder und Einstellungen setzen. Auch bei "welche Dienste
+  hat der Cookie-Banner", "liefert RCB den Code ohne Einwilligung aus",
+  "übertrag den Cookie-Banner auf die andere Seite", "vergleich die
+  RCB-Einstellungen". Trigger: /wp-rcb.
+allowed-tools: [Bash, Read]
+---
+
+# wp-rcb -- Real Cookie Banner per WP-CLI
+
+RCB bringt keine eigenen WP-CLI-Befehle mit. `rcb.php` ruft seine PHP-Klassen
+(Export, Import, Cache) direkt auf und liefert JSON. Es läuft **auf dem Server**
+per `wp eval-file -` über STDIN; lokal braucht es nur `python3`.
+
+Das Zusammenspiel mit PixelYourSite (Consent-Kopplung, `optimized-assets`,
+MU-Plugin) steht nicht hier, sondern in der Wiki-Procedure
+`wp-pys-rcb-integration`. Die DSGVO-Bewertung bleibt beim Menschen.
+
+## Aufruf
+
+Host, Jail, Docroot und wwwuser der Site kommen aus dem Infra-Wiki, die
+Aufrufform aus dem Skill `wp-cli` (iocage: `iocage exec -U <wwwuser>`, ezjail:
+`jexec <jail> sh -c "cd <docroot> && sudo -u <wwwuser> wp …"`). An die Stelle
+des WP-CLI-Befehls tritt `wp eval-file - <befehl> [argumente]`:
+
+```bash
+cat "$SKILL_DIR/rcb.php" | sudo ssh -C root@<host> \
+  "jexec <jail> sh -c 'cd <docroot> && sudo -u <wwwuser> wp eval-file - services'"
+```
+
+Bei Multisite gehört `--url=<site-url>` vor `eval-file`. Befehle, die eine
+Datei brauchen (`import`, `set-code`), bekommen sie über das lokale Script, das
+den Inhalt in die Payload einbettet:
+
+```bash
+python3 "$SKILL_DIR/rcb" php --input <datei> | sudo ssh -C root@<host> "… wp eval-file - import"
+```
+
+Argumente sind Wörter oder `name=wert` (`revisions grep=office@ limit=5`) -
+WP-CLI nimmt `--optionen` hinter `eval-file` nicht an.
+
+## Befehle (rcb.php, auf dem Server)
+
+| Befehl | Zweck |
+|---|---|
+| `info` | RCB-Version, Pro, Home-URL, Blog-ID, Sprachen |
+| `services` | Dienste mit Gruppe, Vorlage/Version, Rechtsgrundlage, Sprache, befüllten Code-Feldern, Cookie-Hosts |
+| `service <id\|post_name\|titel>` | ein Dienst mit allen Metas, Code-Felder im Klartext |
+| `blockers` | Content Blocker mit verbundenen Diensten und Regeln |
+| `banner-links` | Datenschutz/Impressum/… mit Sprache und Ziel-URL |
+| `settings [all]` | die funktionalen RCB-Einstellungen; `all`: alle `rcb-*`-Optionen ohne Caches |
+| `revisions [grep=<text>] [limit=<n>]` | öffentliche Revision je Kontext und die letzten Einträge |
+| `export` | komplette Einrichtung samt `_meta` (Version, Home-URL) |
+| `import [yes] [group=<slug>]` | Export einspielen; ohne `yes` nur Vorschau |
+| `set-code <dienst> <feld> [empty] [yes]` | `codeOptIn`, `codeOptOut` oder `codeOnPageLoad` setzen bzw. leeren |
+| `set-setting <option> <wert\|empty> [yes]` | eine RCB-Einstellung setzen |
+| `clear-cache` | RCB-Cache und WP Rocket leeren |
+
+## Befehle (rcb, lokal)
+
+| Befehl | Zweck |
+|---|---|
+| `rcb php [--input <datei>]` | Payload für `wp eval-file -` ausgeben |
+| `rcb frontend <url>… [--full]` | welche Dienste die Seite ausliefert und mit welchem Code (dekodiert) |
+| `rcb diff <a.json> <b.json>` | zwei Exporte oder `settings`-Ausgaben vergleichen, Listen per Slug |
+
+Sites vergleichen: `export` bzw. `settings all` auf beiden Seiten nach `.tmp/`
+schreiben, dann `rcb diff`. Ein leeres `rcb-banner-active` zeigt nur der
+Vergleich der Einstellungen, nicht der Blick auf die Dienste.
+
+## Schreiben
+
+1. Ohne `yes` aufrufen und die Vorschau lesen: alter und neuer Wert, beim
+   Import der Plan je Gruppe, Dienst, Blocker und Einstellung.
+2. Erst nach Freigabe mit `yes`. Die Ausgabe enthält unter `backup` den Export
+   **vor** der Änderung - sie gehört nach `.tmp/rcb-<site>-<befehl>-<zeit>.json`
+   (`| tee …`), sonst ist die Sicherung weg.
+3. Danach mit `service`/`settings` gegenlesen und `rcb frontend` gegen die
+   Seite laufen lassen; bei Seiten-Cache vorher `clear-cache`.
+
+Schreibbefehle verlangen **keine** neue Einwilligung der Besucher. RCB rechnet
+die Revision neu und zeigt im Admin einen Hinweis; ob neu eingewilligt werden
+muss, entscheidet der Mensch dort ("Neue Einwilligung anfordern").
+
+## Import - was RCB tut und was nicht
+
+- **Legt nur an.** Dienste und Blocker mit bestehendem `post_name` werden
+  übersprungen, nie aktualisiert. Zum Angleichen einer bestehenden Site
+  `set-code`/`set-setting` verwenden.
+- **Abgleich nur per Slug.** Heißt derselbe Dienst oder dieselbe Gruppe auf der
+  Ziel-Site anders (`statistik` vs. `statistiken`), entsteht ein Duplikat. Die
+  Vorschau meldet gleiche Titel unter anderem Slug als Problem und jede neue
+  Gruppe als Warnung.
+- **Version muss gleich sein.** RCB selbst prüft das nicht; `rcb.php` bricht
+  mit `yes` ab, solange `problems` nicht leer ist.
+- **Cookie-Hosts** tragen die Domain der Quell-Site; `rcb.php` schreibt sie beim
+  Import auf die Ziel-Domain um.
+- **Nicht importiert** (nur Meldung): Einstellungen mit Seiten-IDs
+  (Kontaktformular, Cookie-Richtlinie, ausgeblendete Seiten), Consent-Forwarding,
+  TCF, Geo-Restriction. Diese per `set-setting` nachziehen.
+- `group=<slug>` ist nur die Ersatzgruppe für Dienste, deren Gruppe fehlt.
+
+## Multisite und WPML
+
+RCB-Optionen und -Tabellen liegen je Blog - `--url` wählt ihn. Unter WPML hat
+jeder Dienst und jeder Banner-Link je Sprache einen eigenen Post (Feld `lang`).
+Die Einwilligung gilt je Sprachdomain: `rcb frontend` je Domain aufrufen.
+
+Eine Kontaktseiten-ID in `rcb-operator-contact-form-id` ist die der
+Hauptsprache; RCB löst die Übersetzung über WPML selbst auf.
+
+## Fallstricke
+
+- **`blockers` leer** ist kein Fehler, wenn die Sperre über die
+  PixelYourSite-Kopplung läuft (siehe `wp-pys-rcb-integration`).
+- **`frontend` braucht einen normalen User-Agent** - Headless-Browsern zeigt RCB
+  keinen Banner. Das Script setzt ihn; mit `curl` von Hand ebenso.
+- Ausgelieferter Code steht im HTML als `base64-encoded:…`; `rcb frontend`
+  dekodiert ihn, `--full` zeigt ihn ganz.

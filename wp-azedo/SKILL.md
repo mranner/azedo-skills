@@ -4,7 +4,7 @@ description: >
   Einstieg für jede WordPress-Aufgabe bei azedo: klärt, wo die Site liegt und
   wie man sie erreicht, und leitet zum zuständigen Skill weiter - Code (Theme,
   Block, Plugin) zu den offiziellen WordPress-Skills, Betrieb und Inhalte zu
-  wp-cli, wp-rest, wp-nf, wp-pys, mainwp, novamira. Bringt die azedo-Regeln
+  wp-cli, wp-rest, wp-nf, wp-pys, wp-rcb, mainwp, novamira. Bringt die azedo-Regeln
   mit: ohne Docker, Code-Stil, ACF, Abnahme-Checkliste. Nutze diesen Skill vor
   jedem anderen wp-*-Skill, auch wenn das Wort WordPress nicht fällt. Auch bei
   "REST-Endpunkt im mu-plugin", "exportier die DB der Site", "ändere den Text
@@ -44,6 +44,7 @@ Fehlt etwas davon im Wiki, nachfragen und das Ergebnis danach ins Wiki eintragen
 | Inhalte **pflegen** per REST (Seiten, Medien, Beiträge) | `wp-rest` |
 | Ninja Forms | `wp-nf` |
 | PixelYourSite, Tracking-Events | `wp-pys` |
+| Real Cookie Banner: Dienste, Export/Import, ausgelieferter Code | `wp-rcb` |
 | Security-Audit, Backdoor-Suche, Admin-Audit, 2FA | `wp-security` ¹ |
 | Ganze Site (Dateien + DB) von Live auf DEV klonen | `wp-clone-dev` ¹ |
 | Viele Sites: Updates, Plugins, Clients | `mainwp` |
