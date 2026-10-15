@@ -741,12 +741,8 @@ Retrospektive einer Session: schlägt Verbesserungen an der Umgebung des Agents 
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.71.4
+### 1.71.5
 
-- **`lint-skills.py`:** Fehler, wenn CHANGELOG.md keinen Abschnitt für die
-  Version in `VERSION` hat. Der pre-commit-Hook blockiert damit einen Release,
-  der nur `VERSION` hochzählt.
-- **CHANGELOG.md:** Die fehlenden Abschnitte 1.70.2 bis 1.70.6 sind aus den
-  Commits nachgetragen.
-- **Kopfzeilen `# version` der Scripts** auf den aktuellen Stand gezogen; bei
-  1.71.3 waren sie auf 1.71.2 stehengeblieben.
+- **`lint-skills.py`:** Fehler, wenn die Kopfzeile `# version <x.y.z>` eines
+  Scripts nicht auf der Version in `VERSION` steht. Der pre-commit-Hook
+  blockiert damit einen Release, der die Kopfzeilen nicht mitzieht.

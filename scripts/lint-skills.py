@@ -248,6 +248,30 @@ def changelog_fehlt():
     return version
 
 
+def kopfzeilen_abweichend(version):
+    """Scripts, deren Kopfzeile '# version x.y.z' nicht auf VERSION steht.
+
+    Bei 1.71.3 blieben alle 30 Kopfzeilen auf 1.71.2 stehen."""
+
+    muster = re.compile(r"^# version (\d+\.\d+\.\d+)$", re.M)
+    abweichend = []
+
+    for wurzel, verzeichnisse, dateien in os.walk("."):
+        verzeichnisse[:] = [d for d in verzeichnisse if d != ".git"]
+        for datei in dateien:
+            pfad = os.path.join(wurzel, datei)
+            try:
+                with open(pfad, encoding="utf-8") as f:
+                    text = f.read()
+            except (UnicodeDecodeError, OSError):
+                continue
+            for gefunden in muster.findall(text):
+                if gefunden != version:
+                    abweichend.append((pfad[2:], gefunden))
+
+    return sorted(abweichend)
+
+
 def main():
     ziele = sys.argv[1:]
     if not ziele:
@@ -297,6 +321,13 @@ def main():
         if version:
             print(f"FEHLER  CHANGELOG.md: kein Abschnitt '### {version}' für VERSION")
             fehler_gesamt += 1
+
+        if os.path.isfile("VERSION"):
+            with open("VERSION", encoding="utf-8") as f:
+                version = f.read().strip()
+            for pfad, gefunden in kopfzeilen_abweichend(version):
+                print(f"FEHLER  {pfad}: '# version {gefunden}', VERSION ist {version}")
+                fehler_gesamt += 1
 
     print(
         f"\n{len(ziele)} Skills geprüft, "

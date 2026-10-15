@@ -3,6 +3,12 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.71.5
+
+- **`lint-skills.py`:** Fehler, wenn die Kopfzeile `# version <x.y.z>` eines
+  Scripts nicht auf der Version in `VERSION` steht. Der pre-commit-Hook
+  blockiert damit einen Release, der die Kopfzeilen nicht mitzieht.
+
 ### 1.71.4
 
 - **`lint-skills.py`:** Fehler, wenn CHANGELOG.md keinen Abschnitt für die
