@@ -349,6 +349,11 @@ class Account:
     # --- Auswahl und Abruf ---
 
     def select(self, folder="INBOX", readonly=True):
+
+        # Sonderrollen (sent/trash/...) wie bei -t auflösen, auch für -f
+
+        if folder.lower() in SPECIAL_FALLBACK:
+            folder = self.special_folder(folder) or folder
         if self._selected == (folder, readonly):
             return
         if self._selected:

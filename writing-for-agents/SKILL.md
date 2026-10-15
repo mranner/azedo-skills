@@ -4,9 +4,10 @@ description: >
   Regeln für Texte, die ein Agent liest: Skills, CLAUDE.md, Memory-Einträge und
   Wiki-Procedures - was in den Kontext gehört, was hinter einen Verweis, wie
   Trigger, Schritte und Regeln formuliert werden. Nutze diesen Skill, wenn ein
-  Skill angelegt oder geändert wird oder eine CLAUDE.md, Memory oder
-  Wiki-Procedure entsteht oder überarbeitet wird. Auch bei "der Skill greift
-  nicht", "die CLAUDE.md ist zu lang". Trigger: /writing-for-agents.
+  Skill angelegt, geändert oder eine Änderung daran vorgeschlagen wird oder
+  eine CLAUDE.md, Memory oder Wiki-Procedure entsteht oder überarbeitet wird.
+  Auch bei "der Skill greift nicht", "die CLAUDE.md ist zu lang".
+  Trigger: /writing-for-agents.
 ---
 
 Referenz für jedes Dokument, das ein Agent liest. Ziel ist nicht dieselbe Ausgabe bei jedem Lauf, sondern derselbe **Weg**: Jede Regel unten ist ein Hebel gegen Varianz.

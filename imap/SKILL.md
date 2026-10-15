@@ -93,7 +93,7 @@ Bcc-Leak, MIME); wann welche Variante passt: [references/header.md](references/h
 (`delete 8815 8819 8820`), und erledigen sie mit einem Login. Gemischte
 Aktionen, Ordner oder Konten gehen per [Batch](#batch----der-normalfall-für-aktionen).
 
-Als `-t/--target` sind **Sonderrollen** erlaubt: `junk`, `trash`, `archive`,
+Als `-t/--target` und `-f/--folder` sind **Sonderrollen** erlaubt: `junk`, `trash`, `archive`,
 `sent`, `drafts`. Die werden per SPECIAL-USE beim Server aufgelöst, sonst über
 eine Namensheuristik. Findet sich nichts, bricht der Aufruf ab, statt einen
 Ordner anzulegen.

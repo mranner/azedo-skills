@@ -23,7 +23,7 @@ CHECKLISTE = """Vor dem Commit die geänderten Skills gegen die Anthropic-Regeln
 4. Begriffe, Schreibweise (echte Umlaute) und Vorlagen einheitlich - im Skill und gegenüber dem Wiki
 5. Freiheitsgrad passend: fragile Abläufe als exakte Befehle, sonst Leitlinien
 6. Keine zeitabhängigen Angaben, die veralten
-7. Beispiele konkret, aber mit Platzhaltern statt Kunden- oder Infrastrukturdaten (Repo ist public)
+7. Allgemein formuliert: Beispiele mit Platzhaltern statt Kunden- oder Infrastrukturdaten, keine Kopplung an ein bestimmtes Projekt, einen Host oder die Konvention eines anderen Skills (Repo ist public)
 8. Riskante Schritte mit Prüfschleife (Dry-Run, Backup, Bestätigung)
 9. Progressive Disclosure: Details in references/, dort nur eine Ebene tief, Verweis aus SKILL.md
 
