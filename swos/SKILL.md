@@ -1,18 +1,14 @@
 ---
 name: swos
 description: >
-  MikroTik-SwOS-Switches (CSS-Serie und RB260/SwOS-Lite) abfragen und
-  konfigurieren: System-Info, VLAN-Mitglieder, Portbelegung (PVID/PoE) und
-  FDB (MAC zu Port). Stufe 1 ist read-only und Standard, Stufe 2 schreibt
-  Port-, VLAN- und PoE-Einstellungen mit strengen Guard-Rails.
-  Von selbst nur laden, wenn das Gerät eindeutig als SwOS-Switch benannt ist:
-  "SwOS", "SwOS-Lite", "CSS106", "CSS326", "CSS610", "RB260" - oder ein Gerät,
-  das im Infra-Wiki als SwOS-Switch geführt ist.
-  Nicht von selbst laden bei den mehrdeutigen Nachbarbegriffen "MikroTik",
-  "Switch", "VLAN", "PoE", "Port" oder "MAC-Adresse" - die meinen genauso oft
-  RouterOS oder einen anderen Hersteller; dort auf den ausdrücklichen Aufruf
-  warten.
-  Trigger: /swos.
+  MikroTik-SwOS-Switches (CSS-Serie, RB260/SwOS-Lite) abfragen und
+  konfigurieren: System-Info, VLANs, Ports (PVID/PoE), FDB (MAC zu Port).
+  Stufe 1 ist read-only, Stufe 2 schreibt mit Guard-Rails. Von selbst nur
+  laden, wenn das Gerät eindeutig als SwOS-Switch benannt ist ("SwOS", eine
+  CSS- oder RB260-Modellnummer) oder im Infra-Wiki so geführt wird. Bei
+  "MikroTik", "Switch", "VLAN", "PoE" oder "MAC-Adresse" allein auf den
+  ausdrücklichen Aufruf warten - die meinen ebenso oft RouterOS. Trigger:
+  /swos.
 ---
 # swos -- MikroTik SwOS abfragen und konfigurieren
 

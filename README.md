@@ -741,8 +741,11 @@ Retrospektive einer Session: schlägt Verbesserungen an der Umgebung des Agents 
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.71.5
+### 1.71.6
 
-- **`lint-skills.py`:** Fehler, wenn die Kopfzeile `# version <x.y.z>` eines
-  Scripts nicht auf der Version in `VERSION` steht. Der pre-commit-Hook
-  blockiert damit einen Release, der die Kopfzeilen nicht mitzieht.
+- **Descriptions gekürzt** auf eine Nutzerformulierung pro Fall, Synonyme
+  zusammengelegt (Regel aus `writing-for-agents`): `cloudns`, `wp-azedo`,
+  `forgejo`, `meta-ads`, `swos`, `kanboard`, `ripgrep`, `imap` - von 629 bis
+  916 auf 341 bis 590 Zeichen. Die Ausschlussliste von `swos` und die
+  Zuständigkeitsgrenzen von `cloudns` und `forgejo` bleiben.
+- **`lint-skills.py`:** Warnung ab 600 Zeichen Description.

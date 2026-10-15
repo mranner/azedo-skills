@@ -26,6 +26,11 @@ BEKANNTE_SCHLUESSEL = {
 }
 
 MAX_DESCRIPTION = 1024
+
+# Ab hier Warnung: die description liegt in jedem Turn im Kontext - je Fall
+# eine wörtliche Nutzerformulierung, Synonyme zusammengelegt
+
+LANG_DESCRIPTION = 600
 MAX_NAME = 64
 MAX_BODY_ZEILEN = 500
 MAX_REFERENZ_OHNE_INHALT = 100
@@ -138,6 +143,11 @@ def pruefe(verzeichnis):
         elif len(text_desc) > MAX_DESCRIPTION:
             fehler.append(
                 f"description hat {len(text_desc)} Zeichen, erlaubt sind {MAX_DESCRIPTION}"
+            )
+        elif len(text_desc) >= LANG_DESCRIPTION:
+            warnungen.append(
+                f"description hat {len(text_desc)} Zeichen (ab {LANG_DESCRIPTION}) - "
+                "eine Nutzerformulierung pro Fall, Synonyme zusammenlegen"
             )
         if re.search(r"<[A-Za-z/][^>]*>", text_desc):
             fehler.append("description enthält XML-Tags")

@@ -1,17 +1,11 @@
 ---
 name: ripgrep
 description: >
-  Ripgrep (rg): schnelle, zeilenorientierte Regex-Suche über Dateien und
-  Verzeichnisse, 10-100x schneller als grep, respektiert .gitignore.
-  Nutze diesen Skill, wenn nach Textmustern in einer Codebase, in Logs oder
-  in großen Dateien gesucht wird, statt Dateien vollständig einzulesen -
-  auch bei "such nach X", "wo steht X", "alle Vorkommen von X", "welche
-  Dateien enthalten X".
-  rg ist nicht überall vorhanden: Verfügbarkeit prüfen (which rg) und auf
-  Systemen ohne rg zuerst fragen, ob das Paket nachinstalliert werden soll
-  (FreeBSD: pkg install ripgrep, Linux: Distributionspaket); bis dahin auf
-  grep ausweichen, nicht stillschweigend scheitern.
-  Trigger: /ripgrep.
+  Ripgrep (rg): schnelle Regex-Suche über Dateien und Verzeichnisse,
+  respektiert .gitignore. Nutze diesen Skill, wenn in einer Codebase, in Logs
+  oder großen Dateien nach Textmustern gesucht wird, statt Dateien ganz
+  einzulesen. Auch bei "wo steht X". rg fehlt auf manchen Systemen: vor dem
+  ersten Aufruf prüfen, ob es da ist. Trigger: /ripgrep.
 ---
 # Ripgrep (rg) - Fast Text Search Tool
 

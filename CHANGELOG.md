@@ -3,6 +3,15 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.71.6
+
+- **Descriptions gekürzt** auf eine Nutzerformulierung pro Fall, Synonyme
+  zusammengelegt (Regel aus `writing-for-agents`): `cloudns`, `wp-azedo`,
+  `forgejo`, `meta-ads`, `swos`, `kanboard`, `ripgrep`, `imap` - von 629 bis
+  916 auf 341 bis 590 Zeichen. Die Ausschlussliste von `swos` und die
+  Zuständigkeitsgrenzen von `cloudns` und `forgejo` bleiben.
+- **`lint-skills.py`:** Warnung ab 600 Zeichen Description.
+
 ### 1.71.5
 
 - **`lint-skills.py`:** Fehler, wenn die Kopfzeile `# version <x.y.z>` eines

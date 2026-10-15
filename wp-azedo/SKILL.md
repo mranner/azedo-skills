@@ -1,18 +1,14 @@
 ---
 name: wp-azedo
 description: >
-  Einstieg für jede WordPress-Aufgabe bei azedo: klärt zuerst, wo die Site liegt
-  und wie man sie erreicht, und leitet dann zum zuständigen Skill weiter - für
-  Code (Theme, Block-Theme, Blöcke, Patterns, Plugin, REST-Endpunkt, Performance)
-  zu den offiziellen WordPress-Skills, für Betrieb und Inhalte zu den azedo-Skills
-  (wp-cli, wp-rest, wp-nf, wp-pys, mainwp, novamira). Bringt die azedo-Regeln
-  mit, die dort fehlen: Umgebung ohne Docker, Code-Stil, ACF, Abnahme-Checkliste.
-  Nutze diesen Skill wenn der User an einer WordPress-Site, einem Theme,
-  Plugin oder mu-plugin arbeiten will, bevor ein anderer wp-*-Skill geladen
-  wird - auch wenn das Wort WordPress nicht fällt. Auch bei "bau ein Theme",
-  "neuer Block", "REST-Endpunkt im mu-plugin", "exportier die DB der Site",
-  "Plugins updaten", "ändere den Text auf der Seite", "richte die Seite ein",
-  "Go-Live vorbereiten", "prüf das Theme". Trigger: /wp-azedo.
+  Einstieg für jede WordPress-Aufgabe bei azedo: klärt, wo die Site liegt und
+  wie man sie erreicht, und leitet zum zuständigen Skill weiter - Code (Theme,
+  Block, Plugin) zu den offiziellen WordPress-Skills, Betrieb und Inhalte zu
+  wp-cli, wp-rest, wp-nf, wp-pys, mainwp, novamira. Bringt die azedo-Regeln
+  mit: ohne Docker, Code-Stil, ACF, Abnahme-Checkliste. Nutze diesen Skill vor
+  jedem anderen wp-*-Skill, auch wenn das Wort WordPress nicht fällt. Auch bei
+  "REST-Endpunkt im mu-plugin", "exportier die DB der Site", "ändere den Text
+  auf der Seite", "Go-Live vorbereiten". Trigger: /wp-azedo.
 ---
 
 # wp-azedo -- Einstieg und Routing für WordPress

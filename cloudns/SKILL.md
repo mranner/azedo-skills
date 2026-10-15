@@ -1,19 +1,14 @@
 ---
 name: cloudns
 description: >
-  DNS-Records bei ClouDNS lesen und setzen: Records einer Zone auflisten,
-  anlegen, aendern, loeschen, dazu die autoritative Gegenprobe gegen die
-  Nameserver der Zone. Ebenso die ganze Zone im BIND-Format sichern und
-  zurueckspielen, die SOA-Werte samt Serial lesen und den DNSSEC-Status mit
-  den DS-Records abfragen. Zonen des Accounts lassen sich auflisten; Zonen
-  anlegen oder loeschen sowie DNSSEC schalten kann dieser Skill nicht.
-  Nutze diesen Skill wenn eine Zone bei ClouDNS liegt - erkennbar an
-  Nameservern auf cloudns.net oder an Vanity-Nameservern, die dorthin
-  aufloesen. Auch bei "setz den CNAME", "trag den A-Record ein", "welche
-  Records hat die Zone", "sichere die Zone bevor wir umstellen", "exportier
-  mir die Zone", "welchen Serial hat die Zone", "ist DNSSEC aktiv",
-  "ClouDNS". Nicht zustaendig fuer Zonen auf eigenen BIND-Servern oder bei
-  Hetzner - dort gilt die jeweilige Wiki-Procedure. Trigger: /cloudns.
+  DNS-Records bei ClouDNS lesen und setzen, mit autoritativer Gegenprobe gegen
+  die Nameserver; die Zone im BIND-Format sichern und zurueckspielen, SOA samt
+  Serial und DNSSEC-Status lesen. Zonen anlegen, loeschen und DNSSEC schalten
+  kann er nicht. Nutze diesen Skill, wenn eine Zone bei ClouDNS liegt
+  (Nameserver auf cloudns.net oder dorthin aufloesende Vanity-Nameserver),
+  nicht fuer eigene BIND-Server oder Hetzner. Auch bei "setz den CNAME",
+  "sichere die Zone bevor wir umstellen", "ist DNSSEC aktiv". Trigger:
+  /cloudns.
 ---
 # cloudns -- DNS-Records bei ClouDNS
 
