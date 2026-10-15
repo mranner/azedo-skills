@@ -3,6 +3,14 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.71.3
+
+- **`imap`: `list -n` nimmt verlässlich die höchsten UIDs.** `search_uids`
+  sortiert die SEARCH-Treffer selbst, statt der Reihenfolge des Servers zu
+  vertrauen (RFC 3501 schreibt keine vor). SKILL.md, Fallstricke: `list` ist
+  aufsteigend nach UID sortiert, die neueste Mail steht am Ende; die Start-UID
+  eines Testlaufs ist die Zeile von `list -n 1`.
+
 ### 1.71.2
 
 - **`wp-pys`: neue Operation `set-option` (3.9).** Setzt einen bestehenden,

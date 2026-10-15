@@ -741,12 +741,10 @@ Retrospektive einer Session: schlägt Verbesserungen an der Umgebung des Agents 
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.71.2
+### 1.71.3
 
-- **`wp-pys`: neue Operation `set-option` (3.9).** Setzt einen bestehenden,
-  skalaren Schlüssel einer Option in `wp_{blog}_pys_options` (z.B.
-  `pys_core.gdpr_real_cookie_banner_integration_enabled`): Probelauf ohne `run`,
-  Typ-Guard, alter Rohwert als base64-Backup, danach Gegenlesen samt
-  Schlüsselanzahl. Consent-Abschnitt: GA wartet nur auf den Real Cookie Banner,
-  wenn der PYS-Schalter `true` **und** `rcb-banner-active = 1` ist, sonst
-  `gcs=G111`. GA4-Tests headed, weil GA4 `HeadlessChrome` als Bot verwirft.
+- **`imap`: `list -n` nimmt verlässlich die höchsten UIDs.** `search_uids`
+  sortiert die SEARCH-Treffer selbst, statt der Reihenfolge des Servers zu
+  vertrauen (RFC 3501 schreibt keine vor). SKILL.md, Fallstricke: `list` ist
+  aufsteigend nach UID sortiert, die neueste Mail steht am Ende; die Start-UID
+  eines Testlaufs ist die Zeile von `list -n 1`.

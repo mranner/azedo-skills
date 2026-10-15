@@ -372,7 +372,7 @@ class Account:
             die(f"[{self.alias}] SEARCH fehlgeschlagen: {as_text(data)}")
         if not data or not data[0]:
             return []
-        return data[0].split()
+        return sorted(data[0].split(), key=int)
 
     def search_texts(self, criteria, texts):
         """SEARCH mit Textbedingungen wie SUBJECT oder FROM.

@@ -253,6 +253,9 @@ ok / einzeln anpassen?
   sobald sie nicht aus der INBOX stammt -- ein fehlendes `-f` liefert keinen
   Fehler, sondern die falsche Mail. Wo nur die Message-ID bekannt ist, `find`
   bzw. `quote --message-id` verwenden, statt die UID zu suchen.
+- **`list` sortiert aufsteigend nach UID** - die neueste Mail steht am Ende,
+  der Date-Header zählt nicht. Die Start-UID eines Testlaufs ist die eine Zeile
+  von `list -n 1`, nicht der erste Eintrag einer längeren Liste.
 - **Zitate nie selbst tippen.** Für eine Antwort immer `quote` aufrufen. Ein
   von Hand gesetztes `> ` sieht auf den ersten Blick gleich aus, weicht aber bei
   jeder Mail leicht ab und ignoriert `format=flowed` und die Threading-Header.
