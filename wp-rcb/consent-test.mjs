@@ -81,6 +81,20 @@ async function click(page, re) {
 	return false;
 }
 
+// Ein Reload direkt nach dem Klick verwirft die Einwilligung - erst das RCB-Cookie abwarten
+
+async function consentStored(context) {
+	for (let i = 0; i < 20; i++) {
+		const cookies = await context.cookies();
+
+		if (cookies.some((c) => c.name.startsWith('real_cookie_banner'))) return true;
+
+		await new Promise((resolve) => setTimeout(resolve, 500));
+	}
+
+	return false;
+}
+
 async function visit(page, url, wait) {
 	// networkidle läuft auf Seiten mit Dauer-Pings in den Timeout
 	await page.goto(url, { waitUntil: 'load', timeout: 60000 });
@@ -94,7 +108,7 @@ async function runPhase(browser, phase, opts) {
 	const hosts = {};
 	const gcs = new Set();
 	let recording = phase === 'ohne';
-	const result = { phase, banner: null, clicked: null };
+	const result = { phase, banner: null, clicked: null, stored: null };
 
 	page.on('request', (req) => {
 		if (!recording) return;
@@ -115,6 +129,7 @@ async function runPhase(browser, phase, opts) {
 
 	if (phase !== 'ohne') {
 		result.clicked = await click(page, phase === 'alle' ? opts.accept : opts.essential);
+		result.stored = result.clicked && await consentStored(context);
 		recording = true;
 		await visit(page, opts.urls[0], opts.wait);
 	}
@@ -139,7 +154,8 @@ function report(results) {
 	const before = new Set();
 
 	for (const r of results) {
-		console.log(`\n== ${r.phase}  (Banner sichtbar: ${r.banner}${r.clicked === null ? '' : `, Klick: ${r.clicked}`})`);
+		const consent = r.clicked === null ? '' : `, Klick: ${r.clicked}, Einwilligung gespeichert: ${r.stored}`;
+		console.log(`\n== ${r.phase}  (Banner sichtbar: ${r.banner}${consent})`);
 
 		for (const [host, n] of Object.entries(r.hosts)) {
 			console.log(`  ${String(n).padStart(4)}  ${host}`);
@@ -150,6 +166,7 @@ function report(results) {
 		if (r.gcs.length) console.log(`  gcs: ${r.gcs.join(', ')}`);
 		if (r.cookies_fremd.length) console.log(`  fremde Cookies: ${r.cookies_fremd.join(', ')}`);
 		if (r.clicked === false) console.log('  ACHTUNG: Banner-Button nicht getroffen - --accept/--essential prüfen');
+		if (r.clicked && !r.stored) console.log('  ACHTUNG: kein RCB-Cookie nach dem Klick - die Phase misst dasselbe wie "ohne"');
 	}
 
 	if (before.size) {

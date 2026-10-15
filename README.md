@@ -753,11 +753,10 @@ Retrospektive einer Session: schlägt Verbesserungen an der Umgebung des Agents 
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.72.2
+### 1.72.3
 
-- **`wp-rcb`: `consent-test.mjs`.** Browser-Test mit Playwright in drei
-  Durchläufen (ohne Einwilligung, "nur essenzielle", "alle akzeptieren"):
-  fremde Hosts, `gcs=`-Werte und fremde Cookies je Durchlauf. Normaler
-  User-Agent, mit Fenster, Banner-Klick über `getByRole`/`getByText` (RCB
-  rendert im Shadow-DOM), Warten auf `load` statt `networkidle`. Abgeleitet aus
-  einem Testlauf am Mac; Playwright gibt es für FreeBSD nicht.
+- **`wp-rcb`: `consent-test.mjs` wartet nach dem Banner-Klick auf das Cookie
+  `real_cookie_banner*`.** Der Reload direkt nach dem Klick verwarf die
+  Einwilligung, die Phase "alle akzeptieren" maß dasselbe wie "ohne" (Prüflauf
+  gegen eine DEV-Site). Neue Ausgabe "Einwilligung gespeichert" samt Warnung,
+  wenn das Cookie ausbleibt.

@@ -94,6 +94,9 @@ node "$SKILL_DIR/consent-test.mjs" <url> [<unterseite>…]
 - Fremde Hosts im ersten oder zweiten Durchlauf sind der Befund: dort lädt etwas
   ohne die passende Einwilligung. `gcs=G111` vor der Einwilligung heißt, GA
   sendet ohne. Ob ein Host essenziell ist, entscheidet der Mensch.
+- **Gültig ist ein Durchlauf nur mit `Einwilligung gespeichert: true`.** Das
+  Script wartet nach dem Klick auf das Cookie `real_cookie_banner*`; ohne
+  dieses Cookie misst die Phase dasselbe wie "ohne Einwilligung".
 - `Klick: false` heißt, der Banner-Button wurde nicht gefunden. Die Defaults
   passen auf deutsche und englische RCB-Texte ("Weiter ohne Einwilligung",
   "Alle akzeptieren"); sonst `--accept`/`--essential` mit dem Buttontext.

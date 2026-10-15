@@ -3,6 +3,14 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.72.3
+
+- **`wp-rcb`: `consent-test.mjs` wartet nach dem Banner-Klick auf das Cookie
+  `real_cookie_banner*`.** Der Reload direkt nach dem Klick verwarf die
+  Einwilligung, die Phase "alle akzeptieren" maß dasselbe wie "ohne" (Prüflauf
+  gegen eine DEV-Site). Neue Ausgabe "Einwilligung gespeichert" samt Warnung,
+  wenn das Cookie ausbleibt.
+
 ### 1.72.2
 
 - **`wp-rcb`: `consent-test.mjs`.** Browser-Test mit Playwright in drei
