@@ -3,7 +3,7 @@
 # IMAP-Helper für Posteingang-Triage
 # Liest Zugangsdaten aus muttrc, arbeitet gegen mehrere Konten.
 # stdlib only, keine pip-Abhängigkeiten. Lauffähig auf macOS + FreeBSD.
-# version 1.70.1
+# version 1.71.0
 
 import argparse
 import datetime
@@ -11,7 +11,9 @@ import email
 import email.header
 import email.utils
 import html as html_mod
+import email.policy
 import imaplib
+import io
 import json
 import mimetypes
 import os
@@ -20,6 +22,7 @@ import subprocess
 import sys
 import textwrap
 import time
+from email.generator import BytesGenerator
 
 DEFAULT_MUTTRC = os.path.expanduser("~/.muttrc")
 
@@ -2072,6 +2075,143 @@ def cmd_save_attachment(args, accounts):
         print(f"{s['path']}  ({human_size(s['size'])})")
 
 
+# Signatur und Verschlüsselung umfassen den ganzen MIME-Baum - jede Änderung
+# daran macht die Mail unprüfbar bzw. unlesbar
+
+SEALED_TYPES = {"multipart/signed", "multipart/encrypted",
+                "application/pkcs7-mime", "application/x-pkcs7-mime"}
+
+
+def replace_with_placeholder(part, name, stamp):
+    """Teil durch den Platzhalter ersetzen, den Thunderbird beim Löschen setzt.
+
+    Nur die Content-*-Header werden getauscht: ist der Anhang die ganze Mail,
+    bleiben From/To/Subject so erhalten. text/x-moz-deleted zeigt Thunderbird
+    als gelöschten Anhang an."""
+    old = [(k, v) for k, v in part.items() if k.lower().startswith("content-")]
+    for k in {k for k, _ in old}:
+        del part[k]
+
+    # add_header quotet den Namen und kodiert Umlaute nach RFC 2231
+
+    part.add_header("Content-Type", "text/x-moz-deleted", name=f"Deleted: {name}")
+    part["Content-Transfer-Encoding"] = "8bit"
+    part.add_header("Content-Disposition", "inline", filename=f"Deleted: {name}")
+    part["X-Mozilla-Altered"] = f'AttachmentDeleted; date="{stamp}"'
+    text = ("You deleted an attachment from this message. The original MIME "
+            "headers for the attachment were:\r\n"
+            + "".join(f"{k}: {flat(str(v))}\r\n" for k, v in old))
+    part.set_payload(text)
+
+
+def flatten_message(msg):
+    """Nachricht serialisieren, ohne Header neu zu falten."""
+    buf = io.BytesIO()
+    BytesGenerator(buf, mangle_from_=False, policy=email.policy.compat32.clone(
+        linesep="\r\n", max_line_length=0)).flatten(msg)
+    return buf.getvalue()
+
+
+def cmd_delete_attachment(args, accounts):
+    """Anhang aus einer Mail im Postfach entfernen.
+
+    IMAP ändert keine Mail an Ort und Stelle: die bereinigte Fassung kommt per
+    APPEND mit Flags und INTERNALDATE in denselben Ordner, erst danach geht
+    das Original in den Papierkorb - nie expunge."""
+    acc = pick_account(accounts, args.account)
+    with Account(acc) as a:
+        folder = resolve_target(a, args.folder)
+        trash = resolve_target(a, "trash")
+        if folder == trash:
+            die(f"Mail liegt im Papierkorb ({trash}) - erst in einen anderen Ordner verschieben")
+
+        raw, flags, internaldate = a.raw_message(args.uid, folder)
+        msg = email.message_from_bytes(raw)
+
+        sealed = [p.get_content_type() for p in msg.walk()
+                  if p.get_content_type() in SEALED_TYPES]
+        if sealed:
+            die(f"signierte/verschlüsselte Mail ({sealed[0]}) - "
+                "Entfernen eines Anhangs würde sie zerstören")
+
+        chosen = select_parts(list_parts(msg), args)
+
+        saved = []
+        if args.save:
+            for p in chosen:
+                path = unique_path(target_path(p, args, len(chosen) > 1))
+                if not args.dry_run:
+                    with open(path, "wb") as f:
+                        f.write(part_bytes(p["part"]))
+                saved.append(path)
+
+        removed = public_parts(chosen)
+        stamp = time.strftime("%a %b %d %H:%M:%S %Y")
+        for p in chosen:
+            replace_with_placeholder(p["part"], p["name"], stamp)
+        if "X-Mozilla-Altered" not in msg:
+            msg["X-Mozilla-Altered"] = f'AttachmentDeleted; date="{stamp}"'
+        new_raw = flatten_message(msg)
+
+        mid = flat(hdr(msg, "Message-ID"))
+        result = {
+            "account": acc["alias"],
+            "folder": folder,
+            "uid": args.uid,
+            "removed": removed,
+            "bytes_before": len(raw),
+            "bytes_after": len(new_raw),
+            "saved": saved,
+        }
+
+        if args.dry_run:
+            result.update({"ok": True, "dry_run": True,
+                           "detail": f"[dry-run] neue Fassung -> {folder}, "
+                                     f"Original -> {trash}"})
+        else:
+            before = set(a.find_by_message_id(mid, folder) or [])
+            ok, detail = a.append(folder, new_raw, flags, internaldate)
+            m = re.search(r"\(uid (\d+)\)", detail)
+            new_uid = int(m.group(1)) if m else None
+
+            # Ohne UIDPLUS: die neue Fassung ist die eine UID mit dieser
+            # Message-ID, die vor dem APPEND noch nicht da war
+
+            if ok and new_uid is None and mid:
+                fresh = set(a.find_by_message_id(mid, folder) or []) - before
+                if len(fresh) == 1:
+                    new_uid = int(fresh.pop())
+
+            if not ok or new_uid is None:
+
+                # Original bleibt unangetastet - lieber ein doppelter Eintrag als
+                # ein verlorener Anhang
+
+                result.update({"ok": False, "detail": f"APPEND: {detail}" if not ok else
+                               "APPEND meldete OK, die neue Fassung ist aber nicht "
+                               "auffindbar - Original bleibt liegen"})
+            else:
+                ok2, d2 = a.move(args.uid, trash, folder)
+                result.update({
+                    "ok": ok2,
+                    "new_uid": new_uid,
+                    "detail": f"neue uid {new_uid}; Original -> {trash} ({d2})" if ok2
+                              else f"neue uid {new_uid}; Original NICHT geräumt: {d2}",
+                })
+
+    if args.json:
+        out_json(result)
+    else:
+        for r in removed:
+            print(f"  entfernt {r['index']:>3} {r['name']}  ({human_size(r['size'])})")
+        for s in saved:
+            print(f"  gesichert {s}")
+        print(f"{'ok' if result['ok'] else 'FEHLER'}: {human_size(result['bytes_before'])}"
+              f" -> {human_size(result['bytes_after'])}; {result['detail']}")
+    if not result["ok"]:
+        sys.exit(1)
+
+
 def cmd_append(args, accounts):
     """Eine lokale .eml in einen Ordner legen - der fehlende Gegenpart zum Versand.
 
@@ -2567,6 +2707,24 @@ def build_parser():
     sp.add_argument("--include-inline", action="store_true",
                     help="bei --all auch Inline-Teile schreiben")
     sp.set_defaults(func=cmd_save_attachment)
+
+    sp = sub.add_parser("delete-attachment", parents=[common],
+                        help="Anhang aus der Mail entfernen (neue Fassung, Original in den Papierkorb)")
+    sp.add_argument("uid", type=int)
+    sp.add_argument("--account", "-a")
+    sp.add_argument("--folder", "-f", default="INBOX")
+    pick = sp.add_mutually_exclusive_group(required=True)
+    pick.add_argument("--name", help="Dateiname laut 'attachments'")
+    pick.add_argument("--index", type=int, help="Index laut 'attachments'")
+    pick.add_argument("--all", action="store_true", help="alle Anhänge")
+    sp.add_argument("--include-inline", action="store_true",
+                    help="bei --all auch Inline-Teile entfernen")
+    sp.add_argument("--save", action="store_true",
+                    help="Anhang vorher herausschreiben (wie save-attachment)")
+    sp.add_argument("--output", "-o", metavar="PFAD",
+                    help="mit --save: Datei oder Verzeichnis; ohne Angabe .tmp/")
+    sp.add_argument("--dry-run", action="store_true")
+    sp.set_defaults(func=cmd_delete_attachment)
 
     for name, help_text in (
         ("move", "verschieben"),

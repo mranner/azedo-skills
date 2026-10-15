@@ -174,6 +174,8 @@ Posteingang-Triage über mehrere IMAP-Konten — das Gegenstück zu `swaks`. Unt
 - Anhänge auflisten (`attachments`) und herausschreiben (`save-attachment`, per `--name`/`--index`/`--all`,
   ohne `--output` nach `.tmp/`) — Dateinamen RFC-2231/2047-dekodiert, Pfadanteile gestrippt, nichts wird
   überschrieben; Inline-Teile per Default ausgeblendet
+- Anhänge aus der Mail im Postfach entfernen (`delete-attachment`) wie Thunderbirds "Löschen" — neue Fassung
+  per `APPEND`, Original in den Papierkorb; signierte/verschlüsselte Mails werden abgelehnt
 
 **Voraussetzungen:** `~/.muttrc` mit `account-hook` je Konto (mutt selbst muss nicht installiert sein)
 
@@ -737,12 +739,12 @@ Retrospektive einer Session: schlägt Verbesserungen an der Umgebung des Agents 
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.70.1
+### 1.71.0
 
-- **`retro`:** Ohne Argument nimmt der Skill die aktuelle Session nur, wenn sie
-  vor `/retro` schon Arbeit enthält, sonst die letzte. Das neue Script
-  `scripts/session-digest` liefert die Kurzfassung eines Session-Logs (letzte,
-  per Session-ID oder per Stichwort), statt dass der Agent jedes Mal einen
-  eigenen `jq`-Filter baut.
-- **Commit-Konvention** in der Repo-`CLAUDE.md`: Präfix `CR<id>: ` nur bei
-  aktivem CR-Kontext, wie im `kanboard`-Skill.
+- **`imap`: neuer Befehl `delete-attachment`.** Entfernt Anhänge aus einer Mail
+  im Postfach wie Thunderbirds "Löschen": die bereinigte Fassung kommt per
+  `APPEND` mit Flags und INTERNALDATE in denselben Ordner, erst danach geht das
+  Original in den Papierkorb (nie expunge, die UID ändert sich). Platzhalter
+  wie bei Thunderbird (`text/x-moz-deleted`, `X-Mozilla-Altered`). Auswahl wie
+  bei `save-attachment`, `--save` schreibt vorher heraus, `--dry-run`.
+  Signierte und verschlüsselte Mails werden abgelehnt.

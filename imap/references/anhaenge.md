@@ -1,6 +1,6 @@
 # imap - Anhänge
 
-Anhänge auflisten und herausschreiben.
+Anhänge auflisten, herausschreiben und aus der Mail im Postfach entfernen.
 
 ## Anhänge
 
@@ -47,6 +47,38 @@ Gelesen wird mit `BODY.PEEK` -- auch das Speichern eines Anhangs setzt `\Seen`
 **nicht**. Ein zusätzlicher Roundtrip entsteht nicht: `BODY.PEEK[]` holt die
 Nachricht ohnehin vollständig, `attachments` schreibt nur ihre Anhänge heraus
 (gleiche Argumentation wie bei `--headers`/`--raw`).
+
+## Anhang aus der Mail entfernen
+
+`delete-attachment` entspricht Thunderbirds "Löschen" am Anhang - die Mail
+bleibt, der Anhang verschwindet:
+
+```
+python3 "$SKILL_DIR/imap" delete-attachment 8841 -a office --index 2 --dry-run
+python3 "$SKILL_DIR/imap" delete-attachment 8841 -a office --name Rechnung.pdf
+python3 "$SKILL_DIR/imap" delete-attachment 8841 -a office --all --save -o .tmp/x/
+```
+
+Auswahl wie bei `save-attachment` (`--name`/`--index`/`--all`, Inline-Teile nur
+mit `--include-inline`). `--save` schreibt die Anhänge vorher heraus - das
+"Abtrennen" von Thunderbird, ohne Verweis in der Mail.
+
+**Die UID ändert sich.** IMAP kann eine Mail nicht an Ort und Stelle ändern: die
+bereinigte Fassung kommt per `APPEND` mit denselben Flags und demselben
+INTERNALDATE in den Ordner, erst danach geht das Original in den Papierkorb.
+Die Ausgabe nennt die neue UID (`new_uid`); die alte gilt danach nicht mehr.
+Scheitert das `APPEND`, bleibt das Original unangetastet. Bis `empty-trash`
+lässt sich der Vorgang über das Original im Papierkorb rückgängig machen.
+
+An Stelle des Anhangs steht derselbe Platzhalter wie bei Thunderbird
+(`text/x-moz-deleted` mit den ursprünglichen MIME-Headern, dazu
+`X-Mozilla-Altered: AttachmentDeleted`); Thunderbird zeigt ihn als gelöschten
+Anhang an.
+
+**Abgelehnt** werden signierte und verschlüsselte Mails (S/MIME, PGP/MIME) -
+die Signatur wäre danach ungültig. Eine DKIM-Signatur bricht bei jeder Mail;
+für die Ablage im eigenen Postfach ist das ohne Belang, für die Weiterleitung
+an Dritte als Beleg nicht. Mails im Papierkorb erst herausverschieben.
 
 ### Rezept: Anhang aus einer Mail an einen Kanboard-Task
 

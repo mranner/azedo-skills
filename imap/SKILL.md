@@ -3,7 +3,7 @@ name: imap
 description: >
   IMAP-Zugriff auf mehrere Konten: Posteingang durchgehen und zusammenfassen,
   Mails einsortieren, als Spam markieren, löschen, zwischen Konten kopieren
-  oder verschieben, Anhänge herausschreiben, Zitatblock für eine Antwort
+  oder verschieben, Anhänge herausschreiben oder aus der Mail löschen, Zitatblock für eine Antwort
   erzeugen, die Adressen eines ganzen Threads sammeln, eine Message-ID
   auflösen, Mails nach Betreff, Absender, Empfänger oder Zeitraum suchen, eine
   versendete .eml in "Gesendet" ablegen. Auch bei "geh meine Inbox durch",
@@ -86,6 +86,7 @@ Bcc-Leak, MIME); wann welche Variante passt: [references/header.md](references/h
 | `delete <uid>…` | in den Papierkorb -- **nie** expunge |
 | `seen` / `unseen` | Gelesen-Status |
 | `flag` / `unflag` | Markierung |
+| `delete-attachment <uid>` | Anhang aus der Mail entfernen - neue UID, Original in den Papierkorb ([Details](references/anhaenge.md)) |
 | `append <datei.eml>` | eine lokale `.eml` in einen Ordner legen (Default: Gesendet) |
 | `empty-trash -a <konto>` | Papierkorb endgültig leeren; ohne `--force` nur zählen |
 
@@ -154,7 +155,7 @@ Vollständige Referenz daneben, bei Bedarf lesen:
 |---|---|
 | `references/quote.md` | `quote` - Zitatblock für eine Antwort, `--message-id`, format=flowed, `--format html`, `--json` |
 | `references/contacts.md` | `contacts` - Adressen eines Threads sammeln, kontoübergreifende Suche, `--no-thread` |
-| `references/anhaenge.md` | Anhänge auflisten und herausschreiben, Rezept für den Weg an einen Task |
+| `references/anhaenge.md` | Anhänge auflisten, herausschreiben und aus der Mail entfernen, Rezept für den Weg an einen Task |
 | `references/find-fetch.md` | `find` (Message-ID zu UID), `fetch` (Stapel Mails mit einem Login) |
 | `references/konfiguration.md` | muttrc, Keystore statt Klartext, Kontoname vs. Thunderbird-Anzeigename |
 | `references/header.md` | `read --headers` / `--raw` bei Mail-Problemen |

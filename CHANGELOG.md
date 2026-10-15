@@ -3,6 +3,16 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.71.0
+
+- **`imap`: neuer Befehl `delete-attachment`.** Entfernt Anhänge aus einer Mail
+  im Postfach wie Thunderbirds "Löschen": die bereinigte Fassung kommt per
+  `APPEND` mit Flags und INTERNALDATE in denselben Ordner, erst danach geht das
+  Original in den Papierkorb (nie expunge, die UID ändert sich). Platzhalter
+  wie bei Thunderbird (`text/x-moz-deleted`, `X-Mozilla-Altered`). Auswahl wie
+  bei `save-attachment`, `--save` schreibt vorher heraus, `--dry-run`.
+  Signierte und verschlüsselte Mails werden abgelehnt.
+
 ### 1.70.1
 
 - **`retro`:** Ohne Argument nimmt der Skill die aktuelle Session nur, wenn sie
