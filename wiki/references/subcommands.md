@@ -129,8 +129,13 @@ Workflow:
    - <Erkenntnis> — steht bereits in [[slug]]
    ```
 
-6. Erst **nach Freigabe** schreiben, dann vollständig: Artikel, Wikilinks,
-   `index.md`, Frontmatter-Datum, `log.md`, danach `lint`.
+6. Erst **nach Freigabe** schreiben. Vorher `git status --short -- <WIKI_ROOT>`
+   lesen: Liegen dort schon uncommittete Änderungen, diese melden und getrennt
+   committen lassen, bevor der Harvest dieselben Dateien anfasst - sonst
+   vermischen sich fremde und eigene Änderungen in einem Commit. Dann
+   vollständig schreiben: Artikel, Wikilinks, `index.md`, Frontmatter-Datum,
+   `log.md`, danach `lint`. Fertig ist der Harvest, wenn `lint` ohne Fehler
+   durchläuft, committet ist und `git status --short -- <WIKI_ROOT>` leer ist.
 
 Die verworfene Liste ist kein Beiwerk, sondern der Zweck: sie macht den Filter
 überprüfbar. Ohne sie ist nicht erkennbar, ob etwas geprüft und aussortiert oder
