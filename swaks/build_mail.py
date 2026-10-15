@@ -14,8 +14,10 @@ import json
 import mimetypes
 import os
 import re
+import shutil
 import subprocess
 import sys
+import time
 
 from html import escape as html_escape
 
@@ -375,7 +377,8 @@ def send_eml(path, recipient, sender):
 
     report = {"file": path, "to": recipient, "from": sender,
               "server": route["server"], "port": route["port"],
-              "exit_code": proc.returncode, "log": log_path}
+              "exit_code": proc.returncode, "log": log_path,
+              "bytes": os.path.getsize(path)}
 
     errors = []
 
@@ -429,6 +432,49 @@ def file_eml(path, account, folder, flags):
         return report, [f"Ablage in {account}/{folder} fehlgeschlagen: {detail}"]
 
     return report, []
+
+# --- Arbeitsverzeichnis aufraeumen --------------------------------------------
+
+# Die Skills legen je Mail ein Verzeichnis per `mktemp -d .tmp/mail.XXXXXX` bzw.
+# `.tmp/reply.XXXXXX` an. Darin liegen Mailtext, Zitat und Kopfdaten, also
+# Personen- und Kundendaten (CR4845). Geloescht wird nur ein Verzeichnis dieser
+# Form direkt unter `.tmp/`; eine .eml aus einem anderen Ordner bleibt liegen.
+
+WORKDIR_RE = re.compile(r"(mail|reply)\.[A-Za-z0-9]{6}")
+STALE_DAYS = 7
+
+
+def is_workdir(path):
+    return (os.path.isdir(path) and not os.path.islink(path)
+            and WORKDIR_RE.fullmatch(os.path.basename(path)) is not None
+            and os.path.basename(os.path.dirname(path)) == ".tmp")
+
+
+def cleanup_workdirs(eml, success):
+    """Nach Erfolg das eigene Verzeichnis loeschen, dazu Reste aelter als
+    STALE_DAYS im selben .tmp/. Bei Exit 1/3 bleibt das eigene liegen - fuer
+    das swaks-Protokoll bzw. den retry. Liefert (geloescht, fehler)."""
+    own = os.path.dirname(os.path.abspath(eml))
+    if not is_workdir(own):
+        return [], []
+
+    parent = os.path.dirname(own)
+    cutoff = time.time() - STALE_DAYS * 86400
+    doomed = [own] if success else []
+
+    for name in sorted(os.listdir(parent)):
+        p = os.path.join(parent, name)
+        if p != own and is_workdir(p) and os.path.getmtime(p) < cutoff:
+            doomed.append(p)
+
+    removed, errors = [], []
+    for p in doomed:
+        try:
+            shutil.rmtree(p)
+            removed.append(p)
+        except OSError as exc:
+            errors.append(f"{p}: {exc}")
+    return removed, errors
 
 # --- Darstellungspruefung: HTML-Part und fertige .eml -------------------------
 
@@ -676,6 +722,9 @@ if "--send" in sys.argv[1:]:
             errors = ["GESENDET, aber nicht abgelegt: " + e for e in ferrors]
             code = 3
 
+    report["cleaned"], report["cleanup_errors"] = cleanup_workdirs(
+        sargs.send, code == 0)
+
     print(json.dumps(report, indent=2, ensure_ascii=False))
 
     for e in errors:
@@ -695,6 +744,8 @@ if "--draft" in sys.argv[1:]:
     report, errors = file_eml(dargs.draft, dargs.account, "drafts", "\\Draft")
     report["ok"] = not errors
     report["errors"] = errors
+    report["cleaned"], report["cleanup_errors"] = cleanup_workdirs(
+        dargs.draft, not errors)
 
     print(json.dumps(report, indent=2, ensure_ascii=False))
 

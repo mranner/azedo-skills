@@ -114,6 +114,13 @@ Das allein genügt nicht — es schließt nur die häufigste Ursache aus. Die Pr
 unmittelbar vor dem Versand (siehe „Vor dem Versand prüfen") fängt auch die
 übrigen ab.
 
+**Aufräumen übernimmt der Helper.** Endet `--send` oder `--draft` mit Exit `0`,
+löscht `build_mail.py` das Verzeichnis der `.eml` - Mailtext, Zitat und Kopfdaten
+sind Personendaten. Bei Exit `1` (swaks-Protokoll) und `3` (`retry`) bleibt es
+liegen. Bei jedem Lauf gehen außerdem `mail.*`/`reply.*` im selben `.tmp/` weg,
+die älter als 7 Tage sind. Das JSON nennt sie in `cleaned`. Gelöscht wird nur ein
+Verzeichnis in `mktemp`-Form direkt unter `.tmp/`.
+
 ## Standardversand: Multipart (Text + HTML)
 
 **Default für zusammengesetzte Mails.** Es wird eine `multipart/alternative`-Mail erzeugt (Text- **und** HTML-Part im selben Objekt) – gut für Copy/Paste in Thunderbird und beim Weiterleiten, mit Fallback für Plain-Text-Clients. HTML bewusst schlicht halten (Absätze `<p>`, Umbrüche `<br>`, keine CSS-Spielereien).
@@ -149,7 +156,7 @@ Erst wenn dieser Befehl mit Exit `0` durchgelaufen ist, folgt der Versand als **
 python3 $B --send $M/mail.eml --to "empfaenger@example.com" --from <absender> --file-sent <konto>
 ```
 
-`--send` lädt den Versandweg selbst, ruft `swaks` auf und prüft das Ergebnis (Exit-Code, `queued as`, abgelehnte Empfänger – siehe „Ergebnis prüfen"). Mit `--file-sent` legt es die Datei danach in „Gesendet" ab (siehe „Ablage"). Exit `0` heißt versendet (und abgelegt), Exit `1` heißt nicht versendet, Exit `3` versendet, aber nicht abgelegt; das JSON nennt Queue-ID bzw. Befund, das vollständige swaks-Protokoll steht in `$M/mail.eml.swaks.log`.
+`--send` lädt den Versandweg selbst, ruft `swaks` auf und prüft das Ergebnis (Exit-Code, `queued as`, abgelehnte Empfänger – siehe „Ergebnis prüfen"). Mit `--file-sent` legt es die Datei danach in „Gesendet" ab (siehe „Ablage"). Exit `0` heißt versendet (und abgelegt), Exit `1` heißt nicht versendet, Exit `3` versendet, aber nicht abgelegt; das JSON nennt Queue-ID bzw. Befund, das vollständige swaks-Protokoll steht bei Exit `1`/`3` in `$M/mail.eml.swaks.log` (bei Exit `0` ist `$M` gelöscht, siehe „Arbeitsverzeichnis").
 
 **Warum zwei Befehle und nicht eine `&&`-Kette?** Eine Bash-Freigabe greift auf den **Anfang** des Befehls. In einer Kette, die mit `ENV=$(…)` oder `python3 $B --verify …` beginnt, steht der Versand irgendwo in der Mitte und ist von keiner Regel erreichbar – der Versand scheitert dann an der Freigabe, nachdem Recherche, Bau und Prüfung bereits gelaufen sind. `python3 $B --send …` steht am Anfang und ist freigebbar. Die Trennung kostet nichts: die Prüfkette davor bricht bei jedem Befund mit Exit ≠ 0 ab, und `--send` prüft die `.eml` nochmals auf Existenz und Größe.
 
@@ -166,7 +173,7 @@ python3 $B --send $M/mail.eml --to a@x --cc cc@x --bcc bcc@x --from <absender>
 
   **Fehlt `--bcc` beim `--send`, geht die stille Kopie nicht raus** — die Mail wird trotzdem zugestellt, ohne Fehlermeldung. Unbekannte Flags lehnt `--send` mit Exit `2` ab, statt sie still zu schlucken. Eine Bcc-Kopie an sich selbst als Ablage ist nur noch der Fallback ohne IMAP-Konto, sonst gibt es dafür `--file-sent` (siehe „Ablage").
 - **Leerer Body / Bau-Fehler:** `build_mail.py` bricht mit Exit ≠ 0 ab, wenn Text *und* HTML leer sind. Deshalb **nie direkt in `swaks` pipen** — bei einem Bau-Fehler (Exit ≠ 0 oder Interpreter nicht gefunden) läuft `swaks` sonst auf leerem STDIN und sendet seine eingebaute Default-Test-Mail. Immer erst in eine Datei bauen und mit `&& test -s <datei> && swaks … --data @<datei>` absichern. `set -o pipefail` allein genügt **nicht**, da `swaks` in der Pipe trotzdem startet.
-- **`--data` braucht zwingend das `@`:** `swaks --data <datei>` liest die Datei **nicht**, sondern verschickt den **Pfad als Body-Text**. Es gibt keine Fehlermeldung — swaks quittiert mit `250 Ok`, zugestellt wird eine Mail ohne Betreff und ohne die gebauten Header, mit dem Dateinamen als einzigem Inhalt. Beim Empfänger sieht das nach Spam oder kompromittiertem Konto aus, und zurückholen lässt es sich nicht. Immer `--data @<datei>` schreiben. Gegenprobe direkt nach dem Versand: die `size=`-Angabe der Queue-ID im Maillog des Relays gegen die Größe der `.eml` halten — ein paar hundert Bytes statt einiger KB heißt, das `@` hat gefehlt.
+- **`--data` braucht zwingend das `@`:** `swaks --data <datei>` liest die Datei **nicht**, sondern verschickt den **Pfad als Body-Text**. Es gibt keine Fehlermeldung — swaks quittiert mit `250 Ok`, zugestellt wird eine Mail ohne Betreff und ohne die gebauten Header, mit dem Dateinamen als einzigem Inhalt. Beim Empfänger sieht das nach Spam oder kompromittiertem Konto aus, und zurückholen lässt es sich nicht. Immer `--data @<datei>` schreiben. Gegenprobe direkt nach dem Versand: die `size=`-Angabe der Queue-ID im Maillog des Relays gegen die Größe der `.eml` halten (`bytes` im JSON von `--send`) — ein paar hundert Bytes statt einiger KB heißt, das `@` hat gefehlt.
 - **HTML-Part:** `--html-file` ist **optional**. Fehlt es, baut der Helper den HTML-Part aus dem Text (Leerzeilen werden `<p>`, einfache Umbrüche `<br>`). **Niemals dieselbe Datei an `--text-file` und `--html-file` geben** — der HTML-Part hätte dann kein einziges Tag und käme beim Empfänger als eine einzige Zeile an („in einer Wurst"), inklusive Tabellen und Kennwortlisten. Der Helper erkennt diesen Fall, warnt auf stderr und wandelt um; die Warnung ist trotzdem ein Grund, den Aufruf zu korrigieren.
 - **Signatur:** wird automatisch aus `~/.claude/swaks-signature.*` (bzw. projektlokal `.claude/`) aufgelöst – die `--sig-*-file`-Zeilen sind **optional** und nur als expliziter Override nötig. Ganz weglassen: `--no-sig`.
 - **Antwort auf eine Mail:** `--quote-text-file` / `--quote-html-file` hängen den Zitatblock **unter** Body und Signatur an (Top-Posting), `--in-reply-to` / `--references` setzen die Threading-Header. Der Quote wird **nicht getippt**, sondern mit `imap quote` erzeugt — siehe eigener Abschnitt unten.
