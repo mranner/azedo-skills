@@ -476,6 +476,7 @@ Real Cookie Banner (auch Pro) per WP-CLI. `rcb.php` läuft per `wp eval-file -` 
 - Lesen: Dienste, Content Blocker, Banner-Links, Einstellungen, Revisionen, Export
 - Frontend: welche Dienste eine Seite mit welchem Code ausliefert (`base64-encoded:` dekodiert)
 - Vergleich zweier Sites per Export oder Einstellungen
+- Consent-Test im Browser (Playwright, Mac/Linux): fremde Hosts, `gcs=` und Cookies ohne Einwilligung, nach „nur essenzielle“, nach „alle akzeptieren“
 - Schreiben mit Vorschau und automatischer Sicherung: Import (Duplikat- und Versionsprüfung, Cookie-Hosts auf die Ziel-Domain), Code-Felder, Einstellungen, Cache
 
 **Trigger:** `/wp-rcb` oder natürliche Sprache wie "welche Dienste hat der Cookie-Banner", "übertrag den Cookie-Banner auf die andere Seite".
@@ -752,12 +753,11 @@ Retrospektive einer Session: schlägt Verbesserungen an der Umgebung des Agents 
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.72.1
+### 1.72.2
 
-- **`wp-rcb`: Import-Vorschau vollständig.** Ein Test auf DEV zeigte, dass der
-  Import auch Banner-Texte/-Design und Name/Beschreibung bestehender Gruppen
-  überschreibt. Die Vorschau listet das jetzt (`banner`, `groups` mit
-  „unverändert" bzw. „überschreiben") und warnt vor Cookie-Hosts, die weder zur
-  Quell- noch zur Ziel-Domain passen (DEV-Klone mit Live-Domain). SKILL.md:
-  Rücknahme über `backup` + `import yes`, Werte mit Leerzeichen nur per
-  `--input`.
+- **`wp-rcb`: `consent-test.mjs`.** Browser-Test mit Playwright in drei
+  Durchläufen (ohne Einwilligung, "nur essenzielle", "alle akzeptieren"):
+  fremde Hosts, `gcs=`-Werte und fremde Cookies je Durchlauf. Normaler
+  User-Agent, mit Fenster, Banner-Klick über `getByRole`/`getByText` (RCB
+  rendert im Shadow-DOM), Warten auf `load` statt `networkidle`. Abgeleitet aus
+  einem Testlauf am Mac; Playwright gibt es für FreeBSD nicht.

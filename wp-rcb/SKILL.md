@@ -4,7 +4,8 @@ description: >
   Real Cookie Banner (devowl, auch Pro) per WP-CLI: Dienste, Content Blocker,
   Banner-Links, Einstellungen und Revisionen lesen, ausgelieferten Dienst-Code
   im Frontend prüfen, Einrichtung exportieren, zwischen Sites vergleichen und
-  importieren, Code-Felder und Einstellungen setzen. Auch bei "welche Dienste
+  importieren, Code-Felder und Einstellungen setzen, per Browser-Test prüfen,
+  was vor der Einwilligung lädt. Auch bei "welche Dienste
   hat der Cookie-Banner", "liefert RCB den Code ohne Einwilligung aus",
   "übertrag den Cookie-Banner auf die andere Seite", "vergleich die
   RCB-Einstellungen". Trigger: /wp-rcb.
@@ -73,6 +74,31 @@ Weiterverarbeiten nur stdout lesen (`2>/dev/null` oder in eine Datei).
 | `rcb php [--input <datei>]` | Payload für `wp eval-file -` ausgeben |
 | `rcb frontend <url>… [--full]` | welche Dienste die Seite ausliefert und mit welchem Code (dekodiert) |
 | `rcb diff <a.json> <b.json>` | zwei Exporte oder `settings`-Ausgaben vergleichen, Listen per Slug |
+
+## Consent-Test (consent-test.mjs, lokal)
+
+Was die Seite **tatsächlich anfragt**, nicht nur, was im HTML steht: drei
+Durchläufe in frischen Browser-Kontexten - ohne Einwilligung, nach "nur
+essenzielle", nach "alle akzeptieren" - mit den fremden Hosts, den
+`gcs=`-Werten (GA4 Consent Mode) und fremden Cookies je Durchlauf.
+
+```bash
+node "$SKILL_DIR/consent-test.mjs" <url> [<unterseite>…]
+```
+
+- Braucht Playwright mit Chromium, das es für FreeBSD nicht gibt: läuft am
+  Mac oder unter Linux. Fehlt es, nennt das Script die Installationsbefehle
+  (einmalig nach `~/.cache/wp-rcb`).
+- Läuft **mit Fenster** und normalem User-Agent; `--headless` nur, wenn kein
+  Display da ist - GA4 verwirft Hits von Headless-Chrome.
+- Fremde Hosts im ersten oder zweiten Durchlauf sind der Befund: dort lädt etwas
+  ohne die passende Einwilligung. `gcs=G111` vor der Einwilligung heißt, GA
+  sendet ohne. Ob ein Host essenziell ist, entscheidet der Mensch.
+- `Klick: false` heißt, der Banner-Button wurde nicht gefunden. Die Defaults
+  passen auf deutsche und englische RCB-Texte ("Weiter ohne Einwilligung",
+  "Alle akzeptieren"); sonst `--accept`/`--essential` mit dem Buttontext.
+- Ist die Site per Passwort geschützt (DEV hinter Hide My WP, Basic Auth),
+  kommt der Test nicht bis zum Banner.
 
 Sites vergleichen: `export` bzw. `settings all` auf beiden Seiten nach `.tmp/`
 schreiben, dann `rcb diff`. Ein leeres `rcb-banner-active` zeigt nur der

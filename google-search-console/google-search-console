@@ -2,7 +2,7 @@
 
 # Google Search Console REST API helper
 # stdlib + cryptography (fuer JWT RS256), keine weiteren pip-Dependencies
-# version 1.72.1
+# version 1.72.2
 
 import argparse
 import datetime

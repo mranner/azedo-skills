@@ -3,6 +3,15 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.72.2
+
+- **`wp-rcb`: `consent-test.mjs`.** Browser-Test mit Playwright in drei
+  Durchläufen (ohne Einwilligung, "nur essenzielle", "alle akzeptieren"):
+  fremde Hosts, `gcs=`-Werte und fremde Cookies je Durchlauf. Normaler
+  User-Agent, mit Fenster, Banner-Klick über `getByRole`/`getByText` (RCB
+  rendert im Shadow-DOM), Warten auf `load` statt `networkidle`. Abgeleitet aus
+  einem Testlauf am Mac; Playwright gibt es für FreeBSD nicht.
+
 ### 1.72.1
 
 - **`wp-rcb`: Import-Vorschau vollständig.** Ein Test auf DEV zeigte, dass der
