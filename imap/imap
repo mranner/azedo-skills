@@ -693,6 +693,11 @@ class Account:
             return True, "COPY+UID EXPUNGE"
         return True, "COPY+FLAGS (kein UIDPLUS - Quelle bleibt als gelöscht markiert)"
 
+    def has_uid(self, uid, folder="INBOX", readonly=True):
+        """UID im Ordner vorhanden? STORE/COPY/MOVE melden bei fehlender UID OK."""
+        self.select(folder, readonly=readonly)
+        return str(uid).encode() in self.search_uids(f"UID {uid}")
+
     def copy_local(self, uid, target, folder="INBOX"):
         self.select(folder, readonly=False)
         typ, data = self.conn.uid("COPY", str(uid), quote_mailbox(target))
@@ -2287,6 +2292,9 @@ def run_op(a, op, accounts, targets, dry_run):
         return {**base, "ok": False, "detail": "uid fehlt"}
 
     try:
+        if not a.has_uid(uid, folder, readonly=dry_run):
+            return {**base, "ok": False, "detail": f"uid nicht gefunden in {folder}"}
+
         if action in ("move", "copy", "delete", "spam"):
             if action == "delete":
                 target_name = "trash"
