@@ -3,6 +3,16 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.71.4
+
+- **`lint-skills.py`:** Fehler, wenn CHANGELOG.md keinen Abschnitt für die
+  Version in `VERSION` hat. Der pre-commit-Hook blockiert damit einen Release,
+  der nur `VERSION` hochzählt.
+- **CHANGELOG.md:** Die fehlenden Abschnitte 1.70.2 bis 1.70.6 sind aus den
+  Commits nachgetragen.
+- **Kopfzeilen `# version` der Scripts** auf den aktuellen Stand gezogen; bei
+  1.71.3 waren sie auf 1.71.2 stehengeblieben.
+
 ### 1.71.3
 
 - **`imap`: `list -n` nimmt verlässlich die höchsten UIDs.** `search_uids`
@@ -37,6 +47,42 @@ Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version 
   wie bei Thunderbird (`text/x-moz-deleted`, `X-Mozilla-Altered`). Auswahl wie
   bei `save-attachment`, `--save` schreibt vorher heraus, `--dry-run`.
   Signierte und verschlüsselte Mails werden abgelehnt.
+
+### 1.70.6
+
+- **`imap`:** Sonderrollen (`sent`, `trash`, `junk`, `archive` …) gelten jetzt
+  auch bei `-f/--folder`, nicht nur bei `-t/--target`.
+- **`writing-for-agents`** greift auch, wenn eine Skill-Änderung erst
+  vorgeschlagen wird.
+- **Review-Guard Punkt 7:** Allgemein formuliert heißt auch keine Kopplung an
+  ein Projekt, einen Host oder die Konvention eines anderen Skills.
+
+### 1.70.5
+
+- **`wiki`, harvest Schritt 6:** Vor dem Schreiben `git status` unter
+  `WIKI_ROOT` lesen; fremde uncommittete Änderungen melden und getrennt
+  committen lassen. Fertig ist der Harvest erst mit `lint` ohne Fehler, Commit
+  und leerem `git status`.
+
+### 1.70.4
+
+- **`swaks`: `build_mail.py` räumt auf.** Nach Exit `0` von `--send`/`--draft`
+  wird das `mktemp`-Verzeichnis der `.eml` gelöscht (Personendaten), bei Exit
+  `1` und `3` bleibt es. Jeder Lauf löscht zusätzlich `mail.*`/`reply.*` im
+  selben `.tmp/`, die älter als 7 Tage sind. Das JSON nennt sie in `cleaned` und
+  die Größe der `.eml` in `bytes`.
+
+### 1.70.3
+
+- **`imap`:** Schreibende Aktionen und `batch` prüfen vorab per `UID SEARCH`, ob
+  die UID im Ordner existiert. `STORE`, `COPY` und `MOVE` meldeten bei einer
+  fehlenden UID `ok`, auch im Probelauf.
+
+### 1.70.2
+
+- **`imap`:** `move`, `copy`, `delete`, `spam`, `seen`, `unseen`, `flag` und
+  `unflag` nehmen mehrere UIDs je Aufruf und erledigen sie mit einem Login. Das
+  JSON hat bei mehreren UIDs die Form von `batch`.
 
 ### 1.70.1
 

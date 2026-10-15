@@ -227,6 +227,27 @@ def install_liste():
     return m.group(1).split()
 
 
+def changelog_fehlt():
+    """Liefert die Version aus VERSION, wenn CHANGELOG.md keinen Abschnitt
+    dafür hat, sonst None.
+
+    Bei 1.70.2 bis 1.70.6 wurde nur VERSION hochgezählt - die Lücke fiel erst
+    Wochen später auf."""
+
+    if not (os.path.isfile("VERSION") and os.path.isfile("CHANGELOG.md")):
+        return None
+
+    with open("VERSION", encoding="utf-8") as f:
+        version = f.read().strip()
+    with open("CHANGELOG.md", encoding="utf-8") as f:
+        changelog = f.read()
+
+    if re.search(rf"^### {re.escape(version)}$", changelog, re.M):
+        return None
+
+    return version
+
+
 def main():
     ziele = sys.argv[1:]
     if not ziele:
@@ -270,6 +291,12 @@ def main():
                 "das Verzeichnis gibt es nicht"
             )
             warnungen_gesamt += 1
+
+    if not sys.argv[1:]:
+        version = changelog_fehlt()
+        if version:
+            print(f"FEHLER  CHANGELOG.md: kein Abschnitt '### {version}' für VERSION")
+            fehler_gesamt += 1
 
     print(
         f"\n{len(ziele)} Skills geprüft, "

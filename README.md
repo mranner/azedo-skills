@@ -741,10 +741,12 @@ Retrospektive einer Session: schlägt Verbesserungen an der Umgebung des Agents 
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.71.3
+### 1.71.4
 
-- **`imap`: `list -n` nimmt verlässlich die höchsten UIDs.** `search_uids`
-  sortiert die SEARCH-Treffer selbst, statt der Reihenfolge des Servers zu
-  vertrauen (RFC 3501 schreibt keine vor). SKILL.md, Fallstricke: `list` ist
-  aufsteigend nach UID sortiert, die neueste Mail steht am Ende; die Start-UID
-  eines Testlaufs ist die Zeile von `list -n 1`.
+- **`lint-skills.py`:** Fehler, wenn CHANGELOG.md keinen Abschnitt für die
+  Version in `VERSION` hat. Der pre-commit-Hook blockiert damit einen Release,
+  der nur `VERSION` hochzählt.
+- **CHANGELOG.md:** Die fehlenden Abschnitte 1.70.2 bis 1.70.6 sind aus den
+  Commits nachgetragen.
+- **Kopfzeilen `# version` der Scripts** auf den aktuellen Stand gezogen; bei
+  1.71.3 waren sie auf 1.71.2 stehengeblieben.

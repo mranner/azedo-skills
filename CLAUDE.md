@@ -144,6 +144,8 @@ gegen den Verzeichnisnamen, kebab-case, Laengengrenzen, die Block-Scalar-Regel
 von oben, `version` im Frontmatter und unbekannte Schluessel. Ebenso, ob jeder
 Skill in der Liste von `install.sh` steht - fehlt er dort, bekommt eine frische
 Installation keinen Symlink, und auf der eigenen Maschine faellt das nie auf.
+Und ob CHANGELOG.md einen Abschnitt `### <x.y.z>` fuer die Version in
+`VERSION` hat - bei 1.70.2 bis 1.70.6 war nur `VERSION` hochgezaehlt worden.
 Exit 0 heisst sauber, Exit 1 nennt die Fehler; Warnungen (unbekannter
 Schluessel, Body ueber 500 Zeilen, verwaister Name in `install.sh`) aendern den
 Exit-Code nicht. Einzelne Skills gehen als Argument.

@@ -4,7 +4,7 @@
 # fuehrt Lesbarkeits-, Satz-, Wort- und Struktur-Linter zusammen, bewertet
 # gegen die Zielwerte der gewaehlten Stufe und nennt die groessten Hebel.
 # Mit --vergleich zusaetzlich Vorher/Nachher gegen eine zweite Datei.
-# version 1.71.2
+# version 1.71.4
 
 import argparse
 
