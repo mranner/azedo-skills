@@ -3,6 +3,15 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.72.5
+
+- **`kimai`: `log --shortcut` nennt bei unbekanntem Shortcut die durchsuchten
+  Dateien.** Steht die Shell außerhalb des Projekts (etwa im Skill-Verzeichnis),
+  fehlt die projektlokale Datei, und die Meldung sah aus wie ein fehlender
+  Shortcut. Jetzt folgt ein Hinweis auf das Arbeitsverzeichnis; die Suche
+  aufwärts zählt `~/.claude/kimai-shortcuts.json` dabei nicht als Projektdatei.
+  SKILL.md: ID-Lookup sucht aufwärts, nicht nur im Arbeitsverzeichnis.
+
 ### 1.72.4
 
 - **`wp-rcb`: `set-cookie`.** Cookie-Definitionen (`technicalDefinitions`)

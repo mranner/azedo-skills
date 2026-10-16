@@ -28,7 +28,7 @@ Das schreibt `instance.json` ins Skill-Verzeichnis mit allen Projekten, Aktivit�
 
 Falls `instance.json` nicht existiert, zuerst `setup` ausführen.
 
-**ID-Lookup:** Zuerst `.claude/kimai-shortcuts.json` im Arbeitsverzeichnis prüfen (kompakte Zuordnung häufiger Projekt/Aktivitäts-Kombinationen), danach die gemeinsame `~/.claude/kimai-shortcuts.json` für Kurznamen, die projektlokal fehlen. Bei gleichem Key gilt der projektlokale. Nur bei unbekannten Projekten auf `$SKILL_DIR/instance.json` zurückfallen.
+**ID-Lookup:** Zuerst `.claude/kimai-shortcuts.json` prüfen, gesucht vom Arbeitsverzeichnis aufwärts (kompakte Zuordnung häufiger Projekt/Aktivitäts-Kombinationen), danach die gemeinsame `~/.claude/kimai-shortcuts.json` für Kurznamen, die projektlokal fehlen. Bei gleichem Key gilt der projektlokale. Nur bei unbekannten Projekten auf `$SKILL_DIR/instance.json` zurückfallen. Nennt `shortcut … not found` keine Projektdatei, steht die Shell außerhalb des Projekts (etwa nach `cd` ins Skill-Verzeichnis): zurück ins Projekt wechseln, den Shortcut nicht neu anlegen.
 
 **Aufbau von `.claude/kimai-shortcuts.json`:**
 

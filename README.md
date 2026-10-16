@@ -753,10 +753,11 @@ Retrospektive einer Session: schlägt Verbesserungen an der Umgebung des Agents 
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.72.4
+### 1.72.5
 
-- **`wp-rcb`: `set-cookie`.** Cookie-Definitionen (`technicalDefinitions`)
-  eines Dienstes anlegen, ändern oder entfernen, mit Vorschau, `backup` und dem
-  Stand je Sprach-Post (`posts`). Auslöser: einem Dienst fehlten die Cookies,
-  die PixelYourSite für die Einwilligung abfragt, das Pixel lud dadurch ohne
-  Einwilligung; nachgetragen wurden sie bisher per eigenem `eval-file`-Script.
+- **`kimai`: `log --shortcut` nennt bei unbekanntem Shortcut die durchsuchten
+  Dateien.** Steht die Shell außerhalb des Projekts (etwa im Skill-Verzeichnis),
+  fehlt die projektlokale Datei, und die Meldung sah aus wie ein fehlender
+  Shortcut. Jetzt folgt ein Hinweis auf das Arbeitsverzeichnis; die Suche
+  aufwärts zählt `~/.claude/kimai-shortcuts.json` dabei nicht als Projektdatei.
+  SKILL.md: ID-Lookup sucht aufwärts, nicht nur im Arbeitsverzeichnis.

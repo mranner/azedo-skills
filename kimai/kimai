@@ -2,7 +2,7 @@
 
 # Kimai REST API helper
 # stdlib only, no pip dependencies
-# version 1.72.4
+# version 1.72.5
 
 import argparse
 import json
@@ -1102,14 +1102,21 @@ def _find_shortcuts_file():
         d = parent
 
 
+def _shortcut_paths():
+    """Existing shortcut files in lookup order: project-local, then home."""
+    paths = [p for p in (_find_shortcuts_file(), _home_shortcuts_file()) if p and os.path.exists(p)]
+    return list(dict.fromkeys(os.path.realpath(p) for p in paths))
+
+
+def _home_shortcuts_file():
+    return os.path.join(os.path.expanduser("~"), ".claude", "kimai-shortcuts.json")
+
+
 def load_shortcuts():
     """Read .claude/kimai-shortcuts.json (searched upward from cwd), then
     ~/.claude/kimai-shortcuts.json for keys missing there. Returns dict or {}."""
-    home_file = os.path.join(os.path.expanduser("~"), ".claude", "kimai-shortcuts.json")
-    paths = [p for p in (_find_shortcuts_file(), home_file) if p and os.path.exists(p)]
-
     shortcuts = {}
-    for path in dict.fromkeys(os.path.realpath(p) for p in paths):
+    for path in _shortcut_paths():
         with open(path) as f:
             data = json.load(f)
         for key, val in data.items():
@@ -1196,7 +1203,14 @@ def cmd_log(args):
     if args.shortcut:
         sc = resolve_shortcut(args.shortcut)
         if not sc:
-            print(f"Error: shortcut '{args.shortcut}' not found", file=sys.stderr)
+            searched = ", ".join(_shortcut_paths()) or "no shortcut file"
+            print(f"Error: shortcut '{args.shortcut}' not found in {searched}", file=sys.stderr)
+            # No project file usually means cwd is outside the project
+            # The upward search also finds the home file when cwd is below ~
+            local = _find_shortcuts_file()
+            if not local or os.path.realpath(local) == os.path.realpath(_home_shortcuts_file()):
+                print(f"       (no .claude/kimai-shortcuts.json upward from {os.getcwd()} - wrong cwd?)",
+                      file=sys.stderr)
             sys.exit(1)
         project_id = sc["project"]
         activity_id = sc["activity"]
