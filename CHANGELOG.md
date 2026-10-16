@@ -3,6 +3,16 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.72.6
+
+- **`kanboard`: Ausnahme Phasenwechsel beim Kimai-Write-back.** Wechselt die
+  Buchung im selben Kimai-Projekt nur zwischen Spezifikation und Entwicklung
+  (in beide Richtungen), wird der `kimai:`-Tag per `set-kimai` mitgezogen und
+  gemeldet, statt nur gemeldet zu werden. Auslöser: eine projektbezogene
+  Memory verlangte das Mitziehen, der Skill nur die Meldung.
+- **`kimai`:** Die doppelt geführte Write-back-Regel verweist jetzt auf den
+  kanboard-Skill, Abschnitt "Kimai-Präfix".
+
 ### 1.72.5
 
 - **`kimai`: `log --shortcut` nennt bei unbekanntem Shortcut die durchsuchten

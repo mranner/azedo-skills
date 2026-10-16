@@ -2,7 +2,7 @@
 
 # Meta Graph/Marketing API helper (Datasets, Conversions API, Werbekonten, Insights)
 # stdlib only, no pip dependencies
-# version 1.72.5
+# version 1.72.6
 
 import argparse
 import json

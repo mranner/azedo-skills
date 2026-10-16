@@ -157,7 +157,7 @@ python3 "$SKILL_DIR/kimai" ping
   [Zeitregeln](#zeitregeln) — dort vollständig und nur dort, damit die Fassungen nicht
   auseinanderlaufen.
 - **CR-Kontext beachten:** Wenn ein CR-Kontext aktiv ist (gesetzt via `/kanboard cr <id>`), die Beschreibung (`--description`) immer mit `CR{id}: ` prefixen. Bei mehreren aktiven CRs nachfragen. Details siehe Kanboard SKILL.md, Abschnitt "CR-Kontext".
-- **Shortcut am Task hinterlegen (Write-back):** Wurde unter aktivem CR mit einem `--shortcut` gebucht, den Shortcut am Kanboard-Task als Tag `kimai:<shortcut>` ablegen, falls dort noch keiner gesetzt ist — automatische Regel, keine Rückfrage. Dazu den **kanboard-Skill** aufrufen: `set-kimai <task_id> --shortcut <shortcut>` (`<task_id>` = die CR-ID). Dann steht der Shortcut beim nächsten `/kanboard cr <id>` im Feld `kimai` bereit. Nur bei aktivem CR **und** verwendetem Shortcut; ist schon ein `kimai:`-Tag gesetzt oder wurde ohne CR/Shortcut gebucht, entfällt es. Weicht der vorhandene Tag ab, das nur melden, nicht überschreiben. Details siehe Kanboard SKILL.md, Abschnitt "Kimai-Präfix".
+- **Shortcut am Task hinterlegen (Write-back):** Wurde unter aktivem CR mit `--shortcut` gebucht, den Shortcut am Kanboard-Task als Tag `kimai:<shortcut>` ablegen. Wann setzen, wann nur melden und der Phasenwechsel: **kanboard-Skill**, Abschnitt "Kimai-Präfix".
 - **Config-Quelle** (`KIMAI_HOST`, `KIMAI_TOKEN`) — in dieser Reihenfolge: `KIMAI_ENV`
   (Environment-Variable, voller Pfad), sonst `.env` im **aktuellen Arbeitsverzeichnis**
   — aber nur, wenn dort auch tatsächlich `KIMAI_*`-Schlüssel stehen —, sonst `~/.env`.

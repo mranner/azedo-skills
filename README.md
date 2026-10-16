@@ -753,11 +753,12 @@ Retrospektive einer Session: schlägt Verbesserungen an der Umgebung des Agents 
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.72.5
+### 1.72.6
 
-- **`kimai`: `log --shortcut` nennt bei unbekanntem Shortcut die durchsuchten
-  Dateien.** Steht die Shell außerhalb des Projekts (etwa im Skill-Verzeichnis),
-  fehlt die projektlokale Datei, und die Meldung sah aus wie ein fehlender
-  Shortcut. Jetzt folgt ein Hinweis auf das Arbeitsverzeichnis; die Suche
-  aufwärts zählt `~/.claude/kimai-shortcuts.json` dabei nicht als Projektdatei.
-  SKILL.md: ID-Lookup sucht aufwärts, nicht nur im Arbeitsverzeichnis.
+- **`kanboard`: Ausnahme Phasenwechsel beim Kimai-Write-back.** Wechselt die
+  Buchung im selben Kimai-Projekt nur zwischen Spezifikation und Entwicklung
+  (in beide Richtungen), wird der `kimai:`-Tag per `set-kimai` mitgezogen und
+  gemeldet, statt nur gemeldet zu werden. Auslöser: eine projektbezogene
+  Memory verlangte das Mitziehen, der Skill nur die Meldung.
+- **`kimai`:** Die doppelt geführte Write-back-Regel verweist jetzt auf den
+  kanboard-Skill, Abschnitt "Kimai-Präfix".

@@ -257,6 +257,11 @@ vorhandener Tag vom verwendeten Shortcut ab, das nur melden, nicht überschreibe
 Ein Task, der über mehrere Kimai-Projekte gebucht wird, behält so seinen Tag, statt
 mit jeder Buchung zu wechseln.
 
+**Ausnahme Phasenwechsel:** Gehören vorhandener Tag und verwendeter Shortcut zum
+selben Kimai-Projekt und wechselt nur die Aktivität zwischen Spezifikation und
+Entwicklung (in beide Richtungen), den Tag per `set-kimai` mitziehen und das melden.
+Der Tag zeigt dann die aktuelle Phase.
+
 ```bash
 python3 "$SKILL_DIR/kanboard" set-kimai <task_id> --shortcut <shortcut>
 ```
