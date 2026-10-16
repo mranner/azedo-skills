@@ -1,0 +1,369 @@
+#!/usr/bin/env python3
+
+# Sally AI Public API (v1.0), nur lesend
+# Aufnahmen auflisten, Zusammenfassung und Transkript holen, Zusammenfassungen durchsuchen.
+# stdlib only, keine pip-Abhaengigkeiten.
+# version 1.73.0
+
+import argparse
+import datetime
+import email.message
+import json
+import os
+import re
+import sys
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+
+API_BASE = "https://api.sally.io/v1.0"
+CONFIG_FILE = os.environ.get("SALLY_CONFIG") or os.path.expanduser("~/.claude/sally.json")
+UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+TRANSCRIPT_FORMATS = ["md", "txt", "pdf", "docx", "xlsx", "vtt", "srt"]
+SUMMARY_FORMATS = ["md", "txt", "pdf", "docx", "odt"]
+LANGUAGES = ["de-DE", "en-US", "es-ES", "fr-FR", "it-IT", "nl-NL", "pl-PL"]
+MAX_RETRIES = 3
+
+
+def die(msg, code=1):
+    print("Fehler: " + msg, file=sys.stderr)
+    sys.exit(code)
+
+
+# --- Config -----------------------------------------------------------------
+
+_config = None
+
+
+def config():
+    global _config
+    if _config is None:
+        if not os.path.exists(CONFIG_FILE):
+            die("%s fehlt. Vorlage: sally.json.example im Skill-Verzeichnis "
+                "(Schluessel token, directory-id; Modus 600)." % CONFIG_FILE)
+        with open(CONFIG_FILE) as f:
+            _config = json.load(f)
+        if not _config.get("token"):
+            die("Kein token in %s." % CONFIG_FILE)
+    return _config
+
+
+def directory_id():
+    did = config().get("directory-id")
+    if not did:
+        die("Keine directory-id in %s. 'sally directories' listet die moeglichen." % CONFIG_FILE)
+    return did
+
+
+# --- HTTP -------------------------------------------------------------------
+
+def request(method, path, params=None, body=None, raw=False):
+    """API-Aufruf. raw=True liefert (bytes, Dateiname aus Content-Disposition)."""
+    url = API_BASE + path
+    if params:
+        url += "?" + urllib.parse.urlencode({k: v for k, v in params.items() if v is not None})
+    data = json.dumps(body).encode() if body is not None else None
+    headers = {"Authorization": "Bearer " + config()["token"], "Accept": "*/*" if raw else "application/json"}
+    if data is not None:
+        headers["Content-Type"] = "application/json"
+    for attempt in range(MAX_RETRIES + 1):
+        req = urllib.request.Request(url, data=data, method=method, headers=headers)
+        try:
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                content = resp.read()
+                if raw:
+                    return content, _filename(resp.headers.get("Content-Disposition"))
+                return json.loads(content) if content else None
+        except urllib.error.HTTPError as e:
+            if e.code == 429 and attempt < MAX_RETRIES:
+                wait = e.headers.get("Retry-After")
+                time.sleep(int(wait) if wait and wait.isdigit() else 2 ** (attempt + 2))
+                continue
+            _http_error(e)
+        except urllib.error.URLError as e:
+            die("Sally-API nicht erreichbar: %s" % e.reason)
+
+
+def _http_error(e):
+    try:
+        err = json.loads(e.read())
+    except ValueError:
+        err = {}
+    msg = err.get("message") or e.reason
+    if isinstance(msg, list):
+        msg = "; ".join(str(m) for m in msg)
+    code = err.get("code")
+    hints = {
+        401: "Token fehlt, ist ungueltig oder abgelaufen (%s)." % CONFIG_FILE,
+        403: "Keine Berechtigung.",
+        404: "Nicht gefunden oder kein Zugriff.",
+        409: "Konflikt.",
+        429: "Rate Limit, auch nach %d Wiederholungen." % MAX_RETRIES,
+    }
+    text = {
+        "TRANSCRIPT_NOT_AVAILABLE": "Die Aufnahme hat noch kein Transkript.",
+        "TRANSCRIPT_DOWNLOAD_PREVENTED": "Das Directory hat den Transkript-Download gesperrt.",
+        "SUMMARY_DOWNLOAD_PREVENTED": "Das Directory hat den Download der Zusammenfassung gesperrt.",
+        "SUMMARY_HAS_NO_CONTENT": "Die Zusammenfassung hat keine Abschnitte fuer ein Dokument.",
+    }.get(code, hints.get(e.code, ""))
+    die(("HTTP %d%s: %s %s" % (e.code, " " + code if code else "", text, msg)).rstrip())
+
+
+def _filename(disposition):
+    if not disposition:
+        return None
+    msg = email.message.Message()
+    msg["Content-Disposition"] = disposition
+    return msg.get_filename()
+
+
+def paged(path, params=None, body=None, limit=None):
+    """Alle Seiten eines Listen-Endpoints (GET) bzw. einer Suche (POST mit body)."""
+    page, items = 1, []
+    while True:
+        if body is None:
+            res = request("GET", path, dict(params or {}, page=page, pageSize=100))
+        else:
+            res = request("POST", path, body=dict(body, page=page, pageSize=100))
+        items.extend(res.get("items") or [])
+        if not res.get("hasMore") or (limit and len(items) >= limit):
+            return items[:limit] if limit else items
+        page += 1
+
+
+# --- Hilfen -----------------------------------------------------------------
+
+def local_time(iso):
+    if not iso:
+        return ""
+    dt = datetime.datetime.fromisoformat(iso.replace("Z", "+00:00"))
+    return dt.astimezone().strftime("%Y-%m-%d %H:%M")
+
+
+def utc_param(value):
+    """Lokales Datum/Datum+Zeit nach UTC (YYYY-MM-DDTHH:MM:SSZ)."""
+    if not value:
+        return None
+    try:
+        dt = datetime.datetime.fromisoformat(value)
+    except ValueError:
+        die("Datum nicht lesbar: %s (YYYY-MM-DD oder YYYY-MM-DDTHH:MM)" % value)
+    if dt.tzinfo is None:
+        dt = dt.astimezone()
+    return dt.astimezone(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def duration(seconds):
+    if seconds is None:
+        return ""
+    seconds = int(seconds)
+    return "%d:%02d:%02d" % (seconds // 3600, seconds % 3600 // 60, seconds % 60)
+
+
+def transcript_status(rec):
+    if rec.get("isTranscriptionSucceeded"):
+        return "fertig"
+    if not rec.get("isTranscriptionCompleted"):
+        return "laeuft"
+    return rec.get("transcriptionCompletionReason") or "ohne Ergebnis"
+
+
+def resolve_recording(ref):
+    """Aufnahme per UUID oder eindeutigem Namensteil."""
+    did = directory_id()
+    if UUID_RE.match(ref.lower()):
+        return request("GET", "/directories/%s/recordings/%s" % (did, ref.lower()))
+    needle = ref.lower()
+    hits = [r for r in paged("/directories/%s/recordings" % did) if needle in (r.get("name") or "").lower()]
+    if not hits:
+        die("Keine Aufnahme mit '%s' im Namen." % ref)
+    if len(hits) > 1:
+        lines = ["  %s  %s  %s" % (local_time(r.get("createdOn")), r["recordingId"], r.get("name")) for r in hits]
+        die("'%s' ist nicht eindeutig:\n%s" % (ref, "\n".join(lines)))
+    return hits[0]
+
+
+def pick_summary(rec, lang):
+    """Zusammenfassung einer Aufnahme, eindeutig ueber Aufnahme und Sprache."""
+    summaries = request("GET", "/directories/%s/recordings/%s/summaries" % (directory_id(), rec["recordingId"])) or []
+    if not summaries:
+        die("Die Aufnahme hat keine Zusammenfassung.")
+    if lang:
+        hits = [s for s in summaries if (s.get("languageCode") or "").lower().startswith(lang.lower())]
+        if not hits:
+            die("Keine Zusammenfassung in %s, vorhanden: %s" % (lang, ", ".join(str(s.get("languageCode")) for s in summaries)))
+        return hits[0]
+    if len(summaries) > 1:
+        die("Mehrere Sprachen, mit --lang waehlen: %s" % ", ".join(str(s.get("languageCode")) for s in summaries))
+    return summaries[0]
+
+
+def summary_document(rec, lang, fmt):
+    s = pick_summary(rec, lang)
+    if not s.get("isSummarizationSucceeded"):
+        die("Zusammenfassung ohne Inhalt (%s)." % s.get("summarizationCompletionReason"))
+    return request("GET", "/directories/%s/summaries/%s/document" % (directory_id(), s["recordingSummaryId"]),
+                   {"format": fmt, "languageCode": doc_language(lang)}, raw=True)
+
+
+def transcript_document(rec, lang, fmt):
+    return request("GET", "/directories/%s/recordings/%s/transcription/document" % (directory_id(), rec["recordingId"]),
+                   {"format": fmt, "languageCode": doc_language(lang)}, raw=True)
+
+
+def doc_language(lang):
+    """--lang auf die Dokument-Sprachen der API abbilden (de -> de-DE)."""
+    if not lang:
+        return None
+    for code in LANGUAGES:
+        if code.lower() == lang.lower() or code.split("-")[0] == lang.lower():
+            return code
+    return None
+
+
+def safe_name(text):
+    text = re.sub(r"[^\w.-]+", "-", text or "aufnahme", flags=re.UNICODE).strip("-")
+    return text[:60] or "aufnahme"
+
+
+def write_out(content, path):
+    with open(path, "wb") as f:
+        f.write(content)
+    print("%s (%d Bytes)" % (path, len(content)))
+
+
+def emit(content):
+    sys.stdout.buffer.write(content)
+    if not content.endswith(b"\n"):
+        sys.stdout.buffer.write(b"\n")
+
+
+# --- Subcommands ------------------------------------------------------------
+
+def cmd_me(args):
+    me = request("GET", "/me")
+    print("%s %s <%s>" % (me.get("firstName") or "", me.get("lastName") or "", me.get("email")))
+
+
+def cmd_directories(args):
+    for d in request("GET", "/directories") or []:
+        print("%s  %s" % (d["directoryId"], d.get("name")))
+
+
+def cmd_recordings(args):
+    params = {"createdAfter": utc_param(args.since), "createdBefore": utc_param(args.until)}
+    recs = paged("/directories/%s/recordings" % directory_id(), params, limit=args.limit)
+    if args.json:
+        print(json.dumps(recs, indent=2, ensure_ascii=False))
+        return
+    for r in recs:
+        print("%s  %8s  %-13s  %s  %s" % (local_time(r.get("createdOn")), duration(r.get("durationInSeconds")),
+                                          transcript_status(r), r["recordingId"], r.get("name") or ""))
+
+
+def cmd_summary(args):
+    rec = resolve_recording(args.recording)
+    if args.json:
+        res = request("GET", "/directories/%s/recordings/%s/summaries" % (directory_id(), rec["recordingId"]),
+                      {"includeDetails": "true"})
+        print(json.dumps(res, indent=2, ensure_ascii=False))
+        return
+    content, _ = summary_document(rec, args.lang, args.format)
+    if args.out:
+        write_out(content, args.out)
+    else:
+        emit(content)
+
+
+def cmd_transcript(args):
+    rec = resolve_recording(args.recording)
+    if args.json:
+        res = request("GET", "/directories/%s/recordings/%s/transcription" % (directory_id(), rec["recordingId"]))
+        print(json.dumps(res, indent=2, ensure_ascii=False))
+        return
+    content, _ = transcript_document(rec, args.lang, args.format)
+    if args.out:
+        write_out(content, args.out)
+    else:
+        emit(content)
+
+
+def cmd_download(args):
+    rec = resolve_recording(args.recording)
+    target = args.to or os.path.join(os.getcwd(), ".tmp")
+    os.makedirs(target, mode=0o700, exist_ok=True)
+    day = local_time(rec.get("createdOn"))[:10]
+    base = os.path.join(target, "%s_%s" % (day, safe_name(rec.get("name"))))
+    content, _ = summary_document(rec, args.lang, "md")
+    write_out(content, base + "_zusammenfassung.md")
+    content, _ = transcript_document(rec, args.lang, "md")
+    write_out(content, base + "_transkript.md")
+    if args.json:
+        res = request("GET", "/directories/%s/recordings/%s/transcription" % (directory_id(), rec["recordingId"]))
+        write_out(json.dumps(res, indent=2, ensure_ascii=False).encode(), base + "_transkript.json")
+
+
+def cmd_search(args):
+    if len(args.text.strip()) < 3:
+        die("Suchbegriff braucht mindestens 3 Zeichen.")
+    hits = paged("/directories/%s/summaries/search" % directory_id(), body={"search": args.text}, limit=args.limit)
+    if args.json:
+        print(json.dumps(hits, indent=2, ensure_ascii=False))
+        return
+    names = {}
+    for h in hits:
+        rid = h["recordingId"]
+        if rid not in names:
+            names[rid] = request("GET", "/directories/%s/recordings/%s" % (directory_id(), rid),
+                                 {"fields": "name"}).get("name")
+        print("%s  %s  %s  [%s]" % (local_time(h.get("createdOn")), rid, names[rid] or "", h.get("languageCode") or ""))
+        print("    " + " ".join((h.get("snippet") or "").split()))
+
+
+def main():
+    p = argparse.ArgumentParser(prog="sally", description="Sally AI Public API v1.0, nur lesend.")
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    sub.add_parser("me", help="Token-Nutzer anzeigen (Zugangstest)").set_defaults(func=cmd_me)
+    sub.add_parser("directories", help="Directories des Tokens (fuer directory-id)").set_defaults(func=cmd_directories)
+
+    s = sub.add_parser("recordings", help="Aufnahmen auflisten, neueste zuerst")
+    s.add_argument("--since", help="ab Datum (lokal, YYYY-MM-DD[THH:MM])")
+    s.add_argument("--until", help="bis Datum (lokal, YYYY-MM-DD[THH:MM])")
+    s.add_argument("--limit", type=int, help="hoechstens N Aufnahmen")
+    s.add_argument("--json", action="store_true", help="Rohdaten")
+    s.set_defaults(func=cmd_recordings)
+
+    for name, func, formats, help_ in (("summary", cmd_summary, SUMMARY_FORMATS, "Zusammenfassung einer Aufnahme"),
+                                       ("transcript", cmd_transcript, TRANSCRIPT_FORMATS, "Transkript einer Aufnahme")):
+        s = sub.add_parser(name, help=help_)
+        s.add_argument("recording", help="Aufnahme-ID oder eindeutiger Namensteil")
+        s.add_argument("--format", choices=formats, default="md")
+        s.add_argument("--lang", help="Sprache, z.B. de oder en-US")
+        s.add_argument("--out", help="in Datei statt auf stdout (Pflicht bei Binaerformaten)")
+        s.add_argument("--json", action="store_true", help="strukturierte Rohdaten statt Dokument")
+        s.set_defaults(func=func)
+
+    s = sub.add_parser("download", help="Zusammenfassung und Transkript (md) in ein Verzeichnis")
+    s.add_argument("recording", help="Aufnahme-ID oder eindeutiger Namensteil")
+    s.add_argument("--to", help="Zielverzeichnis (Default: ./.tmp, Modus 700)")
+    s.add_argument("--lang", help="Sprache, z.B. de oder en-US")
+    s.add_argument("--json", action="store_true", help="zusaetzlich Transkript als JSON")
+    s.set_defaults(func=cmd_download)
+
+    s = sub.add_parser("search", help="Zusammenfassungen durchsuchen (mind. 3 Zeichen)")
+    s.add_argument("text")
+    s.add_argument("--limit", type=int, help="hoechstens N Treffer")
+    s.add_argument("--json", action="store_true", help="Rohdaten")
+    s.set_defaults(func=cmd_search)
+
+    args = p.parse_args()
+    if getattr(args, "format", "md") not in ("md", "txt", "vtt", "srt") and not getattr(args, "json", False) \
+            and not getattr(args, "out", None):
+        die("--format %s ist binaer, mit --out <datei> speichern." % args.format)
+    args.func(args)
+
+
+if __name__ == "__main__":
+    main()

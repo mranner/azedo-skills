@@ -749,18 +749,31 @@ Retrospektive einer Session: schlägt Verbesserungen an der Umgebung des Agents 
 
 **Trigger:** `/retro`, optional mit Session-ID oder Stichwort.
 
+### sally
+
+Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
+
+- `recordings` - Aufnahmen mit Dauer und Transkript-Status, Filter `--since`/`--until` in lokaler Zeit
+- `summary` / `transcript` - Zusammenfassung bzw. Transkript als Dokument (`md`, `txt`, `pdf`, `docx` u.a.) oder mit `--json` strukturiert; Aufnahme per ID oder eindeutigem Namensteil, Sprache per `--lang`
+- `download` - beides als Markdown nach `./.tmp/` (Modus 700) oder `--to DIR`
+- `search` - Zusammenfassungen durchsuchen, mit Ausschnitt je Treffer
+
+**Setup:** `~/.claude/sally.json` (Modus 600) nach der Vorlage `sally/sally.json.example` mit `token` (Personal Access Token aus der Sally-App) und `directory-id` (`sally directories` listet sie); anderer Pfad über `SALLY_CONFIG`.
+
+**Voraussetzungen:** Python >= 3.11 (stdlib only).
+
+**Trigger:** `/sally` oder natürliche Sprache wie "hol die Zusammenfassung vom Meeting", "ich brauch das Transkript".
+
 ## Changelog
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.72.7
+### 1.73.0
 
-- **`wp-rcb`: `create-blocker` und `check-groups`.** `create-blocker` legt
-  einen Content Blocker an (Regeln zeilenweise per `--input`, Dienste per
-  `post_name`) und läuft über den Import - mit Vorschau, Duplikatprüfung und
-  `backup`. `check-groups` vergleicht je Gruppe den Term-`count` mit den
-  veröffentlichten Diensten: RCB liefert eine Gruppe mit `count` 0 nicht aus,
-  die Pixel luden dadurch ohne Einwilligung.
-- **`wp-rcb`: `consent-test.mjs`.** Neuer Durchlauf "auswahl" mit
-  `--groups <name,…>` (individuelle Auswahl einzelner Gruppen), läuft jetzt
-  standardmäßig ohne Fenster; `--headed` ersetzt `--headless`.
+- **Neuer Skill `sally`.** Liest Meeting-Aufnahmen aus Sally AI über die
+  Public API v1.0: `recordings` (mit `--since`/`--until`), `summary` und
+  `transcript` als Dokument (Markdown, Text, PDF, DOCX u.a.) oder mit
+  `--json` strukturiert, `download` legt beides in `.tmp/` ab, `search`
+  durchsucht die Zusammenfassungen. Nur lesend; Token und Directory aus
+  `~/.claude/sally.json` (Vorlage `sally.json.example`). 429 wird mit
+  Wartezeit wiederholt, der Token erscheint in keiner Ausgabe.

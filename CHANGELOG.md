@@ -3,6 +3,16 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.73.0
+
+- **Neuer Skill `sally`.** Liest Meeting-Aufnahmen aus Sally AI über die
+  Public API v1.0: `recordings` (mit `--since`/`--until`), `summary` und
+  `transcript` als Dokument (Markdown, Text, PDF, DOCX u.a.) oder mit
+  `--json` strukturiert, `download` legt beides in `.tmp/` ab, `search`
+  durchsucht die Zusammenfassungen. Nur lesend; Token und Directory aus
+  `~/.claude/sally.json` (Vorlage `sally.json.example`). 429 wird mit
+  Wartezeit wiederholt, der Token erscheint in keiner Ausgabe.
+
 ### 1.72.7
 
 - **`wp-rcb`: `create-blocker` und `check-groups`.** `create-blocker` legt
