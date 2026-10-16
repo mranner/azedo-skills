@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // wp-rcb consent-test: welche fremden Hosts eine Seite ohne Einwilligung, nach
-// "nur essenzielle" und nach "alle akzeptieren" anfragt. Braucht Playwright
-// (Chromium) - nicht auf FreeBSD verfügbar, also am Mac oder unter Linux.
+// "nur essenzielle", nach einer Gruppenauswahl und nach "alle akzeptieren"
+// anfragt. Braucht Playwright (Chromium) - nicht auf FreeBSD verfügbar, also am
+// Mac oder unter Linux.
 
 import { createRequire } from 'node:module';
 import { homedir } from 'node:os';
@@ -14,11 +15,13 @@ const PW_DIR = process.env.RCB_PLAYWRIGHT_DIR || join(homedir(), '.cache', 'wp-r
 const USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 '
 	+ '(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36';
 
-const PHASES = ['ohne', 'essenziell', 'alle'];
+// Phase "auswahl" nur mit --groups
+const PHASES = ['ohne', 'essenziell', 'auswahl', 'alle'];
 
 function usage() {
 	console.error(`Aufruf: node consent-test.mjs <url> [<url>…] [Optionen]
-  --headless            ohne Fenster (GA4 kann Hits dann verwerfen)
+  --headed              mit Fenster (nötig, wenn GA4-Hits ankommen müssen)
+  --groups <name,…>     zusätzliche Phase: nur diese Gruppen (Namen wie im Banner)
   --wait <ms>           Wartezeit nach 'load', Default 2500
   --locale <code>       Default de-DE
   --accept <regex>      Text des Buttons "alle akzeptieren"
@@ -29,16 +32,19 @@ function usage() {
 
 function parseArgs(argv) {
 	const opts = {
-		urls: [], headless: false, wait: 2500, locale: 'de-DE', json: false,
+		urls: [], headless: true, wait: 2500, locale: 'de-DE', json: false, groups: [],
 		accept: /alle akzeptieren|accept all/i,
 		// RCB nennt den Button oft "Weiter ohne Einwilligung", nicht "nur essenzielle"
 		essential: /ohne Einwilligung|nur essenziell|without consent|essential only/i,
+		individual: /individuell festlegen|individual privacy preferences|set privacy settings individually/i,
+		save: /individuelle auswahl|save custom choices/i,
 	};
 
 	for (let i = 0; i < argv.length; i++) {
 		const a = argv[i];
 
-		if (a === '--headless') opts.headless = true;
+		if (a === '--headed') opts.headless = false;
+		else if (a === '--groups') opts.groups = argv[++i].split(',').map((g) => g.trim()).filter(Boolean);
 		else if (a === '--json') opts.json = true;
 		else if (a === '--wait') opts.wait = Number(argv[++i]);
 		else if (a === '--locale') opts.locale = argv[++i];
@@ -95,6 +101,29 @@ async function consentStored(context) {
 	return false;
 }
 
+// Die Checkboxen sind verdeckt - Zustand über die Rolle lesen, umschalten über das Label
+
+async function selectGroups(page, groups) {
+	const state = {};
+
+	for (const name of groups) {
+		const re = new RegExp(`^\\s*${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}\\d])`, 'iu');
+		const box = page.getByRole('checkbox', { name: re, includeHidden: true }).first();
+
+		try {
+			if (!await box.isChecked({ timeout: 8000 })) {
+				await box.evaluate((el) => (el.labels?.[0] || el.closest('label') || el).click());
+			}
+
+			state[name] = await box.isChecked();
+		} catch {
+			state[name] = null;
+		}
+	}
+
+	return state;
+}
+
 async function visit(page, url, wait) {
 	// networkidle läuft auf Seiten mit Dauer-Pings in den Timeout
 	await page.goto(url, { waitUntil: 'load', timeout: 60000 });
@@ -108,7 +137,7 @@ async function runPhase(browser, phase, opts) {
 	const hosts = {};
 	const gcs = new Set();
 	let recording = phase === 'ohne';
-	const result = { phase, banner: null, clicked: null, stored: null };
+	const result = { phase, banner: null, clicked: null, stored: null, groups: null };
 
 	page.on('request', (req) => {
 		if (!recording) return;
@@ -127,7 +156,14 @@ async function runPhase(browser, phase, opts) {
 	await visit(page, opts.urls[0], opts.wait);
 	result.banner = await page.getByRole('button', { name: opts.accept }).first().isVisible().catch(() => false);
 
-	if (phase !== 'ohne') {
+	if (phase === 'auswahl') {
+		result.clicked = await click(page, opts.individual);
+		result.groups = result.clicked ? await selectGroups(page, opts.groups) : {};
+		result.clicked = result.clicked && await click(page, opts.save);
+		result.stored = result.clicked && await consentStored(context);
+		recording = true;
+		await visit(page, opts.urls[0], opts.wait);
+	} else if (phase !== 'ohne') {
 		result.clicked = await click(page, phase === 'alle' ? opts.accept : opts.essential);
 		result.stored = result.clicked && await consentStored(context);
 		recording = true;
@@ -157,20 +193,23 @@ function report(results) {
 		const consent = r.clicked === null ? '' : `, Klick: ${r.clicked}, Einwilligung gespeichert: ${r.stored}`;
 		console.log(`\n== ${r.phase}  (Banner sichtbar: ${r.banner}${consent})`);
 
+		if (r.groups) console.log(`  Gruppen angehakt: ${JSON.stringify(r.groups)}`);
+
 		for (const [host, n] of Object.entries(r.hosts)) {
 			console.log(`  ${String(n).padStart(4)}  ${host}`);
 
-			if (r.phase !== 'alle') before.add(host);
+			if (r.phase === 'ohne' || r.phase === 'essenziell') before.add(host);
 		}
 
 		if (r.gcs.length) console.log(`  gcs: ${r.gcs.join(', ')}`);
 		if (r.cookies_fremd.length) console.log(`  fremde Cookies: ${r.cookies_fremd.join(', ')}`);
 		if (r.clicked === false) console.log('  ACHTUNG: Banner-Button nicht getroffen - --accept/--essential prüfen');
+		if (r.groups && Object.values(r.groups).some((v) => v !== true)) console.log('  ACHTUNG: nicht jede Gruppe angehakt - Name wie im Banner?');
 		if (r.clicked && !r.stored) console.log('  ACHTUNG: kein RCB-Cookie nach dem Klick - die Phase misst dasselbe wie "ohne"');
 	}
 
 	if (before.size) {
-		console.log(`\nVor bzw. ohne volle Einwilligung angefragt: ${[...before].join(', ')}`);
+		console.log(`\nOhne bzw. nur mit essenzieller Einwilligung angefragt: ${[...before].join(', ')}`);
 	}
 }
 
@@ -180,6 +219,8 @@ const browser = await chromium.launch({ headless: opts.headless });
 const results = [];
 
 for (const phase of PHASES) {
+	if (phase === 'auswahl' && !opts.groups.length) continue;
+
 	results.push(await runPhase(browser, phase, opts));
 }
 

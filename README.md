@@ -753,12 +753,14 @@ Retrospektive einer Session: schlägt Verbesserungen an der Umgebung des Agents 
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.72.6
+### 1.72.7
 
-- **`kanboard`: Ausnahme Phasenwechsel beim Kimai-Write-back.** Wechselt die
-  Buchung im selben Kimai-Projekt nur zwischen Spezifikation und Entwicklung
-  (in beide Richtungen), wird der `kimai:`-Tag per `set-kimai` mitgezogen und
-  gemeldet, statt nur gemeldet zu werden. Auslöser: eine projektbezogene
-  Memory verlangte das Mitziehen, der Skill nur die Meldung.
-- **`kimai`:** Die doppelt geführte Write-back-Regel verweist jetzt auf den
-  kanboard-Skill, Abschnitt "Kimai-Präfix".
+- **`wp-rcb`: `create-blocker` und `check-groups`.** `create-blocker` legt
+  einen Content Blocker an (Regeln zeilenweise per `--input`, Dienste per
+  `post_name`) und läuft über den Import - mit Vorschau, Duplikatprüfung und
+  `backup`. `check-groups` vergleicht je Gruppe den Term-`count` mit den
+  veröffentlichten Diensten: RCB liefert eine Gruppe mit `count` 0 nicht aus,
+  die Pixel luden dadurch ohne Einwilligung.
+- **`wp-rcb`: `consent-test.mjs`.** Neuer Durchlauf "auswahl" mit
+  `--groups <name,…>` (individuelle Auswahl einzelner Gruppen), läuft jetzt
+  standardmäßig ohne Fenster; `--headed` ersetzt `--headless`.

@@ -552,6 +552,95 @@ function rcb_cmd_set_code($needle, $field, $opts, $input)
 	return ['id' => $post->ID, 'title' => $post->post_title, 'field' => $field, 'alt' => $old, 'neu' => get_post_meta($post->ID, $field, true), 'backup' => $backup];
 }
 
+// Läuft über den Import, damit RCB die Dienste selbst zuordnet - Metas wie ein Blocker aus der Oberfläche
+
+function rcb_cmd_create_blocker($title, $opts, $input)
+{
+	$rules = is_string($input) ? array_values(array_filter(array_map('trim', explode("\n", $input)))) : [];
+
+	if (!$rules || empty($opts['services'])) {
+		rcb_fail('create-blocker braucht services=<post_name,…> und die Regeln zeilenweise per --input');
+	}
+
+	$names = array_map(function ($p) {
+		return $p->post_name;
+	}, rcb_posts('rcb-cookie'));
+	$services = array_filter(array_map('trim', explode(',', $opts['services'])));
+	$missing = array_diff($services, $names);
+
+	if ($missing) {
+		rcb_fail('Dienst fehlt: ' . implode(', ', $missing) . ' - Liste: services');
+	}
+
+	$slug = sanitize_title($title);
+
+	foreach (rcb_posts('rcb-blocker') as $p) {
+
+		if ($p->post_name === $slug) {
+			rcb_fail("Blocker '$slug' gibt es schon (ID $p->ID)");
+		}
+
+	}
+
+	$json = [
+		'_meta' => rcb_info(),
+		'blocker' => [[
+			'post_name' => $slug,
+			'post_content' => '',
+			'post_status' => 'publish',
+			'post_title' => $title,
+			'metas' => [
+				'rules' => $rules,
+				'criteria' => 'services',
+				'tcfVendors' => [],
+				'tcfPurposes' => [],
+				'services' => array_values($services),
+				'isVisual' => false,
+				'visualType' => 'default',
+				'visualMediaThumbnail' => '0',
+				'visualContentType' => '',
+				'isVisualDarkMode' => false,
+				'visualBlur' => 0,
+				'visualDownloadThumbnail' => false,
+				'visualHeroButtonText' => '',
+				'shouldForceToShowVisual' => false,
+				'presetId' => '',
+			],
+		]],
+	];
+
+	return ['blocker' => $json['blocker'][0]] + rcb_cmd_import($json, $opts);
+}
+
+// RCB liefert eine nicht-essenzielle Gruppe mit Term-count 0 nicht aus (CookieGroup::getOrdered)
+
+function rcb_cmd_check_groups()
+{
+	global $wpdb;
+
+	$rows = [];
+	$terms = $wpdb->get_results("SELECT tt.term_taxonomy_id, t.slug, tt.count FROM {$wpdb->term_taxonomy} tt JOIN {$wpdb->terms} t ON t.term_id = tt.term_id WHERE tt.taxonomy = 'rcb-cookie-group' ORDER BY t.slug");
+
+	foreach ($terms as $term) {
+		$actual = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->term_relationships} tr JOIN {$wpdb->posts} p ON p.ID = tr.object_id WHERE tr.term_taxonomy_id = %d AND p.post_type = 'rcb-cookie' AND p.post_status = 'publish'", $term->term_taxonomy_id));
+		$rows[] = [
+			'slug' => $term->slug,
+			'lang' => apply_filters('wpml_element_language_code', null, ['element_id' => (int) $term->term_taxonomy_id, 'element_type' => 'rcb-cookie-group']),
+			'count' => (int) $term->count,
+			'services' => $actual,
+			'ok' => (int) $term->count === $actual,
+		];
+	}
+
+	$result = ['groups' => $rows];
+
+	if (in_array(false, array_column($rows, 'ok'), true)) {
+		$result['hint'] = 'wp term recount rcb-cookie-group, danach clear-cache';
+	}
+
+	return $result;
+}
+
 // Unter WPML hat jeder Dienst je Sprache einen Post, RCB kopiert technicalDefinitions selbst
 
 function rcb_translations($post)
@@ -751,6 +840,12 @@ switch ($cmd) {
 	case 'set-code':
 		rcb_out(rcb_cmd_set_code($pos[0] ?? rcb_fail('set-code <dienst> <feld>'), $pos[1] ?? '', $opts, $rcb_input));
 		break;
+	case 'create-blocker':
+		rcb_out(rcb_cmd_create_blocker($pos[0] ?? rcb_fail('create-blocker <titel> services=<post_name,…>'), $opts, $rcb_input));
+		break;
+	case 'check-groups':
+		rcb_out(rcb_cmd_check_groups());
+		break;
 	case 'set-cookie':
 		rcb_out(rcb_cmd_set_cookie($pos[0] ?? rcb_fail('set-cookie <dienst> <name>'), $pos[1] ?? rcb_fail('set-cookie <dienst> <name>'), $opts, $rcb_input));
 		break;
@@ -761,5 +856,5 @@ switch ($cmd) {
 		rcb_out(rcb_cmd_clear_cache());
 		break;
 	default:
-		rcb_fail('Befehl: info, services, service, blockers, banner-links, settings, revisions, export, import, set-code, set-cookie, set-setting, clear-cache');
+		rcb_fail('Befehl: info, services, service, blockers, banner-links, settings, revisions, check-groups, export, import, create-blocker, set-code, set-cookie, set-setting, clear-cache');
 }

@@ -4,10 +4,10 @@ description: >
   Real Cookie Banner (devowl, auch Pro) per WP-CLI: Dienste, Content Blocker,
   Banner-Links, Einstellungen und Revisionen lesen, ausgelieferten Dienst-Code
   im Frontend prüfen, Einrichtung exportieren, zwischen Sites vergleichen und
-  importieren, Code-Felder, Cookie-Definitionen und Einstellungen setzen, per
-  Browser-Test prüfen,
-  was vor der Einwilligung lädt. Auch bei "welche Dienste
-  hat der Cookie-Banner", "liefert RCB den Code ohne Einwilligung aus",
+  importieren, Content Blocker anlegen, Code-Felder, Cookie-Definitionen und
+  Einstellungen setzen, per Browser-Test prüfen, was vor der Einwilligung
+  lädt. Auch bei "welche Dienste hat der Cookie-Banner", "liefert RCB den
+  Code ohne Einwilligung aus",
   "übertrag den Cookie-Banner auf die andere Seite", "vergleich die
   RCB-Einstellungen". Trigger: /wp-rcb.
 allowed-tools: [Bash, Read]
@@ -36,8 +36,9 @@ cat "$SKILL_DIR/rcb.php" | sudo ssh -C root@<host> \
 ```
 
 Bei Multisite gehört `--url=<site-url>` vor `eval-file`. Befehle, die eine
-Datei brauchen (`import`, `set-code`, Zweck bei `set-cookie`), bekommen sie
-über das lokale Script, das den Inhalt in die Payload einbettet:
+Datei brauchen (`import`, `set-code`, `create-blocker`, Zweck bei
+`set-cookie`), bekommen sie über das lokale Script, das den Inhalt in die
+Payload einbettet:
 
 ```bash
 python3 "$SKILL_DIR/rcb" php --input <datei> | sudo ssh -C root@<host> "… wp eval-file - import"
@@ -63,8 +64,10 @@ Weiterverarbeiten nur stdout lesen (`2>/dev/null` oder in eine Datei).
 | `banner-links` | Datenschutz/Impressum/… mit Sprache und Ziel-URL |
 | `settings [all]` | die funktionalen RCB-Einstellungen; `all`: alle `rcb-*`-Optionen ohne Caches |
 | `revisions [grep=<text>] [limit=<n>]` | öffentliche Revision je Kontext und die letzten Einträge |
+| `check-groups` | je Gruppe Term-`count` gegen die veröffentlichten Dienste; Abweichung siehe Fallstricke |
 | `export` | komplette Einrichtung samt `_meta` (Version, Home-URL) |
 | `import [yes] [group=<slug>]` | Export einspielen; ohne `yes` nur Vorschau |
+| `create-blocker <titel> services=<post_name,…> [yes]` | Content Blocker anlegen, Regeln zeilenweise per `--input`; läuft über den Import |
 | `set-code <dienst> <feld> [empty] [yes]` | `codeOptIn`, `codeOptOut` oder `codeOnPageLoad` setzen bzw. leeren |
 | `set-cookie <dienst> <name> [host=…] [type=…] [duration=<n>] [unit=s\|m\|h\|d\|mo\|y] [session[=0]] [purpose=…] [remove] [yes]` | Cookie-Definition (`technicalDefinitions`) eines Dienstes anlegen, ändern oder entfernen |
 | `set-setting <option> <wert\|empty> [yes]` | eine RCB-Einstellung setzen |
@@ -86,14 +89,19 @@ essenzielle", nach "alle akzeptieren" - mit den fremden Hosts, den
 `gcs=`-Werten (GA4 Consent Mode) und fremden Cookies je Durchlauf.
 
 ```bash
-node "$SKILL_DIR/consent-test.mjs" <url> [<unterseite>…]
+node "$SKILL_DIR/consent-test.mjs" <url> [<unterseite>…] [--groups Statistik,Marketing]
 ```
+
+`--groups` fügt den Durchlauf "auswahl" hinzu: individuelle Einstellungen
+öffnen, die genannten Gruppen anhaken (Namen wie im Banner), speichern. Nicht
+genannte Gruppen behalten den RCB-Vorgabewert. `Gruppen angehakt` zeigt je
+Gruppe, ob die Checkbox danach gesetzt war.
 
 - Braucht Playwright mit Chromium, das es für FreeBSD nicht gibt: läuft am
   Mac oder unter Linux. Fehlt es, nennt das Script die Installationsbefehle
   (einmalig nach `~/.cache/wp-rcb`).
-- Läuft **mit Fenster** und normalem User-Agent; `--headless` nur, wenn kein
-  Display da ist - GA4 verwirft Hits von Headless-Chrome.
+- Läuft ohne Fenster mit normalem User-Agent. `--headed`, wenn GA4-Hits
+  ankommen müssen - GA4 verwirft Hits von Headless-Chrome.
 - Fremde Hosts im ersten oder zweiten Durchlauf sind der Befund: dort lädt etwas
   ohne die passende Einwilligung. `gcs=G111` vor der Einwilligung heißt, GA
   sendet ohne. Ob ein Host essenziell ist, entscheidet der Mensch.
@@ -174,6 +182,10 @@ Hauptsprache; RCB löst die Übersetzung über WPML selbst auf.
 
 ## Fallstricke
 
+- **Gruppe fehlt im Frontend:** RCB liefert eine nicht-essenzielle Gruppe mit
+  Term-`count` 0 nicht aus, auch wenn ihr Dienste zugeordnet sind; PYS-Pixel
+  laden dann ohne Einwilligung. `check-groups` zeigt das als `ok: false`,
+  behoben mit `wp term recount rcb-cookie-group` und `clear-cache`.
 - **`blockers` leer** ist kein Fehler, wenn die Sperre über die
   PixelYourSite-Kopplung läuft (siehe `wp-pys-rcb-integration`).
 - **`frontend` braucht einen normalen User-Agent** - Headless-Browsern zeigt RCB
