@@ -3,6 +3,12 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.73.1
+
+- **`sally`: nur per `/sally` aufrufbar** (`disable-model-invocation: true`).
+  Der Skill lädt sich nicht mehr von selbst; die `description` ist nur noch
+  eine Zusammenfassung ohne Trigger-Formulierungen und kostet keinen Kontext.
+
 ### 1.73.0
 
 - **Neuer Skill `sally`.** Liest Meeting-Aufnahmen aus Sally AI über die

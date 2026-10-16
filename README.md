@@ -762,18 +762,14 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 **Voraussetzungen:** Python >= 3.11 (stdlib only).
 
-**Trigger:** `/sally` oder natürliche Sprache wie "hol die Zusammenfassung vom Meeting", "ich brauch das Transkript".
+**Trigger:** nur per `/sally`, optional mit Frage oder Aufnahme-Name; lädt sich nicht von selbst.
 
 ## Changelog
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.73.0
+### 1.73.1
 
-- **Neuer Skill `sally`.** Liest Meeting-Aufnahmen aus Sally AI über die
-  Public API v1.0: `recordings` (mit `--since`/`--until`), `summary` und
-  `transcript` als Dokument (Markdown, Text, PDF, DOCX u.a.) oder mit
-  `--json` strukturiert, `download` legt beides in `.tmp/` ab, `search`
-  durchsucht die Zusammenfassungen. Nur lesend; Token und Directory aus
-  `~/.claude/sally.json` (Vorlage `sally.json.example`). 429 wird mit
-  Wartezeit wiederholt, der Token erscheint in keiner Ausgabe.
+- **`sally`: nur per `/sally` aufrufbar** (`disable-model-invocation: true`).
+  Der Skill lädt sich nicht mehr von selbst; die `description` ist nur noch
+  eine Zusammenfassung ohne Trigger-Formulierungen und kostet keinen Kontext.

@@ -1,13 +1,10 @@
 ---
 name: sally
 description: >
-  Sally AI (Meeting-Aufnahmen): Aufnahmen auflisten, Zusammenfassung und
-  Transkript einer Aufnahme holen oder ablegen, Zusammenfassungen
-  durchsuchen - nur lesend über die Sally-API. Nutze diesen Skill, wenn der
-  User nach einem aufgezeichneten Meeting fragt. Auch bei "welche Aufnahmen
-  gibt es in Sally", "hol die Zusammenfassung vom Meeting", "ich brauch das
-  Transkript", "in welchem Meeting ging es um X".
-  Trigger: /sally.
+  Sally AI: Meeting-Aufnahmen auflisten, Zusammenfassung und Transkript holen,
+  Zusammenfassungen durchsuchen (nur lesend). Trigger: /sally.
+disable-model-invocation: true
+argument-hint: "Frage zu einem Meeting, Aufnahme-Name oder Suchbegriff (optional)"
 ---
 
 # sally -- Meeting-Aufnahmen aus Sally AI
