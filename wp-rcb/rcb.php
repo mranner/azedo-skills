@@ -552,6 +552,127 @@ function rcb_cmd_set_code($needle, $field, $opts, $input)
 	return ['id' => $post->ID, 'title' => $post->post_title, 'field' => $field, 'alt' => $old, 'neu' => get_post_meta($post->ID, $field, true), 'backup' => $backup];
 }
 
+// Unter WPML hat jeder Dienst je Sprache einen Post, RCB kopiert technicalDefinitions selbst
+
+function rcb_translations($post)
+{
+	$type = 'post_' . $post->post_type;
+	$trid = apply_filters('wpml_element_trid', null, $post->ID, $type);
+
+	if (!$trid) {
+		return [$post->ID];
+	}
+
+	return array_values(array_map(function ($t) {
+		return (int) $t->element_id;
+	}, (array) apply_filters('wpml_get_element_translations', null, $trid, $type)));
+}
+
+function rcb_cookie_posts($ids, $name, $host)
+{
+	return array_map(function ($id) use ($name, $host) {
+		$hits = array_values(array_filter((array) rcb_json_meta($id, 'technicalDefinitions'), function ($d) use ($name, $host) {
+			return $d['name'] === $name && ($host === null || $d['host'] === $host);
+		}));
+
+		return ['id' => $id, 'lang' => rcb_lang($id), 'cookie' => $hits ?: null];
+	}, $ids);
+}
+
+function rcb_cmd_set_cookie($needle, $name, $opts, $input)
+{
+	$units = ['s', 'm', 'h', 'd', 'mo', 'y'];
+
+	if (isset($opts['unit']) && !in_array($opts['unit'], $units, true)) {
+		rcb_fail("Einheit '{$opts['unit']}' unbekannt: " . implode(', ', $units));
+	}
+
+	$post = rcb_find_service($needle);
+	$defs = (array) rcb_json_meta($post->ID, 'technicalDefinitions');
+	$host = $opts['host'] ?? null;
+	$hits = array_keys(array_filter($defs, function ($d) use ($name, $host) {
+		return $d['name'] === $name && ($host === null || $d['host'] === $host);
+	}));
+
+	if (count($hits) > 1) {
+		rcb_fail("'$name' steht mehrfach im Dienst, host= angeben: " . implode(', ', array_map(function ($i) use ($defs) {
+			return $defs[$i]['host'];
+		}, $hits)));
+	}
+
+	$index = $hits ? $hits[0] : null;
+	$old = $index === null ? null : $defs[$index];
+
+	if (!empty($opts['remove'])) {
+
+		if ($index === null) {
+			rcb_fail("'$name' steht nicht im Dienst $post->ID");
+		}
+
+		array_splice($defs, $index, 1);
+
+		foreach ($defs as $i => &$d) {
+			$d['orderPosition'] = $i;
+		}
+
+		unset($d);
+		$new = null;
+	} else {
+
+		if ($index === null && ($host === null || (!isset($opts['duration'], $opts['unit']) && !isset($opts['session'])))) {
+			rcb_fail("'$name' ist neu: host= und duration=/unit= (oder session) angeben");
+		}
+
+		$new = $old ?: [
+			'language' => $defs ? $defs[0]['language'] : get_locale(),
+			'purpose' => null,
+			'purposeTranslationFlags' => [],
+			'type' => 'http',
+			'name' => $name,
+			'host' => $host,
+			'duration' => 1,
+			'durationUnit' => 'y',
+			'isSessionDuration' => false,
+			'orderPosition' => count($defs),
+		];
+
+		foreach (['host' => 'host', 'type' => 'type', 'unit' => 'durationUnit'] as $opt => $key) {
+
+			if (isset($opts[$opt])) {
+				$new[$key] = $opts[$opt];
+			}
+
+		}
+
+		if (isset($opts['duration'])) {
+			$new['duration'] = (int) $opts['duration'];
+		}
+
+		if (isset($opts['session'])) {
+			$new['isSessionDuration'] = filter_var($opts['session'], FILTER_VALIDATE_BOOLEAN);
+		}
+
+		if (is_string($input) || isset($opts['purpose'])) {
+			$new['purpose'] = is_string($input) ? trim($input) : $opts['purpose'];
+		}
+
+		$defs[$index ?? count($defs)] = $new;
+	}
+
+	$result = ['id' => $post->ID, 'title' => $post->post_title, 'lang' => rcb_lang($post->ID), 'alt' => $old, 'neu' => $new];
+	$ids = rcb_translations($post);
+
+	if (empty($opts['yes'])) {
+		return ['dry_run' => true] + $result + ['posts' => rcb_cookie_posts($ids, $name, $host)];
+	}
+
+	$backup = rcb_export();
+	update_post_meta($post->ID, 'technicalDefinitions', wp_slash(json_encode(array_values($defs))));
+	Cache::getInstance()->invalidate();
+
+	return $result + ['posts' => rcb_cookie_posts($ids, $name, $host), 'backup' => $backup];
+}
+
 function rcb_cmd_set_setting($name, $value, $opts, $input)
 {
 	if (!in_array($name, rcb_settings_map(), true)) {
@@ -595,7 +716,7 @@ if (!class_exists(Export::class)) {
 
 $cmd = array_shift($args);
 $pos = array_values(array_filter($args, function ($a) {
-	return strpos($a, '=') === false && !in_array($a, ['yes', 'all', 'empty'], true);
+	return strpos($a, '=') === false && !in_array($a, ['yes', 'all', 'empty', 'remove', 'session'], true);
 }));
 $opts = rcb_opts($args);
 
@@ -630,6 +751,9 @@ switch ($cmd) {
 	case 'set-code':
 		rcb_out(rcb_cmd_set_code($pos[0] ?? rcb_fail('set-code <dienst> <feld>'), $pos[1] ?? '', $opts, $rcb_input));
 		break;
+	case 'set-cookie':
+		rcb_out(rcb_cmd_set_cookie($pos[0] ?? rcb_fail('set-cookie <dienst> <name>'), $pos[1] ?? rcb_fail('set-cookie <dienst> <name>'), $opts, $rcb_input));
+		break;
 	case 'set-setting':
 		rcb_out(rcb_cmd_set_setting($pos[0] ?? rcb_fail('set-setting <option> <wert>'), $pos[1] ?? ($opts['empty'] ?? false ? 'empty' : null), $opts, $rcb_input));
 		break;
@@ -637,5 +761,5 @@ switch ($cmd) {
 		rcb_out(rcb_cmd_clear_cache());
 		break;
 	default:
-		rcb_fail('Befehl: info, services, service, blockers, banner-links, settings, revisions, export, import, set-code, set-setting, clear-cache');
+		rcb_fail('Befehl: info, services, service, blockers, banner-links, settings, revisions, export, import, set-code, set-cookie, set-setting, clear-cache');
 }

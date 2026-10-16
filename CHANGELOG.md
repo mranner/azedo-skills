@@ -3,6 +3,14 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.72.4
+
+- **`wp-rcb`: `set-cookie`.** Cookie-Definitionen (`technicalDefinitions`)
+  eines Dienstes anlegen, ändern oder entfernen, mit Vorschau, `backup` und dem
+  Stand je Sprach-Post (`posts`). Auslöser: einem Dienst fehlten die Cookies,
+  die PixelYourSite für die Einwilligung abfragt, das Pixel lud dadurch ohne
+  Einwilligung; nachgetragen wurden sie bisher per eigenem `eval-file`-Script.
+
 ### 1.72.3
 
 - **`wp-rcb`: `consent-test.mjs` wartet nach dem Banner-Klick auf das Cookie

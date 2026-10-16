@@ -753,10 +753,10 @@ Retrospektive einer Session: schlägt Verbesserungen an der Umgebung des Agents 
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.72.3
+### 1.72.4
 
-- **`wp-rcb`: `consent-test.mjs` wartet nach dem Banner-Klick auf das Cookie
-  `real_cookie_banner*`.** Der Reload direkt nach dem Klick verwarf die
-  Einwilligung, die Phase "alle akzeptieren" maß dasselbe wie "ohne" (Prüflauf
-  gegen eine DEV-Site). Neue Ausgabe "Einwilligung gespeichert" samt Warnung,
-  wenn das Cookie ausbleibt.
+- **`wp-rcb`: `set-cookie`.** Cookie-Definitionen (`technicalDefinitions`)
+  eines Dienstes anlegen, ändern oder entfernen, mit Vorschau, `backup` und dem
+  Stand je Sprach-Post (`posts`). Auslöser: einem Dienst fehlten die Cookies,
+  die PixelYourSite für die Einwilligung abfragt, das Pixel lud dadurch ohne
+  Einwilligung; nachgetragen wurden sie bisher per eigenem `eval-file`-Script.

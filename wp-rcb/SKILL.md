@@ -4,7 +4,8 @@ description: >
   Real Cookie Banner (devowl, auch Pro) per WP-CLI: Dienste, Content Blocker,
   Banner-Links, Einstellungen und Revisionen lesen, ausgelieferten Dienst-Code
   im Frontend prüfen, Einrichtung exportieren, zwischen Sites vergleichen und
-  importieren, Code-Felder und Einstellungen setzen, per Browser-Test prüfen,
+  importieren, Code-Felder, Cookie-Definitionen und Einstellungen setzen, per
+  Browser-Test prüfen,
   was vor der Einwilligung lädt. Auch bei "welche Dienste
   hat der Cookie-Banner", "liefert RCB den Code ohne Einwilligung aus",
   "übertrag den Cookie-Banner auf die andere Seite", "vergleich die
@@ -35,8 +36,8 @@ cat "$SKILL_DIR/rcb.php" | sudo ssh -C root@<host> \
 ```
 
 Bei Multisite gehört `--url=<site-url>` vor `eval-file`. Befehle, die eine
-Datei brauchen (`import`, `set-code`), bekommen sie über das lokale Script, das
-den Inhalt in die Payload einbettet:
+Datei brauchen (`import`, `set-code`, Zweck bei `set-cookie`), bekommen sie
+über das lokale Script, das den Inhalt in die Payload einbettet:
 
 ```bash
 python3 "$SKILL_DIR/rcb" php --input <datei> | sudo ssh -C root@<host> "… wp eval-file - import"
@@ -44,8 +45,9 @@ python3 "$SKILL_DIR/rcb" php --input <datei> | sudo ssh -C root@<host> "… wp e
 
 Argumente sind Wörter oder `name=wert` (`revisions grep=office@ limit=5`) -
 WP-CLI nimmt `--optionen` hinter `eval-file` nicht an. Ein Wert mit
-Leerzeichen oder Sonderzeichen (`set-setting`, `set-code`) geht über
-`--input`, nie als Argument: SSH, tcsh und `sh -c` zerlegen ihn sonst.
+Leerzeichen oder Sonderzeichen (`set-setting`, `set-code`, Zweck bei
+`set-cookie`) geht über `--input`, nie als Argument: SSH, tcsh und `sh -c`
+zerlegen ihn sonst.
 
 PHP-Warnungen von Plugins landen auf stderr, das JSON auf stdout - beim
 Weiterverarbeiten nur stdout lesen (`2>/dev/null` oder in eine Datei).
@@ -64,6 +66,7 @@ Weiterverarbeiten nur stdout lesen (`2>/dev/null` oder in eine Datei).
 | `export` | komplette Einrichtung samt `_meta` (Version, Home-URL) |
 | `import [yes] [group=<slug>]` | Export einspielen; ohne `yes` nur Vorschau |
 | `set-code <dienst> <feld> [empty] [yes]` | `codeOptIn`, `codeOptOut` oder `codeOnPageLoad` setzen bzw. leeren |
+| `set-cookie <dienst> <name> [host=…] [type=…] [duration=<n>] [unit=s\|m\|h\|d\|mo\|y] [session[=0]] [purpose=…] [remove] [yes]` | Cookie-Definition (`technicalDefinitions`) eines Dienstes anlegen, ändern oder entfernen |
 | `set-setting <option> <wert\|empty> [yes]` | eine RCB-Einstellung setzen |
 | `clear-cache` | RCB-Cache und WP Rocket leeren |
 
@@ -116,6 +119,15 @@ Vergleich der Einstellungen, nicht der Blick auf die Dienste.
    (`| tee …`), sonst ist die Sicherung weg.
 3. Danach mit `service`/`settings` gegenlesen und `rcb frontend` gegen die
    Seite laufen lassen; bei Seiten-Cache vorher `clear-cache`.
+
+**`set-cookie`:** Ein neues Cookie braucht `host=` und `duration=`/`unit=`
+(oder `session`), `type` ist ohne Angabe `http`. Ein bestehendes wird über den
+Namen gefunden; steht der Name mit mehreren Hosts im Dienst, wählt `host=` den
+Eintrag. Geändert werden nur die angegebenen Felder. Der Zweck kommt über
+`--input`, sobald er Leerzeichen enthält. Den Dienst ändert man in einer Sprache,
+RCB kopiert die Definitionen unter WPML auf die übrigen Sprachversionen.
+`posts` in der Ausgabe zeigt das Cookie je Sprach-Post - nach `yes` muss es
+überall stehen.
 
 Schreibbefehle verlangen **keine** neue Einwilligung der Besucher. RCB rechnet
 die Revision neu und zeigt im Admin einen Hinweis; ob neu eingewilligt werden
