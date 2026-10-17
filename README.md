@@ -701,7 +701,7 @@ Credentials in `.env`: `PUSHOVER_TOKEN` (Auffindung wie kimai/kanboard: cwd/.env
 
 ### cloudns
 
-DNS-**Records** bei ClouDNS lesen und setzen: `list-zones`, `list`, `add`, `modify`, `delete`, `export`/`import` (BIND, tinydns), `soa`, `dnssec` (read-only) und `verify` (autoritative Gegenprobe gegen alle NS der Zone). Zonen anlegen oder löschen kann der Skill nicht. Lesen ist der Standard, Schreiben erst mit `--commit` - ohne das Flag zeigt jeder Schreibbefehl nur Bestand und geplante Änderung. Guard-Rails gegen CNAME-Kollisionen, unzulässige TTL-Werte und den trailing dot im Zielwert.
+DNS-**Records** bei ClouDNS lesen und setzen: `list-zones`, `create-zone` (Master-Zone, optional mit eigenen NS-Records), `list`, `add`, `modify`, `delete`, `export`/`import` (BIND, tinydns), `soa`, `dnssec` (read-only) und `verify` (autoritative Gegenprobe gegen alle NS der Zone). Zonen löschen kann der Skill nicht. Lesen ist der Standard, Schreiben erst mit `--commit` - ohne das Flag zeigt jeder Schreibbefehl nur Bestand und geplante Änderung. Guard-Rails gegen CNAME-Kollisionen, unzulässige TTL-Werte und den trailing dot im Zielwert.
 
 Config anlegen mit `cloudns setup` - fragt die ID-Variante ab, liest das Passwort verdeckt, schreibt `~/.claude/cloudns.json` mit 0600 und prüft den Zugang; `--force` überschreibt eine bestehende. Inhalt (Vorlage `cloudns.example.json`): genau eine ID - `auth-id` (Haupt-API-User), `sub-auth-id` oder `sub-auth-user` - plus `auth-password` bzw. `auth-password-env`. Anderer Pfad über `CLOUDNS_CONFIG`. Steht beim API-User eine IP-Whitelist, meldet die API dieselbe Fehlermeldung wie bei falschem Passwort - `check-auth` zuerst.
 
@@ -768,8 +768,11 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.73.1
+### 1.73.2
 
-- **`sally`: nur per `/sally` aufrufbar** (`disable-model-invocation: true`).
-  Der Skill lädt sich nicht mehr von selbst; die `description` ist nur noch
-  eine Zusammenfassung ohne Trigger-Formulierungen und kostet keinen Kontext.
+- **`cloudns`: `create-zone`.** Legt eine Master-Zone über `register.json`
+  an, mit Dry-Run als Default. `--ns` (mehrfach) setzt statt der Default-NS
+  von ClouDNS eigene NS-Records, etwa Vanity-Nameserver; nach dem Anlegen
+  prüft der Befehl die Zone per `list-zones` und zeigt ihre Records.
+  Hinweis in der SKILL.md: Vor der Delegation beim Registrar prüft die
+  Gegenprobe gegen die alten Nameserver.

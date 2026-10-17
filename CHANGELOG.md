@@ -3,6 +3,15 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.73.2
+
+- **`cloudns`: `create-zone`.** Legt eine Master-Zone über `register.json`
+  an, mit Dry-Run als Default. `--ns` (mehrfach) setzt statt der Default-NS
+  von ClouDNS eigene NS-Records, etwa Vanity-Nameserver; nach dem Anlegen
+  prüft der Befehl die Zone per `list-zones` und zeigt ihre Records.
+  Hinweis in der SKILL.md: Vor der Delegation beim Registrar prüft die
+  Gegenprobe gegen die alten Nameserver.
+
 ### 1.73.1
 
 - **`sally`: nur per `/sally` aufrufbar** (`disable-model-invocation: true`).

@@ -2,13 +2,13 @@
 name: cloudns
 description: >
   DNS-Records bei ClouDNS lesen und setzen, mit autoritativer Gegenprobe gegen
-  die Nameserver; die Zone im BIND-Format sichern und zurueckspielen, SOA samt
-  Serial und DNSSEC-Status lesen. Zonen anlegen, loeschen und DNSSEC schalten
-  kann er nicht. Nutze diesen Skill, wenn eine Zone bei ClouDNS liegt
-  (Nameserver auf cloudns.net oder dorthin aufloesende Vanity-Nameserver),
-  nicht fuer eigene BIND-Server oder Hetzner. Auch bei "setz den CNAME",
-  "sichere die Zone bevor wir umstellen", "ist DNSSEC aktiv". Trigger:
-  /cloudns.
+  die Nameserver; Master-Zonen anlegen, die Zone im BIND-Format sichern und
+  zurueckspielen, SOA samt Serial und DNSSEC-Status lesen. Zonen loeschen und
+  DNSSEC schalten kann er nicht. Nutze diesen Skill, wenn eine Zone bei ClouDNS
+  liegt oder dorthin soll (Nameserver auf cloudns.net oder dorthin aufloesende
+  Vanity-Nameserver), nicht fuer eigene BIND-Server oder Hetzner. Auch bei
+  "setz den CNAME", "leg die Zone bei ClouDNS an", "sichere die Zone bevor wir
+  umstellen", "ist DNSSEC aktiv". Trigger: /cloudns.
 ---
 # cloudns -- DNS-Records bei ClouDNS
 
@@ -65,6 +65,7 @@ Mehrere ClouDNS-Accounts kennt der Skill nicht - die Config traegt genau einen.
 cloudns setup [--force]                # Config interaktiv anlegen
 cloudns check-auth                     # Zugang testen
 cloudns list-zones [--search <text>]   # Zonen des Accounts
+cloudns create-zone <zone> [--ns <ns> ...] [--commit]
 cloudns list <zone> [--host <h>] [--type <t>]
 cloudns add    <zone> --host <h> --type <t> --record <wert> [--ttl <n>] [--priority <n>] [--commit]
 cloudns modify <zone> --id <id> [--host <h>] [--record <wert>] [--ttl <n>] [--commit]
@@ -88,6 +89,18 @@ python3 "$SKILL_DIR/cloudns" add example.at --host elternportal \
 python3 "$SKILL_DIR/cloudns" add example.at --host elternportal \
     --type CNAME --record ziel.example.net --commit   # setzt und prueft nach
 ```
+
+## Zone anlegen
+
+`create-zone` legt eine Master-Zone an, im Dry-Run zeigt es nur Zone und NS.
+Ohne `--ns` bekommt die Zone die Default-NS von ClouDNS. Mit `--ns` (je NS
+einmal angeben) legt ClouDNS stattdessen genau diese NS-Records an - so kommen
+Vanity-Nameserver in die Zone. Die passende Liste liefert eine bestehende Zone
+desselben Accounts: `list <andere-zone> --type NS`.
+
+Bis die Domain beim Registrar auf diese Nameserver delegiert ist, fragt die
+Gegenprobe nach `add` und `modify` die **alten** Nameserver ab und zeigt deren
+Bestand. Aussagekraeftig ist bis dahin nur `list`.
 
 ## Sichern und zurueckspielen
 

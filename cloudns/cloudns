@@ -81,7 +81,8 @@ def api(endpoint, params, auth):
     """POST auf die ClouDNS-API. Fehler kommen als HTTP 200 mit status=Failed."""
     data = dict(auth)
     data.update({k: v for k, v in params.items() if v is not None})
-    body = urllib.parse.urlencode(data).encode()
+    # doseq: Listenwerte wie ns[] als wiederholten Parameter senden.
+    body = urllib.parse.urlencode(data, doseq=True).encode()
 
     req = urllib.request.Request(f"{API_BASE}/{endpoint}", data=body)
     try:
@@ -255,6 +256,37 @@ def cmd_list_zones(args, auth):
             break
         page += 1
     print(f"\n{total} Zonen.")
+
+
+def zone_exists(zone, auth):
+    payload = api("list-zones.json", {"page": 1, "rows-per-page": 100, "search": zone}, auth)
+    zones = list(payload.values()) if isinstance(payload, dict) else list(payload or [])
+    return any(z.get("name") == zone for z in zones)
+
+
+def cmd_create_zone(args, auth):
+    zone = args.zone.lower().rstrip(".")
+    ns = [n.rstrip(".") for n in args.ns or []]
+
+    if zone_exists(zone, auth):
+        die(f"Zone {zone} existiert bereits.")
+
+    print(f"Zone:  {zone} (master)")
+    print(f"NS:    {', '.join(ns) if ns else 'Default-NS von ClouDNS'}")
+
+    if not args.commit:
+        print("\nDry-Run - mit --commit anlegen.")
+        return
+
+    # Mit ns[] legt ClouDNS statt seiner Default-NS genau diese NS-Records an.
+
+    api("register.json", {"domain-name": zone, "zone-type": "master",
+                          "ns[]": ns or None}, auth)
+    if not zone_exists(zone, auth):
+        die(f"register.json meldet Erfolg, {zone} fehlt aber in list-zones.")
+
+    print(f"\nZone {zone} angelegt. Records:")
+    print_records(fetch_records(zone, auth))
 
 
 def cmd_list(args, auth):
@@ -458,6 +490,12 @@ def main():
     sp = sub.add_parser("list-zones", help="Zonen des Accounts auflisten")
     sp.add_argument("--search", help="Namensfilter")
 
+    sp = sub.add_parser("create-zone", help="Master-Zone anlegen")
+    sp.add_argument("zone")
+    sp.add_argument("--ns", action="append",
+                    help="NS-Record der neuen Zone, mehrfach angeben (sonst Default-NS)")
+    sp.add_argument("--commit", action="store_true")
+
     sp = sub.add_parser("list", help="Records einer Zone auflisten")
     sp.add_argument("zone")
     sp.add_argument("--host", help="nur diesen Hostteil (leer = Zonenwurzel)")
@@ -518,7 +556,8 @@ def main():
     auth = load_config()
 
     handlers = {
-        "check-auth": cmd_check_auth, "list-zones": cmd_list_zones, "list": cmd_list,
+        "check-auth": cmd_check_auth, "list-zones": cmd_list_zones,
+        "create-zone": cmd_create_zone, "list": cmd_list,
         "add": cmd_add, "modify": cmd_modify, "delete": cmd_delete,
         "export": cmd_export, "import": cmd_import, "soa": cmd_soa,
         "dnssec": cmd_dnssec, "verify": cmd_verify,
