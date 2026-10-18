@@ -768,11 +768,10 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.73.2
+### 1.73.3
 
-- **`cloudns`: `create-zone`.** Legt eine Master-Zone über `register.json`
-  an, mit Dry-Run als Default. `--ns` (mehrfach) setzt statt der Default-NS
-  von ClouDNS eigene NS-Records, etwa Vanity-Nameserver; nach dem Anlegen
-  prüft der Befehl die Zone per `list-zones` und zeigt ihre Records.
-  Hinweis in der SKILL.md: Vor der Delegation beim Registrar prüft die
-  Gegenprobe gegen die alten Nameserver.
+- **`bridge`: Zustellhinweise und Korrekturen.** Die lange Form des
+  Zustellhinweises (`delivery is not confirmed: it has not reported that it
+  can receive cross-session messages …`) steht jetzt bei den harmlosen
+  Hinweisen; auch auf sie kam ein `ack` zurück. Neue Regel unter "Senden":
+  Die Script-Ausgabe geht unverändert raus, eine Korrektur wird neu gebaut.

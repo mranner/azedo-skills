@@ -25,10 +25,16 @@ läuft auf FreeBSD, Linux und macOS.
 
 ## Das Problem, das der Handshake löst
 
-`SendMessage` weckt die Gegenseite nur auf. Die Meldung `accepted by the server …
-not confirmed read` (bzw. `delivery not confirmed`) kommt bei **jedem** Versand,
-auch bei einem, der ankommt: sie betrifft die Annahme durch den Server, nicht das
-Lesen, und ist kein Warnsignal. Ob die Gegenseite antwortet, entscheidet ihr
+`SendMessage` weckt die Gegenseite nur auf. Ein Zustellhinweis kommt bei **jedem**
+Versand, auch bei einem, der ankommt, in einer dieser Formen:
+
+- `accepted by the server … not confirmed read`
+- `delivery not confirmed`
+- `delivery is not confirmed: it has not reported that it can receive cross-session messages and may be on an older version that cannot`
+
+Keine davon ist ein Warnsignal: sie betreffen die Annahme durch den Server, nicht
+das Lesen. Auch auf die dritte Form kam ein `ack` zurück.
+Ob die Gegenseite antwortet, entscheidet ihr
 Modell - ein blanker Text wird meist nicht als Antwortaufforderung gelesen.
 Klarheit bringen erst `ack` bzw. `done`.
 
@@ -88,6 +94,9 @@ python3 "$SKILL_DIR/bridge" send bridge:session_01Abc... --reply none < nachrich
 Das Script baut nur den **Text**. Verschickt wird er danach mit dem Tool
 `SendMessage` an dasselbe Ziel - auf den Versand hat ein Script keinen Zugriff.
 Die ausgegebene `msg-id` merken, auf sie bezieht sich die Quittung.
+
+Verschickt wird die Script-Ausgabe **unverändert**. Für eine Korrektur neu bauen;
+gültig ist dann die neue `msg-id`.
 
 Ohne Text-Argument kommt der Text von STDIN; das ist der Weg für mehrzeilige
 Nachrichten, bei denen das Quoting sonst stört.

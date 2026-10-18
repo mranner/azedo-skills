@@ -2,7 +2,7 @@
 
 # Envato Market API helper (ThemeForest, CodeCanyon, etc.)
 # stdlib only, no pip dependencies
-# version 1.73.2
+# version 1.73.3
 
 import argparse
 import json

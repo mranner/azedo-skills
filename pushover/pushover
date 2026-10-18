@@ -3,7 +3,7 @@
 # Pushover Message API helper (outbound-only)
 # Sendet Notifications via api.pushover.net/1/messages.json.
 # stdlib only, keine pip-Abhaengigkeiten. Lauffaehig auf macOS + FreeBSD.
-# version 1.73.2
+# version 1.73.3
 
 import argparse
 import json

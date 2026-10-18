@@ -3,6 +3,14 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.73.3
+
+- **`bridge`: Zustellhinweise und Korrekturen.** Die lange Form des
+  Zustellhinweises (`delivery is not confirmed: it has not reported that it
+  can receive cross-session messages …`) steht jetzt bei den harmlosen
+  Hinweisen; auch auf sie kam ein `ack` zurück. Neue Regel unter "Senden":
+  Die Script-Ausgabe geht unverändert raus, eine Korrektur wird neu gebaut.
+
 ### 1.73.2
 
 - **`cloudns`: `create-zone`.** Legt eine Master-Zone über `register.json`
