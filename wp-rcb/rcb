@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# version 1.73.4
+# version 1.73.5
 
 """wp-rcb, lokale Seite: PHP-Payload für `wp eval-file -` bauen, das
 ausgelieferte Frontend einer Seite lesen und zwei JSON-Ausgaben vergleichen."""

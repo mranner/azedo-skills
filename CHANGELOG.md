@@ -3,6 +3,15 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.73.5
+
+- **`kanboard`: Regel zum Inhalt eines Handoffs.** Eine Aussage ueber Daten nennt
+  die Pruefung, auf der sie beruht, oder steht als ungeprueft da; loest der
+  Handoff einen Plan aus einem Kommentar ab, nennt er diesen Kommentar.
+  Ausloeser: ein Handoff fuehrte einen Nachtrag als offen, der laengst
+  identisch war, kannte einen zweiten fehlenden Datensatz nicht und
+  widersprach einem aelteren Kommentar, ohne ihn zu nennen.
+
 ### 1.73.4
 
 - **`cloudns`: Gegenprobe wartet auf den neuen Serial.** Nach `add` und

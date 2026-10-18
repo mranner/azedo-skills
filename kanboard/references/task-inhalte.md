@@ -100,6 +100,13 @@ python3 "$SKILL_DIR/kanboard" get-handoff <task_id> --output /pfad/handoff.md
 python3 "$SKILL_DIR/kanboard" remove-handoff <task_id>
 ```
 
+**Inhalt eines Handoffs:** Der naechste Bearbeiter arbeitet die "naechsten Schritte"
+woertlich ab. Eine Aussage ueber Daten ("im Klon fehlt Termin X") nennt deshalb die
+Pruefung, auf der sie beruht ("laut iCal-Diff vom <Datum>"), oder steht als
+**ungeprueft** da. Loest der Handoff einen Plan aus einem Kommentar ab, nennt er diesen
+Kommentar (`K2 … (4471)`) - sonst stehen zwei Plaene am Task, und welcher gilt, ist
+nicht zu erkennen.
+
 Die Ablage im Handoff-Feld ist im handoff-Skill eine bewusst gewaehlte **Alternative** zur
 lokalen `.md`-Datei (Default bleibt die Datei) — siehe handoff-Skill.
 

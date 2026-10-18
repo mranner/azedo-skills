@@ -768,12 +768,11 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.73.4
+### 1.73.5
 
-- **`cloudns`: Gegenprobe wartet auf den neuen Serial.** Nach `add` und
-  `modify` zeigten alle Nameserver noch den alten Wert, weil die Abfrage
-  unmittelbar nach dem Schreiben lief; ein NS hinkte rund eine Minute nach.
-  Die Gegenprobe holt jetzt den Serial per `soa-details.json` und wartet bis
-  zu 180 s, bis jeder NS ihn ausliefert. Wer ihn dann noch nicht hat, wird
-  markiert. NS mit fremdem Primary im SOA (Zone noch nicht delegiert) werden
-  nicht abgewartet.
+- **`kanboard`: Regel zum Inhalt eines Handoffs.** Eine Aussage ueber Daten nennt
+  die Pruefung, auf der sie beruht, oder steht als ungeprueft da; loest der
+  Handoff einen Plan aus einem Kommentar ab, nennt er diesen Kommentar.
+  Ausloeser: ein Handoff fuehrte einen Nachtrag als offen, der laengst
+  identisch war, kannte einen zweiten fehlenden Datensatz nicht und
+  widersprach einem aelteren Kommentar, ohne ihn zu nennen.
