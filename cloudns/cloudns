@@ -9,6 +9,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -30,6 +31,10 @@ VALID_TTL = [60, 300, 900, 1800, 3600, 21600, 43200, 86400,
 # ein CNAME vertraegt keinen Nachbarn gleichen Namens.
 
 SINGLETON_TYPES = {"CNAME"}
+
+# So lange wartet die Gegenprobe nach einem Schreibvorgang auf den neuen Serial.
+
+SERIAL_TIMEOUT = 180
 
 
 def die(msg):
@@ -174,16 +179,54 @@ def dig(name, rtype, server=None):
     return [line for line in out.stdout.strip().splitlines() if line]
 
 
-def verify(name, rtype, zone):
+def ns_soa(zone, ns):
+    """(Primary-NS, Serial) aus dem SOA, den dieser NS ausliefert."""
+    soa = dig(zone, "SOA", ns)
+    try:
+        fields = soa[0].split()
+        return fields[0].rstrip("."), int(fields[2])
+    except (IndexError, ValueError):
+        return None, None
+
+
+def api_soa(zone, auth):
+    """(Primary-NS, Serial) laut API - der Stand, den die NS erreichen muessen."""
+    soa = api_soft("soa-details.json", {"domain-name": zone}, auth)
+    try:
+        return soa.get("primaryNS", "").rstrip("."), int(soa.get("serialNumber"))
+    except (AttributeError, TypeError, ValueError):
+        return None
+
+
+def verify(name, rtype, zone, target=None):
     """Autoritativ gegen die NS der Zone pruefen, nicht ueber den lokalen Resolver."""
     nameservers = dig(zone, "NS")
     if not nameservers:
         die(f"Keine NS fuer {zone} gefunden - Gegenprobe nicht moeglich.")
+    nameservers = sorted(ns.rstrip(".") for ns in nameservers)
+
+    # Direkt nach dem Schreiben liefern die NS noch den alten Stand, einzelne
+    # hinken eine Minute und mehr nach - erst auf den neuen Serial warten.
+    # NS mit fremdem Primary im SOA gehoeren nicht zu ClouDNS (Zone noch nicht
+    # delegiert) - auf die zu warten waere sinnlos.
+    lagging = []
+    if target:
+        primary, serial = target
+        pending = [ns for ns in nameservers if ns_soa(zone, ns)[0] == primary]
+        if pending:
+            print(f"\nWarte auf Serial {serial} (max. {SERIAL_TIMEOUT} s) ...")
+        deadline = time.monotonic() + SERIAL_TIMEOUT
+        while pending and time.monotonic() < deadline:
+            pending = [ns for ns in pending if (ns_soa(zone, ns)[1] or 0) < serial]
+            if pending:
+                time.sleep(5)
+        lagging = pending
 
     print(f"\nGegenprobe {name} {rtype}:")
-    for ns in sorted(nameservers):
-        answers = dig(name, rtype, ns.rstrip("."))
-        print(f"  @{ns.rstrip('.'):<28} {', '.join(answers) if answers else '(keine Antwort)'}")
+    for ns in nameservers:
+        answers = dig(name, rtype, ns)
+        note = f"  (Serial {ns_soa(zone, ns)[1]} < {target[1]}, alter Stand)" if ns in lagging else ""
+        print(f"  @{ns:<28} {', '.join(answers) if answers else '(keine Antwort)'}{note}")
 
 
 # --- Subcommands ------------------------------------------------------------
@@ -331,7 +374,7 @@ def cmd_add(args, auth):
     print(f"OK: {result.get('statusDescription', 'angelegt')} (id {result.get('data', {}).get('id', '?')})")
 
     print_records(fetch_records(zone, auth, host=host))
-    verify(name, rtype, zone)
+    verify(name, rtype, zone, api_soa(zone, auth))
 
 
 def cmd_modify(args, auth):
@@ -364,7 +407,7 @@ def cmd_modify(args, auth):
     print(f"OK: {result.get('statusDescription', 'geaendert')}")
 
     print_records(fetch_records(zone, auth, host=host))
-    verify(fqdn(host, zone), target.get("type", "A"), zone)
+    verify(fqdn(host, zone), target.get("type", "A"), zone, api_soa(zone, auth))
 
 
 def cmd_delete(args, auth):

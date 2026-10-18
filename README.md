@@ -768,10 +768,12 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.73.3
+### 1.73.4
 
-- **`bridge`: Zustellhinweise und Korrekturen.** Die lange Form des
-  Zustellhinweises (`delivery is not confirmed: it has not reported that it
-  can receive cross-session messages …`) steht jetzt bei den harmlosen
-  Hinweisen; auch auf sie kam ein `ack` zurück. Neue Regel unter "Senden":
-  Die Script-Ausgabe geht unverändert raus, eine Korrektur wird neu gebaut.
+- **`cloudns`: Gegenprobe wartet auf den neuen Serial.** Nach `add` und
+  `modify` zeigten alle Nameserver noch den alten Wert, weil die Abfrage
+  unmittelbar nach dem Schreiben lief; ein NS hinkte rund eine Minute nach.
+  Die Gegenprobe holt jetzt den Serial per `soa-details.json` und wartet bis
+  zu 180 s, bis jeder NS ihn ausliefert. Wer ihn dann noch nicht hat, wird
+  markiert. NS mit fremdem Primary im SOA (Zone noch nicht delegiert) werden
+  nicht abgewartet.

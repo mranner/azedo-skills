@@ -3,6 +3,16 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.73.4
+
+- **`cloudns`: Gegenprobe wartet auf den neuen Serial.** Nach `add` und
+  `modify` zeigten alle Nameserver noch den alten Wert, weil die Abfrage
+  unmittelbar nach dem Schreiben lief; ein NS hinkte rund eine Minute nach.
+  Die Gegenprobe holt jetzt den Serial per `soa-details.json` und wartet bis
+  zu 180 s, bis jeder NS ihn ausliefert. Wer ihn dann noch nicht hat, wird
+  markiert. NS mit fremdem Primary im SOA (Zone noch nicht delegiert) werden
+  nicht abgewartet.
+
 ### 1.73.3
 
 - **`bridge`: Zustellhinweise und Korrekturen.** Die lange Form des

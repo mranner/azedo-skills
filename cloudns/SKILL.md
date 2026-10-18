@@ -100,7 +100,7 @@ desselben Accounts: `list <andere-zone> --type NS`.
 
 Bis die Domain beim Registrar auf diese Nameserver delegiert ist, fragt die
 Gegenprobe nach `add` und `modify` die **alten** Nameserver ab und zeigt deren
-Bestand. Aussagekraeftig ist bis dahin nur `list`.
+Bestand, ohne auf einen Serial zu warten. Aussagekraeftig ist bis dahin nur `list`.
 
 ## Sichern und zurueckspielen
 
@@ -160,6 +160,12 @@ Beides ist read-only: DNSSEC aktivieren oder abschalten kann der Skill nicht.
   Zone ab. Der lokale Resolver taugt dafuer nicht: er haelt das negative
   Ergebnis bis zum Ablauf der Negative-Caching-TTL fest und zeigt einen frisch
   angelegten Record noch nicht an.
+- **Warten auf den neuen Serial.** Direkt nach dem Schreiben liefern die
+  Nameserver noch den alten Stand, einzelne hinken eine Minute und mehr nach.
+  Die Gegenprobe wartet deshalb bis zu 180 s, bis jeder NS den Serial aus der
+  API ausliefert, und markiert einen NS, der ihn dann noch nicht hat, mit
+  `(Serial <alt> < <neu>, alter Stand)`. Ein so markierter Wert ist kein
+  Fehlschlag - spaeter `verify` aufrufen.
 
 ## Fallstricke der API
 
