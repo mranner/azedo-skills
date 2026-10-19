@@ -3,6 +3,15 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.73.7
+
+- **`wp-rcb`: neuer Befehl `set-legal-basis`.** Setzt die Rechtsgrundlage
+  (`legalBasis`) eines Dienstes auf `consent`, `legitimate-interest` oder
+  `legal-requirement`, unter WPML in allen Sprach-Posts. Ohne `yes` nur
+  Vorschau je Post, mit `yes` samt Export davor unter `backup`; danach wird
+  der RCB-Cache geleert. Bisher ging das nur per `wp post meta update`, ohne
+  Vorschau und Sicherung.
+
 ### 1.73.6
 
 - **`swaks`: Komma im Anzeigenamen zerlegt die Empfaengerliste nicht mehr.**

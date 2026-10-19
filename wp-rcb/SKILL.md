@@ -4,10 +4,10 @@ description: >
   Real Cookie Banner (devowl, auch Pro) per WP-CLI: Dienste, Content Blocker,
   Banner-Links, Einstellungen und Revisionen lesen, ausgelieferten Dienst-Code
   im Frontend prüfen, Einrichtung exportieren, zwischen Sites vergleichen und
-  importieren, Content Blocker anlegen, Code-Felder, Cookie-Definitionen und
-  Einstellungen setzen, per Browser-Test prüfen, was vor der Einwilligung
-  lädt. Auch bei "welche Dienste hat der Cookie-Banner", "liefert RCB den
-  Code ohne Einwilligung aus",
+  importieren, Content Blocker anlegen, Code-Felder, Cookie-Definitionen,
+  Rechtsgrundlage und Einstellungen setzen, per Browser-Test prüfen, was vor
+  der Einwilligung lädt. Auch bei "welche Dienste hat der Cookie-Banner",
+  "liefert RCB den Code ohne Einwilligung aus",
   "übertrag den Cookie-Banner auf die andere Seite", "vergleich die
   RCB-Einstellungen". Trigger: /wp-rcb.
 allowed-tools: [Bash, Read]
@@ -70,6 +70,7 @@ Weiterverarbeiten nur stdout lesen (`2>/dev/null` oder in eine Datei).
 | `create-blocker <titel> services=<post_name,…> [yes]` | Content Blocker anlegen, Regeln zeilenweise per `--input`; läuft über den Import |
 | `set-code <dienst> <feld> [empty] [yes]` | `codeOptIn`, `codeOptOut` oder `codeOnPageLoad` setzen bzw. leeren |
 | `set-cookie <dienst> <name> [host=…] [type=…] [duration=<n>] [unit=s\|m\|h\|d\|mo\|y] [session[=0]] [purpose=…] [remove] [yes]` | Cookie-Definition (`technicalDefinitions`) eines Dienstes anlegen, ändern oder entfernen |
+| `set-legal-basis <dienst> consent\|legitimate-interest\|legal-requirement [yes]` | Rechtsgrundlage (`legalBasis`) eines Dienstes setzen, unter WPML in allen Sprach-Posts |
 | `set-setting <option> <wert\|empty> [yes]` | eine RCB-Einstellung setzen |
 | `clear-cache` | RCB-Cache und WP Rocket leeren |
 

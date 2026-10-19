@@ -762,6 +762,39 @@ function rcb_cmd_set_cookie($needle, $name, $opts, $input)
 	return $result + ['posts' => rcb_cookie_posts($ids, $name, $host), 'backup' => $backup];
 }
 
+// Unter WPML trägt jeder Sprach-Post eine eigene legalBasis
+
+function rcb_cmd_set_legal_basis($needle, $value, $opts)
+{
+	$values = ['consent', 'legitimate-interest', 'legal-requirement'];
+
+	if (!in_array($value, $values, true)) {
+		rcb_fail("Rechtsgrundlage '$value' unbekannt: " . implode(', ', $values));
+	}
+
+	$post = rcb_find_service($needle);
+	$posts = array_map(function ($id) use ($value) {
+		return ['id' => $id, 'lang' => rcb_lang($id), 'alt' => get_post_meta($id, 'legalBasis', true), 'neu' => $value];
+	}, rcb_translations($post));
+	$result = ['id' => $post->ID, 'title' => $post->post_title, 'posts' => $posts];
+
+	if (empty($opts['yes'])) {
+		return ['dry_run' => true] + $result;
+	}
+
+	$backup = rcb_export();
+
+	foreach ($result['posts'] as &$row) {
+		update_post_meta($row['id'], 'legalBasis', $value);
+		$row['neu'] = get_post_meta($row['id'], 'legalBasis', true);
+	}
+
+	unset($row);
+	Cache::getInstance()->invalidate();
+
+	return $result + ['backup' => $backup];
+}
+
 function rcb_cmd_set_setting($name, $value, $opts, $input)
 {
 	if (!in_array($name, rcb_settings_map(), true)) {
@@ -849,6 +882,9 @@ switch ($cmd) {
 	case 'set-cookie':
 		rcb_out(rcb_cmd_set_cookie($pos[0] ?? rcb_fail('set-cookie <dienst> <name>'), $pos[1] ?? rcb_fail('set-cookie <dienst> <name>'), $opts, $rcb_input));
 		break;
+	case 'set-legal-basis':
+		rcb_out(rcb_cmd_set_legal_basis($pos[0] ?? rcb_fail('set-legal-basis <dienst> <wert>'), $pos[1] ?? rcb_fail('set-legal-basis <dienst> consent|legitimate-interest|legal-requirement'), $opts));
+		break;
 	case 'set-setting':
 		rcb_out(rcb_cmd_set_setting($pos[0] ?? rcb_fail('set-setting <option> <wert>'), $pos[1] ?? ($opts['empty'] ?? false ? 'empty' : null), $opts, $rcb_input));
 		break;
@@ -856,5 +892,5 @@ switch ($cmd) {
 		rcb_out(rcb_cmd_clear_cache());
 		break;
 	default:
-		rcb_fail('Befehl: info, services, service, blockers, banner-links, settings, revisions, check-groups, export, import, create-blocker, set-code, set-cookie, set-setting, clear-cache');
+		rcb_fail('Befehl: info, services, service, blockers, banner-links, settings, revisions, check-groups, export, import, create-blocker, set-code, set-cookie, set-legal-basis, set-setting, clear-cache');
 }

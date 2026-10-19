@@ -768,13 +768,11 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.73.6
+### 1.73.7
 
-- **`swaks`: Komma im Anzeigenamen zerlegt die Empfaengerliste nicht mehr.**
-  `--send` trennte `--to`/`--cc`/`--bcc` per `split(",")`, auch innerhalb
-  eines Anzeigenamens in Anfuehrungszeichen. Aus `"Firma AG, IT" <it@...>`
-  wurden zwei ungueltige RCPT; der Relay lehnte genau diesen Empfaenger ab,
-  stellte den uebrigen trotzdem zu, und die Mail landete nicht in Gesendet.
-  Die Envelope-Liste kommt jetzt aus `email.utils.getaddresses` und enthaelt
-  nur die nackten Adressen; ein Teil ohne `@` (Komma ohne Anfuehrungszeichen)
-  bricht vor dem Versand ab.
+- **`wp-rcb`: neuer Befehl `set-legal-basis`.** Setzt die Rechtsgrundlage
+  (`legalBasis`) eines Dienstes auf `consent`, `legitimate-interest` oder
+  `legal-requirement`, unter WPML in allen Sprach-Posts. Ohne `yes` nur
+  Vorschau je Post, mit `yes` samt Export davor unter `backup`; danach wird
+  der RCB-Cache geleert. Bisher ging das nur per `wp post meta update`, ohne
+  Vorschau und Sicherung.
