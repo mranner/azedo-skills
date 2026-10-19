@@ -3,6 +3,17 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.73.6
+
+- **`swaks`: Komma im Anzeigenamen zerlegt die Empfaengerliste nicht mehr.**
+  `--send` trennte `--to`/`--cc`/`--bcc` per `split(",")`, auch innerhalb
+  eines Anzeigenamens in Anfuehrungszeichen. Aus `"Firma AG, IT" <it@...>`
+  wurden zwei ungueltige RCPT; der Relay lehnte genau diesen Empfaenger ab,
+  stellte den uebrigen trotzdem zu, und die Mail landete nicht in Gesendet.
+  Die Envelope-Liste kommt jetzt aus `email.utils.getaddresses` und enthaelt
+  nur die nackten Adressen; ein Teil ohne `@` (Komma ohne Anfuehrungszeichen)
+  bricht vor dem Versand ab.
+
 ### 1.73.5
 
 - **`kanboard`: Regel zum Inhalt eines Handoffs.** Eine Aussage ueber Daten nennt

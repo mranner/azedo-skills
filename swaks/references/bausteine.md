@@ -49,7 +49,9 @@ HTML-Part entsteht dabei nicht - der Regelweg ist immer `multipart/alternative`.
 ## Mehrere Empfänger
 
 Kommasepariert, und zwar an **beiden** Stellen: beim Bau für den `To:`-Header,
-beim `--send` für den SMTP-Envelope.
+beim `--send` für den SMTP-Envelope. Ein Anzeigename mit Komma gehört in
+Anführungszeichen (`'"Firma AG, IT" <it@example.org>'`); ohne sie bricht
+`--send` ab, statt nur einen Teil der Empfänger zu beliefern.
 
 ```bash
 python3 $B \

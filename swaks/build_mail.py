@@ -6,7 +6,7 @@
 # um das alternative-Part gelegt. Bei einer Antwort kommt der Zitatblock aus
 # `imap quote` unter Body und Signatur (Top-Posting), die Threading-Header
 # In-Reply-To und References haengen die Antwort an den bestehenden Thread.
-# version 1.73.5
+# version 1.73.6
 
 import argparse
 import hashlib
@@ -27,7 +27,7 @@ from email.parser import BytesParser
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from email.utils import formatdate, make_msgid
+from email.utils import formatdate, getaddresses, make_msgid
 
 
 def read(path):
@@ -332,18 +332,27 @@ QUEUED_RE = re.compile(r"^.*queued as.*$", re.M)
 def envelope_recipients(*groups):
     """Adressen aus --to/--cc/--bcc zu einer Envelope-Liste zusammenfuehren.
 
-    Doppelte Adressen fallen raus, sonst stellt der Relay zweimal zu."""
+    Doppelte Adressen fallen raus, sonst stellt der Relay zweimal zu.
+    getaddresses statt split(","): ein Komma im Anzeigenamen
+    ("Firma, Abteilung" <x@example.org>) zerlegte die Adresse in zwei
+    ungueltige RCPT, der Relay lehnte genau diesen Empfaenger ab und stellte
+    den uebrigen trotzdem zu. In den Envelope geht nur die nackte Adresse."""
 
     out = []
     seen = set()
 
-    for group in groups:
-        for addr in (group or "").split(","):
-            addr = addr.strip()
+    for name, addr in getaddresses([g for g in groups if g]):
+        if not addr:
+            continue
 
-            if addr and addr.lower() not in seen:
-                seen.add(addr.lower())
-                out.append(addr)
+        if "@" not in addr:
+            sys.exit(f"build_mail.py: Fehler — '{name or addr}' ist keine "
+                     "Adresse. Anzeigenamen mit Komma in Anfuehrungszeichen "
+                     "setzen.")
+
+        if addr.lower() not in seen:
+            seen.add(addr.lower())
+            out.append(addr)
 
     return ",".join(out)
 

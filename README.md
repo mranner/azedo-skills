@@ -768,11 +768,13 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.73.5
+### 1.73.6
 
-- **`kanboard`: Regel zum Inhalt eines Handoffs.** Eine Aussage ueber Daten nennt
-  die Pruefung, auf der sie beruht, oder steht als ungeprueft da; loest der
-  Handoff einen Plan aus einem Kommentar ab, nennt er diesen Kommentar.
-  Ausloeser: ein Handoff fuehrte einen Nachtrag als offen, der laengst
-  identisch war, kannte einen zweiten fehlenden Datensatz nicht und
-  widersprach einem aelteren Kommentar, ohne ihn zu nennen.
+- **`swaks`: Komma im Anzeigenamen zerlegt die Empfaengerliste nicht mehr.**
+  `--send` trennte `--to`/`--cc`/`--bcc` per `split(",")`, auch innerhalb
+  eines Anzeigenamens in Anfuehrungszeichen. Aus `"Firma AG, IT" <it@...>`
+  wurden zwei ungueltige RCPT; der Relay lehnte genau diesen Empfaenger ab,
+  stellte den uebrigen trotzdem zu, und die Mail landete nicht in Gesendet.
+  Die Envelope-Liste kommt jetzt aus `email.utils.getaddresses` und enthaelt
+  nur die nackten Adressen; ein Teil ohne `@` (Komma ohne Anfuehrungszeichen)
+  bricht vor dem Versand ab.
