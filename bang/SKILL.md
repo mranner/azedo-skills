@@ -51,9 +51,12 @@ Permission-Denial; wird ein Weg blockiert, entscheidet der User, ob er ihn per
 Erste Zeile ist immer das Selbstlöschen. `sh` hat die Datei da schon geöffnet und
 liest sie zu Ende; das Script läuft vollständig, die Datei ist trotzdem sofort
 weg - auch bei Fehler oder Ctrl-C. Der Exit-Code des Scripts kommt beim User an.
+Den eigenen Pfad wörtlich eintragen: den Positionsparameter für den
+Scriptnamen ersetzt Claude Code beim Laden dieser Datei durch das
+Skill-Argument.
 
 ```sh
-rm -f -- "$0"
+rm -f -- .tmp/bang-<slug>-<hex>.sh
 sudo ssh -C root@host.example.org sh <<'SCRIPT'
 set -e
 sed -i~ 's/^daily_clean_tmps_enable=.*/daily_clean_tmps_enable="YES"/' /etc/periodic.conf

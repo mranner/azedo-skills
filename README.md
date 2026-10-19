@@ -768,11 +768,11 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.73.7
+### 1.73.8
 
-- **`wp-rcb`: neuer Befehl `set-legal-basis`.** Setzt die Rechtsgrundlage
-  (`legalBasis`) eines Dienstes auf `consent`, `legitimate-interest` oder
-  `legal-requirement`, unter WPML in allen Sprach-Posts. Ohne `yes` nur
-  Vorschau je Post, mit `yes` samt Export davor unter `backup`; danach wird
-  der RCB-Cache geleert. Bisher ging das nur per `wp post meta update`, ohne
-  Vorschau und Sicherung.
+- **`bang`: Beispiel loescht wieder das Script.** Claude Code ersetzt beim
+  Laden eines Skills mit Argument den Positionsparameter fuer den
+  Scriptnamen durch das Argument - auch in der Form mit geschweiften
+  Klammern. Aus der Selbstloesch-Zeile des Beispiels wurde so
+  `rm -f -- "<argument>"`. Das Beispiel traegt jetzt den Pfad
+  `.tmp/bang-<slug>-<hex>.sh` woertlich.

@@ -3,6 +3,15 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.73.8
+
+- **`bang`: Beispiel loescht wieder das Script.** Claude Code ersetzt beim
+  Laden eines Skills mit Argument den Positionsparameter fuer den
+  Scriptnamen durch das Argument - auch in der Form mit geschweiften
+  Klammern. Aus der Selbstloesch-Zeile des Beispiels wurde so
+  `rm -f -- "<argument>"`. Das Beispiel traegt jetzt den Pfad
+  `.tmp/bang-<slug>-<hex>.sh` woertlich.
+
 ### 1.73.7
 
 - **`wp-rcb`: neuer Befehl `set-legal-basis`.** Setzt die Rechtsgrundlage
