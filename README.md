@@ -768,11 +768,11 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.73.11
+### 1.73.12
 
-- **`wiki`: Aussagen zum Patch-Stand bekommen ein `stale_after`.** Neue
-  Schreibregel: ein Artikel mit einer Aussage wie "kein Fix", "nur Mitigation"
-  oder "Backport nur bei X" traegt `stale_after` auf Pruefdatum plus vier
-  Wochen. Ausloeser: "kein Patch" stand weiter im Wiki, obwohl der Hersteller
-  inzwischen einen Quellpatch veroeffentlicht hatte; aufgefallen ist das erst
-  bei einer ausdruecklich beauftragten Recherche.
+- **`wiki`: Lint warnt bei Aussagen zum Patch-Stand ohne `stale_after`.**
+  `lint-wiki.py` sucht im Fliesstext nach "kein Patch", "ohne Sicherheitsfix",
+  "nur Mitigation", "Backport nur" und "nicht gepatcht" und meldet einen Artikel
+  ohne `stale_after` als Warnung. Das Muster ist bewusst eng: "kein Update" und
+  "kein Fix" stehen im Wiki fuer Lizenzprobleme oder untaugliche Massnahmen und
+  bleiben draussen. Drei neue Faelle in `test-lint-wiki.py`.

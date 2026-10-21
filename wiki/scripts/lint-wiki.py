@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # stdlib only, no pip dependencies
-# version 1.73.11
+# version 1.73.12
 
 """
 lint-wiki.py — Strukturprüfung für LLM Wikis (Infra + Projekt-Doku).
@@ -14,6 +14,7 @@ Prüft:
 - Verwaiste Seiten (kein anderer Artikel verlinkt hierher; index.md und log.md zählen nicht)
 - Datumsangaben in Überschriften (Logbuch-Muster, siehe Schreibregeln)
 - Optionale Vertrauensfelder verified/stale_after (Format, Ablauf)
+- Aussagen zum Patch-Stand ohne stale_after
 - Optional: Frontmatter-Verweise (z.B. tests, config) gegen ihre Prüfqülle,
   konfiguriert unter "references" in wiki-schema.json
 - Abschnittsverweise ([[x]], Abschnitt Y / Y-Abschnitt): gibt es Y in x noch?
@@ -190,6 +191,19 @@ DATED_HEADING_PATTERN = re.compile(
     re.M,
 )
 
+
+# Aussage zum Patch- oder Sicherheitsstand ("kein Patch", "nur Mitigation",
+# "Backport nur bei X") - der Hersteller überholt sie ohne Ankündigung. Ein
+# Artikel damit braucht stale_after, siehe SKILL.md, Schreibregeln. Bewusst eng:
+# "kein Update" oder "kein Fix" stehen oft für etwas anderes (Lizenzproblem,
+# untaugliche Maßnahme) und bleiben draußen.
+PATCH_STATE_PATTERN = re.compile(
+    r"\b(?:kein(?:e[nr]?)?|ohne)\s+(?:offizielle[nr]?\s+)?(?:Patch|Quellpatch|Sicherheitsfix|Security-?Fix|Sicherheitsupdate)\b"
+    r"|\bnur\s+(?:eine\s+)?Mitigation\b"
+    r"|\bBackport\s+nur\b"
+    r"|\bnicht\s+gepatcht\b",
+    re.I,
+)
 
 # Abschnitts-Überschriften ab Ebene 2 — die Gliederung eines Artikels. Ebene 1
 # ist der Titel und steht genau einmal, die zählt nicht mit.
@@ -668,6 +682,15 @@ def lint_wiki(wiki_root, check_remotes=False, check_shrink_flag=False):
                 f"{prefix}: Datum in Überschrift ({hit}) — \"{short}\"; "
                 f"Zustand beschreiben statt Verlauf, Datum in den Fließtext"
             )
+
+        # Patch-Stand ohne Ablaufdatum
+        if "stale_after" not in fm:
+            hit = PATCH_STATE_PATTERN.search(strip_code(body))
+            if hit:
+                warnings.append(
+                    f"{prefix}: Aussage zum Patch-Stand (\"{hit.group(0)}\") ohne stale_after — "
+                    f"Prüfdatum plus vier Wochen setzen"
+                )
 
     # Tote Links (Remote-Pointer [[<remote>:<slug>]] ausgenommen, wenn <remote> bekannt)
     remote_pointers = []  # (source_slug, remote_name, target_slug)

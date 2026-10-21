@@ -218,6 +218,10 @@ Prüft:
   ist der einzige Hinweis darauf
 - **Vertrauensfelder**: Format von `verified` und `stale_after`, abgelaufene Inhalte
   (siehe „Frontmatter-Schemas", Referenz laut SKILL.md)
+- **Patch-Stand ohne `stale_after`**: Fließtext mit „kein Patch", „ohne
+  Sicherheitsfix", „nur Mitigation", „Backport nur" oder „nicht gepatcht" in einem
+  Artikel ohne `stale_after` (Warnung, Regel in den Schreibregeln). „kein Update"
+  und „kein Fix" zählen nicht - sie meinen meist etwas anderes
 - **Frontmatter-Verweise** (optional): Einträge wie `tests:` oder `config:`, die
   in ihrer Prüfquelle nicht mehr vorkommen - etwa nach dem Umbenennen eines Tests.
   Nur mit `references` in der `wiki-schema.json`, ohne diesen Eintrag entfällt der Check:

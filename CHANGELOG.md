@@ -3,6 +3,15 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.73.12
+
+- **`wiki`: Lint warnt bei Aussagen zum Patch-Stand ohne `stale_after`.**
+  `lint-wiki.py` sucht im Fliesstext nach "kein Patch", "ohne Sicherheitsfix",
+  "nur Mitigation", "Backport nur" und "nicht gepatcht" und meldet einen Artikel
+  ohne `stale_after` als Warnung. Das Muster ist bewusst eng: "kein Update" und
+  "kein Fix" stehen im Wiki fuer Lizenzprobleme oder untaugliche Massnahmen und
+  bleiben draussen. Drei neue Faelle in `test-lint-wiki.py`.
+
 ### 1.73.11
 
 - **`wiki`: Aussagen zum Patch-Stand bekommen ein `stale_after`.** Neue

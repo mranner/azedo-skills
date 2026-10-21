@@ -5,7 +5,8 @@
 """
 test-lint-wiki.py — Testfälle für die Präfix-Auflösung, die
 Frontmatter-Verweise (references), die Abschnittsverweise, die verwaisten
-Seiten und den Schrumpf-Guard (umgehängte Links) in lint-wiki.py.
+Seiten, Aussagen zum Patch-Stand und den Schrumpf-Guard (umgehängte Links) in
+lint-wiki.py.
 
 Baut ein Wegwerf-Projekt mit zwei Geschwister-Wikis, einem Verzeichnis ohne
 wiki/-Unterordner und einer wiki-remotes.json, lässt lint-wiki.py darauf laufen
@@ -96,6 +97,12 @@ def build(root, home):
           "tests: [test_grenzwert, test_umbenannt]\n"
           "config:\n  - grenzwert\n  - entfernt\n"
           "---\n\nText.\n\n## Epsilon-Umgebung\n\nText.\n")
+    write(mathe / "wiki/patch-offen.md",
+          "---\ntype: artikel\n---\n\nFür 7.4 gibt es kein Patch, nur Mitigation.\n")
+    write(mathe / "wiki/patch-mit-ablauf.md",
+          "---\ntype: artikel\nstale_after: 2099-01-01\n---\n\nKein Patch für 7.4.\n")
+    write(mathe / "wiki/kein-update.md",
+          "---\ntype: artikel\n---\n\nDer Server liefert kein Update aus, MSI-Tuning ist kein Fix.\n")
     write(mathe / "index.md", "# Index\n\n- [[schriftliches-dividieren]]\n- [[grenzwert]]\n")
     write(mathe / "log.md", "# Log\n\n- [[geschichte:gibt-es-nicht]]\n")
     return mathe
@@ -122,6 +129,9 @@ CASES = [
     ("Abschnittsverweis [[grenzwert]] \"zu", False),
     ("schriftliches-dividieren.md: Verwaiste Seite — kein anderer Artikel verlinkt hierher (nur aus index.md)", True),
     ("grenzwert.md: Verwaiste Seite", False),
+    ("patch-offen.md: Aussage zum Patch-Stand (\"kein Patch\") ohne stale_after", True),
+    ("patch-mit-ablauf.md: Aussage zum Patch-Stand", False),
+    ("kein-update.md: Aussage zum Patch-Stand", False),
 ]
 
 
