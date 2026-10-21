@@ -3,6 +3,16 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.73.10
+
+- **`kanboard`: neue Befehle `patch-description` und `patch-handoff`.** Beide
+  ersetzen den Text aus `--old-file` durch den aus `--new-file` und lassen den
+  Rest der Beschreibung bzw. des Handoffs stehen. Kommt der alte Text nicht
+  genau einmal vor, brechen sie mit Exit-Code 1 ab und schreiben nichts;
+  `patch-handoff` lehnt zusaetzlich ein leeres Ergebnis ab. Bisher ging eine
+  Teilaenderung nur ueber Lesen, Ersetzen per Hand-Script und Zurueckschreiben
+  des ganzen Feldes.
+
 ### 1.73.9
 
 - **`kanboard`: Hinweis zum Ausgabeformat von `get-handoff`.** Der Hinweis

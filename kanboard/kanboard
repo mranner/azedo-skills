@@ -2,7 +2,7 @@
 
 # Kanboard JSON-RPC 2.0 API helper
 # stdlib only, no pip dependencies
-# version 1.73.9
+# version 1.73.10
 
 import argparse
 import base64
@@ -381,6 +381,31 @@ def cmd_update_task(args):
     output({"success": result})
 
 
+def cmd_patch_description(args):
+    task = rpc_call("getTask", {"task_id": int(args.task_id)})
+    if not task:
+        print(f"Error: task {args.task_id} not found", file=sys.stderr)
+        sys.exit(1)
+    description = replace_once(task.get("description") or "", args, "description")
+    result = rpc_call("updateTask", {"id": int(args.task_id), "description": description})
+    output({"success": result, "length": len(description)})
+
+
+def replace_once(text, args, label):
+    """Replace the text from --old-file by --new-file, or exit unless it occurs exactly once."""
+    old = read_file_arg(args.old_file)
+    new = read_file_arg(args.new_file)
+    if not old:
+        print("Error: --old-file is empty", file=sys.stderr)
+        sys.exit(1)
+    count = text.count(old)
+    if count != 1:
+        print(f"Error: old text found {count} times in {label} (expected exactly 1), nothing saved",
+              file=sys.stderr)
+        sys.exit(1)
+    return text.replace(old, new)
+
+
 def cmd_move_task(args):
     task = rpc_call("getTask", {"task_id": int(args.task_id)})
     if not task:
@@ -583,6 +608,17 @@ def cmd_get_handoff(args):
         sys.stdout.write(content)
         if content and not content.endswith("\n"):
             sys.stdout.write("\n")
+
+
+def cmd_patch_handoff(args):
+    content = rpc_call("getTaskHandoff", {"task_id": int(args.task_id)}) or ""
+    content = replace_once(content, args, "handoff")
+    if not content.strip():
+        print("Error: handoff would be empty, not saved (use remove-handoff to delete)",
+              file=sys.stderr)
+        sys.exit(1)
+    result = rpc_call("saveTaskHandoff", {"task_id": int(args.task_id), "content": content})
+    output({"task_id": int(args.task_id), "saved": result, "length": len(content)})
 
 
 def cmd_remove_handoff(args):
@@ -1503,6 +1539,13 @@ def main():
     p.add_argument("--start", help="Startdatum setzen; leerer Wert loescht es")
     p.set_defaults(func=cmd_update_task)
 
+    # patch-description
+    p = sub.add_parser("patch-description")
+    p.add_argument("task_id")
+    p.add_argument("--old-file", dest="old_file", required=True, help="zu ersetzender Text, muss genau einmal vorkommen")
+    p.add_argument("--new-file", dest="new_file", required=True, help="Ersatztext")
+    p.set_defaults(func=cmd_patch_description)
+
     # move-task
     p = sub.add_parser("move-task")
     p.add_argument("task_id")
@@ -1555,6 +1598,13 @@ def main():
     p.add_argument("task_id")
     p.add_argument("--output", help="In Datei schreiben statt stdout")
     p.set_defaults(func=cmd_get_handoff)
+
+    # patch-handoff (TaskHandoff-Plugin)
+    p = sub.add_parser("patch-handoff")
+    p.add_argument("task_id")
+    p.add_argument("--old-file", dest="old_file", required=True, help="zu ersetzender Text, muss genau einmal vorkommen")
+    p.add_argument("--new-file", dest="new_file", required=True, help="Ersatztext")
+    p.set_defaults(func=cmd_patch_handoff)
 
     # remove-handoff (TaskHandoff-Plugin)
     p = sub.add_parser("remove-handoff")

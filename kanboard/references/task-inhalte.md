@@ -84,8 +84,11 @@ Task-Metadata mit `VARCHAR(255)`). Der Handoff ist **nicht** die Beschreibung, *
 Kommentar und **nicht** ein Anhang, sondern ein eigenes Feld. Ein Handoff pro Task (erneutes
 `set-handoff` ueberschreibt).
 Eine leere Eingabe lehnt `set-handoff` mit Exit-Code 1 ab, geloescht wird nur per
-`remove-handoff`. Zum Aendern den Handoff per `get-handoff` lesen - `get-task`
-liefert das Feld nicht.
+`remove-handoff`. Zum Aendern eines Abschnitts `patch-handoff` nehmen: kommt der alte
+Text nicht genau einmal vor oder bliebe der Handoff leer, bricht es mit Exit-Code 1 ab
+und schreibt nichts. Gesucht wird byte-genau, ein abschliessender Zeilenumbruch der
+Datei zaehlt mit - die Dateien mit `printf '%s'` oder dem Write-Tool anlegen.
+`get-task` liefert das Feld nicht, gelesen wird es per `get-handoff`.
 
 ```bash
 # Handoff setzen (Text aus Datei ODER direkt)
@@ -95,6 +98,9 @@ python3 "$SKILL_DIR/kanboard" set-handoff <task_id> --value "# Titel ..."
 # Handoff auslesen (roher Markdown-Text auf stdout, oder in Datei)
 python3 "$SKILL_DIR/kanboard" get-handoff <task_id>
 python3 "$SKILL_DIR/kanboard" get-handoff <task_id> --output /pfad/handoff.md
+
+# Handoff teilweise aendern (alter Text muss genau einmal vorkommen)
+python3 "$SKILL_DIR/kanboard" patch-handoff <task_id> --old-file /pfad/alt.md --new-file /pfad/neu.md
 
 # Handoff entfernen
 python3 "$SKILL_DIR/kanboard" remove-handoff <task_id>

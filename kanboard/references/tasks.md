@@ -42,6 +42,18 @@ python3 "$SKILL_DIR/kanboard" update-task <task_id> \
 `--description-file` liest die neue Beschreibung aus einer Datei, sonst wie bei
 `create-task`.
 
+### Beschreibung teilweise aendern
+
+```bash
+python3 "$SKILL_DIR/kanboard" patch-description <task_id> --old-file <pfad> --new-file <pfad>
+```
+
+Ersetzt den Text aus `--old-file` durch den aus `--new-file`, der Rest der
+Beschreibung bleibt. Kommt der alte Text nicht genau einmal vor, bricht der Aufruf
+mit Exit-Code 1 ab und schreibt nichts. Gesucht wird byte-genau: ein
+abschliessender Zeilenumbruch der Datei zaehlt mit, deshalb die Dateien mit
+`printf '%s'` oder dem Write-Tool anlegen, nicht per Heredoc.
+
 ### Datumsfelder
 
 `--due` setzt `date_due` (Faelligkeit), `--start` setzt `date_started` (ab wann

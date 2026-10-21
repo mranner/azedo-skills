@@ -768,10 +768,12 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.73.9
+### 1.73.10
 
-- **`kanboard`: Hinweis zum Ausgabeformat von `get-handoff`.** Der Hinweis
-  "Output ist JSON" galt fuer `get-handoff` nicht: ohne `--output` kommt der
-  Handoff als Klartext, mit `--output` landet er in der Datei und nur die
-  Meldung ist JSON. Ausloeser: ein `json.load` auf die Ausgabe brach ab,
-  nachdem die Beschreibung schon geschrieben war, der Handoff aber noch nicht.
+- **`kanboard`: neue Befehle `patch-description` und `patch-handoff`.** Beide
+  ersetzen den Text aus `--old-file` durch den aus `--new-file` und lassen den
+  Rest der Beschreibung bzw. des Handoffs stehen. Kommt der alte Text nicht
+  genau einmal vor, brechen sie mit Exit-Code 1 ab und schreiben nichts;
+  `patch-handoff` lehnt zusaetzlich ein leeres Ergebnis ab. Bisher ging eine
+  Teilaenderung nur ueber Lesen, Ersetzen per Hand-Script und Zurueckschreiben
+  des ganzen Feldes.

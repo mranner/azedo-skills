@@ -37,7 +37,7 @@ Spalte, Swimlane und Owner im Klartext. Schema und Config-Quelle (`.env`-Reihenf
 
 ## Subcommands
 
-Das Script kennt 56 Subcommands. Hier stehen die häufigsten Aufrufe; die
+Das Script kennt 58 Subcommands. Hier stehen die häufigsten Aufrufe; die
 vollständige Referenz liegt daneben und wird bei Bedarf gelesen:
 
 | Datei | Inhalt |
