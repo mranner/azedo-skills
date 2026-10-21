@@ -768,11 +768,10 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.73.8
+### 1.73.9
 
-- **`bang`: Beispiel loescht wieder das Script.** Claude Code ersetzt beim
-  Laden eines Skills mit Argument den Positionsparameter fuer den
-  Scriptnamen durch das Argument - auch in der Form mit geschweiften
-  Klammern. Aus der Selbstloesch-Zeile des Beispiels wurde so
-  `rm -f -- "<argument>"`. Das Beispiel traegt jetzt den Pfad
-  `.tmp/bang-<slug>-<hex>.sh` woertlich.
+- **`kanboard`: Hinweis zum Ausgabeformat von `get-handoff`.** Der Hinweis
+  "Output ist JSON" galt fuer `get-handoff` nicht: ohne `--output` kommt der
+  Handoff als Klartext, mit `--output` landet er in der Datei und nur die
+  Meldung ist JSON. Ausloeser: ein `json.load` auf die Ausgabe brach ab,
+  nachdem die Beschreibung schon geschrieben war, der Handoff aber noch nicht.

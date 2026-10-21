@@ -3,6 +3,14 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.73.9
+
+- **`kanboard`: Hinweis zum Ausgabeformat von `get-handoff`.** Der Hinweis
+  "Output ist JSON" galt fuer `get-handoff` nicht: ohne `--output` kommt der
+  Handoff als Klartext, mit `--output` landet er in der Datei und nur die
+  Meldung ist JSON. Ausloeser: ein `json.load` auf die Ausgabe brach ab,
+  nachdem die Beschreibung schon geschrieben war, der Handoff aber noch nicht.
+
 ### 1.73.8
 
 - **`bang`: Beispiel loescht wieder das Script.** Claude Code ersetzt beim

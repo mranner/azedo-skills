@@ -185,7 +185,9 @@ Nach Anlage oder Änderung dem User die URL anzeigen. Die Basis-URL ergibt sich 
 - Temporäre Dateien (Downloads, Optimierungen etc.) gehören ins Projekt-Verzeichnis `.tmp/`, **nicht** in `$SKILL_DIR/.tmp/`. Das Skill-Verzeichnis darf nicht als Arbeitsverzeichnis verwendet werden.
 - Fehlt `.tmp/`, mit `mkdir -m 700 .tmp` anlegen - liegt das Projekt in einem Docroot, liefert der Webserver es sonst aus.
 - Spaltennamen sind case-insensitiv im Script.
-- Output ist JSON -- relevante Felder extrahieren und lesbar darstellen.
+- Output ist JSON -- relevante Felder extrahieren und lesbar darstellen. Ausnahme:
+  `get-handoff` gibt den Handoff als Klartext aus, mit `--output` schreibt es in die
+  Datei und meldet dann JSON (`path`, `length`).
 - Beschreibungen unterstützen Markdown-Syntax.
 - Neue und verschobene Tasks werden am Ende (unten) der Spalte eingefügt.
 

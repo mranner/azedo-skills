@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # stdlib only, no pip dependencies
-# version 1.73.8
+# version 1.73.9
 
 """
 wiki_remotes.py — Remote-Wiki-Konfiguration lesen und schreiben.
