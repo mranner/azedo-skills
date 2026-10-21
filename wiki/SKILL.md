@@ -194,6 +194,15 @@ danebengestellt - die Vorfassung hält die Versionsverwaltung. Nur wenn der alte
 Zustand für das Verständnis des neuen nötig ist, bleibt er, und dann als
 Nebensatz.
 
+### Patch-Stand bekommt ein `stale_after`
+
+Eine Aussage zum Patch- oder Sicherheitsstand („kein Fix", „nur Mitigation",
+„Backport nur bei X") überholt der Hersteller ohne Ankündigung. Der Artikel, der
+sie enthält, bekommt `stale_after` auf das Prüfdatum plus vier Wochen; ist das
+Feld schon gesetzt, gilt das frühere Datum. Beim Ablauf wird die Aussage an der
+Quelle neu geprüft, wie unter „verified / stale_after setzen" in
+`references/pflege.md`.
+
 ### Ein Befund gehört an genau eine Stelle
 
 Prüffrage beim Schreiben: **Würde das jemand suchen, der diesen Gegenstand gar

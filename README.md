@@ -768,12 +768,11 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.73.10
+### 1.73.11
 
-- **`kanboard`: neue Befehle `patch-description` und `patch-handoff`.** Beide
-  ersetzen den Text aus `--old-file` durch den aus `--new-file` und lassen den
-  Rest der Beschreibung bzw. des Handoffs stehen. Kommt der alte Text nicht
-  genau einmal vor, brechen sie mit Exit-Code 1 ab und schreiben nichts;
-  `patch-handoff` lehnt zusaetzlich ein leeres Ergebnis ab. Bisher ging eine
-  Teilaenderung nur ueber Lesen, Ersetzen per Hand-Script und Zurueckschreiben
-  des ganzen Feldes.
+- **`wiki`: Aussagen zum Patch-Stand bekommen ein `stale_after`.** Neue
+  Schreibregel: ein Artikel mit einer Aussage wie "kein Fix", "nur Mitigation"
+  oder "Backport nur bei X" traegt `stale_after` auf Pruefdatum plus vier
+  Wochen. Ausloeser: "kein Patch" stand weiter im Wiki, obwohl der Hersteller
+  inzwischen einen Quellpatch veroeffentlicht hatte; aufgefallen ist das erst
+  bei einer ausdruecklich beauftragten Recherche.

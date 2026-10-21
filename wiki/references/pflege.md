@@ -242,7 +242,7 @@ aufgeschrieben oder umformuliert wurde. Bestehende Einträge bleiben stehen, der
 neue kommt dazu; die Liste ist eine Historie, kein einzelner Stand.
 
 `stale_after` nur dort setzen, wo ein Ablauf absehbar ist (Paketversion,
-Zertifikatslaufzeit, geplante Migration). Meldet der Lint eine Entity als
+Zertifikatslaufzeit, geplante Migration, Patch-Stand laut Schreibregeln in SKILL.md). Meldet der Lint eine Entity als
 überfällig: Inhalt prüfen, dann entweder das Datum neu setzen oder das Feld
 entfernen, wenn der Bezug weggefallen ist. Das bloße Hochsetzen ohne Prüfung
 macht das Feld wertlos.

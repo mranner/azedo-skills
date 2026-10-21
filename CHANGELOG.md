@@ -3,6 +3,15 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.73.11
+
+- **`wiki`: Aussagen zum Patch-Stand bekommen ein `stale_after`.** Neue
+  Schreibregel: ein Artikel mit einer Aussage wie "kein Fix", "nur Mitigation"
+  oder "Backport nur bei X" traegt `stale_after` auf Pruefdatum plus vier
+  Wochen. Ausloeser: "kein Patch" stand weiter im Wiki, obwohl der Hersteller
+  inzwischen einen Quellpatch veroeffentlicht hatte; aufgefallen ist das erst
+  bei einer ausdruecklich beauftragten Recherche.
+
 ### 1.73.10
 
 - **`kanboard`: neue Befehle `patch-description` und `patch-handoff`.** Beide
