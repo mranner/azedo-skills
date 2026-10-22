@@ -121,6 +121,15 @@ liegen. Bei jedem Lauf gehen außerdem `mail.*`/`reply.*` im selben `.tmp/` weg,
 die älter als 7 Tage sind. Das JSON nennt sie in `cleaned`. Gelöscht wird nur ein
 Verzeichnis in `mktemp`-Form direkt unter `.tmp/`.
 
+**`--send` und `--draft` aus dem Projekt-Root aufrufen, nicht aus `$M`.** Steht die
+Shell in `$M`, lässt der Helper es liegen und nennt es in `cleanup_errors` - sonst
+stünde die Shell nach dem Löschen ohne Arbeitsverzeichnis da und meldete Exit `1`,
+obwohl die Mail raus ist. `$M` danach von Hand löschen.
+
+**Exit ≠ 0 nach `--send`: erst `ok` und `queued_as` im JSON lesen, dann entscheiden.**
+Steht dort eine Queue-ID, ist die Mail versendet - ein erneuter Versand verschickt
+sie doppelt.
+
 ## Standardversand: Multipart (Text + HTML)
 
 **Default für zusammengesetzte Mails.** Es wird eine `multipart/alternative`-Mail erzeugt (Text- **und** HTML-Part im selben Objekt) – gut für Copy/Paste in Thunderbird und beim Weiterleiten, mit Fallback für Plain-Text-Clients. HTML bewusst schlicht halten (Absätze `<p>`, Umbrüche `<br>`, keine CSS-Spielereien).

@@ -3,6 +3,16 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.73.13
+
+- **`swaks`: `--send` aus `$M` heraus meldet nicht mehr Exit 1 nach dem Versand.**
+  Stand die Shell beim Aufruf im Versand-Verzeichnis, loeschte der Helper es nach
+  dem Versand, und die Shell endete ohne Arbeitsverzeichnis mit Exit 1 - obwohl
+  die Mail raus war. Wer dem Exit-Code folgte, sendete doppelt. `build_mail.py`
+  laesst das Verzeichnis jetzt liegen, wenn das Arbeitsverzeichnis darin liegt,
+  und nennt es in `cleanup_errors`. SKILL.md: `--send`/`--draft` aus dem
+  Projekt-Root aufrufen, bei Exit ≠ 0 zuerst `ok` und `queued_as` lesen.
+
 ### 1.73.12
 
 - **`wiki`: Lint warnt bei Aussagen zum Patch-Stand ohne `stale_after`.**

@@ -768,11 +768,13 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.73.12
+### 1.73.13
 
-- **`wiki`: Lint warnt bei Aussagen zum Patch-Stand ohne `stale_after`.**
-  `lint-wiki.py` sucht im Fliesstext nach "kein Patch", "ohne Sicherheitsfix",
-  "nur Mitigation", "Backport nur" und "nicht gepatcht" und meldet einen Artikel
-  ohne `stale_after` als Warnung. Das Muster ist bewusst eng: "kein Update" und
-  "kein Fix" stehen im Wiki fuer Lizenzprobleme oder untaugliche Massnahmen und
-  bleiben draussen. Drei neue Faelle in `test-lint-wiki.py`.
+- **`swaks`: `--send` aus `$M` heraus meldet nicht mehr Exit 1 nach dem Versand.**
+  Stand die Shell beim Aufruf im Versand-Verzeichnis, loeschte der Helper es nach
+  dem Versand, und die Shell endete ohne Arbeitsverzeichnis mit Exit 1 - obwohl
+  die Mail raus war. Wer dem Exit-Code folgte, sendete doppelt. `build_mail.py`
+  laesst das Verzeichnis jetzt liegen, wenn das Arbeitsverzeichnis darin liegt,
+  und nennt es in `cleanup_errors`. SKILL.md: `--send`/`--draft` aus dem
+  Projekt-Root aufrufen, bei Exit ≠ 0 zuerst `ok` und `queued_as` lesen.
+

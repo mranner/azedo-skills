@@ -6,7 +6,7 @@
 # um das alternative-Part gelegt. Bei einer Antwort kommt der Zitatblock aus
 # `imap quote` unter Body und Signatur (Top-Posting), die Threading-Header
 # In-Reply-To und References haengen die Antwort an den bestehenden Thread.
-# version 1.73.12
+# version 1.73.13
 
 import argparse
 import hashlib
@@ -470,13 +470,19 @@ def cleanup_workdirs(eml, success):
     parent = os.path.dirname(own)
     cutoff = time.time() - STALE_DAYS * 86400
     doomed = [own] if success else []
+    removed, errors = [], []
+
+    # Shell steht in $M: Loeschen liesse sie ohne cwd zurueck (Exit 1 trotz Versand)
+    cwd = os.path.realpath(os.getcwd())
+    if success and os.path.commonpath([cwd, os.path.realpath(own)]) == os.path.realpath(own):
+        doomed = []
+        errors.append(f"{own}: nicht geloescht, Arbeitsverzeichnis liegt darin")
 
     for name in sorted(os.listdir(parent)):
         p = os.path.join(parent, name)
         if p != own and is_workdir(p) and os.path.getmtime(p) < cutoff:
             doomed.append(p)
 
-    removed, errors = [], []
     for p in doomed:
         try:
             shutil.rmtree(p)

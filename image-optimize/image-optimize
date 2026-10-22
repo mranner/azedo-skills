@@ -2,7 +2,7 @@
 
 # Image optimization for web usage
 # Tools: optipng, jpegoptim, GraphicsMagick (gm) or ImageMagick 7 (magick)
-# version 1.73.12
+# version 1.73.13
 
 import argparse
 import os
