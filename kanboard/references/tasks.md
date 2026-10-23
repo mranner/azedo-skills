@@ -71,8 +71,9 @@ Zwei Eigenheiten:
 
 - **Ohne Uhrzeit setzt Kanboard bei `date_due` die aktuelle Uhrzeit ein** (`--due
   2026-10-13` wird zu `2026-10-13 19:56`). Das Datum stimmt, und im UI wird nur
-  das Datum angezeigt; wer die Uhrzeit braucht, gibt sie mit an. `date_started`
-  faellt ohne Uhrzeit auf 00:00.
+  das Datum angezeigt; wer die Uhrzeit braucht, gibt sie mit an. Bei `--start`
+  haengt das Script an ein reines Datum selbst ` 00:00` an, sonst traefe Kanboard
+  dort ebenfalls die aktuelle Uhrzeit.
 - **Nur bei `update-task` loescht ein leerer Wert das Feld:** `--due ""` bzw.
   `--start ""` setzt es auf `0` zurueck. Die Option ganz wegzulassen laesst das
   Feld unveraendert.

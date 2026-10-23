@@ -2,7 +2,7 @@
 
 # Kanboard JSON-RPC 2.0 API helper
 # stdlib only, no pip dependencies
-# version 1.73.13
+# version 1.73.14
 
 import argparse
 import base64
@@ -262,16 +262,20 @@ def read_file_arg(path):
         return f.read()
 
 
-def parse_date_arg(value, label):
+def parse_date_arg(value, label, midnight=False):
     """Validate a date from the command line and hand it to Kanboard as a string.
 
     Kanboard parses 'YYYY-MM-DD' and 'YYYY-MM-DD HH:MM' itself, but turns
     anything it does not understand into 0 (= not set) without an error - so an
     unusable value is rejected here instead of silently clearing the field.
+    With midnight=True a bare date gets ' 00:00', otherwise Kanboard fills in
+    the current time of day.
     """
     for fmt in ("%Y-%m-%d %H:%M", "%Y-%m-%d"):
         try:
             datetime.strptime(value, fmt)
+            if midnight and fmt == "%Y-%m-%d":
+                return value + " 00:00"
             return value
         except ValueError:
             continue
@@ -305,7 +309,7 @@ def cmd_create_task(args):
     if args.due:
         params["date_due"] = parse_date_arg(args.due, "--due")
     if args.start:
-        params["date_started"] = parse_date_arg(args.start, "--start")
+        params["date_started"] = parse_date_arg(args.start, "--start", midnight=True)
 
     task_id = rpc_call("createTask", params)
     if not task_id:
@@ -371,7 +375,7 @@ def cmd_update_task(args):
     if args.due is not None:
         params["date_due"] = parse_date_arg(args.due, "--due") if args.due else ""
     if args.start is not None:
-        params["date_started"] = parse_date_arg(args.start, "--start") if args.start else ""
+        params["date_started"] = parse_date_arg(args.start, "--start", midnight=True) if args.start else ""
 
     if len(params) == 1:
         print("Error: nothing to update (specify --title, --description/--description-file, --owner, --due or --start)", file=sys.stderr)

@@ -768,13 +768,10 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.73.13
+### 1.73.14
 
-- **`swaks`: `--send` aus `$M` heraus meldet nicht mehr Exit 1 nach dem Versand.**
-  Stand die Shell beim Aufruf im Versand-Verzeichnis, loeschte der Helper es nach
-  dem Versand, und die Shell endete ohne Arbeitsverzeichnis mit Exit 1 - obwohl
-  die Mail raus war. Wer dem Exit-Code folgte, sendete doppelt. `build_mail.py`
-  laesst das Verzeichnis jetzt liegen, wenn das Arbeitsverzeichnis darin liegt,
-  und nennt es in `cleanup_errors`. SKILL.md: `--send`/`--draft` aus dem
-  Projekt-Root aufrufen, bei Exit ≠ 0 zuerst `ok` und `queued_as` lesen.
+- **`kanboard`: `--start` mit reinem Datum setzt 00:00.** Kanboard ergaenzte bei
+  `--start YYYY-MM-DD` die aktuelle Uhrzeit, die Referenz behauptete 00:00. Das Script haengt jetzt bei `create-task` und
+  `update-task` selbst ` 00:00` an; eine angegebene Uhrzeit bleibt. `--due`
+  bleibt unveraendert.
 

@@ -3,6 +3,13 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.73.14
+
+- **`kanboard`: `--start` mit reinem Datum setzt 00:00.** Kanboard ergaenzte bei
+  `--start YYYY-MM-DD` die aktuelle Uhrzeit, die Referenz behauptete 00:00. Das Script haengt jetzt bei `create-task` und
+  `update-task` selbst ` 00:00` an; eine angegebene Uhrzeit bleibt. `--due`
+  bleibt unveraendert.
+
 ### 1.73.13
 
 - **`swaks`: `--send` aus `$M` heraus meldet nicht mehr Exit 1 nach dem Versand.**
