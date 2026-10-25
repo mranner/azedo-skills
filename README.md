@@ -768,10 +768,9 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.73.14
+### 1.73.15
 
-- **`kanboard`: `--start` mit reinem Datum setzt 00:00.** Kanboard ergaenzte bei
-  `--start YYYY-MM-DD` die aktuelle Uhrzeit, die Referenz behauptete 00:00. Das Script haengt jetzt bei `create-task` und
-  `update-task` selbst ` 00:00` an; eine angegebene Uhrzeit bleibt. `--due`
-  bleibt unveraendert.
-
+- **`imap`: Triage-Ablauf listet mit `-n 0`.** `list` liefert ohne `-n` nur die
+  neuesten 50 Mails je Konto; ältere blieben bei der Triage ungesehen im
+  Posteingang liegen (2026-10-25: 13 Monit-Alerts). Schritt 2 des Ablaufs
+  verlangt jetzt `list --json -n 0` und nennt das Abschlusskriterium.

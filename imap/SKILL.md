@@ -194,7 +194,8 @@ Sicherheitszusagen des Scripts (`BODY.PEEK`, `delete` = Papierkorb, nie
 Der eigentliche Zweck des Skills. Ablauf bei "geh meine Inbox durch":
 
 1. `~/.claude/imap-triage.md` lesen, falls vorhanden
-2. `list --json` über alle Konten
+2. `list --json -n 0` über alle Konten - fertig, wenn jede INBOX-Mail gelistet ist;
+   ohne `-n 0` kappt die Grenze von 50 die älteren Mails stillschweigend
 3. Bodies **nur** für die inhaltlich relevanten Mails per `read --json`;
    Monitoring- und Reminder-Mails vor dem Melden gegen den Ist-Zustand prüfen
    ([references/alerts.md](references/alerts.md))

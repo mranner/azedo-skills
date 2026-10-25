@@ -3,6 +3,13 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.73.15
+
+- **`imap`: Triage-Ablauf listet mit `-n 0`.** `list` liefert ohne `-n` nur die
+  neuesten 50 Mails je Konto; ältere blieben bei der Triage ungesehen im
+  Posteingang liegen (2026-10-25: 13 Monit-Alerts). Schritt 2 des Ablaufs
+  verlangt jetzt `list --json -n 0` und nennt das Abschlusskriterium.
+
 ### 1.73.14
 
 - **`kanboard`: `--start` mit reinem Datum setzt 00:00.** Kanboard ergaenzte bei
