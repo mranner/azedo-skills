@@ -768,11 +768,10 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.73.16
+### 1.73.17
 
-- **`forgejo`: Repo- und Org-Anlage dokumentiert.** Der Skill wurde für ein neues
-  Repo für ungeeignet gehalten, weil `description` und SKILL.md nur Adopt und
-  Zugang nannten. Neuer Abschnitt „Repo oder Organisation anlegen" mit
-  `forgejo api` (`GET` als 404-Vorprüfung, `POST orgs/<org>/repos` bzw.
-  `POST orgs`), `description` um die Anlage ergänzt.
+- **`forgejo`: SKILL.md auf echte Umlaute umgestellt.** Die Datei war samt
+  `description` durchgehend mit ae/oe/ue geschrieben; der Trigger „der Push
+  haengt" traf damit nicht, was ein User tippt. Code, Befehle und englische
+  Fehlermeldungen bleiben unverändert.
 

@@ -3,6 +3,13 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.73.17
+
+- **`forgejo`: SKILL.md auf echte Umlaute umgestellt.** Die Datei war samt
+  `description` durchgehend mit ae/oe/ue geschrieben; der Trigger „der Push
+  haengt" traf damit nicht, was ein User tippt. Code, Befehle und englische
+  Fehlermeldungen bleiben unverändert.
+
 ### 1.73.16
 
 - **`forgejo`: Repo- und Org-Anlage dokumentiert.** Der Skill wurde für ein neues
