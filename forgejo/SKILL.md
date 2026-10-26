@@ -1,17 +1,18 @@
 ---
 name: forgejo
 description: >
-  Bare-Repos in eine Forgejo-Instanz uebernehmen (Adopt) und den HTTPS-Zugang
-  dorthin einrichten und pruefen: Vorpruefung, Verschieben samt `chown` und
-  HEAD-Korrektur, Adopt per API mit Einweg-Token, Credential-Helper und
-  Credential-Datei pruefen, ohne sie auszugeben. Nutze diesen Skill, wenn ein
-  Git-Repo in die eigene Forge soll oder ein Push dorthin scheitert; nicht
-  fuer GitHub, Issues oder Pull Requests. Auch bei "nimm das Repo in Forgejo
-  auf", "could not read Username", "401 trotz frischem Token", "der Push
-  haengt". Trigger: /forgejo.
+  Bare-Repos in eine Forgejo-Instanz uebernehmen (Adopt), neue Repos und
+  Organisationen anlegen und den HTTPS-Zugang einrichten und pruefen:
+  Vorpruefung, Verschieben samt HEAD-Korrektur, API-Aufrufe mit Einweg-Token,
+  Credential-Helper und -Datei pruefen, ohne Werte auszugeben. Nutze diesen
+  Skill, wenn ein Git-Repo in die eigene Forge soll oder ein Push dorthin
+  scheitert; nicht fuer GitHub, Issues oder Pull Requests. Auch bei "nimm das
+  Repo in Forgejo auf", "leg ein Repo oder eine Org in Forgejo an",
+  "could not read Username", "401 trotz frischem Token", "der Push haengt".
+  Trigger: /forgejo.
 ---
 
-# forgejo -- Repos uebernehmen und den Zugang dorthin
+# forgejo -- Repos uebernehmen oder anlegen und den Zugang dorthin
 
 **Aufruf:** `python3 "$SKILL_DIR/forgejo" <subcommand> [optionen]`
 
@@ -106,6 +107,28 @@ und in einer Zeile umkehrbar.
 - **Suchen-und-Ersetzen fuer das alte Remote in der Projektdoku.** Ein `grep`
   liefert regelmaessig Treffer, die nichts mit Git zu tun haben (Mailversand,
   Deployment-Ziele). Treffer vorlegen, Mensch entscheidet.
+
+## Repo oder Organisation anlegen
+
+Fuer ein **neues** Repo ohne Bare-Repo auf der Platte genuegt `api`, kein
+Adopt. Zuerst den Zielplatz pruefen: **404** heisst frei (siehe HTTP-Merkregel).
+`api` kennt kein `--commit` - der POST legt sofort an.
+
+```bash
+forgejo api GET  repos/<org>/<repo>      # 404 = Platz frei
+forgejo api POST orgs/<org>/repos --data '{"name":"<repo>","private":true,"default_branch":"main"}'   # 201
+```
+
+Fehlt die Organisation selbst, vorher anlegen (`visibility`: `public`,
+`limited` oder `private`):
+
+```bash
+forgejo api GET  orgs/<org>              # 404 = Platz frei
+forgejo api POST orgs --data '{"username":"<org>","visibility":"private"}'   # 201
+```
+
+Danach in der Arbeitskopie `git remote add` und `git push -u`, beides mit
+`GIT_TERMINAL_PROMPT=0` davor.
 
 ## Zugang einrichten und pruefen
 

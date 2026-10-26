@@ -226,13 +226,13 @@ ENVATO_TOKEN=dein-personal-token
 
 ### forgejo
 
-Vorhandene **Bare-Repos in eine Forgejo-Instanz übernehmen** und den HTTPS-Zugang dorthin einrichten: `preflight` (Bare-Repo, Arbeitskopie und Zielplatz nebeneinander - ein zurückliegendes Bare-Repo fällt **vor** dem `mv` auf), `adopt` (verschieben, `chown` auf das Owner-Verzeichnis, HEAD vor dem Adopt richten, `POST admin/unadopted`, Gegenprobe), `access-check` (Helper-Scoping messen samt Negativprobe gegen einen fremden Host, Credential-Datei auf Form, Platzhalter und Rechte prüfen - nur Zähler, nie Inhalt), `access-setup` (Helper-Zeiger setzen, Datei mit `--fix-file` in Form bringen, ohne den Wert auszugeben) und `api` für einzelne Aufrufe. Schreibende Schritte erst mit `--commit`. Jeder API-Aufruf stellt einen **Einweg-Token** aus, benutzt ihn und löscht ihn im selben Script auf dem Zielhost - der Wert erreicht die lokale Kommandozeile nie. `git remote set-url` und Treffer in der Projektdoku bleiben bewusst beim Menschen.
+Vorhandene **Bare-Repos in eine Forgejo-Instanz übernehmen** und den HTTPS-Zugang dorthin einrichten: `preflight` (Bare-Repo, Arbeitskopie und Zielplatz nebeneinander - ein zurückliegendes Bare-Repo fällt **vor** dem `mv` auf), `adopt` (verschieben, `chown` auf das Owner-Verzeichnis, HEAD vor dem Adopt richten, `POST admin/unadopted`, Gegenprobe), `access-check` (Helper-Scoping messen samt Negativprobe gegen einen fremden Host, Credential-Datei auf Form, Platzhalter und Rechte prüfen - nur Zähler, nie Inhalt), `access-setup` (Helper-Zeiger setzen, Datei mit `--fix-file` in Form bringen, ohne den Wert auszugeben) und `api` für einzelne Aufrufe, etwa neue Repos und Organisationen anlegen. Schreibende Schritte erst mit `--commit`. Jeder API-Aufruf stellt einen **Einweg-Token** aus, benutzt ihn und löscht ihn im selben Script auf dem Zielhost - der Wert erreicht die lokale Kommandozeile nie. `git remote set-url` und Treffer in der Projektdoku bleiben bewusst beim Menschen.
 
 Config `~/.claude/forgejo.json` (Vorlage `forgejo.example.json`, anderer Pfad über `FORGEJO_CONFIG`): `host` (öffentlicher Name der Forge), `forgejo-host`, `ssh` (Befehl als Liste, der dort root wird), `api-user`, `owner` und die Pfade auf dem Host. Lokal läuft das Script nur, wenn es auf dem Forgejo-Host **und** als root sitzt - sonst über `ssh`, auch zum selben Rechner.
 
 **Voraussetzungen:** Python >= 3.9 (stdlib only); auf dem Forgejo-Host `curl`, `sqlite3` und `git`.
 
-**Trigger:** `/forgejo` oder natürliche Sprache wie "nimm das Repo in Forgejo auf", "der Push in die Forge hängt", "401 trotz frischem Token".
+**Trigger:** `/forgejo` oder natürliche Sprache wie "nimm das Repo in Forgejo auf", "leg ein Repo oder eine Org in Forgejo an", "der Push in die Forge hängt", "401 trotz frischem Token".
 
 ### google-analytics
 
@@ -768,9 +768,11 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.73.15
+### 1.73.16
 
-- **`imap`: Triage-Ablauf listet mit `-n 0`.** `list` liefert ohne `-n` nur die
-  neuesten 50 Mails je Konto; ältere blieben bei der Triage ungesehen im
-  Posteingang liegen (2026-10-25: 13 Monit-Alerts). Schritt 2 des Ablaufs
-  verlangt jetzt `list --json -n 0` und nennt das Abschlusskriterium.
+- **`forgejo`: Repo- und Org-Anlage dokumentiert.** Der Skill wurde für ein neues
+  Repo für ungeeignet gehalten, weil `description` und SKILL.md nur Adopt und
+  Zugang nannten. Neuer Abschnitt „Repo oder Organisation anlegen" mit
+  `forgejo api` (`GET` als 404-Vorprüfung, `POST orgs/<org>/repos` bzw.
+  `POST orgs`), `description` um die Anlage ergänzt.
+

@@ -3,6 +3,14 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.73.16
+
+- **`forgejo`: Repo- und Org-Anlage dokumentiert.** Der Skill wurde für ein neues
+  Repo für ungeeignet gehalten, weil `description` und SKILL.md nur Adopt und
+  Zugang nannten. Neuer Abschnitt „Repo oder Organisation anlegen" mit
+  `forgejo api` (`GET` als 404-Vorprüfung, `POST orgs/<org>/repos` bzw.
+  `POST orgs`), `description` um die Anlage ergänzt.
+
 ### 1.73.15
 
 - **`imap`: Triage-Ablauf listet mit `-n 0`.** `list` liefert ohne `-n` nur die

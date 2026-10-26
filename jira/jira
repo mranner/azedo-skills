@@ -3,7 +3,7 @@
 # Jira REST API helper (multi-instance): Data Center/Server (v2, Bearer-PAT)
 # und Cloud (*.atlassian.net, v3, Basic email:token, ADF-Bodies)
 # stdlib only, no pip dependencies
-# version 1.73.15
+# version 1.73.16
 
 import argparse
 import base64
