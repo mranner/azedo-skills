@@ -3,6 +3,14 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.73.18
+
+- **`kanboard`: projektlokales `.env` ohne `KANBOARD_*` wird übersprungen.**
+  Ein `.env` im Arbeitsverzeichnis, das nur Schlüssel anderer Dienste führte,
+  brach jeden Aufruf mit `KANBOARD_URL not set` ab; jeder Aufruf brauchte
+  `KANBOARD_ENV=~/.env` davor. Das Script fällt jetzt wie `kimai` auf `~/.env`
+  zurück. `SKILL.md`, `references/setup.md` und README angepasst.
+
 ### 1.73.17
 
 - **`forgejo`: SKILL.md auf echte Umlaute umgestellt.** Die Datei war samt

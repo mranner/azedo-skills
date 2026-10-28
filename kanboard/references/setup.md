@@ -5,17 +5,16 @@
 `KANBOARD_URL` und `KANBOARD_TOKEN` kommen aus der ersten vorhandenen Datei:
 
 1. `KANBOARD_ENV` (Environment-Variable, voller Pfad zur Datei)
-2. `.env` im **aktuellen Arbeitsverzeichnis**, falls vorhanden
+2. `.env` im **aktuellen Arbeitsverzeichnis**, sofern es einen `KANBOARD_*`-Schlüssel enthält
 3. sonst `~/.env`
 
 Der Home-Fallback ist gewollt: eine Konfiguration reicht für alle Projekte,
-ein projektlokales `.env` übersteuert sie bei Bedarf. **Achtung:** entschieden
-wird allein danach, ob die Datei *existiert* — enthält ein projektlokales
-`.env` die Kanboard-Schlüssel nicht (weil es z.B. nur DB-Zugangsdaten führt),
-bricht der Aufruf mit `KANBOARD_URL not set in <pfad>` ab, statt auf `~/.env`
-auszuweichen. Dann `KANBOARD_ENV=~/.env` setzen oder die Schlüssel ergänzen.
-(Der kimai-Skill prüft an dieser Stelle zusätzlich auf seine Schlüssel und
-fällt zurück — siehe dortige SKILL.md.)
+ein projektlokales `.env` übersteuert sie bei Bedarf. Ein projektlokales `.env`
+ohne `KANBOARD_*`-Schlüssel (weil es z.B. nur DB-Zugangsdaten führt) wird
+übersprungen. Enthält es dagegen nur einen Teil der
+Schlüssel, bricht der Aufruf mit `KANBOARD_URL not set in <pfad>` bzw.
+`KANBOARD_TOKEN not set in <pfad>` ab - dann die Schlüssel ergänzen oder
+`KANBOARD_ENV=~/.env` setzen.
 
 ## instance.json — Schema
 

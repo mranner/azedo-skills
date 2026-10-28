@@ -82,7 +82,7 @@ Verwaltet Tasks auf einer Kanboard-Instanz via JSON-RPC API. Unterstützt:
 
 **Voraussetzungen:** Python ≥ 3.11
 
-**Setup:** Eine `.env`-Datei mit `KANBOARD_URL` und `KANBOARD_TOKEN` im Arbeitsverzeichnis anlegen (oder Pfad via `KANBOARD_ENV` setzen; ohne beides gilt `~/.env`, eine Konfiguration für alle Projekte). Vorlage:
+**Setup:** Eine `.env`-Datei mit `KANBOARD_URL` und `KANBOARD_TOKEN` im Arbeitsverzeichnis anlegen (oder Pfad via `KANBOARD_ENV` setzen; ohne beides - und bei einem projektlokalen `.env` ohne `KANBOARD_*`-Schlüssel - gilt `~/.env`, eine Konfiguration für alle Projekte). Vorlage:
 
 ```
 KANBOARD_URL=https://example.com/kanboard/jsonrpc.php
@@ -768,10 +768,10 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.73.17
+### 1.73.18
 
-- **`forgejo`: SKILL.md auf echte Umlaute umgestellt.** Die Datei war samt
-  `description` durchgehend mit ae/oe/ue geschrieben; der Trigger „der Push
-  haengt" traf damit nicht, was ein User tippt. Code, Befehle und englische
-  Fehlermeldungen bleiben unverändert.
-
+- **`kanboard`: projektlokales `.env` ohne `KANBOARD_*` wird übersprungen.**
+  Ein `.env` im Arbeitsverzeichnis, das nur Schlüssel anderer Dienste führte,
+  brach jeden Aufruf mit `KANBOARD_URL not set` ab; jeder Aufruf brauchte
+  `KANBOARD_ENV=~/.env` davor. Das Script fällt jetzt wie `kimai` auf `~/.env`
+  zurück. `SKILL.md`, `references/setup.md` und README angepasst.

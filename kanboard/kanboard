@@ -2,7 +2,7 @@
 
 # Kanboard JSON-RPC 2.0 API helper
 # stdlib only, no pip dependencies
-# version 1.73.17
+# version 1.73.18
 
 import argparse
 import base64
@@ -29,12 +29,24 @@ def format_ts(ts):
     except (ValueError, OSError, OverflowError):
         return ""
 
+def _env_has_kanboard(path):
+    """Check if .env file contains any KANBOARD_* key"""
+    try:
+        with open(path) as f:
+            for line in f:
+                if line.strip().startswith("KANBOARD_"):
+                    return True
+    except OSError:
+        pass
+    return False
+
+
 def _find_env():
     override = os.environ.get("KANBOARD_ENV")
     if override:
         return override
     cwd_env = os.path.join(os.getcwd(), ".env")
-    if os.path.exists(cwd_env):
+    if os.path.exists(cwd_env) and _env_has_kanboard(cwd_env):
         return cwd_env
     return os.path.join(os.path.expanduser("~"), ".env")
 

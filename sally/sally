@@ -3,7 +3,7 @@
 # Sally AI Public API (v1.0), nur lesend
 # Aufnahmen auflisten, Zusammenfassung und Transkript holen, Zusammenfassungen durchsuchen.
 # stdlib only, keine pip-Abhaengigkeiten.
-# version 1.73.17
+# version 1.73.18
 
 import argparse
 import datetime
