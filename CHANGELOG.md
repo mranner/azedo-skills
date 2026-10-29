@@ -3,6 +3,15 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.73.19
+
+- **`md2pdf`: Warnung bei geradem `"` an `**`.** Ein gerades
+  Anführungszeichen direkt oder nur durch Satzzeichen getrennt vor oder nach
+  `**` stört pandocs Smart-Quotes; die Fettschrift brach und die Sternchen
+  standen im PDF. Das Script nennt die betroffenen Zeilen vor dem Rendern,
+  `SKILL.md` hat dazu einen Troubleshooting-Eintrag. Smart-Quotes bleiben an,
+  damit sich die Typografie der übrigen Dokumente nicht ändert.
+
 ### 1.73.18
 
 - **`kanboard`: projektlokales `.env` ohne `KANBOARD_*` wird übersprungen.**

@@ -84,3 +84,7 @@ es wird eine Warnung ausgegeben (kein Abbruch).
   `--no-sandbox`. Notfalls `PUPPETEER_EXECUTABLE_PATH` auf das System-Chromium setzen.
 - **Fonts sehen haesslich aus** -> Noto/DejaVu-Fonts installieren
   (Linux `fonts-noto` / `dejavu`, FreeBSD `pkg install noto-basic dejavu`).
+- **Fett erscheint mit Sternchen** -> ein gerades `"` vor oder nach `**` (direkt
+  oder nur durch Satzzeichen getrennt) stoert pandocs Smart-Quotes, die
+  Fettschrift bricht und die `**` stehen im PDF (z.B. `**„Zitat …":**`). Typografische Anfuehrungszeichen verwenden (`„…“`,
+  `“…”`). Das Script warnt vor dem Rendern und nennt die betroffenen Zeilen.

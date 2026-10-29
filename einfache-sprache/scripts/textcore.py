@@ -4,7 +4,7 @@
 # Einlesen, Maskierung technischer Bereiche, Satz- und Worttrennung,
 # Silbenzaehlung und die Stufenprofile.
 # stdlib only.
-# version 1.73.18
+# version 1.73.19
 
 import json
 import os

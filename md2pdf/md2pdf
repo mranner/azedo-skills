@@ -3,7 +3,7 @@
 # md2pdf -- Markdown -> "schoenes" PDF (Typora-naher Look)
 # Pipeline: pandoc -> self-contained HTML (CSS + SVG inline) -> headless Chrome --print-to-pdf
 # Mermaid-Codebloecke (```mermaid) werden via mmdc zu SVG gerendert und eingebettet (optional).
-# version 1.73.18
+# version 1.73.19
 #
 # Usage:  md2pdf <input.md> [output.pdf] [--css <file>] [--no-mermaid]
 #         (ohne output.pdf -> gleicher Name/Ordner mit .pdf; ueberschreibt eine vorhandene .pdf)
@@ -192,6 +192,13 @@ else
     echo "Warnung: Mermaid-Bloecke gefunden, aber 'mmdc' (mermaid-cli) fehlt --" >&2
     echo "         Diagramme bleiben als Code. Installation: npm i -g @mermaid-js/mermaid-cli" >&2
   fi
+fi
+
+# Gerades " an ** bricht mit pandocs Smart-Quotes die Fettschrift
+if grep -nE '"[^[:space:][:alnum:]]*[*][*]|[*][*][^[:space:][:alnum:]]*"' "$IN" >"$TMP/quotes.txt" 2>/dev/null; then
+  echo "Warnung: gerades \" an ** -- Fettschrift bricht evtl., Sternchen im PDF." >&2
+  echo "         Typografische Anfuehrungszeichen verwenden. Betroffene Zeilen:" >&2
+  sed 's/^/         /' "$TMP/quotes.txt" >&2
 fi
 
 # --- 1) MD -> self-contained HTML ---

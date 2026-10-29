@@ -768,10 +768,11 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.73.18
+### 1.73.19
 
-- **`kanboard`: projektlokales `.env` ohne `KANBOARD_*` wird übersprungen.**
-  Ein `.env` im Arbeitsverzeichnis, das nur Schlüssel anderer Dienste führte,
-  brach jeden Aufruf mit `KANBOARD_URL not set` ab; jeder Aufruf brauchte
-  `KANBOARD_ENV=~/.env` davor. Das Script fällt jetzt wie `kimai` auf `~/.env`
-  zurück. `SKILL.md`, `references/setup.md` und README angepasst.
+- **`md2pdf`: Warnung bei geradem `"` an `**`.** Ein gerades
+  Anführungszeichen direkt oder nur durch Satzzeichen getrennt vor oder nach
+  `**` stört pandocs Smart-Quotes; die Fettschrift brach und die Sternchen
+  standen im PDF. Das Script nennt die betroffenen Zeilen vor dem Rendern,
+  `SKILL.md` hat dazu einen Troubleshooting-Eintrag. Smart-Quotes bleiben an,
+  damit sich die Typografie der übrigen Dokumente nicht ändert.
