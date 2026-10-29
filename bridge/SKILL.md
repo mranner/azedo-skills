@@ -19,6 +19,7 @@ läuft auf FreeBSD, Linux und macOS.
 | Befehl | Zweck |
 |---|---|
 | `who` | eigene Session: Name, cwd, PID, Session-ID, bridge-Adresse |
+| `peer <adresse> [alias]` | Gegenstelle für diese Session merken |
 | `list` | erreichbare Sessions (kein Script-Befehl, siehe unten) |
 | `send <ziel> <text>` | Nachrichtentext samt Handshake-Kopf bauen |
 | `ack <msg-id> [...]` | Quittung (`ack`, `done`, `wait`) für empfangene Nachrichten formen |
@@ -83,6 +84,20 @@ Zeilenanfang:
 
 Die `msg-id` sind vier Hex-Zeichen. Sie muss nicht global eindeutig sein, sondern
 nur innerhalb der laufenden Unterhaltung unterscheidbar.
+
+## Gegenstelle merken
+
+`peer <adresse> [alias]` prüft die Adresse und merkt sie für diese Session:
+
+```bash
+python3 "$SKILL_DIR/bridge" peer bridge:session_01Abc... spec
+```
+
+Einen Alias, der in `send` oder in einer Bitte des Users vorkommt, selbst durch die
+Adresse ersetzen, bevor das Script aufgerufen wird; das Script kennt keine Aliase.
+Ein zweiter `peer` unter demselben Alias ersetzt die alte Adresse. Ohne Alias ist die
+Adresse „die Gegenstelle", solange nur eine bekannt ist. `peer` sendet nichts und
+lässt Memory-Einträge zu bekannten Sessions unberührt.
 
 ## Senden
 

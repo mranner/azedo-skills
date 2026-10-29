@@ -9,13 +9,14 @@
 #
 # Der Handshake liegt im Nachrichtentext selbst, nicht in der Konfiguration der
 # Gegenseite: eine Session ohne installierten Skill kann trotzdem quittieren.
-# version 1.73.19
+# version 1.73.20
 #
 # stdlib only, keine pip-Abhaengigkeiten. Laeuft auf FreeBSD, Linux und macOS.
 
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 
@@ -99,6 +100,18 @@ def cmd_who(args):
                              "fehlt) und von aussen nicht adressierbar. Remote Control "
                              "aktivieren, dann erneut aufrufen.")
     print(json.dumps(result, indent=2, ensure_ascii=False))
+
+
+def cmd_peer(args):
+    if not re.fullmatch(r"bridge:session_[A-Za-z0-9]+", args.adresse):
+        print("Adresse muss die Form bridge:session_... haben.", file=sys.stderr)
+        sys.exit(1)
+
+    if args.adresse == address_of(own_session() or {}):
+        print("Das ist die eigene Adresse.", file=sys.stderr)
+        sys.exit(1)
+
+    print(json.dumps({"alias": args.alias, "address": args.adresse}, ensure_ascii=False))
 
 
 def read_text(text):
@@ -186,6 +199,11 @@ def main():
                    help="nur die Adresse 'bridge:session_...' ausgeben, zum Kopieren")
     w.add_argument("--json", action="store_true", help="vollstaendiger Datensatz als JSON")
     w.set_defaults(func=cmd_who)
+
+    r = sub.add_parser("peer", help="Gegenstelle fuer diese Session pruefen und merken")
+    r.add_argument("adresse", help="Adresse der Gegenseite, bridge:session_...")
+    r.add_argument("alias", nargs="?", help="optionaler Name, z.B. spec")
+    r.set_defaults(func=cmd_peer)
 
     s = sub.add_parser("send", help="Nachrichtentext samt Handshake-Kopf bauen")
     s.add_argument("ziel", help="Adresse der Gegenseite, z.B. bridge:session_...")

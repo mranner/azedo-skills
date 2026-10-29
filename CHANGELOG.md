@@ -3,6 +3,15 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.73.20
+
+- **`bridge`: neues Kommando `peer <adresse> [alias]`.** Merkt die
+  Gegenstelle für die laufende Session, statt sie per Prompt („die
+  Spec-Session erreichst Du mit bridge:…") mitzugeben. Das Script prüft das
+  Format `bridge:session_…` und bricht bei der eigenen Adresse ab; den Alias
+  ersetzt das Modell vor `send` selbst durch die Adresse. Es wird nichts
+  gespeichert.
+
 ### 1.73.19
 
 - **`md2pdf`: Warnung bei geradem `"` an `**`.** Ein gerades

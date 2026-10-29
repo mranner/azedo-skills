@@ -625,6 +625,7 @@ Nachrichten zwischen Claude-Code-Sessions über Remote Control, mit einem rudime
 - Kopffelder `reply=none`, `reply=ack;done=objection`, `re=` (Nachtrag), `topic=` und `decision=relayed`; `--reply` ist beim Senden Pflicht; weitergereichte Freigaben für Versand nach außen oder Irreversibles gibt es nicht
 - Die Gegenseite braucht den Skill **nicht installiert** - die Anweisung steht im Klartext in der Nachricht. Ein Protokoll, das auf beiden Seiten konfiguriert sein müsste, versagte genau bei der fremden Maschine
 - `who` gibt die eigene **bridge-Session-ID** aus, die einzige stabile Adresse: Anzeigenamen werden bridge-seitig vergeben und ändern sich im Betrieb, der Name, unter dem sich eine Session selbst kennt, ist von außen gar nicht adressierbar, und Refs aus `ListAgents` gelten nur innerhalb einer Auflistung
+- `peer <adresse> [alias]` merkt die Gegenstelle für die laufende Session; den Alias löst das Modell auf, das Script prüft nur Format und dass es nicht die eigene Adresse ist
 - Die eigene Session wird über den **Prozessbaum** ab der eigenen PID aufgelöst, nicht über "die zuletzt geänderte Datei" - das bleibt auch bei mehreren gleichzeitig laufenden Sessions richtig
 - `send` baut nur den Text, verschickt wird er mit `SendMessage`; ohne Text-Argument kommt er von STDIN. Ist die eigene Session nicht gebridgt, bricht `send` ab, statt eine Nachricht mit unbeantwortbarer Rückadresse zu bauen
 
@@ -768,11 +769,11 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.73.19
+### 1.73.20
 
-- **`md2pdf`: Warnung bei geradem `"` an `**`.** Ein gerades
-  Anführungszeichen direkt oder nur durch Satzzeichen getrennt vor oder nach
-  `**` stört pandocs Smart-Quotes; die Fettschrift brach und die Sternchen
-  standen im PDF. Das Script nennt die betroffenen Zeilen vor dem Rendern,
-  `SKILL.md` hat dazu einen Troubleshooting-Eintrag. Smart-Quotes bleiben an,
-  damit sich die Typografie der übrigen Dokumente nicht ändert.
+- **`bridge`: neues Kommando `peer <adresse> [alias]`.** Merkt die
+  Gegenstelle für die laufende Session, statt sie per Prompt („die
+  Spec-Session erreichst Du mit bridge:…") mitzugeben. Das Script prüft das
+  Format `bridge:session_…` und bricht bei der eigenen Adresse ab; den Alias
+  ersetzt das Modell vor `send` selbst durch die Adresse. Es wird nichts
+  gespeichert.
