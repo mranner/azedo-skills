@@ -63,3 +63,21 @@ Fehlt die Datei oder ein Schlüssel, bricht das Script mit Meldung ab.
   `https://api.sally.io/docs-json` gegenprüfen.
 - Ein Transkript-Status ungleich `fertig` (`laeuft`, `noSpokenAudio` …) heißt:
   `transcript` liefert 409, die Zusammenfassung fehlt meist ebenfalls.
+
+## Glossar (`~/.claude/sally-glossar.md`)
+
+Die Transkription verhört wiederkehrende Eigennamen (Kunden, Produkte, Systeme),
+und die Fehler stehen dann auch in der Zusammenfassung. Das Glossar ordnet jeder
+bekannten Fehlerkennung den gemeinten Namen zu. Es liegt außerhalb des Repos,
+weil es Kundennamen enthält; Vorlage `sally-glossar.md.example`.
+
+- **Vor dem Auswerten** von Zusammenfassung oder Transkript das Glossar lesen,
+  falls vorhanden, und die Fehlerkennungen in der Ausgabe durch den gemeinten
+  Namen ersetzen. Fehlt die Datei, gilt der Text unverändert.
+- Ein Name, der im Kontext erkennbar falsch ist, aber nicht im Glossar steht:
+  nicht stillschweigend korrigieren, sondern als Vermutung kennzeichnen und die
+  Aufnahme ins Glossar vorschlagen.
+- **Sprecherzuordnung ist unzuverlässig.** Eine Person kann auf mehrere
+  `Speaker` verteilt sein, zwei Personen auf einen. Aussagen nur dann einer
+  Person zuschreiben, wenn der Inhalt es trägt (Anrede, Rolle, Bezug), sonst
+  beim Sprecher-Label bleiben.

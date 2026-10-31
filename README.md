@@ -759,7 +759,7 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 - `download` - beides als Markdown nach `./.tmp/` (Modus 700) oder `--to DIR`
 - `search` - Zusammenfassungen durchsuchen, mit Ausschnitt je Treffer
 
-**Setup:** `~/.claude/sally.json` (Modus 600) nach der Vorlage `sally/sally.json.example` mit `token` (Personal Access Token aus der Sally-App) und `directory-id` (`sally directories` listet sie); anderer Pfad über `SALLY_CONFIG`.
+**Setup:** `~/.claude/sally.json` (Modus 600) nach der Vorlage `sally/sally.json.example` mit `token` (Personal Access Token aus der Sally-App) und `directory-id` (`sally directories` listet sie); anderer Pfad über `SALLY_CONFIG`. Optional `~/.claude/sally-glossar.md` nach der Vorlage `sally/sally-glossar.md.example`: bekannte Fehlerkennungen von Eigennamen, die beim Auswerten aufgelöst werden.
 
 **Voraussetzungen:** Python >= 3.11 (stdlib only).
 
@@ -769,11 +769,12 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.73.20
+### 1.73.21
 
-- **`bridge`: neues Kommando `peer <adresse> [alias]`.** Merkt die
-  Gegenstelle für die laufende Session, statt sie per Prompt („die
-  Spec-Session erreichst Du mit bridge:…") mitzugeben. Das Script prüft das
-  Format `bridge:session_…` und bricht bei der eigenen Adresse ab; den Alias
-  ersetzt das Modell vor `send` selbst durch die Adresse. Es wird nichts
-  gespeichert.
+- **`sally`: Glossar für verhörte Namen.** Die Transkription schreibt
+  wiederkehrende Eigennamen falsch, und die Fehler ziehen sich in die
+  Zusammenfassung. Der Skill liest vor dem Auswerten
+  `~/.claude/sally-glossar.md` (außerhalb des Repos, weil es Kundennamen
+  enthält; Vorlage `sally-glossar.md.example`) und setzt den gemeinten Namen
+  ein. Neu ist auch der Hinweis, dass die Sprecherzuordnung unzuverlässig ist:
+  eine Person kann auf mehrere `Speaker` verteilt sein.

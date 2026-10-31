@@ -3,6 +3,16 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.73.21
+
+- **`sally`: Glossar für verhörte Namen.** Die Transkription schreibt
+  wiederkehrende Eigennamen falsch, und die Fehler ziehen sich in die
+  Zusammenfassung. Der Skill liest vor dem Auswerten
+  `~/.claude/sally-glossar.md` (außerhalb des Repos, weil es Kundennamen
+  enthält; Vorlage `sally-glossar.md.example`) und setzt den gemeinten Namen
+  ein. Neu ist auch der Hinweis, dass die Sprecherzuordnung unzuverlässig ist:
+  eine Person kann auf mehrere `Speaker` verteilt sein.
+
 ### 1.73.20
 
 - **`bridge`: neues Kommando `peer <adresse> [alias]`.** Merkt die
