@@ -63,6 +63,14 @@ Sind **mehrere** CRs aktiv, ist nicht entscheidbar, welcher Task der richtige is
 
 **3. Kein CR, aber ein passendes Dokument existiert → dieses fortschreiben.** Es wird **dieses** aktualisiert statt ein zweites danebenzulegen. Kein neuer Dateiname, keine Rückfrage.
 
+**Fortschreiben heißt den laufenden Stand ersetzen, nicht eine Chronik anfügen.** Das Dokument beschreibt danach den Stand am Ende dieser Session, als wäre es neu geschrieben:
+
+- Erledigtes fällt weg; es steht in Commits, Diffs und der Entscheidungsdoku. Bleibt nur, was der nächste Agent für die offene Arbeit braucht, und dann als Verweis.
+- Abschnitte mit Stand oder nächsten Schritten werden überschrieben, nicht um einen neuen Block ergänzt.
+- Kein Sitzungsprotokoll mit Datumsblöcken oben oder unten.
+
+Fertig ist die Fortschreibung erst, wenn das Dokument **unter ~200 Zeilen** liegt und **kein Abschnitt einen veralteten Stand** zeigt. Ein Handoff, der durch Anfügen wächst, wird bei jeder Übergabe teurer zu lesen und widerspricht sich irgendwann selbst. Dasselbe gilt für Fall 2 („lokal bleiben") und für das Handoff-Feld eines Tasks.
+
 **4. Weder noch → neue lokale Datei** nach der Namenskonvention unten.
 
 **Ausdrückliche Ansage schlägt die Regel.** Sagt der Benutzer, wohin der Handoff soll („leg ihn als Datei ab", „ins Feld von Task 4372"), gilt das — auch gegen die Reihenfolge oben.
@@ -90,6 +98,7 @@ azedo-Anpassungen gegenüber dem Upstream:
 - Dateinamens-Konvention: Argument dient als Fokus **und** Slug (`handoff-<slug>.md`), damit pro Thema ein eigenes Dokument entsteht und nichts überschrieben wird
 - Abschnitt „Einlesen eines bestehenden Handoff-Dokuments" (Rekapitulieren, Rückfragen, nie eigenständig handeln) ergänzt
 - Abschnitt „Ablageort bestimmen" ergänzt: bei aktivem Kanboard-CR geht der Handoff in das Handoff-Feld des Tasks (TaskHandoff-Plugin + kanboard-Skill); trifft ein aktiver CR auf ein vorhandenes lokales Dokument, entscheidet der Benutzer zwischen Fortschreiben und Migrieren; ohne CR wird ein vorhandenes Dokument fortgeschrieben, sonst eine neue Datei angelegt
+- Fortschreiben ersetzt den laufenden Stand statt anzufügen; Abschlusskriterium unter ~200 Zeilen, kein veralteter Abschnitt
 - Frontmatter-Feld `disable-model-invocation: true` entfernt; `Trigger: /handoff.` in der `description` ergänzt
 - `agents/openai.yaml` (Upstream `697d4ce`) **nicht** übernommen: die Datei setzt `allow_implicit_invocation: false` und holte damit die Einschränkung zurück, die das Entfernen von `disable-model-invocation` gerade aufgehoben hat
 

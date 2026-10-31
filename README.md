@@ -769,12 +769,12 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.73.21
+### 1.73.22
 
-- **`sally`: Glossar für verhörte Namen.** Die Transkription schreibt
-  wiederkehrende Eigennamen falsch, und die Fehler ziehen sich in die
-  Zusammenfassung. Der Skill liest vor dem Auswerten
-  `~/.claude/sally-glossar.md` (außerhalb des Repos, weil es Kundennamen
-  enthält; Vorlage `sally-glossar.md.example`) und setzt den gemeinten Namen
-  ein. Neu ist auch der Hinweis, dass die Sprecherzuordnung unzuverlässig ist:
-  eine Person kann auf mehrere `Speaker` verteilt sein.
+- **`handoff`: Fortschreiben ersetzt den Stand, statt anzufügen.** Ein
+  Übergabedokument war nach 26 Fortschreibungen auf über 400 Zeilen
+  gewachsen, weil Fall 3 jedes Mal als „oben anfügen" umgesetzt wurde;
+  Erledigtes blieb stehen, Stand und nächste Schritte waren veraltet. Fall 3
+  legt jetzt fest, dass der laufende Stand ersetzt wird und Erledigtes
+  wegfällt. Fertig ist die Fortschreibung unter ~200 Zeilen und ohne veralteten
+  Abschnitt; das gilt auch für das Handoff-Feld eines Tasks.

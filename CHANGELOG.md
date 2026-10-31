@@ -3,6 +3,16 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.73.22
+
+- **`handoff`: Fortschreiben ersetzt den Stand, statt anzufügen.** Ein
+  Übergabedokument war nach 26 Fortschreibungen auf über 400 Zeilen
+  gewachsen, weil Fall 3 jedes Mal als „oben anfügen" umgesetzt wurde;
+  Erledigtes blieb stehen, Stand und nächste Schritte waren veraltet. Fall 3
+  legt jetzt fest, dass der laufende Stand ersetzt wird und Erledigtes
+  wegfällt. Fertig ist die Fortschreibung unter ~200 Zeilen und ohne veralteten
+  Abschnitt; das gilt auch für das Handoff-Feld eines Tasks.
+
 ### 1.73.21
 
 - **`sally`: Glossar für verhörte Namen.** Die Transkription schreibt
