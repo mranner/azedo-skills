@@ -1,14 +1,10 @@
 ---
 name: swaks
 description: >
-  Versendet E-Mails über swaks und einen Postfix-Relay: Text- und HTML-Mail
-  (multipart/alternative), reiner Text-Body, Dateianhänge jeder Art;
-  Empfänger und Absender als Defaults aus der Config. Legt die versendete
-  Mail per IMAP in "Gesendet" ab oder statt des Versands als Entwurf. Zuständig für den
-  Versand, nicht für die Formulierung - soll die Mail nach dem Nutzer
-  klingen, vorher mail-as-me den Text schreiben lassen. Auch bei "schick mir
-  das", "sende das per Mail", "mail me the result", "send this to X".
-  Trigger: /swaks.
+  Versendet E-Mails über swaks: Text, HTML, Anhänge; legt sie per IMAP in
+  "Gesendet" oder statt des Versands als Entwurf ab. Nur der Versand - soll
+  die Mail nach dem Nutzer klingen, vorher mail-as-me. Auch bei "schick mir
+  das", "send this to X". Trigger: /swaks.
 ---
 
 # swaks – E-Mail versenden

@@ -1,15 +1,11 @@
 ---
 name: wiki
 description: >
-  LLM Wiki: strukturierte Wissensbasis über mehrere Wikis (Server-Infra und
-  Projekt-Doku), Entities mit YAML-Frontmatter und grep-basierter Discovery.
-  Wissen abfragen, eintragen, kompilieren, validieren, aufgeblähte Artikel
-  entflechten; Wikis auf anderen Hosts read-only per SSH abfragen.
-  Auch bei "trag das ins Wiki ein", "was steht im Wiki zu X", "wiki
-  aktualisieren", "gibt es relevante Erkenntnisse fürs Wiki".
-  Ebenso vor dem Eingriff an einem Server oder Service - Deployment,
-  Config-Änderung, Fehlersuche: zuerst "query" statt den Host abzuklopfen.
-  Trigger: /wiki.
+  LLM Wiki: Wissensbasis über Server-Infra und Projekt-Doku abfragen,
+  eintragen, kompilieren, validieren, entflechten; Wikis anderer Hosts
+  read-only per SSH. Vor jedem Eingriff an Server oder Service zuerst "query".
+  Auch bei "trag das ins Wiki ein", "was steht im Wiki zu X", "gibt es
+  relevante Erkenntnisse fürs Wiki". Trigger: /wiki.
 ---
 
 # wiki -- LLM Wiki Verwaltung

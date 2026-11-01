@@ -1,13 +1,10 @@
 ---
 name: tcsh
 description: >
-  tcsh-Referenz fuer Remote-Administration auf FreeBSD-Servern.
-  Root-Shell auf allen FreeBSD-Servern ist tcsh — Befehle via sudo ssh root@host "..."
-  werden in tcsh ausgefuehrt. Dieser Skill hilft, Befehle korrekt zu formulieren und
-  typische bash-Gewohnheiten zu vermeiden.
-  Wende diesen Skill IMMER automatisch an, wenn du Befehle via SSH auf FreeBSD-Servern
-  ausfuehrst — auch ohne expliziten Aufruf.
-  Trigger: /tcsh, SSH-Befehle auf FreeBSD, Remote-Administration.
+  tcsh-Referenz für Remote-Befehle auf FreeBSD: Die Root-Shell dort ist tcsh,
+  `sudo ssh root@host "..."` läuft in tcsh. IMMER automatisch anwenden, bevor
+  ein Befehl per SSH auf einem FreeBSD-Server läuft, auch ohne expliziten
+  Aufruf. Trigger: /tcsh, SSH-Befehle auf FreeBSD.
 allowed-tools: [Bash]
 ---
 

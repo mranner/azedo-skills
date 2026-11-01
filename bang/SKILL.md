@@ -1,14 +1,10 @@
 ---
 name: bang
 description: >
-  Ersetzt einen langen oder mehrzeiligen Befehl, den der User per `!` ausführen
-  soll, durch einen kurzen Einzeiler (max. 80 Zeichen), der ein Wegwerf-Script in
-  `.tmp/` aufruft. Das Script löscht sich beim Start selbst. Nutze diesen Skill
-  selbsttätig, bevor ein Befehl per `! …` an den User geht, der länger als 80
-  Zeichen ist, ein Heredoc enthält oder mehrere Zeilen hat - etwa nach einem
-  Permission-Denial, bei Root-Befehlen per `sudo ssh` oder bei interaktiven
-  Befehlen. Auch bei "mach mir das kürzer", "gib mir einen Einzeiler", "zu lang
-  zum Kopieren". Trigger: /bang.
+  Ersetzt einen Befehl für `!` durch einen Einzeiler (max. 80 Zeichen), der
+  ein selbstlöschendes Script in `.tmp/` aufruft. Selbsttätig nutzen, bevor
+  ein `!`-Befehl über 80 Zeichen, mit Heredoc oder mehrzeilig an den User
+  geht. Auch bei "gib mir einen Einzeiler". Trigger: /bang.
 ---
 
 # bang - kurzer `!`-Einzeiler mit Wegwerf-Script

@@ -1,15 +1,10 @@
 ---
 name: forgejo
 description: >
-  Bare-Repos in eine Forgejo-Instanz übernehmen (Adopt), neue Repos und
-  Organisationen anlegen und den HTTPS-Zugang einrichten und prüfen:
-  Vorprüfung, Verschieben samt HEAD-Korrektur, API-Aufrufe mit Einweg-Token,
-  Credential-Helper und -Datei prüfen, ohne Werte auszugeben. Nutze diesen
-  Skill, wenn ein Git-Repo in die eigene Forge soll oder ein Push dorthin
-  scheitert; nicht für GitHub, Issues oder Pull Requests. Auch bei "nimm das
-  Repo in Forgejo auf", "leg ein Repo oder eine Org in Forgejo an",
-  "could not read Username", "401 trotz frischem Token", "der Push hängt".
-  Trigger: /forgejo.
+  Git-Repos in eine Forgejo-Instanz übernehmen (Adopt), Repos und
+  Organisationen anlegen, den HTTPS-Zugang einrichten und prüfen. Nicht für
+  GitHub, Issues oder Pull Requests. Auch bei "nimm das Repo in Forgejo auf",
+  "could not read Username", "401 trotz frischem Token". Trigger: /forgejo.
 ---
 
 # forgejo -- Repos übernehmen oder anlegen und den Zugang dorthin

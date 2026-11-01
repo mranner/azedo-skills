@@ -1,12 +1,9 @@
 ---
 name: einfache-sprache
 description: >
-  Deutsche Texte in Einfache Sprache bringen und auf Verständlichkeit prüfen:
-  Lesbarkeit messen und Satzbau, Nominalstil, Passiv und Amtsdeutsch
-  aufdecken, in drei Stufen. Nicht zuständig für Leichte Sprache (A1); geht
-  es darum, dass ein Text nach KI klingt, ist humanizer-de gemeint.
-  Auch bei "schreib das einfacher", "in Einfacher Sprache", "das versteht
-  kein Mensch", "Amtsdeutsch auflösen", "Lesbarkeit prüfen".
+  Deutsche Texte in Einfache Sprache bringen und auf Verständlichkeit prüfen,
+  in drei Stufen. Nicht für Leichte Sprache (A1); klingt ein Text nach KI, ist
+  humanizer-de gemeint. Auch bei "schreib das einfacher", "Lesbarkeit prüfen".
   Trigger: /einfache-sprache.
 allowed-tools: [Read, Write, Edit, Grep, Glob, Bash]
 metadata:

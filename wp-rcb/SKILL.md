@@ -1,15 +1,11 @@
 ---
 name: wp-rcb
 description: >
-  Real Cookie Banner (devowl, auch Pro) per WP-CLI: Dienste, Content Blocker,
-  Banner-Links, Einstellungen und Revisionen lesen, ausgelieferten Dienst-Code
-  im Frontend prüfen, Einrichtung exportieren, zwischen Sites vergleichen und
-  importieren, Content Blocker anlegen, Code-Felder, Cookie-Definitionen,
-  Rechtsgrundlage und Einstellungen setzen, per Browser-Test prüfen, was vor
-  der Einwilligung lädt. Auch bei "welche Dienste hat der Cookie-Banner",
-  "liefert RCB den Code ohne Einwilligung aus",
-  "übertrag den Cookie-Banner auf die andere Seite", "vergleich die
-  RCB-Einstellungen". Trigger: /wp-rcb.
+  Real Cookie Banner (devowl) per WP-CLI: Dienste, Content Blocker und
+  Einstellungen lesen, setzen, exportieren, zwischen Sites vergleichen und
+  übertragen; per Browser-Test prüfen, was vor der Einwilligung lädt. Auch bei
+  "liefert RCB den Code ohne Einwilligung aus", "übertrag den Cookie-Banner
+  auf die andere Seite". Trigger: /wp-rcb.
 allowed-tools: [Bash, Read]
 ---
 

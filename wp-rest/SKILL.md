@@ -1,15 +1,11 @@
 ---
 name: wp-rest
 description: >
-  WordPress-Inhalte über die REST-API pflegen, mit Application Password statt
-  Shell-Zugang: Beiträge, Seiten und wiederverwendbare Blöcke anlegen und
-  ändern, Medien hochladen samt Alt-Text und Slug, Kategorien und Schlagworte
-  setzen, Templates und Global Styles von Block-Themes bearbeiten, dazu
-  WooCommerce über /wc/v3/. Mehrere Sites über benannte Profile. Nicht
-  zuständig für Cache, Plugins, Datenbank und Theme-Dateien - das bleibt
-  wp-cli. Auch bei "leg einen Beitrag an", "lad das Bild hoch", "ändere den
-  Text der Seite", "setz die Seite auf publish", "Produkt in WooCommerce".
-  Trigger: /wp-rest.
+  WordPress-Inhalte per REST-API mit Application Password pflegen: Beiträge,
+  Seiten, Blöcke, Medien samt Alt-Text, Kategorien, Templates und Global
+  Styles, WooCommerce. Cache, Plugins und DB bleiben bei wp-cli. Auch bei "leg
+  einen Beitrag an", "lad das Bild hoch", "Produkt in WooCommerce". Trigger:
+  /wp-rest.
 ---
 
 # wp-rest -- WordPress-Inhalte über die REST-API

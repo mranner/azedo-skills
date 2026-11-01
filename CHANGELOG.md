@@ -3,6 +3,18 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.73.26
+
+- **Descriptions gekürzt, gegen das Budget der Skill-Liste.** Die Skill-Liste hat
+  ein Zeichenbudget von rund 1 % des Kontextfensters; läuft sie über, verlieren die
+  am seltensten genutzten Skills ihre Description und greifen nur noch per
+  `/name`. 23 Skills von 450 bis 620 auf 200 bis 380 Zeichen gekürzt, eine
+  wörtliche Formulierung pro Fall, Abgrenzungen zu Nachbar-Skills bleiben.
+- **README: Abschnitt „Skill-Liste und Kontextbudget“.** Hält die
+  `skillOverrides` und abgeschalteten Plugins fest, die auf jedem Arbeitsrechner
+  gleich gesetzt werden. Die Nutzungszahlen, nach denen Descriptions wegfallen,
+  zählt jeder Host für sich.
+
 ### 1.73.25
 
 - **`kanboard`: `patch-description` und `patch-handoff` unter den häufigsten

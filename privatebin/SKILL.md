@@ -1,14 +1,10 @@
 ---
 name: privatebin
 description: >
-  PrivateBin: teilt Text, Logausschnitte, Configs und ganze Dateien als
-  Ende-zu-Ende-verschlüsselte Paste und gibt den Link zurück. Paste anlegen,
-  fremde wie eigene Paste-Links lesen und entschlüsseln, wieder löschen,
-  zuletzt geteilte Links auflisten. Ablauf, burn-after-reading, Passwortschutz
-  und Dateianhänge pro Aufruf steuerbar. Auch bei "teil das per PrivateBin",
-  "mach einen Paste draus", "schick mir das als Link", "Zugangsdaten sicher
-  teilen", "lösch die Paste wieder".
-  Trigger: /privatebin.
+  PrivateBin: Text und Dateien als verschlüsselte Paste teilen, Paste-Links
+  lesen und löschen, zuletzt geteilte auflisten; Ablauf, burn-after-reading
+  und Passwort pro Aufruf. Auch bei "teil das per PrivateBin", "Zugangsdaten
+  sicher teilen", "lösch die Paste wieder". Trigger: /privatebin.
 ---
 
 # privatebin -- verschlüsselte Pastes teilen

@@ -1,13 +1,11 @@
 ---
 name: pushover
 description: >
-  Pushover: sendet Push-Benachrichtigungen aufs Handy (iOS/Android/Desktop),
-  aus Claude Code, Loops und cron-Jobs. Nur ausgehend, keine Rückantwort -
-  soll auf eine Antwort gewartet werden, ist telegram gemeint. Prioritäten,
-  Sounds, Zusatz-Link, Bildanhang; Empfänger als benannte Aliase statt
-  Roh-Key. Auch bei "push mir eine Nachricht", "push ALIAS eine Nachricht",
-  "Push aufs Handy", "Alert nach Pushover".
-  Trigger: /pushover, sowie natürlichsprachlich "push ...".
+  Pushover: Push-Benachrichtigungen aufs Handy aus Claude Code, Loops und
+  cron-Jobs, an benannte Aliase. Nur ausgehend - soll auf eine Antwort
+  gewartet werden, ist telegram gemeint. Auch bei "push mir eine Nachricht",
+  "push ALIAS eine Nachricht". Trigger: /pushover, sowie natürlichsprachlich
+  "push ...".
 ---
 
 # pushover -- Pushover-Notifications (outbound-only)

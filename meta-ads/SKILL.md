@@ -2,12 +2,10 @@
 name: meta-ads
 description: >
   Meta (Facebook/Instagram) über Graph- und Marketing-API: Token prüfen,
-  Datasets (Pixel) auflisten, anlegen und ihre Events abfragen, Test-Events
-  per Conversions API senden, Werbe-Insights pro Kampagne abrufen. Mehrere
-  Kunden über Profile mit je eigenem Systemnutzer-Token, dazu die Einrichtung
-  in der Oberfläche (App, Systemnutzer, Domain-Verifizierung). Auch bei
-  "kommen die Pixel-Events an", "leg ein Dataset an", "wie laufen die
-  Facebook-Kampagnen", "Systemnutzer-Token". Trigger: /meta-ads.
+  Datasets (Pixel) anlegen und ihre Events abfragen, Test-Events senden,
+  Kampagnen-Insights abrufen; mehrere Kunden über Profile. Auch bei "kommen
+  die Pixel-Events an", "wie laufen die Facebook-Kampagnen",
+  "Systemnutzer-Token einrichten". Trigger: /meta-ads.
 ---
 
 # meta-ads - Meta Graph- und Marketing-API

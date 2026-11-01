@@ -28,6 +28,33 @@ Nach einem Update ggf. `setup` erneut ausführen, damit `instance.json` aktualis
 
 **Ab v1.1.0:** `setup` muss nach dem Update einmal ausgeführt werden — die `instance.json` enthält jetzt die Benutzerrolle (Admin/Non-Admin) für die API-Aufrufe.
 
+## Skill-Liste und Kontextbudget
+
+Die Skill-Liste im Kontext hat ein Zeichenbudget von rund 1 % des
+Kontextfensters. Läuft sie über, verlieren die **am seltensten genutzten** Skills
+ihre Description und lassen sich nur noch per `/name` aufrufen. Die
+Nutzungszahlen führt jeder Host für sich (`~/.claude.json`, `skillUsage`) -
+ohne gleiche Einstellungen fallen auf jedem Rechner andere Skills weg.
+
+Auf jedem Arbeitsrechner in `~/.claude/settings.json` gleich setzen:
+
+```json
+"skillOverrides": {
+  "cloudns": "name-only",
+  "swos": "name-only"
+}
+```
+
+- `name-only` nur für Skills, die ein Wiki-Verweis oder ein ausdrückliches
+  `/name` lädt. `user-invocable-only` und `off` blenden den Skill auch für das
+  Modell aus.
+- Plugin-Skills erfasst `skillOverrides` nicht; sie lassen sich nur als ganzes
+  Plugin abschalten (`/plugin`). Abgeschaltet sind `hcloud@hcloud-skills`,
+  `document-skills@anthropic-agent-skills` und
+  `skill-creator@claude-plugins-official` - die beiden letzten doppeln
+  `anthropic-skills:*` aus dem claude.ai-Account-Sync.
+- Prüfen: `/context` (Zeile Skills), `claude --debug` warnt bei Überlauf.
+
 ## Neue Skills hinzufügen
 
 **Wichtig:** Wird ein neuer Skill angelegt, muss sein Verzeichnisname in die
@@ -770,14 +797,14 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.73.25
+### 1.73.26
 
-- **`kanboard`: `patch-description` und `patch-handoff` unter den häufigsten
-  Aufrufen.** Beide gab es schon, sie standen aber nur in den Referenzen. Ohne
-  sie wurden Beschreibung und Handoff für jede kleine Änderung komplett
-  geladen, per eigenem Snippet ersetzt und zurückgeschrieben.
-- **`wiki`: harvest prüft Kandidaten gegen den aktuellen Stand.** Ein Kandidat,
-  der einen in der Sitzung selbst geänderten Zustand beschreibt, wird gegen den
-  Stand nach der Änderung formuliert. Auslöser: eine schon behobene
-  Abweichung wurde als geltende Erkenntnis vorgelegt.
-
+- **Descriptions gekürzt, gegen das Budget der Skill-Liste.** Die Skill-Liste hat
+  ein Zeichenbudget von rund 1 % des Kontextfensters; läuft sie über, verlieren die
+  am seltensten genutzten Skills ihre Description und greifen nur noch per
+  `/name`. 23 Skills von 450 bis 620 auf 200 bis 380 Zeichen gekürzt, eine
+  wörtliche Formulierung pro Fall, Abgrenzungen zu Nachbar-Skills bleiben.
+- **README: Abschnitt „Skill-Liste und Kontextbudget“.** Hält die
+  `skillOverrides` und abgeschalteten Plugins fest, die auf jedem Arbeitsrechner
+  gleich gesetzt werden. Die Nutzungszahlen, nach denen Descriptions wegfallen,
+  zählt jeder Host für sich.

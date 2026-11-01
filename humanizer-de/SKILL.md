@@ -1,14 +1,9 @@
 ---
 name: humanizer-de
 description: >
-  Deutschen Text humanisieren und KI-Schreibmuster/KI-Tells auditieren:
-  belegtreue, proportionale Rewrites mit Register- und Naturalness-Checks
-  (Modi Locker/Sachlich/Formal).
-  Nutze diesen Skill wenn der User einen deutschen Text auf KI-Tells pruefen,
-  KI-Schreibmuster entfernen oder einen Text natuerlicher klingen lassen will.
-  Auch aktiv verwenden wenn der User sagt "humanisiere den Text",
-  "klingt nach KI", "entferne die KI-Tells", o.ae.
-  Trigger: /humanizer-de.
+  Deutschen Text auf KI-Schreibmuster prüfen und natürlicher umschreiben,
+  belegtreu und in den Modi Locker, Sachlich, Formal. Auch bei "klingt nach
+  KI", "humanisiere den Text". Trigger: /humanizer-de.
 allowed-tools: [Read, Write, Edit, Grep, Glob, Bash]
 metadata:
   display_name: Humanizer (Deutsch)

@@ -1,14 +1,10 @@
 ---
 name: google-analytics
 description: >
-  Google Analytics 4: Accounts, Properties, Traffic-Reports, Realtime-Daten,
-  Conversions und Metadaten abfragen; Properties und Web-Datenstreams anlegen,
-  Messungs-IDs auslesen. Nutze diesen Skill wenn der User GA4-Daten auswerten,
-  Traffic analysieren, Seitenaufrufe pruefen, Conversion-Reports erstellen oder
-  eine neue Site in GA4 einrichten will. Auch aktiv verwenden wenn der User sagt
-  "wie viele Besucher", "Traffic letzte Woche", "Top-Seiten", "Analytics",
-  "GA4 Report", "leg eine GA4-Property an", "welche Messungs-ID", o.ae.
-  Trigger: /google-analytics, /ga4.
+  Google Analytics 4: Traffic-, Realtime- und Conversion-Reports abfragen,
+  Properties und Web-Datenstreams anlegen, Messungs-IDs auslesen. Auch bei
+  "wie viele Besucher", "Top-Seiten", "leg eine GA4-Property an", "welche
+  Messungs-ID". Trigger: /google-analytics, /ga4.
 ---
 
 # google-analytics -- Google Analytics 4

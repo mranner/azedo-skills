@@ -2,14 +2,10 @@
 name: mail-as-me
 description: >
   Entwirft und überarbeitet E-Mails im persönlichen Schreibstil des Nutzers
-  (Register, Anrede, Sign-off, Dialekt, Hedging) statt in generischem
-  KI-Deutsch; richtet auch das Stilprofil ein. Die fertige Mail geht per
-  swaks raus oder landet als Entwurf im Postfach. Auch bei "schreib eine Mail
-  wie ich", "in meinem Stil", "klingt zu sehr nach KI, mach es wie ich", "leg es mir als Entwurf ab".
-  Soll eine Mail nach dem Nutzer klingen, immer zuerst hier den Text
-  erzeugen und erst danach mit swaks versenden - nie direkt in swaks texten,
-  sonst wird der Stil des Empfängers gespiegelt.
-  Trigger: /mail-as-me.
+  statt in KI-Deutsch, richtet das Stilprofil ein. Soll eine Mail nach dem
+  Nutzer klingen, immer zuerst hier texten und erst danach mit swaks
+  versenden. Auch bei "schreib eine Mail wie ich", "leg es mir als Entwurf
+  ab". Trigger: /mail-as-me.
 ---
 
 # mail-as-me - Mails im eigenen Schreibstil

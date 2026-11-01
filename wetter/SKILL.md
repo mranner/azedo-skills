@@ -1,13 +1,9 @@
 ---
 name: wetter
 description: >
-  GeoSphere Austria Wetterdaten fuer Oesterreich: Kurzfristvorhersage
-  (AROME, stuendlich ~60 h), Nowcast (15-Minuten-Schritte, ~3 h) und
-  aktive amtliche Wetterwarnungen. Nutze diesen Skill wenn der User
-  das Wetter, die Vorhersage, den Regen/Wind oder Wetterwarnungen fuer
-  einen Ort in Oesterreich wissen will. Auch aktiv verwenden bei
-  "wie wird das Wetter in X", "regnet es morgen in X", "gibt es
-  Wetterwarnungen fuer X".
+  Wetter für Orte in Österreich von GeoSphere Austria: Vorhersage stündlich
+  für ~60 h, Nowcast für ~3 h, amtliche Warnungen. Auch bei "wie wird das
+  Wetter in X", "regnet es morgen in X", "gibt es Wetterwarnungen für X".
   Trigger: /wetter.
 ---
 

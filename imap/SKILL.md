@@ -1,13 +1,10 @@
 ---
 name: imap
 description: >
-  IMAP-Zugriff auf mehrere Konten: Posteingang zusammenfassen, Mails
-  einsortieren, als Spam markieren, löschen, zwischen Konten verschieben,
-  Anhänge herausschreiben oder entfernen, Zitatblock für eine Antwort,
-  Adressen eines Threads sammeln, Message-ID auflösen, Mails suchen,
-  versendete .eml in "Gesendet" ablegen. Auch bei "geh meine Inbox durch",
-  "räum den Posteingang auf", "hol den Anhang aus der Mail", "wer war in dem
-  Thread alles dabei", "such die Mail zu X". Trigger: /imap.
+  IMAP über mehrere Konten: Posteingang zusammenfassen und einsortieren, Spam,
+  löschen, verschieben, Anhänge herausholen, Threads und Mails suchen, .eml in
+  "Gesendet" ablegen. Auch bei "geh meine Inbox durch", "hol den Anhang aus
+  der Mail", "such die Mail zu X". Trigger: /imap.
 ---
 
 # imap -- Posteingang-Triage über mehrere Konten

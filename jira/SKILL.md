@@ -1,14 +1,10 @@
 ---
 name: jira
 description: >
-  Jira Data Center/Server (self-hosted) und Jira Cloud (*.atlassian.net):
-  Issues per JQL suchen, Issue samt Kommentaren anzeigen, Nutzer suchen,
-  kommentieren und Kommentare bearbeiten, Status-Übergänge ausführen, Issues
-  zuweisen, Beschreibungen setzen, Unteraufgaben anlegen, Dateien anhängen,
-  auflisten und herunterladen. Mehrere Instanzen über benannte Profile, der
-  Issue-Key wählt die Instanz. Auch bei "schau in Jira", "welchen Status hat
-  KEY-123", "kommentier das Ticket", "setz das Issue auf ...".
-  Trigger: /jira.
+  Jira (Data Center und Cloud): Issues per JQL suchen und anzeigen,
+  kommentieren, Status ändern, zuweisen, Unteraufgaben anlegen, Anhänge
+  verwalten. Mehrere Instanzen, der Issue-Key wählt sie. Auch bei "welchen
+  Status hat KEY-123", "kommentier das Ticket". Trigger: /jira.
 ---
 
 # jira -- Jira REST API (Data Center + Cloud)

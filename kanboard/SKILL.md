@@ -1,13 +1,10 @@
 ---
 name: kanboard
 description: >
-  Verwaltet Kanboard via JSON-RPC: Tasks (anlegen, verschieben, kommentieren,
-  schließen, Subtasks, Tags, Links, Handoff, Dateien) und Projekte samt
-  Mitgliedern und Rollen. Auch bei "leg mir ein Ticket an" und sobald eine
-  CR-Nummer fällt ("CR4326") - auch beim Commit oder bei der Zeiterfassung
-  unter einer CR-Nummer, weil dieser Skill das Commit- und Kimai-Präfix
-  festlegt. Tasks stehen nur für Handlungen; Befunde ohne Folgehandlung
-  gehören ins Wiki. Trigger: /kanboard.
+  Kanboard via JSON-RPC: Tasks anlegen, verschieben, kommentieren, Subtasks,
+  Tags, Handoff, Dateien; Projekte und Mitglieder. Auch bei "leg mir ein
+  Ticket an" und sobald eine CR-Nummer fällt ("CR4326"), auch bei Commit oder
+  Zeiterfassung - der Skill legt das Präfix fest. Trigger: /kanboard.
 ---
 
 # kanboard -- Kanboard Task-Verwaltung
