@@ -44,6 +44,7 @@ Auf jedem Arbeitsrechner in `~/.claude/settings.json` gleich setzen:
   "chrome-browser": "name-only",
   "cloudns": "name-only",
   "computer-use": "name-only",
+  "find-skills": "name-only",
   "google-workspace": "name-only",
   "import-memory": "name-only",
   "morning": "name-only",
@@ -811,3 +812,4 @@ Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle 
 - **README: `google-workspace` auf `name-only`.** Der Sync-Skill belegte rund
   330 Tokens der Skill-Liste, ohne dass ein Google-Workspace-Connector
   verbunden ist; damit bekommt `pptx` seine Description zurück.
+- **README: `find-skills` auf `name-only`.**
