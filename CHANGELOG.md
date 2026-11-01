@@ -3,6 +3,18 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.73.23
+
+- **`kimai`: neues Subcommand `open-hours`.** Summiert die nicht als exportiert
+  markierten Stunden seit einem Stichtag je Kunde und Monat, über alle User;
+  `--detail` teilt nach Projekt und Tätigkeit mit erstem und letztem Tag,
+  `--customer` filtert, `--json` statt Tabelle. Auslöser: die Frage nach noch
+  nicht verrechneten Stunden wurde beim Rechnungslauf ad hoc über
+  `list-timesheets` zusammengebaut. Das Rezept dafür (Pflicht `--user all`,
+  seitenweise abrufen, Kundenname aus `list-projects`) steht jetzt in
+  `references/timesheets.md`. Die Seitenschleife endet über `X-Total-Pages`,
+  weil Kimai hinter der letzten Seite mit 404 antwortet.
+
 ### 1.73.22
 
 - **`handoff`: Fortschreiben ersetzt den Stand, statt anzufügen.** Ein

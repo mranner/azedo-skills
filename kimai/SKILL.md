@@ -4,7 +4,8 @@ description: >
   Verwaltet die Kimai-Zeiterfassung: Timesheets, Projekte, Kunden, Aktivitäten,
   Tags und Teams. Wird verwendet, wenn der User Zeiten erfassen, Stunden
   auswerten, Projekte oder Kunden anlegen oder ändern will, etwa bei
-  "trag die Stunden ein", "wie viele Stunden diese Woche", "Zeitauswertung".
+  "trag die Stunden ein", "wie viele Stunden diese Woche", "Zeitauswertung",
+  "welche Stunden sind noch nicht verrechnet".
   Trigger: /kimai.
 ---
 
@@ -118,7 +119,7 @@ Befehlsreferenz liegt daneben und wird bei Bedarf gelesen:
 
 | Datei | Inhalt |
 |---|---|
-| `references/timesheets.md` | Einträge auflisten, anzeigen, anlegen, ändern, löschen; Timer starten, stoppen, neustarten, duplizieren; als exportiert markieren |
+| `references/timesheets.md` | Einträge auflisten, anzeigen, anlegen, ändern, löschen; Timer starten, stoppen, neustarten, duplizieren; als exportiert markieren; offene (nicht exportierte) Stunden seit einem Stichtag (`open-hours`) |
 | `references/stammdaten.md` | Projekte, Aktivitäten, Kunden, Benutzer, Tags, Teams; Stundensätze (Rates) an Aktivität, Projekt und Kunde |
 | `references/import-hours.md` | Externe Stunden aus JSON auf Werktage verteilen (`import-hours`) |
 

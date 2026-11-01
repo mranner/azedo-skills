@@ -60,3 +60,30 @@ python3 "$SKILL_DIR/kimai" duplicate-timesheet <id>
 # Eintrag als exportiert markieren
 python3 "$SKILL_DIR/kimai" export-timesheet <id>
 ```
+
+## Offene Stunden seit einem Stichtag
+
+"Welche Stunden sind noch nicht verrechnet" heißt: Einträge, die nicht als exportiert
+markiert sind. `open-hours` summiert sie je Kunde und Monat, über alle User:
+
+```bash
+python3 "$SKILL_DIR/kimai" open-hours --since 2026-01-01 [--until 2026-10-31] \
+  [--customer <id|Namensteil>] [--detail] [--json]
+```
+
+`--until` fehlt: bis heute. `--detail` teilt nach Projekt und Tätigkeit und nennt den
+ersten und letzten Tag. Laufende Timer bleiben außen vor (Hinweis auf stderr).
+
+Für Einzeleinträge statt Summen dieselbe Abfrage mit `list-timesheets`:
+
+```bash
+python3 "$SKILL_DIR/kimai" list-timesheets --user all --exported 0 \
+  --begin 2026-01-01T00:00:00 --end 2026-10-31T23:59:59 --size 200 --page <n>
+```
+
+- `--user all` ist Pflicht, sonst kommen nur die Buchungen des API-Users.
+- Seite für Seite abrufen, bis eine Seite weniger als `--size` Einträge hat.
+  `API error 404` auf der Folgeseite heißt ebenfalls: keine weiteren Einträge.
+- Gegenprobe mit `--exported 1`: beide Abfragen zusammen ergeben alle Einträge des Zeitraums.
+- Der Eintrag nennt nur die Projekt-ID. Den Kunden liefert `list-projects` im Feld
+  `customer`, dort als Name, nicht als ID.

@@ -111,6 +111,7 @@ Zeiterfassung über die Kimai REST API. Unterstützt:
 - Teams: anlegen, ändern, löschen
 - Externe Stunden importieren (ersetzt `kimai_stunden.py`)
 - Shortcuts in `.claude/kimai-shortcuts.json` ergänzen (`add-shortcut`)
+- Offene (nicht exportierte) Stunden seit einem Stichtag je Kunde und Monat (`open-hours`)
 
 **Voraussetzungen:** Python ≥ 3.11
 
@@ -769,12 +770,14 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.73.22
+### 1.73.23
 
-- **`handoff`: Fortschreiben ersetzt den Stand, statt anzufügen.** Ein
-  Übergabedokument war nach 26 Fortschreibungen auf über 400 Zeilen
-  gewachsen, weil Fall 3 jedes Mal als „oben anfügen" umgesetzt wurde;
-  Erledigtes blieb stehen, Stand und nächste Schritte waren veraltet. Fall 3
-  legt jetzt fest, dass der laufende Stand ersetzt wird und Erledigtes
-  wegfällt. Fertig ist die Fortschreibung unter ~200 Zeilen und ohne veralteten
-  Abschnitt; das gilt auch für das Handoff-Feld eines Tasks.
+- **`kimai`: neues Subcommand `open-hours`.** Summiert die nicht als exportiert
+  markierten Stunden seit einem Stichtag je Kunde und Monat, über alle User;
+  `--detail` teilt nach Projekt und Tätigkeit mit erstem und letztem Tag,
+  `--customer` filtert, `--json` statt Tabelle. Auslöser: die Frage nach noch
+  nicht verrechneten Stunden wurde beim Rechnungslauf ad hoc über
+  `list-timesheets` zusammengebaut. Das Rezept dafür (Pflicht `--user all`,
+  seitenweise abrufen, Kundenname aus `list-projects`) steht jetzt in
+  `references/timesheets.md`. Die Seitenschleife endet über `X-Total-Pages`,
+  weil Kimai hinter der letzten Seite mit 404 antwortet.

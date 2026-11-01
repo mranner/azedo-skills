@@ -2,7 +2,7 @@
 
 # Kimai REST API helper
 # stdlib only, no pip dependencies
-# version 1.73.22
+# version 1.73.23
 
 import argparse
 import json
@@ -76,8 +76,8 @@ def load_env():
     return _config
 
 
-def api_call(method, path, data=None, params=None):
-    """Make an HTTP request to Kimai API"""
+def api_call(method, path, data=None, params=None, headers=None):
+    """Make an HTTP request to Kimai API; headers (dict) receives the response headers"""
     config = load_env()
     url = f"{config['KIMAI_HOST']}/api/{path.lstrip('/')}"
 
@@ -100,6 +100,8 @@ def api_call(method, path, data=None, params=None):
     try:
         with urllib.request.urlopen(req, timeout=NET_TIMEOUT) as resp:
             raw = resp.read()
+            if headers is not None:
+                headers.update(resp.headers.items())
             if not raw:
                 return None
             return json.loads(raw.decode("utf-8"))
@@ -295,6 +297,81 @@ def cmd_list_timesheets(args):
             "exported": t.get("exported", False),
         })
     output(summary)
+
+
+def fetch_all_timesheets(params):
+    """All pages of GET timesheets; Kimai answers 404 past the last page, so X-Total-Pages bounds the loop"""
+    rows = []
+    page = 1
+    while True:
+        hdr = {}
+        rows += api_call("GET", "timesheets", params={**params, "size": "200", "page": str(page)}, headers=hdr)
+        if page >= int(hdr.get("X-Total-Pages", page)):
+            return rows
+        page += 1
+
+
+def cmd_open_hours(args):
+    until = args.until or date.today().isoformat()
+    rows = fetch_all_timesheets({
+        "user": "all",
+        "exported": "0",
+        "begin": f"{args.since}T00:00:00",
+        "end": f"{until}T23:59:59",
+    })
+    projects = {p["id"]: p for p in api_call("GET", "projects", params={"visible": "3"})}
+    activities = {a["id"]: a["name"] for a in api_call("GET", "activities", params={"visible": "3"})}
+
+    running = [t for t in rows if not t["end"]]
+    if running:
+        print(f"Note: {len(running)} running timer(s) skipped", file=sys.stderr)
+
+    groups = {}
+    for t in rows:
+        if not t["end"]:
+            continue
+        proj = projects.get(t["project"], {})
+        customer = proj.get("parentTitle", f"customer of project {t['project']}")
+        if args.customer and not (str(proj.get("customer")) == args.customer
+                                  or args.customer.lower() in customer.lower()):
+            continue
+        day = parse_kimai_dt(t["begin"]).date()
+        key = (customer, day.strftime("%Y-%m"))
+        if args.detail:
+            key += (proj.get("name", str(t["project"])), activities.get(t["activity"], str(t["activity"])))
+        g = groups.setdefault(key, {"hours": 0.0, "entries": 0, "first": day, "last": day})
+        g["hours"] += t["duration"] / 3600
+        g["entries"] += 1
+        g["first"] = min(g["first"], day)
+        g["last"] = max(g["last"], day)
+
+    cols = ["customer", "month"] + (["project", "activity"] if args.detail else [])
+    result = []
+    for key in sorted(groups, key=lambda k: tuple(x.lower() for x in k)):
+        g = groups[key]
+        row = dict(zip(cols, key))
+        row["hours"] = round(g["hours"], 2)
+        row["entries"] = g["entries"]
+        if args.detail:
+            row["first"] = g["first"].isoformat()
+            row["last"] = g["last"].isoformat()
+        result.append(row)
+
+    if args.json:
+        output(result)
+        return
+
+    head = cols + ["hours", "entries"] + (["first", "last"] if args.detail else [])
+    cells = [[f"{r[c]:.2f}" if c == "hours" else str(r[c]) for c in head] for r in result]
+    width = [max([len(c)] + [len(row[i]) for row in cells]) for i, c in enumerate(head)]
+    right = {"hours", "entries"}
+    for line in [head] + cells:
+        print("  ".join(v.rjust(width[i]) if head[i] in right else v.ljust(width[i])
+                        for i, v in enumerate(line)).rstrip())
+    total_h = sum(r["hours"] for r in result)
+    total_n = sum(r["entries"] for r in result)
+    print(f"\n{len({r['customer'] for r in result})} customers, {total_n} entries, {total_h:.2f} h "
+          f"({args.since} .. {until}, not exported)")
 
 
 def cmd_get_timesheet(args):
@@ -1341,6 +1418,14 @@ def main():
     p.add_argument("--size", type=int, default=50, help="Results per page (default 50)")
     p.add_argument("--page", type=int, default=1, help="Page number (default 1)")
     p.set_defaults(func=cmd_list_timesheets)
+
+    p = sub.add_parser("open-hours", help="Hours not marked as exported, per customer and month")
+    p.add_argument("--since", required=True, help="First day (YYYY-MM-DD)")
+    p.add_argument("--until", help="Last day (YYYY-MM-DD, default today)")
+    p.add_argument("--customer", help="Customer ID or part of the name")
+    p.add_argument("--detail", action="store_true", help="Split by project and activity, with first/last day")
+    p.add_argument("--json", action="store_true", help="JSON instead of a table")
+    p.set_defaults(func=cmd_open_hours)
 
     p = sub.add_parser("get-timesheet")
     p.add_argument("timesheet_id")
