@@ -3,6 +3,14 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.73.27
+
+- **README: Sync-Skills auf `name-only`.** `skillOverrides` wirkt auch auf die
+  Skills aus dem claude.ai-Account-Sync, mit dem kurzen Namen als Schlüssel;
+  die Doku sagt dazu nichts. `built-in-browser`, `chrome-browser`,
+  `computer-use`, `import-memory` und `morning` ergänzt - zusammen rund 1.000
+  Tokens, die den Office-Skills ihre Description zurückgeben.
+
 ### 1.73.26
 
 - **Descriptions gekürzt, gegen das Budget der Skill-Liste.** Die Skill-Liste hat

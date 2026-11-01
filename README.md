@@ -40,7 +40,12 @@ Auf jedem Arbeitsrechner in `~/.claude/settings.json` gleich setzen:
 
 ```json
 "skillOverrides": {
+  "built-in-browser": "name-only",
+  "chrome-browser": "name-only",
   "cloudns": "name-only",
+  "computer-use": "name-only",
+  "import-memory": "name-only",
+  "morning": "name-only",
   "swos": "name-only"
 }
 ```
@@ -53,6 +58,9 @@ Auf jedem Arbeitsrechner in `~/.claude/settings.json` gleich setzen:
   `document-skills@anthropic-agent-skills` und
   `skill-creator@claude-plugins-official` - die beiden letzten doppeln
   `anthropic-skills:*` aus dem claude.ai-Account-Sync.
+- Die Skills aus dem claude.ai-Account-Sync erfasst `skillOverrides`, Schlüssel ist
+  der kurze Name (`morning`, nicht `anthropic-skills:morning`). Die Änderung
+  greift ohne Neustart.
 - Prüfen: `/context` (Zeile Skills), `claude --debug` warnt bei Überlauf.
 
 ## Neue Skills hinzufügen
@@ -797,14 +805,10 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.73.26
+### 1.73.27
 
-- **Descriptions gekürzt, gegen das Budget der Skill-Liste.** Die Skill-Liste hat
-  ein Zeichenbudget von rund 1 % des Kontextfensters; läuft sie über, verlieren die
-  am seltensten genutzten Skills ihre Description und greifen nur noch per
-  `/name`. 23 Skills von 450 bis 620 auf 200 bis 380 Zeichen gekürzt, eine
-  wörtliche Formulierung pro Fall, Abgrenzungen zu Nachbar-Skills bleiben.
-- **README: Abschnitt „Skill-Liste und Kontextbudget“.** Hält die
-  `skillOverrides` und abgeschalteten Plugins fest, die auf jedem Arbeitsrechner
-  gleich gesetzt werden. Die Nutzungszahlen, nach denen Descriptions wegfallen,
-  zählt jeder Host für sich.
+- **README: Sync-Skills auf `name-only`.** `skillOverrides` wirkt auch auf die
+  Skills aus dem claude.ai-Account-Sync, mit dem kurzen Namen als Schlüssel;
+  die Doku sagt dazu nichts. `built-in-browser`, `chrome-browser`,
+  `computer-use`, `import-memory` und `morning` ergänzt - zusammen rund 1.000
+  Tokens, die den Office-Skills ihre Description zurückgeben.
