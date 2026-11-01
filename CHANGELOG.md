@@ -3,6 +3,13 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.73.24
+
+- **`tcsh`: ungequotetes `#` in der Entscheidungsmatrix.** tcsh liest ein `#`
+  ohne Anführungszeichen als Kommentarbeginn, auch mitten im Wort (etwa im
+  `sed`-Ausdruck `s,^,#,`). Der Rest der Zeile fällt weg, Befehle hinter `;`
+  laufen still nicht. Abhilfe: in `'…'` quoten oder das Script per STDIN an `sh`.
+
 ### 1.73.23
 
 - **`kimai`: neues Subcommand `open-hours`.** Summiert die nicht als exportiert

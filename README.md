@@ -770,14 +770,9 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.73.23
+### 1.73.24
 
-- **`kimai`: neues Subcommand `open-hours`.** Summiert die nicht als exportiert
-  markierten Stunden seit einem Stichtag je Kunde und Monat, über alle User;
-  `--detail` teilt nach Projekt und Tätigkeit mit erstem und letztem Tag,
-  `--customer` filtert, `--json` statt Tabelle. Auslöser: die Frage nach noch
-  nicht verrechneten Stunden wurde beim Rechnungslauf ad hoc über
-  `list-timesheets` zusammengebaut. Das Rezept dafür (Pflicht `--user all`,
-  seitenweise abrufen, Kundenname aus `list-projects`) steht jetzt in
-  `references/timesheets.md`. Die Seitenschleife endet über `X-Total-Pages`,
-  weil Kimai hinter der letzten Seite mit 404 antwortet.
+- **`tcsh`: ungequotetes `#` in der Entscheidungsmatrix.** tcsh liest ein `#`
+  ohne Anführungszeichen als Kommentarbeginn, auch mitten im Wort (etwa im
+  `sed`-Ausdruck `s,^,#,`). Der Rest der Zeile fällt weg, Befehle hinter `;`
+  laufen still nicht. Abhilfe: in `'…'` quoten oder das Script per STDIN an `sh`.

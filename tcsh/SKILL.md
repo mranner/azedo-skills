@@ -72,6 +72,7 @@ Sobald eines dieser Merkmale vorkommt:
 | Bash-Arrays | `arr=(a b c)` | Andere Syntax |
 | `[[ ]]` | `[[ -f file ]]` | Nicht unterstuetzt |
 | Komplexe Schleifen | `for i in ...; do` | sh-Syntax, nicht tcsh |
+| Ungequotetes `#` | `sed -i~ s,^,#, f ; ls` | Rest der Zeile wird Kommentar, auch mitten im Wort; Befehle nach `;` laufen still nicht. In `'…'` quoten oder per STDIN an `sh` |
 
 ```sh
 # Stderr unterdruecken
