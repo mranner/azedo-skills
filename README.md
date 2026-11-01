@@ -48,7 +48,14 @@ Auf jedem Arbeitsrechner in `~/.claude/settings.json` gleich setzen:
   "google-workspace": "name-only",
   "import-memory": "name-only",
   "morning": "name-only",
-  "swos": "name-only"
+  "swos": "name-only",
+  "wp-block-development": "name-only",
+  "wp-block-themes": "name-only",
+  "wp-patterns": "name-only",
+  "wp-performance": "name-only",
+  "wp-plugin-development": "name-only",
+  "wp-project-triage": "name-only",
+  "wp-rest-api": "name-only"
 }
 ```
 
@@ -60,6 +67,9 @@ Auf jedem Arbeitsrechner in `~/.claude/settings.json` gleich setzen:
   `document-skills@anthropic-agent-skills` und
   `skill-creator@claude-plugins-official` - die beiden letzten doppeln
   `anthropic-skills:*` aus dem claude.ai-Account-Sync.
+- Die offiziellen WordPress-Code-Skills (`wp-block-development` usw.) bleiben
+  über `wp-azedo` erreichbar, der sie im Body namentlich weiterleitet.
+- Auf Servern ohne Chrome zusätzlich `"claude-in-chrome": "name-only"`.
 - Die Skills aus dem claude.ai-Account-Sync erfasst `skillOverrides`, Schlüssel ist
   der kurze Name (`morning`, nicht `anthropic-skills:morning`). Die Änderung
   greift ohne Neustart.
@@ -807,9 +817,11 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.73.28
+### 1.73.29
 
-- **README: `google-workspace` auf `name-only`.** Der Sync-Skill belegte rund
-  330 Tokens der Skill-Liste, ohne dass ein Google-Workspace-Connector
-  verbunden ist; damit bekommt `pptx` seine Description zurück.
-- **README: `find-skills` auf `name-only`.**
+- **README: WordPress-Code-Skills auf `name-only`.** Die sieben offiziellen
+  Skills (`wp-block-development`, `wp-block-themes`, `wp-patterns`,
+  `wp-performance`, `wp-plugin-development`, `wp-project-triage`,
+  `wp-rest-api`) belegten rund 690 Tokens der Skill-Liste; `wp-azedo` leitet
+  namentlich zu ihnen weiter. Auf Servern ohne Chrome zusätzlich
+  `claude-in-chrome`.

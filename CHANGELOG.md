@@ -3,6 +3,15 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.73.29
+
+- **README: WordPress-Code-Skills auf `name-only`.** Die sieben offiziellen
+  Skills (`wp-block-development`, `wp-block-themes`, `wp-patterns`,
+  `wp-performance`, `wp-plugin-development`, `wp-project-triage`,
+  `wp-rest-api`) belegten rund 690 Tokens der Skill-Liste; `wp-azedo` leitet
+  namentlich zu ihnen weiter. Auf Servern ohne Chrome zusätzlich
+  `claude-in-chrome`.
+
 ### 1.73.28
 
 - **README: `google-workspace` auf `name-only`.** Der Sync-Skill belegte rund
