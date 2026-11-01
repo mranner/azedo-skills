@@ -3,6 +3,12 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.73.28
+
+- **README: `google-workspace` auf `name-only`.** Der Sync-Skill belegte rund
+  330 Tokens der Skill-Liste, ohne dass ein Google-Workspace-Connector
+  verbunden ist; damit bekommt `pptx` seine Description zurück.
+
 ### 1.73.27
 
 - **README: Sync-Skills auf `name-only`.** `skillOverrides` wirkt auch auf die

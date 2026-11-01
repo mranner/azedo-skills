@@ -2,7 +2,7 @@
 
 # MainWP Abilities API helper
 # stdlib only, no pip dependencies
-# version 1.73.27
+# version 1.73.28
 
 import argparse
 import base64

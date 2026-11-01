@@ -44,6 +44,7 @@ Auf jedem Arbeitsrechner in `~/.claude/settings.json` gleich setzen:
   "chrome-browser": "name-only",
   "cloudns": "name-only",
   "computer-use": "name-only",
+  "google-workspace": "name-only",
   "import-memory": "name-only",
   "morning": "name-only",
   "swos": "name-only"
@@ -805,10 +806,8 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.73.27
+### 1.73.28
 
-- **README: Sync-Skills auf `name-only`.** `skillOverrides` wirkt auch auf die
-  Skills aus dem claude.ai-Account-Sync, mit dem kurzen Namen als Schlüssel;
-  die Doku sagt dazu nichts. `built-in-browser`, `chrome-browser`,
-  `computer-use`, `import-memory` und `morning` ergänzt - zusammen rund 1.000
-  Tokens, die den Office-Skills ihre Description zurückgeben.
+- **README: `google-workspace` auf `name-only`.** Der Sync-Skill belegte rund
+  330 Tokens der Skill-Liste, ohne dass ein Google-Workspace-Connector
+  verbunden ist; damit bekommt `pptx` seine Description zurück.
