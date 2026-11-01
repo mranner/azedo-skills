@@ -48,6 +48,7 @@ Auf jedem Arbeitsrechner in `~/.claude/settings.json` gleich setzen:
   "google-workspace": "name-only",
   "import-memory": "name-only",
   "morning": "name-only",
+  "novamira": "name-only",
   "swos": "name-only",
   "wp-block-development": "name-only",
   "wp-block-themes": "name-only",
@@ -67,8 +68,10 @@ Auf jedem Arbeitsrechner in `~/.claude/settings.json` gleich setzen:
   `document-skills@anthropic-agent-skills` und
   `skill-creator@claude-plugins-official` - die beiden letzten doppeln
   `anthropic-skills:*` aus dem claude.ai-Account-Sync.
-- Die offiziellen WordPress-Code-Skills (`wp-block-development` usw.) bleiben
-  über `wp-azedo` erreichbar, der sie im Body namentlich weiterleitet.
+- Die offiziellen WordPress-Code-Skills (`wp-block-development` usw.) und
+  `novamira` bleiben über `wp-azedo` erreichbar, der sie im Body namentlich
+  weiterleitet. Die Description von `novamira` deckt jede WordPress-Aufgabe ab
+  und konkurriert sonst mit `wp-cli` und `wp-rest`.
 - Auf Servern ohne Chrome zusätzlich `"claude-in-chrome": "name-only"`.
 - Die Skills aus dem claude.ai-Account-Sync erfasst `skillOverrides`, Schlüssel ist
   der kurze Name (`morning`, nicht `anthropic-skills:morning`). Die Änderung
@@ -817,11 +820,8 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.73.29
+### 1.73.30
 
-- **README: WordPress-Code-Skills auf `name-only`.** Die sieben offiziellen
-  Skills (`wp-block-development`, `wp-block-themes`, `wp-patterns`,
-  `wp-performance`, `wp-plugin-development`, `wp-project-triage`,
-  `wp-rest-api`) belegten rund 690 Tokens der Skill-Liste; `wp-azedo` leitet
-  namentlich zu ihnen weiter. Auf Servern ohne Chrome zusätzlich
-  `claude-in-chrome`.
+- **README: `novamira` auf `name-only`.** Seine Description beansprucht jede
+  WordPress-Aufgabe, gilt aber nur für Sites, die über Novamira verwaltet
+  werden; `wp-azedo` leitet dorthin weiter.

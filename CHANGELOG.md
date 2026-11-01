@@ -3,6 +3,12 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.73.30
+
+- **README: `novamira` auf `name-only`.** Seine Description beansprucht jede
+  WordPress-Aufgabe, gilt aber nur für Sites, die über Novamira verwaltet
+  werden; `wp-azedo` leitet dorthin weiter.
+
 ### 1.73.29
 
 - **README: WordPress-Code-Skills auf `name-only`.** Die sieben offiziellen
