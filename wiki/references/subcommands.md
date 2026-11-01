@@ -111,7 +111,9 @@ Workflow:
    schon dokumentiert ist.
 3. **Jeden Kandidaten durch den [Aufnahmefilter](../SKILL.md#aufnahmefilter-gehört-das-überhaupt-hinein)
    schicken.** Wer durchfällt, wird verworfen - aber **mit Grund und sichtbar**,
-   nicht stillschweigend.
+   nicht stillschweigend. Beschreibt ein Kandidat einen Zustand, den die Sitzung
+   selbst verändert hat, wird er gegen den Stand nach der Änderung formuliert,
+   nicht gegen den Befund davor.
 4. Für die verbleibenden das Ziel bestimmen: greppen, ob es schon irgendwo steht
    (dann dort ergänzen), sonst bestehender Artikel oder neuer.
 5. **Vorlage ausgeben, nichts schreiben:**

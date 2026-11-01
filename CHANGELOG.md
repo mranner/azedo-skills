@@ -3,6 +3,17 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.73.25
+
+- **`kanboard`: `patch-description` und `patch-handoff` unter den häufigsten
+  Aufrufen.** Beide gab es schon, sie standen aber nur in den Referenzen. Ohne
+  sie wurden Beschreibung und Handoff für jede kleine Änderung komplett
+  geladen, per eigenem Snippet ersetzt und zurückgeschrieben.
+- **`wiki`: harvest prüft Kandidaten gegen den aktuellen Stand.** Ein Kandidat,
+  der einen in der Sitzung selbst geänderten Zustand beschreibt, wird gegen den
+  Stand nach der Änderung formuliert. Auslöser: eine schon behobene
+  Abweichung wurde als geltende Erkenntnis vorgelegt.
+
 ### 1.73.24
 
 - **`tcsh`: ungequotetes `#` in der Entscheidungsmatrix.** tcsh liest ein `#`

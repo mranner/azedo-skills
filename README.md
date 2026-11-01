@@ -770,9 +770,14 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.73.24
+### 1.73.25
 
-- **`tcsh`: ungequotetes `#` in der Entscheidungsmatrix.** tcsh liest ein `#`
-  ohne Anführungszeichen als Kommentarbeginn, auch mitten im Wort (etwa im
-  `sed`-Ausdruck `s,^,#,`). Der Rest der Zeile fällt weg, Befehle hinter `;`
-  laufen still nicht. Abhilfe: in `'…'` quoten oder das Script per STDIN an `sh`.
+- **`kanboard`: `patch-description` und `patch-handoff` unter den häufigsten
+  Aufrufen.** Beide gab es schon, sie standen aber nur in den Referenzen. Ohne
+  sie wurden Beschreibung und Handoff für jede kleine Änderung komplett
+  geladen, per eigenem Snippet ersetzt und zurückgeschrieben.
+- **`wiki`: harvest prüft Kandidaten gegen den aktuellen Stand.** Ein Kandidat,
+  der einen in der Sitzung selbst geänderten Zustand beschreibt, wird gegen den
+  Stand nach der Änderung formuliert. Auslöser: eine schon behobene
+  Abweichung wurde als geltende Erkenntnis vorgelegt.
+

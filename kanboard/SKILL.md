@@ -62,6 +62,11 @@ python3 "$SKILL_DIR/kanboard" get-task <task_id>
 # Task erledigen -- Spalte wechseln, NICHT close-task (siehe Sicherheitsregeln)
 python3 "$SKILL_DIR/kanboard" move-task <task_id> --column erledigt
 
+# Abschnitt in Beschreibung bzw. Handoff ersetzen -- patchen statt komplett neu setzen
+# (alter Text muss genau einmal vorkommen)
+python3 "$SKILL_DIR/kanboard" patch-description <task_id> --old-file <pfad> --new-file <pfad>
+python3 "$SKILL_DIR/kanboard" patch-handoff <task_id> --old-file <pfad> --new-file <pfad>
+
 # Fälligkeits- bzw. Startdatum setzen (leerer Wert löscht es)
 python3 "$SKILL_DIR/kanboard" update-task <task_id> [--due YYYY-MM-DD] [--start "YYYY-MM-DD HH:MM"]
 
