@@ -3,6 +3,15 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.73.31
+
+- **imap: `delete-attachment` im `batch`.** Bisher ging das Entfernen nur
+  einzeln, mit einem Login je Mail - beim Ausdünnen eines Gesendet-Ordners
+  über Jahre also Hunderte Logins. Im Batch reichen `action`
+  `delete-attachment`, `uid` und `folder`; ohne `name`/`index` fallen alle
+  Anhänge außer den inline eingebetteten. Mails ohne Anhang oder mit
+  Signatur melden einen Fehler und der Lauf geht weiter.
+
 ### 1.73.30
 
 - **README: `novamira` auf `name-only`.** Seine Description beansprucht jede

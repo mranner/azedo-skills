@@ -135,6 +135,11 @@ landet und dort die Brute-Force-Erkennung streift.
 Felder: `account`, `action`, `uid`, optional `folder` (Default `INBOX`),
 `target`, `to_account`. `--dry-run` gilt für den ganzen Lauf.
 
+Auch `delete-attachment` geht im Batch, optional mit `name` oder `index`;
+ohne beides fallen alle Anhänge außer den inline eingebetteten. Für
+Aufräumläufe über viele Mails ist das der Weg - der Einzelbefehl loggt sich
+je Mail neu ein.
+
 **Warum zwei Befehle und nicht die kürzere Pipe?** `batch` liest die Liste zwar
 auch von stdin (`batch -`), aber die naheliegende Form
 `echo '[…]' | python3 "$SKILL_DIR/imap" batch -` wird in Agent-Umgebungen mit

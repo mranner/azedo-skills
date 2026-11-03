@@ -3,7 +3,7 @@
 # IMAP-Helper für Posteingang-Triage
 # Liest Zugangsdaten aus muttrc, arbeitet gegen mehrere Konten.
 # stdlib only, keine pip-Abhängigkeiten. Lauffähig auf macOS + FreeBSD.
-# version 1.73.30
+# version 1.73.31
 
 import argparse
 import datetime
@@ -2049,18 +2049,19 @@ def cmd_attachments(args, accounts):
 
 
 def select_parts(parts, args):
-    """Auswahl auflösen. Ein ausdrücklich benannter Teil wird immer geliefert,
-    auch wenn er inline ist - der Inline-Filter gilt nur für --all."""
+    """Auswahl auflösen, Fehler als ValueError. Ein ausdrücklich benannter Teil
+    wird immer geliefert, auch wenn er inline ist - der Inline-Filter gilt nur
+    für --all."""
     if args.all:
         chosen = parts if args.include_inline else [p for p in parts if not p["inline"]]
         if not chosen:
-            die("keine Anhänge zum Speichern")
+            raise ValueError("keine Anhänge zum Speichern")
         return chosen
 
     if args.index is not None:
         hit = [p for p in parts if p["index"] == args.index]
         if not hit:
-            die(f"kein Anhang mit Index {args.index} "
+            raise ValueError(f"kein Anhang mit Index {args.index} "
                 f"(vorhanden: {', '.join(str(p['index']) for p in parts) or 'keiner'})")
         return hit
 
@@ -2068,10 +2069,10 @@ def select_parts(parts, args):
     if not hit:
         hit = [p for p in parts if p["name"].lower() == args.name.lower()]
     if not hit:
-        die(f"kein Anhang namens '{args.name}' "
+        raise ValueError(f"kein Anhang namens '{args.name}' "
             f"(vorhanden: {', '.join(p['name'] for p in parts) or 'keiner'})")
     if len(hit) > 1:
-        die(f"'{args.name}' kommt {len(hit)}x vor - mit --index waehlen: "
+        raise ValueError(f"'{args.name}' kommt {len(hit)}x vor - mit --index waehlen: "
             f"{', '.join(str(p['index']) for p in hit)}")
     return hit
 
@@ -2107,7 +2108,10 @@ def cmd_save_attachment(args, accounts):
     with Account(acc) as a:
         parts = a.attachments(args.uid, args.folder)
 
-    chosen = select_parts(parts, args)
+    try:
+        chosen = select_parts(parts, args)
+    except ValueError as e:
+        die(str(e))
 
     saved = []
     for p in chosen:
@@ -2171,92 +2175,104 @@ def flatten_message(msg):
     return buf.getvalue()
 
 
-def cmd_delete_attachment(args, accounts):
-    """Anhang aus einer Mail im Postfach entfernen.
+def strip_attachments(a, uid, folder, sel, dry_run):
+    """Anhänge einer Mail gegen Platzhalter tauschen, auf offenem Konto.
 
     IMAP ändert keine Mail an Ort und Stelle: die bereinigte Fassung kommt per
     APPEND mit Flags und INTERNALDATE in denselben Ordner, erst danach geht
-    das Original in den Papierkorb - nie expunge."""
+    das Original in den Papierkorb - nie expunge. Fehler vor dem APPEND als
+    ValueError, damit batch mit der nächsten Mail weitermacht."""
+    folder = resolve_target(a, folder)
+    trash = resolve_target(a, "trash")
+    if folder == trash:
+        raise ValueError(f"Mail liegt im Papierkorb ({trash}) - erst in einen anderen Ordner verschieben")
+
+    raw, flags, internaldate = a.raw_message(uid, folder)
+    msg = email.message_from_bytes(raw)
+
+    sealed = [p.get_content_type() for p in msg.walk()
+              if p.get_content_type() in SEALED_TYPES]
+    if sealed:
+        raise ValueError(f"signierte/verschlüsselte Mail ({sealed[0]}) - "
+                         "Entfernen eines Anhangs würde sie zerstören")
+
+    chosen = select_parts(list_parts(msg), sel)
+
+    saved = []
+    if sel.save:
+        for p in chosen:
+            path = unique_path(target_path(p, sel, len(chosen) > 1))
+            if not dry_run:
+                with open(path, "wb") as f:
+                    f.write(part_bytes(p["part"]))
+            saved.append(path)
+
+    removed = public_parts(chosen)
+    stamp = time.strftime("%a %b %d %H:%M:%S %Y")
+    for p in chosen:
+        replace_with_placeholder(p["part"], p["name"], stamp)
+    if "X-Mozilla-Altered" not in msg:
+        msg["X-Mozilla-Altered"] = f'AttachmentDeleted; date="{stamp}"'
+    new_raw = flatten_message(msg)
+
+    mid = flat(hdr(msg, "Message-ID"))
+    result = {
+        "account": a.alias,
+        "folder": folder,
+        "uid": uid,
+        "removed": removed,
+        "bytes_before": len(raw),
+        "bytes_after": len(new_raw),
+        "saved": saved,
+    }
+
+    if dry_run:
+        result.update({"ok": True, "dry_run": True,
+                       "detail": f"[dry-run] neue Fassung -> {folder}, "
+                                 f"Original -> {trash}"})
+        return result
+
+    before = set(a.find_by_message_id(mid, folder) or [])
+    ok, detail = a.append(folder, new_raw, flags, internaldate)
+    m = re.search(r"\(uid (\d+)\)", detail)
+    new_uid = int(m.group(1)) if m else None
+
+    # Ohne UIDPLUS: die neue Fassung ist die eine UID mit dieser
+    # Message-ID, die vor dem APPEND noch nicht da war
+
+    if ok and new_uid is None and mid:
+        fresh = set(a.find_by_message_id(mid, folder) or []) - before
+        if len(fresh) == 1:
+            new_uid = int(fresh.pop())
+
+    if not ok or new_uid is None:
+
+        # Original bleibt unangetastet - lieber ein doppelter Eintrag als
+        # ein verlorener Anhang
+
+        result.update({"ok": False, "detail": f"APPEND: {detail}" if not ok else
+                       "APPEND meldete OK, die neue Fassung ist aber nicht "
+                       "auffindbar - Original bleibt liegen"})
+    else:
+        ok2, d2 = a.move(uid, trash, folder)
+        result.update({
+            "ok": ok2,
+            "new_uid": new_uid,
+            "detail": f"neue uid {new_uid}; Original -> {trash} ({d2})" if ok2
+                      else f"neue uid {new_uid}; Original NICHT geräumt: {d2}",
+        })
+    return result
+
+
+def cmd_delete_attachment(args, accounts):
+    """Anhang aus einer Mail im Postfach entfernen."""
     acc = pick_account(accounts, args.account)
     with Account(acc) as a:
-        folder = resolve_target(a, args.folder)
-        trash = resolve_target(a, "trash")
-        if folder == trash:
-            die(f"Mail liegt im Papierkorb ({trash}) - erst in einen anderen Ordner verschieben")
-
-        raw, flags, internaldate = a.raw_message(args.uid, folder)
-        msg = email.message_from_bytes(raw)
-
-        sealed = [p.get_content_type() for p in msg.walk()
-                  if p.get_content_type() in SEALED_TYPES]
-        if sealed:
-            die(f"signierte/verschlüsselte Mail ({sealed[0]}) - "
-                "Entfernen eines Anhangs würde sie zerstören")
-
-        chosen = select_parts(list_parts(msg), args)
-
-        saved = []
-        if args.save:
-            for p in chosen:
-                path = unique_path(target_path(p, args, len(chosen) > 1))
-                if not args.dry_run:
-                    with open(path, "wb") as f:
-                        f.write(part_bytes(p["part"]))
-                saved.append(path)
-
-        removed = public_parts(chosen)
-        stamp = time.strftime("%a %b %d %H:%M:%S %Y")
-        for p in chosen:
-            replace_with_placeholder(p["part"], p["name"], stamp)
-        if "X-Mozilla-Altered" not in msg:
-            msg["X-Mozilla-Altered"] = f'AttachmentDeleted; date="{stamp}"'
-        new_raw = flatten_message(msg)
-
-        mid = flat(hdr(msg, "Message-ID"))
-        result = {
-            "account": acc["alias"],
-            "folder": folder,
-            "uid": args.uid,
-            "removed": removed,
-            "bytes_before": len(raw),
-            "bytes_after": len(new_raw),
-            "saved": saved,
-        }
-
-        if args.dry_run:
-            result.update({"ok": True, "dry_run": True,
-                           "detail": f"[dry-run] neue Fassung -> {folder}, "
-                                     f"Original -> {trash}"})
-        else:
-            before = set(a.find_by_message_id(mid, folder) or [])
-            ok, detail = a.append(folder, new_raw, flags, internaldate)
-            m = re.search(r"\(uid (\d+)\)", detail)
-            new_uid = int(m.group(1)) if m else None
-
-            # Ohne UIDPLUS: die neue Fassung ist die eine UID mit dieser
-            # Message-ID, die vor dem APPEND noch nicht da war
-
-            if ok and new_uid is None and mid:
-                fresh = set(a.find_by_message_id(mid, folder) or []) - before
-                if len(fresh) == 1:
-                    new_uid = int(fresh.pop())
-
-            if not ok or new_uid is None:
-
-                # Original bleibt unangetastet - lieber ein doppelter Eintrag als
-                # ein verlorener Anhang
-
-                result.update({"ok": False, "detail": f"APPEND: {detail}" if not ok else
-                               "APPEND meldete OK, die neue Fassung ist aber nicht "
-                               "auffindbar - Original bleibt liegen"})
-            else:
-                ok2, d2 = a.move(args.uid, trash, folder)
-                result.update({
-                    "ok": ok2,
-                    "new_uid": new_uid,
-                    "detail": f"neue uid {new_uid}; Original -> {trash} ({d2})" if ok2
-                              else f"neue uid {new_uid}; Original NICHT geräumt: {d2}",
-                })
+        try:
+            result = strip_attachments(a, args.uid, args.folder, args, args.dry_run)
+        except ValueError as e:
+            die(str(e))
+    removed, saved = result["removed"], result["saved"]
 
     if args.json:
         out_json(result)
@@ -2496,6 +2512,9 @@ def run_op(a, op, accounts, targets, dry_run):
         return {**base, "ok": False, "detail": "uid fehlt"}
 
     try:
+        if action == "delete-attachment":
+            return {**base, **strip_attachments(a, uid, folder, attachment_selection(op), dry_run)}
+
         if not a.has_uid(uid, folder, readonly=dry_run):
             return {**base, "ok": False, "detail": f"uid nicht gefunden in {folder}"}
 
@@ -2535,6 +2554,15 @@ def run_op(a, op, accounts, targets, dry_run):
 
     except Exception as e:
         return {**base, "ok": False, "detail": f"{type(e).__name__}: {e}"}
+
+
+def attachment_selection(op):
+    """Anhang-Auswahl einer Batch-Operation; ohne Angabe alle außer inline."""
+    sel = argparse.Namespace(name=op.get("name"), index=op.get("index"), all=False,
+                             include_inline=bool(op.get("include_inline")),
+                             save=False, output=None)
+    sel.all = sel.name is None and sel.index is None
+    return sel
 
 
 def run_cross(a, op, accounts, targets, target_name, dry_run, base):

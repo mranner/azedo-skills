@@ -820,8 +820,11 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.73.30
+### 1.73.31
 
-- **README: `novamira` auf `name-only`.** Seine Description beansprucht jede
-  WordPress-Aufgabe, gilt aber nur für Sites, die über Novamira verwaltet
-  werden; `wp-azedo` leitet dorthin weiter.
+- **imap: `delete-attachment` im `batch`.** Bisher ging das Entfernen nur
+  einzeln, mit einem Login je Mail - beim Ausdünnen eines Gesendet-Ordners
+  über Jahre also Hunderte Logins. Im Batch reichen `action`
+  `delete-attachment`, `uid` und `folder`; ohne `name`/`index` fallen alle
+  Anhänge außer den inline eingebetteten. Mails ohne Anhang oder mit
+  Signatur melden einen Fehler und der Lauf geht weiter.
