@@ -3,6 +3,15 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.73.32
+
+- **md2pdf: breite Tabellen.** Die erste Tabellenspalte bricht im
+  eingebauten CSS nicht mehr um, Zeilentitel bleiben einzeilig. Neue Option
+  `--compact-tables` setzt Tabellen in 9.5pt mit engerem Padding, damit eine
+  Tabelle mit vielen Spalten auf eine Seite passt; sie wirkt auch zusammen
+  mit `--css`. Auslöser: eine sechsspaltige Prognose-Tabelle lief auf zwei
+  Seiten.
+
 ### 1.73.31
 
 - **imap: `delete-attachment` im `batch`.** Bisher ging das Entfernen nur

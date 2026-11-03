@@ -820,11 +820,11 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.73.31
+### 1.73.32
 
-- **imap: `delete-attachment` im `batch`.** Bisher ging das Entfernen nur
-  einzeln, mit einem Login je Mail - beim Ausdünnen eines Gesendet-Ordners
-  über Jahre also Hunderte Logins. Im Batch reichen `action`
-  `delete-attachment`, `uid` und `folder`; ohne `name`/`index` fallen alle
-  Anhänge außer den inline eingebetteten. Mails ohne Anhang oder mit
-  Signatur melden einen Fehler und der Lauf geht weiter.
+- **md2pdf: breite Tabellen.** Die erste Tabellenspalte bricht im
+  eingebauten CSS nicht mehr um, Zeilentitel bleiben einzeilig. Neue Option
+  `--compact-tables` setzt Tabellen in 9.5pt mit engerem Padding, damit eine
+  Tabelle mit vielen Spalten auf eine Seite passt; sie wirkt auch zusammen
+  mit `--css`. Auslöser: eine sechsspaltige Prognose-Tabelle lief auf zwei
+  Seiten.

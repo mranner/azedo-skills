@@ -18,7 +18,7 @@ im Skill-Verzeichnis) zu einem PDF mit Typora-nahem Look.
 **Pipeline:** `pandoc` -> self-contained HTML (CSS + SVG inline) -> headless
 Chrome `--print-to-pdf`. Kein LaTeX noetig. Laeuft unter macOS, Linux und FreeBSD.
 
-**Aufruf:** `"$SKILL_DIR/md2pdf" <input.md> [output.pdf] [--css <file>] [--no-mermaid]`
+**Aufruf:** `"$SKILL_DIR/md2pdf" <input.md> [output.pdf] [--css <file>] [--no-mermaid] [--compact-tables]`
 
 `$SKILL_DIR` ist das Base Directory dieses Skills (dort wo diese SKILL.md liegt).
 
@@ -31,6 +31,9 @@ Chrome `--print-to-pdf`. Kein LaTeX noetig. Laeuft unter macOS, Linux und FreeBS
 
 # Ohne Mermaid-Rendering (Bloecke bleiben als Code)
 "$SKILL_DIR/md2pdf" docs/Review.md --no-mermaid
+
+# Breite Tabellen (viele Spalten) auf eine Seite bringen
+"$SKILL_DIR/md2pdf" docs/Prognose.md --compact-tables
 
 # Eigenes CSS statt des eingebauten Stylesheets
 "$SKILL_DIR/md2pdf" docs/Review.md --css my-style.css
@@ -64,6 +67,10 @@ es wird eine Warnung ausgegeben (kein Abbruch).
 |----------------|-----------------------------------------------------|
 | `--css <file>` | Eigenes Stylesheet statt des eingebauten            |
 | `--no-mermaid` | Mermaid-Rendering ausschalten (Bloecke als Code)    |
+| `--compact-tables` | Tabellen mit 9.5pt-Schrift und engerem Padding, fuer breite Tabellen; wirkt auch zusammen mit `--css` |
+
+Die erste Tabellenspalte bricht nie um (`td:first-child { white-space: nowrap; }`
+im eingebauten CSS) - Zeilentitel bleiben einzeilig.
 
 ## Env-Overrides
 

@@ -3,9 +3,9 @@
 # md2pdf -- Markdown -> "schoenes" PDF (Typora-naher Look)
 # Pipeline: pandoc -> self-contained HTML (CSS + SVG inline) -> headless Chrome --print-to-pdf
 # Mermaid-Codebloecke (```mermaid) werden via mmdc zu SVG gerendert und eingebettet (optional).
-# version 1.73.31
+# version 1.73.32
 #
-# Usage:  md2pdf <input.md> [output.pdf] [--css <file>] [--no-mermaid]
+# Usage:  md2pdf <input.md> [output.pdf] [--css <file>] [--no-mermaid] [--compact-tables]
 #         (ohne output.pdf -> gleicher Name/Ordner mit .pdf; ueberschreibt eine vorhandene .pdf)
 #
 # Cross-Platform: macOS, Linux, FreeBSD. Chrome/Chromium wird je OS gesucht,
@@ -18,6 +18,7 @@ IN=""
 OUT=""
 CSS_OVERRIDE=""
 USE_MERMAID=1
+COMPACT_TABLES=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -25,8 +26,10 @@ while [[ $# -gt 0 ]]; do
       CSS_OVERRIDE="${2:-}"; shift 2 ;;
     --no-mermaid)
       USE_MERMAID=0; shift ;;
+    --compact-tables)
+      COMPACT_TABLES=1; shift ;;
     -h|--help)
-      echo "Usage: md2pdf <input.md> [output.pdf] [--css <file>] [--no-mermaid]"; exit 0 ;;
+      echo "Usage: md2pdf <input.md> [output.pdf] [--css <file>] [--no-mermaid] [--compact-tables]"; exit 0 ;;
     -*)
       echo "Unbekannte Option: $1" >&2; exit 1 ;;
     *)
@@ -39,7 +42,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$IN" || ! -f "$IN" ]]; then
-  echo "Usage: md2pdf <input.md> [output.pdf] [--css <file>] [--no-mermaid]" >&2
+  echo "Usage: md2pdf <input.md> [output.pdf] [--css <file>] [--no-mermaid] [--compact-tables]" >&2
   exit 1
 fi
 OUT="${OUT:-${IN%.*}.pdf}"
@@ -138,6 +141,7 @@ pre code { background: none; padding: 0; }
 table { border-collapse: collapse; width: 100%; margin: .8em 0; font-size: .92em; }
 tr { page-break-inside: avoid; } thead { display: table-header-group; }
 th,td { border: 1px solid #d0d7de; padding: 6px 10px; text-align: left; vertical-align: top; }
+td:first-child { white-space: nowrap; }
 th { background: #f2f4f7; font-weight: 600; } tr:nth-child(even) td { background: #fafbfc; }
 blockquote { margin: .8em 0; padding: .2em 1em; color: #57606a; border-left: 4px solid #d0d7de; background: #fafbfc; }
 img,svg { max-width: 100%; height: auto; }
@@ -145,6 +149,16 @@ img,svg { max-width: 100%; height: auto; }
 hr { border: none; border-top: 1px solid #d8dee4; margin: 1.6em 0; }
 h1,h2,h3 { page-break-after: avoid; }
 CSS
+fi
+
+# Breite Tabellen: kleinere Schrift, engeres Padding
+CSS_ARGS=(--css "$CSS_FILE")
+if [[ "$COMPACT_TABLES" -eq 1 ]]; then
+  cat > "$TMP/compact.css" <<'CSS'
+table { font-size: 9.5pt; }
+th,td { padding: 3px 8px; }
+CSS
+  CSS_ARGS+=(--css "$TMP/compact.css")
 fi
 
 # --- Lua-Filter fuer Mermaid nur schreiben, wenn mmdc verfuegbar ---
@@ -205,7 +219,7 @@ fi
 ( cd "$IN_DIR" && pandoc "$IN_BASE" \
     --standalone --embed-resources \
     ${LUA_ARGS[@]+"${LUA_ARGS[@]}"} \
-    --css "$CSS_FILE" --resource-path=. \
+    "${CSS_ARGS[@]}" --resource-path=. \
     --metadata pagetitle="${IN_BASE%.*}" \
     -o "$TMP/doc.html" )
 
