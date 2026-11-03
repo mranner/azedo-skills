@@ -2,7 +2,7 @@
 
 # Google Analytics 4 REST API helper
 # stdlib only, no pip dependencies
-# version 1.73.32
+# version 1.73.33
 
 import argparse
 import json
@@ -21,8 +21,12 @@ _sa_config = None
 # Datenstreams anlegen) fordern edit an.
 SCOPE_READONLY = "https://www.googleapis.com/auth/analytics.readonly"
 SCOPE_EDIT = "https://www.googleapis.com/auth/analytics.edit"
+SCOPE_USERS_READONLY = "https://www.googleapis.com/auth/analytics.manage.users.readonly"
+SCOPE_USERS = "https://www.googleapis.com/auth/analytics.manage.users"
 
 ADMIN_BASE = "https://analyticsadmin.googleapis.com/v1beta"
+# accessBindings gibt es nur in v1alpha
+ADMIN_ALPHA = "https://analyticsadmin.googleapis.com/v1alpha"
 
 def cryptography_hint():
     # Der Weg zum Paket ist je Plattform ein anderer; ein pauschales
@@ -151,7 +155,8 @@ def api_call(method, url, data=None, scope=SCOPE_READONLY):
 
     try:
         with urllib.request.urlopen(req) as resp:
-            return json.loads(resp.read())
+            # DELETE liefert einen leeren Body
+            return json.loads(resp.read() or b"{}")
     except urllib.error.HTTPError as e:
         body = e.read().decode()
         print(f"Error: {e.code} {body}", file=sys.stderr)
@@ -562,6 +567,85 @@ def cmd_create_web_stream(args):
           f"\t{web.get('defaultUri', '')}\t{result.get('displayName', '')}")
 
 
+ACCESS_ROLES = ("viewer", "analyst", "editor", "admin")
+
+
+def _access_parent(args):
+    return f"accounts/{args.account}" if args.account else f"properties/{args.property}"
+
+
+def _fetch_access_bindings(parent):
+    """Alle Zugriffsbindungen eines Kontos oder einer Property holen (paginiert)"""
+    bindings = []
+    page_token = None
+    while True:
+        url = f"{ADMIN_ALPHA}/{parent}/accessBindings?pageSize=200"
+        if page_token:
+            url += f"&pageToken={urllib.parse.quote(page_token)}"
+        result = api_call("GET", url, scope=SCOPE_USERS_READONLY)
+        bindings.extend(result.get("accessBindings", []))
+        page_token = result.get("nextPageToken")
+        if not page_token:
+            break
+    return bindings
+
+
+def _find_access_binding(parent, user):
+    for b in _fetch_access_bindings(parent):
+        if b.get("user", "").lower() == user.lower():
+            return b
+    return None
+
+
+def _roles_text(binding):
+    return ",".join(r.split("/")[-1] for r in binding.get("roles", []))
+
+
+def cmd_list_access(args):
+    """List access bindings of an account or property (needs Administrator role)"""
+    bindings = _fetch_access_bindings(_access_parent(args))
+
+    if args.json:
+        print(json.dumps(bindings, indent=2, ensure_ascii=False))
+        return
+
+    if not bindings:
+        print("(keine direkten Zugriffe)")
+        return
+
+    print("user\troles\tbindingId")
+    for b in bindings:
+        print(f"{b.get('user', '')}\t{_roles_text(b)}\t{b['name'].split('/')[-1]}")
+
+
+def cmd_add_access(args):
+    """Grant a role to a user (needs Administrator role)"""
+    parent = _access_parent(args)
+
+    # Duplikatschutz: eine zweite Bindung fuer dieselbe Adresse lehnt die API ab;
+    # eine abweichende Rolle wird gemeldet, nicht still geaendert.
+    existing = _find_access_binding(parent, args.user)
+    if existing:
+        print(f"Bereits vorhanden: {existing.get('user')}\t{_roles_text(existing)} — nichts geaendert")
+        return
+
+    body = {"user": args.user, "roles": [f"predefinedRoles/{args.role}"]}
+    result = api_call("POST", f"{ADMIN_ALPHA}/{parent}/accessBindings", body, scope=SCOPE_USERS)
+    print(f"Angelegt: {result.get('user')}\t{_roles_text(result)}\t{result['name'].split('/')[-1]}")
+
+
+def cmd_remove_access(args):
+    """Remove a user's access binding (needs Administrator role)"""
+    parent = _access_parent(args)
+    existing = _find_access_binding(parent, args.user)
+    if not existing:
+        print(f"Kein direkter Zugriff fuer {args.user} auf {parent} — nichts entfernt")
+        return
+
+    api_call("DELETE", f"{ADMIN_ALPHA}/{existing['name']}", scope=SCOPE_USERS)
+    print(f"Entfernt: {existing.get('user')}\t{_roles_text(existing)}")
+
+
 def cmd_version(args):
     # Version aus dem Kopfkommentar, den der Release-Workflow mitzieht
     with open(os.path.abspath(__file__)) as f:
@@ -661,6 +745,25 @@ def main():
                       help="Set retention in months (26/38/50 require Analytics 360)")
     p_dr.add_argument("--json", action="store_true", help="Raw JSON output")
 
+    # access bindings
+    def access_target(p):
+        g = p.add_mutually_exclusive_group(required=True)
+        g.add_argument("--account", help="Account ID")
+        g.add_argument("--property", "-p", help="Property ID")
+
+    p_la = sub.add_parser("list-access", help="List access bindings (needs Administrator role)")
+    access_target(p_la)
+    p_la.add_argument("--json", action="store_true", help="Raw JSON output")
+
+    p_aa = sub.add_parser("add-access", help="Grant a role to a user (needs Administrator role)")
+    access_target(p_aa)
+    p_aa.add_argument("--user", required=True, help="E-mail address of the Google account")
+    p_aa.add_argument("--role", required=True, choices=ACCESS_ROLES, help="Role")
+
+    p_ra = sub.add_parser("remove-access", help="Remove a user's access (needs Administrator role)")
+    access_target(p_ra)
+    p_ra.add_argument("--user", required=True, help="E-mail address of the Google account")
+
     args = parser.parse_args()
     if not args.command:
         parser.print_help()
@@ -681,6 +784,9 @@ def main():
         "list-custom-dimensions": cmd_list_custom_dimensions,
         "create-custom-dimension": cmd_create_custom_dimension,
         "data-retention": cmd_data_retention,
+        "list-access": cmd_list_access,
+        "add-access": cmd_add_access,
+        "remove-access": cmd_remove_access,
     }
     cmds[args.command](args)
 

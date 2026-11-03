@@ -2,9 +2,10 @@
 name: google-analytics
 description: >
   Google Analytics 4: Traffic-, Realtime- und Conversion-Reports abfragen,
-  Properties und Web-Datenstreams anlegen, Messungs-IDs auslesen. Auch bei
-  "wie viele Besucher", "Top-Seiten", "leg eine GA4-Property an", "welche
-  Messungs-ID". Trigger: /google-analytics, /ga4.
+  Properties und Web-Datenstreams anlegen, Messungs-IDs auslesen, Zugriffe
+  vergeben. Auch bei "wie viele Besucher", "Top-Seiten", "leg eine
+  GA4-Property an", "welche Messungs-ID", "gib X Zugriff auf GA4".
+  Trigger: /google-analytics, /ga4.
 ---
 
 # google-analytics -- Google Analytics 4
@@ -23,7 +24,8 @@ GA4-Daten (Reports, Realtime, Conversions, Metadaten) werden ueber das gebundelt
 - Service Account JSON unter `~/.config/ga4-service-account.json`
   (oder Pfad via `GA4_SERVICE_ACCOUNT` Umgebungsvariable)
 - Service Account muss in den GA4-Properties hinterlegt sein: **Betrachter** genuegt fuer
-  alle lesenden Subcommands, die schreibenden brauchen **Bearbeiter**
+  alle lesenden Subcommands, die schreibenden brauchen **Bearbeiter**, die
+  Zugriffsverwaltung **Administrator**
   (siehe [Schreibende Operationen: Rechte](#schreibende-operationen-rechte))
 
 ### Erster Einsatz
@@ -216,6 +218,30 @@ GA4 steht standardmaessig auf **2 Monate** — Explorations reichen dann nur zwe
 zurueck, unabhaengig von den Custom Dimensions. Erlaubte Werte: 2, 14 sowie 26/38/50
 (letztere nur mit Analytics 360). Die Umstellung wirkt ebenfalls nur vorwaerts.
 
+### Zugriffsverwaltung
+
+```bash
+# Direkte Zugriffe auf Konto- bzw. Property-Ebene
+python3 "$SKILL_DIR/google-analytics" list-access --account 123456
+python3 "$SKILL_DIR/google-analytics" list-access -p 123123123
+
+# Rolle vergeben: viewer, analyst, editor oder admin
+python3 "$SKILL_DIR/google-analytics" add-access --account 123456 \
+  --user max.mustermann@example.org --role viewer
+
+# Zugriff entfernen
+python3 "$SKILL_DIR/google-analytics" remove-access --account 123456 \
+  --user max.mustermann@example.org
+```
+
+Die Adresse muss ein Google-Konto sein. `list-access` zeigt nur die direkt
+vergebenen Zugriffe der Ebene: Wer auf dem Konto steht, erbt die Rolle auf
+jede Property, taucht dort in `list-access -p` aber nicht auf.
+
+`add-access` prüft vorab, ob die Adresse schon eine Bindung auf der Ebene hat,
+und meldet dann „Bereits vorhanden" samt Rolle. Eine abweichende Rolle ändert
+es **nicht** - dafür `remove-access` und danach `add-access`.
+
 ### Schreibende Operationen: Rechte
 
 `create-custom-dimension`, `data-retention --set`, `create-property` und
@@ -229,6 +255,12 @@ API mit `403`. Rolle setzen unter GA4 → Verwaltung → Property-Zugriffsverwal
 eigene Zugriffsliste hat. Rechte, die nur je Property vergeben sind, reichen
 dafür nicht. Auf die neue Property erbt der Service Account die Kontorolle,
 `create-web-stream` geht danach ohne weiteren Schritt.
+
+**Die Zugriffsverwaltung braucht die Rolle Administrator** auf der Ebene, auf
+der sie arbeitet - auch `list-access`, das nur liest. Mit Bearbeiter oder
+weniger quittiert die API mit `403 PERMISSION_DENIED`. Die drei Subcommands
+nutzen die Admin API v1alpha (`accessBindings`) mit dem Scope
+`analytics.manage.users` bzw. `analytics.manage.users.readonly`.
 
 ## Workflow
 

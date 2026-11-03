@@ -820,11 +820,11 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.73.32
+### 1.73.33
 
-- **md2pdf: breite Tabellen.** Die erste Tabellenspalte bricht im
-  eingebauten CSS nicht mehr um, Zeilentitel bleiben einzeilig. Neue Option
-  `--compact-tables` setzt Tabellen in 9.5pt mit engerem Padding, damit eine
-  Tabelle mit vielen Spalten auf eine Seite passt; sie wirkt auch zusammen
-  mit `--css`. Auslöser: eine sechsspaltige Prognose-Tabelle lief auf zwei
-  Seiten.
+- **google-analytics: Zugriffsverwaltung.** Neue Subcommands `list-access`,
+  `add-access` und `remove-access` auf Konto- (`--account`) oder
+  Property-Ebene (`-p`), Rollen viewer, analyst, editor und admin. Grundlage
+  ist die Admin API v1alpha `accessBindings`. `add-access` meldet eine schon
+  vorhandene Bindung, statt sie zu ändern. Der Service Account braucht dafür
+  selbst die Rolle Administrator auf der Ebene, sonst kommt 403.

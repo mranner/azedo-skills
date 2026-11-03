@@ -3,6 +3,15 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.73.33
+
+- **google-analytics: Zugriffsverwaltung.** Neue Subcommands `list-access`,
+  `add-access` und `remove-access` auf Konto- (`--account`) oder
+  Property-Ebene (`-p`), Rollen viewer, analyst, editor und admin. Grundlage
+  ist die Admin API v1alpha `accessBindings`. `add-access` meldet eine schon
+  vorhandene Bindung, statt sie zu ändern. Der Service Account braucht dafür
+  selbst die Rolle Administrator auf der Ebene, sonst kommt 403.
+
 ### 1.73.32
 
 - **md2pdf: breite Tabellen.** Die erste Tabellenspalte bricht im
