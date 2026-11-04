@@ -452,7 +452,7 @@ Einstieg und Routing für jede WordPress-Aufgabe. Macht selbst keine WordPress-A
 - **Was ist die Aufgabe?** Routing-Tabelle: Code (Block-Theme, Blöcke, Patterns, Plugin, REST-Endpunkt, Performance) zu den offiziellen WordPress-Skills, Betrieb und Inhalte zu `wp-cli`, `wp-rest`, `wp-nf`, `wp-pys`, `wp-rcb`, `mainwp`, `novamira`; ersetzt `wordpress-router`
 - azedo-Regeln, die in den offiziellen Skills fehlen: kein Docker, `php-formatting` statt WPCS, `eval-file -` wegen tcsh, kein `--allow-root`, Locale vor Core-Updates, Code in Git und Inhalte in der DB
 - `references/`: ACF (Local JSON, Blöcke, Lizenz), Abnahme-Checkliste für Block-Themes, Go-Live-Liste
-- **Voraussetzung:** die offiziellen Skills aus `https://github.com/WordPress/agent-skills`, geklont nach `~/.claude/vendor/wordpress-agent-skills` und je Skill nach `~/.claude/skills/` verlinkt (ohne `wordpress-router` und WooCommerce) - `install.sh` richtet sie nicht ein
+- **Voraussetzung:** die offiziellen Skills aus `https://github.com/WordPress/agent-skills`, geklont nach `~/.claude/vendor/wordpress-agent-skills` und je Skill nach `~/.claude/skills/` verlinkt (ohne `wordpress-router` und WooCommerce) - `install.sh` richtet sie nicht ein, meldet aber, wenn einer fehlt
 
 **Trigger:** `/wp-azedo` oder vor jeder Arbeit an einer WordPress-Site, einem Theme oder Plugin ("bau ein Theme", "Go-Live vorbereiten").
 
@@ -827,11 +827,11 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.73.35
+### 1.73.36
 
-- **README: Skill-Liste und Kontextbudget.** Regel ergänzt: erst die
-  Description kürzen, `name-only` nur für Skills mit Wiki-Verweis, Router oder
-  ausdrücklichem `/name`. Dazu host-eigene Skills außerhalb des Repos
-  (`whatsapp-desktop` am Mac) und das Entfernen ersetzter Fremd-Skills
-  (`wordpress-pro`). Auslöser: am Mac fehlte `xlsx` die Description, weil das
-  Budget voll war.
+- **install.sh: Hinweis auf fehlende WordPress-Skills.** Am Ende prüft
+  `install.sh`, ob die sieben offiziellen WordPress-Skills, auf die `wp-azedo`
+  weiterleitet, in `~/.claude/skills/` liegen. Fehlt einer, gibt es Klon- und
+  Link-Befehl aus; eingerichtet wird nichts. Liegt noch der abgelöste
+  `wordpress-pro` dort, kommt ein Hinweis zum Entfernen. Auslöser: am Mac
+  fehlten die Skills unbemerkt, dafür lag `wordpress-pro` noch da.

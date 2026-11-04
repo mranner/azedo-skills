@@ -203,6 +203,29 @@ if [ ! -f "$HOME/.claude/swaks.json" ]; then
     echo "  \$EDITOR \"$HOME/.claude/swaks.json\""
 fi
 
+# Offizielle WordPress-Skills: wp-azedo leitet Code-Aufgaben dorthin weiter,
+# install.sh richtet sie aber nicht ein -> nur melden.
+
+WP_VENDOR="$HOME/.claude/vendor/wordpress-agent-skills"
+wp_missing=""
+for skill in wp-block-development wp-block-themes wp-patterns wp-performance wp-plugin-development wp-project-triage wp-rest-api; do
+    [ -e "$SKILLS_DIR/$skill/SKILL.md" ] || wp_missing="$wp_missing $skill"
+done
+if [ -n "$wp_missing" ]; then
+    echo ""
+    echo "HINWEIS: offizielle WordPress-Skills fehlen:$wp_missing"
+    echo "wp-azedo leitet Code-Aufgaben dorthin weiter. Einrichten:"
+    echo "  [ -d \"$WP_VENDOR\" ] || git clone https://github.com/WordPress/agent-skills \"$WP_VENDOR\""
+    echo "  for s in$wp_missing; do ln -s \"$WP_VENDOR/skills/\$s\" \"$SKILLS_DIR/\$s\"; done"
+fi
+
+if [ -e "$SKILLS_DIR/wordpress-pro" ]; then
+    echo ""
+    echo "HINWEIS: $SKILLS_DIR/wordpress-pro ist abgeloest durch wp-azedo"
+    echo "und die offiziellen WordPress-Skills. Entfernen:"
+    echo "  rm -r \"$SKILLS_DIR/wordpress-pro\""
+fi
+
 echo ""
 echo "Fertig. Jetzt .env anlegen und setup ausfuehren:"
 echo "  python3 \"\$SKILL_DIR/kanboard\" setup"

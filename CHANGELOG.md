@@ -3,6 +3,15 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.73.36
+
+- **install.sh: Hinweis auf fehlende WordPress-Skills.** Am Ende prüft
+  `install.sh`, ob die sieben offiziellen WordPress-Skills, auf die `wp-azedo`
+  weiterleitet, in `~/.claude/skills/` liegen. Fehlt einer, gibt es Klon- und
+  Link-Befehl aus; eingerichtet wird nichts. Liegt noch der abgelöste
+  `wordpress-pro` dort, kommt ein Hinweis zum Entfernen. Auslöser: am Mac
+  fehlten die Skills unbemerkt, dafür lag `wordpress-pro` noch da.
+
 ### 1.73.35
 
 - **README: Skill-Liste und Kontextbudget.** Regel ergänzt: erst die
