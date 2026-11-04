@@ -1,6 +1,6 @@
 # Task-Inhalte - Subcommands
 
-**Inhalt:** Datei anhängen · Kommentare (lesen, hinzufügen, ändern, löschen) · Anhänge (auflisten, herunterladen, löschen) · Handoff-Feld · Teilaufgaben · Task-Verbindungen · Tags (Kimai- und Jira-Verknüpfung)
+**Inhalt:** Datei anhängen · Kommentare (lesen, hinzufügen, ändern, löschen) · Anhänge (auflisten, herunterladen, löschen, ersetzen) · Handoff-Feld · Teilaufgaben · Task-Verbindungen · Tags (Kimai- und Jira-Verknüpfung)
 
 Kommentare, Anhänge, Teilaufgaben, Verknüpfungen, Tags und das Handoff-Feld.
 Aufruf durchgehend `python3 "$SKILL_DIR/kanboard" <subcommand>`.
@@ -73,7 +73,19 @@ Ohne `--output` wird die Datei unter `.tmp/` gespeichert.
 python3 "$SKILL_DIR/kanboard" remove-file <file_id>
 ```
 
-`file_id` erhaelt man via `list-files`. Zum Aktualisieren eines Anhangs: erst `remove-file`, dann `attach-file`.
+`file_id` erhaelt man via `list-files`.
+
+### Anhang ersetzen
+
+```bash
+python3 "$SKILL_DIR/kanboard" replace-file <task_id> --file /absoluter/pfad/zur/datei
+```
+
+Zum Aktualisieren eines Anhangs `replace-file` statt `remove-file` plus `attach-file`:
+es hängt die neue Fassung an und entfernt danach **alle** älteren Anlagen mit demselben
+Dateinamen (`removed` im Ergebnis). Scheitert der Upload, bleiben die alten unberührt.
+Scheitert das Entfernen, steht die neue Fassung schon am Task; die übrig gebliebenen
+IDs stehen in `failed`, Exit-Code 1.
 
 ### Handoff-Feld (TaskHandoff-Plugin)
 

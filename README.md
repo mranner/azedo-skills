@@ -820,11 +820,12 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.73.33
+### 1.73.34
 
-- **google-analytics: Zugriffsverwaltung.** Neue Subcommands `list-access`,
-  `add-access` und `remove-access` auf Konto- (`--account`) oder
-  Property-Ebene (`-p`), Rollen viewer, analyst, editor und admin. Grundlage
-  ist die Admin API v1alpha `accessBindings`. `add-access` meldet eine schon
-  vorhandene Bindung, statt sie zu ändern. Der Service Account braucht dafür
-  selbst die Rolle Administrator auf der Ebene, sonst kommt 403.
+- **kanboard: `replace-file`.** Neues Subcommand ersetzt einen Anhang in einem
+  Schritt: erst die neue Fassung anhängen, danach alle älteren Anlagen mit
+  demselben Dateinamen entfernen (`removed` im Ergebnis). Scheitert der Upload,
+  bleiben die alten unberührt. Antwortet `removeTaskFile` mit PHP-Warnings statt
+  JSON, landet die ID in `failed` und das Script endet mit Exit-Code 1.
+  Auslöser: beim Aktualisieren einer Handoff-Anlage hingen mehrere gleichnamige
+  Fassungen am Task, weil das Entfernen ein eigener Schritt war.

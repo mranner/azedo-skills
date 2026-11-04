@@ -3,6 +3,16 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.73.34
+
+- **kanboard: `replace-file`.** Neues Subcommand ersetzt einen Anhang in einem
+  Schritt: erst die neue Fassung anhängen, danach alle älteren Anlagen mit
+  demselben Dateinamen entfernen (`removed` im Ergebnis). Scheitert der Upload,
+  bleiben die alten unberührt. Antwortet `removeTaskFile` mit PHP-Warnings statt
+  JSON, landet die ID in `failed` und das Script endet mit Exit-Code 1.
+  Auslöser: beim Aktualisieren einer Handoff-Anlage hingen mehrere gleichnamige
+  Fassungen am Task, weil das Entfernen ein eigener Schritt war.
+
 ### 1.73.33
 
 - **google-analytics: Zugriffsverwaltung.** Neue Subcommands `list-access`,

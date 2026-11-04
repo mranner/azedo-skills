@@ -2,7 +2,7 @@
 
 # Kanboard JSON-RPC 2.0 API helper
 # stdlib only, no pip dependencies
-# version 1.73.33
+# version 1.73.34
 
 import argparse
 import base64
@@ -559,8 +559,9 @@ def cmd_remove_task(args):
     output(result)
 
 
-def cmd_attach_file(args):
-    filepath = os.path.abspath(args.file)
+def attach_file(task_id, file):
+    """Upload a file to a task; returns (file_id, filename)."""
+    filepath = os.path.abspath(file)
     if not os.path.exists(filepath):
         print(f"Error: file '{filepath}' not found", file=sys.stderr)
         sys.exit(1)
@@ -569,9 +570,9 @@ def cmd_attach_file(args):
     if size > 10 * 1024 * 1024:
         print(f"Warning: file is {size // (1024*1024)} MB, upload may be slow", file=sys.stderr)
 
-    task = rpc_call("getTask", {"task_id": int(args.task_id)})
+    task = rpc_call("getTask", {"task_id": int(task_id)})
     if not task:
-        print(f"Error: task {args.task_id} not found", file=sys.stderr)
+        print(f"Error: task {task_id} not found", file=sys.stderr)
         sys.exit(1)
 
     with open(filepath, "rb") as f:
@@ -580,11 +581,45 @@ def cmd_attach_file(args):
     filename = os.path.basename(filepath)
     result = rpc_call("createTaskFile", {
         "project_id": int(task["project_id"]),
-        "task_id": int(args.task_id),
+        "task_id": int(task_id),
         "filename": filename,
         "blob": blob
     })
-    output({"file_id": result, "filename": filename})
+    return result, filename
+
+
+def cmd_attach_file(args):
+    file_id, filename = attach_file(args.task_id, args.file)
+    output({"file_id": file_id, "filename": filename})
+
+
+def cmd_replace_file(args):
+    filename = os.path.basename(os.path.abspath(args.file))
+    files = rpc_call("getAllTaskFiles", {"task_id": int(args.task_id)}) or []
+    old = [f for f in files if f["name"] == filename]
+
+    # attach first, so a failed upload leaves the old files in place
+    file_id, filename = attach_file(args.task_id, args.file)
+    if not file_id:
+        print(f"Error: upload of '{filename}' failed, old files kept", file=sys.stderr)
+        sys.exit(1)
+
+    removed, failed = [], []
+    for f in old:
+        # removeTaskFile answers an unknown file_id with false plus PHP warnings
+        # instead of JSON; rpc_try turns that into None
+        if rpc_try("removeTaskFile", {"file_id": int(f["id"])}) is True:
+            removed.append(int(f["id"]))
+        else:
+            failed.append(int(f["id"]))
+
+    result = {"file_id": file_id, "filename": filename, "removed": removed}
+    if failed:
+        result["failed"] = failed
+        result["error"] = "alte Anlagen nicht entfernt, neue Fassung ist angehängt"
+        output(result)
+        sys.exit(1)
+    output(result)
 
 
 def cmd_set_handoff(args):
@@ -1600,6 +1635,12 @@ def main():
     p.add_argument("task_id")
     p.add_argument("--file", required=True)
     p.set_defaults(func=cmd_attach_file)
+
+    # replace-file
+    p = sub.add_parser("replace-file")
+    p.add_argument("task_id")
+    p.add_argument("--file", required=True)
+    p.set_defaults(func=cmd_replace_file)
 
     # set-handoff (TaskHandoff-Plugin)
     p = sub.add_parser("set-handoff")
