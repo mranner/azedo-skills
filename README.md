@@ -60,9 +60,11 @@ Auf jedem Arbeitsrechner in `~/.claude/settings.json` gleich setzen:
 }
 ```
 
-- `name-only` nur für Skills, die ein Wiki-Verweis oder ein ausdrückliches
-  `/name` lädt. `user-invocable-only` und `off` blenden den Skill auch für das
-  Modell aus.
+- Zuerst die Description kürzen. `name-only` nur für Skills, die ein
+  Wiki-Verweis, ein Router (`wp-azedo`) oder ein ausdrückliches `/name` lädt:
+  ohne Description greift ein Skill nur noch, wenn schon sein Name den Fall
+  verrät (`lit` für „PDF nach Markdown" tut das nicht). `user-invocable-only`
+  und `off` blenden den Skill auch für das Modell aus.
 - Plugin-Skills erfasst `skillOverrides` nicht; sie lassen sich nur als ganzes
   Plugin abschalten (`/plugin`). Abgeschaltet sind `hcloud@hcloud-skills`,
   `document-skills@anthropic-agent-skills` und
@@ -73,6 +75,11 @@ Auf jedem Arbeitsrechner in `~/.claude/settings.json` gleich setzen:
   weiterleitet. Die Description von `novamira` deckt jede WordPress-Aufgabe ab
   und konkurriert sonst mit `wp-cli` und `wp-rest`.
 - Auf Servern ohne Chrome zusätzlich `"claude-in-chrome": "name-only"`.
+- Host-eigene Skills außerhalb dieses Repos zusätzlich eintragen, am Mac
+  `"whatsapp-desktop": "name-only"`.
+- Fremde Skills, die ein azedo-Skill ersetzt, entfernen statt nur abschalten -
+  am Mac lag noch `wordpress-pro` neben `wp-azedo`. Die offiziellen
+  WordPress-Skills gehören auf jeden Host, siehe [wp-azedo](#wp-azedo).
 - Die Skills aus dem claude.ai-Account-Sync erfasst `skillOverrides`, Schlüssel ist
   der kurze Name (`morning`, nicht `anthropic-skills:morning`). Die Änderung
   greift ohne Neustart.
@@ -820,12 +827,11 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.73.34
+### 1.73.35
 
-- **kanboard: `replace-file`.** Neues Subcommand ersetzt einen Anhang in einem
-  Schritt: erst die neue Fassung anhängen, danach alle älteren Anlagen mit
-  demselben Dateinamen entfernen (`removed` im Ergebnis). Scheitert der Upload,
-  bleiben die alten unberührt. Antwortet `removeTaskFile` mit PHP-Warnings statt
-  JSON, landet die ID in `failed` und das Script endet mit Exit-Code 1.
-  Auslöser: beim Aktualisieren einer Handoff-Anlage hingen mehrere gleichnamige
-  Fassungen am Task, weil das Entfernen ein eigener Schritt war.
+- **README: Skill-Liste und Kontextbudget.** Regel ergänzt: erst die
+  Description kürzen, `name-only` nur für Skills mit Wiki-Verweis, Router oder
+  ausdrücklichem `/name`. Dazu host-eigene Skills außerhalb des Repos
+  (`whatsapp-desktop` am Mac) und das Entfernen ersetzter Fremd-Skills
+  (`wordpress-pro`). Auslöser: am Mac fehlte `xlsx` die Description, weil das
+  Budget voll war.

@@ -3,6 +3,15 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.73.35
+
+- **README: Skill-Liste und Kontextbudget.** Regel ergänzt: erst die
+  Description kürzen, `name-only` nur für Skills mit Wiki-Verweis, Router oder
+  ausdrücklichem `/name`. Dazu host-eigene Skills außerhalb des Repos
+  (`whatsapp-desktop` am Mac) und das Entfernen ersetzter Fremd-Skills
+  (`wordpress-pro`). Auslöser: am Mac fehlte `xlsx` die Description, weil das
+  Budget voll war.
+
 ### 1.73.34
 
 - **kanboard: `replace-file`.** Neues Subcommand ersetzt einen Anhang in einem
