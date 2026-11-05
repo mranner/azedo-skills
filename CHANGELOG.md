@@ -3,6 +3,14 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.73.37
+
+- **kanboard: Mail wird zum Arbeitsauftrag.** `/kanboard new` übernimmt eine
+  eingefügte Mail nicht mehr wörtlich, sondern macht daraus Ziel, Offen,
+  Umsetzung und Rückmeldung, dazu die Herkunft in einem Satz. Signatur und
+  Disclaimer fallen weg. Workflow-Schritt 1: Beschreibung = was zu tun ist.
+  Auslöser: CR4962, dort landete die Mail samt Kopfzeilen im Task.
+
 ### 1.73.36
 
 - **install.sh: Hinweis auf fehlende WordPress-Skills.** Am Ende prüft

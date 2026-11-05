@@ -827,11 +827,10 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.73.36
+### 1.73.37
 
-- **install.sh: Hinweis auf fehlende WordPress-Skills.** Am Ende prüft
-  `install.sh`, ob die sieben offiziellen WordPress-Skills, auf die `wp-azedo`
-  weiterleitet, in `~/.claude/skills/` liegen. Fehlt einer, gibt es Klon- und
-  Link-Befehl aus; eingerichtet wird nichts. Liegt noch der abgelöste
-  `wordpress-pro` dort, kommt ein Hinweis zum Entfernen. Auslöser: am Mac
-  fehlten die Skills unbemerkt, dafür lag `wordpress-pro` noch da.
+- **kanboard: Mail wird zum Arbeitsauftrag.** `/kanboard new` übernimmt eine
+  eingefügte Mail nicht mehr wörtlich, sondern macht daraus Ziel, Offen,
+  Umsetzung und Rückmeldung, dazu die Herkunft in einem Satz. Signatur und
+  Disclaimer fallen weg. Workflow-Schritt 1: Beschreibung = was zu tun ist.
+  Auslöser: CR4962, dort landete die Mail samt Kopfzeilen im Task.

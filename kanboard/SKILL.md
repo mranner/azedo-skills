@@ -157,8 +157,14 @@ z.B. `/kanboard neu dagmar@azedo Text` oder `/kanboard neu dagmar@ Text`:
   dem Klarnamen (`dagmar`). Kein oder kein eindeutiger Treffer: nachfragen.
   Leeres Projekt nach dem `@` (`dagmar@`) heißt Projekt aus dem CR-Kontext.
   Ohne Präfix gilt der `default_user`.
-- **Titel und Beschreibung:** Titel aus dem Text ableiten (Regeln unter
-  Workflow), der Text selbst geht in die Beschreibung.
+- **Titel und Beschreibung:** Titel als Handlung aus dem Text ableiten (Regeln
+  unter Workflow). Ist der Text eine Mail (Kopfzeilen wie `Von:`, `Betreff:`,
+  `Message-ID:` oder Anrede und Grußformel), wird die Beschreibung ein
+  **Arbeitsauftrag** mit den Abschnitten **Ziel** (worum es geht, 1-3 Sätze),
+  **Offen** (was fehlt bzw. vom Absender kommt), **Umsetzung** (Schritte, Verweis
+  auf einen vorhandenen Wiki-Ablauf) und **Rückmeldung** (an wen), dazu die
+  Herkunft in einem Satz (Absender, Datum). Signatur, Disclaimer und Social-Links
+  fallen weg. Jeder andere Text geht unverändert in die Beschreibung.
 - **Workflow-Schritt 0 gilt auch hier**, als stille Prüfung: Ist aus dem Text
   eine Handlung erkennbar, direkt anlegen, ohne Rückfrage zu Titel oder
   Beschreibung, dann die URL melden; Korrekturen danach per `update-task`.
@@ -167,7 +173,7 @@ z.B. `/kanboard neu dagmar@azedo Text` oder `/kanboard neu dagmar@ Text`:
 ## Workflow
 
 0. **Ist ein Task das richtige Mittel?** Ein Task steht für eine Handlung (Konfigänderung, Quellcodeänderung, Einrichtung, Klärung mit Dritten), nicht für Dokumentation. Folgt aus einem Befund keine Handlung, gehört er ins Wiki (`/wiki`) oder in die Doku des Projekts. Das gilt besonders für Nebenbefunde beim Abschließen eines Tasks: nicht als Ablage in neue Tasks auslagern.
-1. Parameter aus der Nutzeranfrage ableiten (Projekt, Titel, Beschreibung, Zuweisung, Spalte).
+1. Parameter aus der Nutzeranfrage ableiten (Projekt, Titel, Beschreibung, Zuweisung, Spalte). Beschreibung = was zu tun ist, nicht was jemand geschrieben hat.
 2. **Titel kurz halten** -- max. ~60 Zeichen. Details in die Beschreibung. Klare, allgemein verständliche Abkürzungen sind erlaubt (z.B. "Netzwerk" statt "Netzwerkproblem", "DB" für Datenbank). Keine selbst erfundenen oder unüblichen Abkürzungen.
 3. Wenn nicht eindeutig: nachfragen.
 4. Befehl zusammenbauen und ausführen.
