@@ -2,9 +2,9 @@
 name: sally
 description: >
   Sally AI: Meeting-Aufnahmen auflisten, Zusammenfassung und Transkript holen,
-  Zusammenfassungen durchsuchen (nur lesend). Trigger: /sally.
+  Zusammenfassungen durchsuchen (nur lesend), Review nach einem Call. Trigger: /sally.
 disable-model-invocation: true
-argument-hint: "Frage zu einem Meeting, Aufnahme-Name oder Suchbegriff (optional)"
+argument-hint: "review <aufnahme>, Frage zu einem Meeting, Aufnahme-Name oder Suchbegriff (optional)"
 ---
 
 # sally -- Meeting-Aufnahmen aus Sally AI
@@ -57,12 +57,19 @@ Fehlt die Datei oder ein Schlüssel, bricht das Script mit Meldung ab.
   Frage braucht. Downloads landen in `.tmp/` und werden nach dem Task gelöscht.
 - **Fragen zu einem Meeting** zuerst über die Zusammenfassung beantworten, das
   Transkript nur holen, wenn sie nicht reicht oder der Wortlaut gefragt ist.
+  Ausnahme Review: dort Zusammenfassung und Transkript von Anfang an zusammen.
 - **Die API ist Version 1.0 "in development".** Unbekannte Felder und neue
   Enum-Werte sind normal; wirft ein Aufruf einen Validierungsfehler (400) an
   einer Stelle, die laut `--help` stimmt, die Spezifikation unter
   `https://api.sally.io/docs-json` gegenprüfen.
 - Ein Transkript-Status ungleich `fertig` (`laeuft`, `noSpokenAudio` …) heißt:
   `transcript` liefert 409, die Zusammenfassung fehlt meist ebenfalls.
+
+## Review nach einem Call
+
+Bei `/sally review <aufnahme>` oder "lass uns den Call durchgehen":
+[references/review.md](references/review.md) lesen und Schritt für Schritt
+abarbeiten.
 
 ## Glossar (`~/.claude/sally-glossar.md`)
 
@@ -74,6 +81,9 @@ weil es Kundennamen enthält; Vorlage `sally-glossar.md.example`.
 - **Vor dem Auswerten** von Zusammenfassung oder Transkript das Glossar lesen,
   falls vorhanden, und die Fehlerkennungen in der Ausgabe durch den gemeinten
   Namen ersetzen. Fehlt die Datei, gilt der Text unverändert.
+- Ein Eintrag mit `nur bei` gilt nur, wenn der Call zu diesem Kunden oder
+  Kontext gehört. So bleibt ein echter Vorname stehen, der sonst als
+  verhörter Kundenname ersetzt würde.
 - Ein Name, der im Kontext erkennbar falsch ist, aber nicht im Glossar steht:
   nicht stillschweigend korrigieren, sondern als Vermutung kennzeichnen und die
   Aufnahme ins Glossar vorschlagen.

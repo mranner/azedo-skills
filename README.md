@@ -827,10 +827,14 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.73.37
+### 1.74.0
 
-- **kanboard: Mail wird zum Arbeitsauftrag.** `/kanboard new` übernimmt eine
-  eingefügte Mail nicht mehr wörtlich, sondern macht daraus Ziel, Offen,
-  Umsetzung und Rückmeldung, dazu die Herkunft in einem Satz. Signatur und
-  Disclaimer fallen weg. Workflow-Schritt 1: Beschreibung = was zu tun ist.
-  Auslöser: CR4962, dort landete die Mail samt Kopfzeilen im Task.
+- **sally: Review-Workflow nach Calls.** Neuer Ablauf in
+  `sally/references/review.md`, aufgerufen mit `/sally review <aufnahme>`:
+  Rahmen und Zieltask prüfen, Ziel und Empfänger vorab klären, Transkript von
+  Anfang an lesen, Sprecher per Textprobe zuordnen, gruppieren, Tasks suchen,
+  je Gruppe kompakt entscheiden (Default „nichts") und sofort schreiben,
+  Protokoll aus dem abgestimmten Stand, Kimai, Abschlussliste. Jeder Schritt
+  mit Abschlusskriterium. Glossar: optionale Spalte `nur bei`, damit ein echter
+  Vorname nicht als verhörter Kundenname ersetzt wird. Auslöser: vier
+  Review-Sessions ohne festen Ablauf, mit wiederholten Fehlern.

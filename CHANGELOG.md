@@ -3,6 +3,18 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.74.0
+
+- **sally: Review-Workflow nach Calls.** Neuer Ablauf in
+  `sally/references/review.md`, aufgerufen mit `/sally review <aufnahme>`:
+  Rahmen und Zieltask prüfen, Ziel und Empfänger vorab klären, Transkript von
+  Anfang an lesen, Sprecher per Textprobe zuordnen, gruppieren, Tasks suchen,
+  je Gruppe kompakt entscheiden (Default „nichts") und sofort schreiben,
+  Protokoll aus dem abgestimmten Stand, Kimai, Abschlussliste. Jeder Schritt
+  mit Abschlusskriterium. Glossar: optionale Spalte `nur bei`, damit ein echter
+  Vorname nicht als verhörter Kundenname ersetzt wird. Auslöser: vier
+  Review-Sessions ohne festen Ablauf, mit wiederholten Fehlern.
+
 ### 1.73.37
 
 - **kanboard: Mail wird zum Arbeitsauftrag.** `/kanboard new` übernimmt eine

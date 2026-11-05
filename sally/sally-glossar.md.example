@@ -1,9 +1,11 @@
 # Sally-Glossar
 
 Bekannte Fehlerkennungen der Transkription. Links, wie Sally den Namen schreibt,
-rechts der gemeinte Name. Mehrere Varianten durch Komma trennen.
+rechts der gemeinte Name. Mehrere Varianten durch Komma trennen. `nur bei`
+(optional) beschränkt den Eintrag auf Calls mit diesem Kunden oder Kontext.
 
-| erkannt | gemeint |
-|---|---|
-| Muster Mann, Mustermahn | Mustermann |
-| Beispiel Ag, Bei Spiel | Beispiel AG |
+| erkannt | gemeint | nur bei |
+|---|---|---|
+| Muster Mann, Mustermahn | Mustermann | |
+| Beispiel Ag, Bei Spiel | Beispiel AG | |
+| Max | Maxima | Beispiel AG |
