@@ -827,7 +827,7 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.74.1
+### 1.75.0
 
 - **wiki: Kundendaten, Ablösung, erlaubte Feldwerte - alles nur auf Freigabe
   des Wikis.** Ein Wiki nimmt Kundendaten auf, wenn seine `CLAUDE.md` die

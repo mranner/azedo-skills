@@ -3,7 +3,7 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
-### 1.74.1
+### 1.75.0
 
 - **wiki: Kundendaten, Ablösung, erlaubte Feldwerte - alles nur auf Freigabe
   des Wikis.** Ein Wiki nimmt Kundendaten auf, wenn seine `CLAUDE.md` die
