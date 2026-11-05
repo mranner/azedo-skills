@@ -162,7 +162,9 @@ Workflow:
 2. Relevante Entities per Frontmatter-grep identifizieren (z.B. `grep -r "type: server" wiki/` im Infra-Wiki bzw. `grep -r "type: concept" wiki/` in einem Projekt-Wiki)
 3. Gefundene Artikel lesen
 4. Backlinks in Artikeln folgen für verwandte Informationen
-5. Antwort mit Wikilink-Zitaten formulieren (`[[entity-slug]]`)
+5. Antwort mit Wikilink-Zitaten formulieren (`[[entity-slug]]`). Eine abgelöste
+   Entity (Ablöse-Status eines `supersede`-Typs) ist nicht der aktuelle Stand:
+   dem Link auf die Nachfolgerin folgen und diese zitieren
 6. Optional: Antwort als Query-Output in `wiki/queries/` speichern
 
 Ein Präfix-Pointer `[[<präfix>:<slug>]]` in einem gefundenen Artikel darf in Schritt 4
@@ -238,6 +240,22 @@ Prüft:
   `path` ist relativ zum Projekt-Root, eine Datei oder ein Verzeichnis (alle Dateien
   darunter). `{name}` wird durch den Eintrag ersetzt, der Rest ist ein Regex. Ein
   nicht gefundener Eintrag ist ein Fehler, ebenso eine fehlende Prüfquelle.
+- **Erlaubte Feldwerte** (optional): Nur mit `values` in der `wiki-schema.json`.
+  Ein Feld mit einem Wert außerhalb der Liste ist ein Fehler, eine Liste wird
+  elementweise geprüft; ob das Feld da sein muss, regeln weiter die Pflichtfelder:
+
+  ```json
+  "values": {"status": ["aktiv", "abgelöst"], "herkunft": ["benutzer", "agent"]}
+  ```
+
+- **Ablösung** (optional): Nur mit `supersede` in der `wiki-schema.json`, Regel
+  unter „Aktualisieren heißt ersetzen" in der SKILL.md. Trägt eine Entity eines der
+  genannten Typen den Ablöse-Status, muss das Link-Feld einen Wikilink enthalten,
+  sonst Fehler; zeigt er ins Leere, greift die Regel für tote Links:
+
+  ```json
+  "supersede": {"types": ["entscheidung"], "status": "abgelöst", "field": "abgelöst_durch"}
+  ```
 
 #### Schrumpf-Guard (`--check-shrink`)
 

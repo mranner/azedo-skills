@@ -82,6 +82,9 @@ vorlegen. **Schreibt nichts** ohne ausdrückliche Freigabe.
 Immer **eine** Entity pro Aufruf — nie im Batch über die Audit-Top-N. Der
 Vorschlag muss überschaubar bleiben, sonst wird die Freigabe zur Formsache.
 
+Eine abgelöste Entity (Ablöse-Status eines `supersede`-Typs, siehe „Aktualisieren
+heißt ersetzen" in der SKILL.md) wird nicht umgebaut: ihr Text bleibt, wie er war.
+
 Ablauf:
 
 1. `<WIKI_ROOT>/CLAUDE.md` und den Artikel **vollständig** lesen.

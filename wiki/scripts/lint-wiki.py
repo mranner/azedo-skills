@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # stdlib only, no pip dependencies
-# version 1.74.0
+# version 1.74.1
 
 """
 lint-wiki.py — Strukturprüfung für LLM Wikis (Infra + Projekt-Doku).
@@ -17,6 +17,8 @@ Prüft:
 - Aussagen zum Patch-Stand ohne stale_after
 - Optional: Frontmatter-Verweise (z.B. tests, config) gegen ihre Prüfqülle,
   konfiguriert unter "references" in wiki-schema.json
+- Optional: erlaubte Werte je Feld ("values") und abgelöste Entities mit
+  Verweis auf die Nachfolgerin ("supersede"), beides in wiki-schema.json
 - Abschnittsverweise ([[x]], Abschnitt Y / Y-Abschnitt): gibt es Y in x noch?
 - Mit --check-shrink: was eine Aktualisierung gegenüber git HEAD (ohne git:
   SVN-BASE) verloren hat
@@ -71,8 +73,8 @@ def load_schema(wiki_root):
     """Lädt das Entity-Modell aus <wiki-root>/wiki-schema.json.
 
     Fällt auf DEFAULT_SCHEMA (Infra-Modell) zurück, wenn keine Config existiert.
-    Gibt (required_fields_pro_typ, set_der_gueltigen_typen, references) zurück;
-    references ist {} ohne Eintrag im Schema.
+    Gibt (required_fields_pro_typ, set_der_gueltigen_typen, references, values,
+    supersede) zurück; die letzten drei sind {} ohne Eintrag im Schema.
     """
     schema_file = Path(wiki_root) / "wiki-schema.json"
     if schema_file.exists():
@@ -82,7 +84,43 @@ def load_schema(wiki_root):
 
     common = data.get("required_common", [])
     required = {t: common + extra for t, extra in data["types"].items()}
-    return required, set(required.keys()), data.get("references", {})
+    return (required, set(required.keys()), data.get("references", {}),
+            data.get("values", {}), data.get("supersede", {}))
+
+
+def check_values(fm, values):
+    """Prüft Frontmatter-Felder gegen ihre erlaubten Werte (values im Schema).
+
+    values: {feld: [erlaubte werte]}. Fehlende Felder prüft nur die
+    Pflichtfeld-Regel; eine Liste wird elementweise geprüft.
+    """
+    found = []
+    for field, allowed in values.items():
+        if fm.get(field) is None:
+            continue
+        items = fm[field] if isinstance(fm[field], list) else [fm[field]]
+        for item in items:
+            if item and item not in allowed:
+                found.append(f"Feld '{field}': Wert '{item}' nicht erlaubt (erlaubt: {', '.join(allowed)})")
+    return found
+
+
+def check_supersede(fm, entity_type, supersede):
+    """Abgelöste Entity braucht einen Wikilink auf ihre Nachfolgerin.
+
+    supersede: {"types": [...], "status": <wert>, "field": <feld>}. Ob das
+    Ziel existiert, prüft die Regel für tote Links.
+    """
+    if not supersede or entity_type not in supersede["types"]:
+        return None
+    if fm.get("status") != supersede["status"]:
+        return None
+    value = fm.get(supersede["field"])
+    text = " ".join(value) if isinstance(value, list) else (value or "")
+    if not find_wikilinks(text):
+        return (f"status '{supersede['status']}' verlangt '{supersede['field']}' "
+                f"mit Wikilink auf die Nachfolgerin")
+    return None
 
 
 def read_reference_source(path):
@@ -582,7 +620,7 @@ def lint_wiki(wiki_root, check_remotes=False, check_shrink_flag=False):
         return 1
 
     # Entity-Modell pro Wiki laden (Config oder Infra-Default)
-    required_fields, valid_types, references = load_schema(wiki_root)
+    required_fields, valid_types, references, values, supersede = load_schema(wiki_root)
 
     # Bekannte Ziele für [[<präfix>:<slug>]]-Pointer: erst die lokalen
     # Geschwister-Wikis, dann die Remotes.
@@ -658,6 +696,13 @@ def lint_wiki(wiki_root, check_remotes=False, check_shrink_flag=False):
 
         # Verweise auf Tests, Config usw. (nur mit references im Schema)
         for msg in check_references(fm, references, reference_sources):
+            errors.append(f"{prefix}: {msg}")
+
+        # Erlaubte Werte und Ablösung (nur mit values/supersede im Schema)
+        for msg in check_values(fm, values):
+            errors.append(f"{prefix}: {msg}")
+        msg = check_supersede(fm, entity_type, supersede)
+        if msg:
             errors.append(f"{prefix}: {msg}")
 
         # Wikilinks zählen — Frontmatter-Werte + Body

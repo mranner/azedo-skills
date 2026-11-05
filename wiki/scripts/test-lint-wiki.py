@@ -5,8 +5,8 @@
 """
 test-lint-wiki.py — Testfälle für die Präfix-Auflösung, die
 Frontmatter-Verweise (references), die Abschnittsverweise, die verwaisten
-Seiten, Aussagen zum Patch-Stand und den Schrumpf-Guard (umgehängte Links) in
-lint-wiki.py.
+Seiten, Aussagen zum Patch-Stand, die erlaubten Feldwerte (values), die
+Ablösung (supersede) und den Schrumpf-Guard (umgehängte Links) in lint-wiki.py.
 
 Baut ein Wegwerf-Projekt mit zwei Geschwister-Wikis, einem Verzeichnis ohne
 wiki/-Unterordner und einer wiki-remotes.json, lässt lint-wiki.py darauf laufen
@@ -30,12 +30,14 @@ LINT = Path(__file__).resolve().parent / "lint-wiki.py"
 
 SCHEMA = {
     "required_common": ["type"],
-    "types": {"artikel": []},
+    "types": {"artikel": [], "entscheidung": []},
     "references": {
         "tests": {"pattern": "def {name}\\b", "path": "tests"},
         "config": {"pattern": "\"{name}\"\\s*:", "path": "config/settings.json"},
         "doku": {"pattern": "{name}", "path": "gibt/es/nicht"},
     },
+    "values": {"status": ["aktiv", "abgelöst"], "herkunft": ["benutzer", "agent"]},
+    "supersede": {"types": ["entscheidung"], "status": "abgelöst", "field": "abgelöst_durch"},
 }
 
 
@@ -103,7 +105,23 @@ def build(root, home):
           "---\ntype: artikel\nstale_after: 2099-01-01\n---\n\nKein Patch für 7.4.\n")
     write(mathe / "wiki/kein-update.md",
           "---\ntype: artikel\n---\n\nDer Server liefert kein Update aus, MSI-Tuning ist kein Fix.\n")
+    write(mathe / "wiki/entscheidung-alt.md",
+          "---\ntype: entscheidung\nstatus: abgelöst\nabgelöst_durch: \"[[entscheidung-neu]]\"\n"
+          "herkunft: benutzer\n---\n\nText.\n")
+    write(mathe / "wiki/entscheidung-neu.md",
+          "---\ntype: entscheidung\nstatus: aktiv\nherkunft: agent\n---\n\nText.\n")
+    write(mathe / "wiki/entscheidung-offen.md",
+          "---\ntype: entscheidung\nstatus: abgelöst\nherkunft: schaetzung\n---\n\nText.\n")
+    write(mathe / "wiki/artikel-abgeloest.md",
+          "---\ntype: artikel\nstatus: abgelöst\n---\n\nText.\n")
     write(mathe / "index.md", "# Index\n\n- [[schriftliches-dividieren]]\n- [[grenzwert]]\n")
+
+    # Wiki ohne values/supersede: dieselben Frontmatter-Werte bleiben still
+    write(root / "wiki/physik/wiki-schema.json",
+          json.dumps({"required_common": ["type"], "types": {"entscheidung": []}}))
+    write(root / "wiki/physik/wiki/ohne-schema.md",
+          "---\ntype: entscheidung\nstatus: abgelöst\nherkunft: schaetzung\n---\n\nText.\n")
+    write(root / "wiki/physik/index.md", "# Index\n\n- [[ohne-schema]]\n")
     write(mathe / "log.md", "# Log\n\n- [[geschichte:gibt-es-nicht]]\n")
     return mathe
 
@@ -132,6 +150,20 @@ CASES = [
     ("patch-offen.md: Aussage zum Patch-Stand (\"kein Patch\") ohne stale_after", True),
     ("patch-mit-ablauf.md: Aussage zum Patch-Stand", False),
     ("kein-update.md: Aussage zum Patch-Stand", False),
+    ("entscheidung-alt.md: status", False),
+    ("entscheidung-alt.md: Feld", False),
+    ("entscheidung-neu.md: Feld", False),
+    ("entscheidung-offen.md: status 'abgelöst' verlangt 'abgelöst_durch' mit Wikilink auf die Nachfolgerin", True),
+    ("entscheidung-offen.md: Feld 'herkunft': Wert 'schaetzung' nicht erlaubt (erlaubt: benutzer, agent)", True),
+    ("artikel-abgeloest.md: status", False),
+    ("kein-update.md: Feld 'status'", False),
+]
+
+# Zweiter Lauf, Wiki ohne values/supersede: keine der neuen Meldungen
+CASES_OHNE = [
+    ("Artikel gesamt: 1", True),
+    ("ohne-schema.md: status", False),
+    ("ohne-schema.md: Feld", False),
 ]
 
 
@@ -160,10 +192,15 @@ def main():
         res = subprocess.run([sys.executable, str(LINT), str(wiki)],
                              capture_output=True, text=True, env=env)
         out = res.stdout
+        res = subprocess.run([sys.executable, str(LINT), str(wiki.parent / "physik")],
+                             capture_output=True, text=True, env=env)
+        out_ohne = res.stdout
 
     failed = 0
-    for needle, expected in CASES:
-        found = needle in out
+    runs = [(needle, expected, out) for needle, expected in CASES]
+    runs += [(needle, expected, out_ohne) for needle, expected in CASES_OHNE]
+    for needle, expected, text in runs:
+        found = needle in text
         ok = found == expected
         if not ok:
             failed += 1
@@ -177,9 +214,9 @@ def main():
             failed += 1
         print(f"{'OK  ' if ok else 'FAIL'} {label}")
 
-    total = len(CASES) + len(extra)
+    total = len(runs) + len(extra)
     if failed:
-        print(f"\n{failed} von {total} Fällen abweichend. Lint-Ausgabe:\n{out}")
+        print(f"\n{failed} von {total} Fällen abweichend. Lint-Ausgabe:\n{out}\n{out_ohne}")
         return 1
 
     print(f"\nAlle {total} Fälle erfüllt.")

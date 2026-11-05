@@ -3,6 +3,19 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.74.1
+
+- **wiki: Kundendaten, Ablösung, erlaubte Feldwerte - alles nur auf Freigabe
+  des Wikis.** Ein Wiki nimmt Kundendaten auf, wenn seine `CLAUDE.md` die
+  Zeile `Kundendaten: aufgenommen` trägt. Typen unter `supersede` in der
+  `wiki-schema.json` werden abgelöst statt überschrieben: neue Entity, die alte
+  bekommt Ablöse-Status und Link auf die Nachfolgerin; `query` zitiert die
+  Nachfolgerin, `refactor` baut die alte nicht um. Der Lint prüft dazu den
+  Link und, mit `values` im Schema, die erlaubten Werte je Feld. Ohne diese
+  Einträge bleibt alles wie bisher; Lint-Ausgabe der bestehenden Wikis
+  unverändert. Auslöser: ein Projekt-Wiki, dessen Gegenstand Kunden und
+  nachvollziehbare Entscheidungen sind.
+
 ### 1.74.0
 
 - **sally: Review-Workflow nach Calls.** Neuer Ablauf in

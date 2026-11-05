@@ -827,14 +827,15 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.74.0
+### 1.74.1
 
-- **sally: Review-Workflow nach Calls.** Neuer Ablauf in
-  `sally/references/review.md`, aufgerufen mit `/sally review <aufnahme>`:
-  Rahmen und Zieltask prüfen, Ziel und Empfänger vorab klären, Transkript von
-  Anfang an lesen, Sprecher per Textprobe zuordnen, gruppieren, Tasks suchen,
-  je Gruppe kompakt entscheiden (Default „nichts") und sofort schreiben,
-  Protokoll aus dem abgestimmten Stand, Kimai, Abschlussliste. Jeder Schritt
-  mit Abschlusskriterium. Glossar: optionale Spalte `nur bei`, damit ein echter
-  Vorname nicht als verhörter Kundenname ersetzt wird. Auslöser: vier
-  Review-Sessions ohne festen Ablauf, mit wiederholten Fehlern.
+- **wiki: Kundendaten, Ablösung, erlaubte Feldwerte - alles nur auf Freigabe
+  des Wikis.** Ein Wiki nimmt Kundendaten auf, wenn seine `CLAUDE.md` die
+  Zeile `Kundendaten: aufgenommen` trägt. Typen unter `supersede` in der
+  `wiki-schema.json` werden abgelöst statt überschrieben: neue Entity, die alte
+  bekommt Ablöse-Status und Link auf die Nachfolgerin; `query` zitiert die
+  Nachfolgerin, `refactor` baut die alte nicht um. Der Lint prüft dazu den
+  Link und, mit `values` im Schema, die erlaubten Werte je Feld. Ohne diese
+  Einträge bleibt alles wie bisher; Lint-Ausgabe der bestehenden Wikis
+  unverändert. Auslöser: ein Projekt-Wiki, dessen Gegenstand Kunden und
+  nachvollziehbare Entscheidungen sind.

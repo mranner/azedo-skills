@@ -139,6 +139,12 @@ einzelner Mitarbeiter (auch Kanboard- oder CRIS-Usernamen) dort, wo eine Rolle
 oder eine Datensatz-ID den Beleg genauso trägt, und der Vorgang selbst statt
 seines Ergebnisses - der steht im Ticket.
 
+**Kundendaten nur mit Freigabe des Wikis.** Steht in `<WIKI_ROOT>/CLAUDE.md` die
+Zeile `Kundendaten: aufgenommen`, sind sie dort Gegenstand und werden
+aufgenommen. Ohne diese Zeile bleiben sie ausgeschlossen, auch wenn die
+`CLAUDE.md` Kunden sonst erwähnt. Die übrigen Ausschlüsse und die
+Sicherheitsregeln gelten auch mit Freigabe.
+
 Im Zweifel **fragen statt aufnehmen**. Ein zu voller Artikel kostet jeden
 späteren Leser Zeit; eine fehlende Erkenntnis kostet einmal eine Rückfrage.
 
@@ -189,6 +195,15 @@ anhängen. Beim Aktualisieren wird die **alte Aussage überschrieben**, nicht
 danebengestellt - die Vorfassung hält die Versionsverwaltung. Nur wenn der alte
 Zustand für das Verständnis des neuen nötig ist, bleibt er, und dann als
 Nebensatz.
+
+**Ausnahme: Ablösung**, nur für Typen, die `<WIKI_ROOT>/wiki-schema.json` unter
+`supersede` nennt (etwa Entscheidungen, die als Festlegung nachvollziehbar
+bleiben sollen). Dort wird eine Änderung eine **neue** Entity, die den neuen Stand
+vollständig beschreibt; die alte bekommt nur den Ablöse-Status und den Link auf
+die Nachfolgerin (Felder laut `supersede`), ihr Text bleibt. Eine Historie im
+Artikel ist das nicht: die neue Entity erzählt die alte nicht nach, die alte wird
+nicht fortgeschrieben. Jeder andere Typ und jedes Wiki ohne `supersede` ersetzt
+wie oben.
 
 ### Patch-Stand bekommt ein `stale_after`
 
