@@ -39,6 +39,7 @@ SCHEMA = {
     },
     "values": {"status": ["aktiv", "abgelöst"], "herkunft": ["benutzer", "agent"]},
     "supersede": {"types": ["entscheidung"], "status": "abgelöst", "field": "abgelöst_durch"},
+    "min_links": {"entscheidung": 1},
 }
 
 
@@ -100,6 +101,8 @@ def build(root, home):
           "tests: [test_grenzwert, test_umbenannt]\n"
           "config:\n  - grenzwert\n  - entfernt\n"
           "---\n\nText.\n\n## Epsilon-Umgebung\n\nText.\n")
+    write(mathe / "wiki/wiederholt.md",
+          "---\ntype: artikel\n---\n\n[[grenzwert]], [[grenzwert]] und [[grenzwert]].\n")
     write(mathe / "wiki/patch-offen.md",
           "---\ntype: artikel\n---\n\nFür 7.4 gibt es kein Patch, nur Mitigation.\n")
     write(mathe / "wiki/patch-mit-ablauf.md",
@@ -162,6 +165,9 @@ CASES = [
     ("entscheidung-offen.md: Feld 'herkunft': Wert 'schaetzung' nicht erlaubt (erlaubt: benutzer, agent)", True),
     ("artikel-abgeloest.md: status", False),
     ("kein-update.md: Feld 'status'", False),
+    ("wiederholt.md: Nur 1 verlinkte Ziele (Minimum: 3)", True),
+    ("entscheidung-alt.md: Nur", False),
+    ("entscheidung-offen.md: Nur 0 verlinkte Ziele (Minimum: 1)", True),
     ("log.md:15: ## 2026-10-19 steht nach ## 2026-10-01, das Log ist neueste zuerst sortiert", True),
     ("log.md:9:", False),
 ]
@@ -171,6 +177,7 @@ CASES_OHNE = [
     ("Artikel gesamt: 1", True),
     ("ohne-schema.md: status", False),
     ("ohne-schema.md: Feld", False),
+    ("ohne-schema.md: Nur 0 verlinkte Ziele (Minimum: 3)", True),
     ("log.md:", False),
 ]
 

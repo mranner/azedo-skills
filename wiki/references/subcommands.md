@@ -215,7 +215,10 @@ Prüft:
   aus dem Kopf der Datei („älteste zuerst" bzw. „aufsteigend", sonst neueste
   zuerst) - Fehler mit Zeilennummer. Fängt den ans Ende gehängten Eintrag ab
 - **Naming violations**: Dateinamen die nicht der Konvention entsprechen
-- **Low connectivity**: Artikel mit weniger als 3 Wikilinks
+- **Low connectivity**: Artikel mit weniger als 3 verschiedenen Linkzielen
+  (Frontmatter und Text zusammen, Wiederholungen zählen einmal); das Minimum
+  ist je Typ über `min_links` in der `wiki-schema.json` einstellbar:
+  `"min_links": {"entscheidung": 1}`
 - **Abschnittsverweise**: `[[x]], Abschnitt Y`, `[[x]], Abschnitt „Y"` und
   `[[x]] (Y-Abschnitt)` - steht Y noch in einer Überschrift von `x`? Eine
   Kurzform reicht, wenn alle ihre Wörter in einer Überschrift vorkommen.

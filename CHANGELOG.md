@@ -3,6 +3,17 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.75.5
+
+- **wiki: Aufnahmefilter bei `supersede`, Linkzählung.** Für Typen unter
+  `supersede` entfällt die Frage „Gilt es in drei Monaten noch?": eine
+  zeitgebundene Festlegung bleibt als Nachweis. `lint` zählt für die
+  Mindestanzahl jetzt verschiedene Linkziele statt aller Links - ein Ziel in
+  `betrifft` und im Text zählt einmal - und das Minimum ist je Typ über
+  `min_links` in der `wiki-schema.json` einstellbar. Auslöser: in einem
+  Projekt-Wiki mit Entscheidungen fielen zeitgebundene Festlegungen durch den
+  Filter, und 25 Warnungen zur Linkzahl hatten keine Aussage.
+
 ### 1.75.4
 
 - **wetter: Hinweis bei veraltetem Modelllauf.** `forecast` meldet oben

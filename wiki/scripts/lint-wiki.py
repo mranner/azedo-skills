@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 
 # stdlib only, no pip dependencies
-# version 1.75.4
+# version 1.75.5
 
 """
 lint-wiki.py — Strukturprüfung für LLM Wikis (Infra + Projekt-Doku).
 
 Prüft:
 - Frontmatter-Pflichtfelder pro Entity-Typ
-- Wikilinks (tote Links, niedrige Konnektivität)
+- Wikilinks (tote Links, niedrige Konnektivität: eindeutige Ziele, Minimum
+  je Typ über "min_links" in wiki-schema.json)
 - Index-Einträge (fehlende Artikel im Index)
 - Namenskonventionen (nur Kleinbuchstaben, Ziffern, Bindestriche)
 - Verwaiste Seiten (kein anderer Artikel verlinkt hierher; index.md und log.md zählen nicht)
@@ -76,7 +77,7 @@ def load_schema(wiki_root):
 
     Fällt auf DEFAULT_SCHEMA (Infra-Modell) zurück, wenn keine Config existiert.
     Gibt (required_fields_pro_typ, set_der_gueltigen_typen, references, values,
-    supersede) zurück; die letzten drei sind {} ohne Eintrag im Schema.
+    supersede, min_links) zurück; die letzten vier sind {} ohne Eintrag im Schema.
     """
     schema_file = Path(wiki_root) / "wiki-schema.json"
     if schema_file.exists():
@@ -87,7 +88,7 @@ def load_schema(wiki_root):
     common = data.get("required_common", [])
     required = {t: common + extra for t, extra in data["types"].items()}
     return (required, set(required.keys()), data.get("references", {}),
-            data.get("values", {}), data.get("supersede", {}))
+            data.get("values", {}), data.get("supersede", {}), data.get("min_links", {}))
 
 
 def check_values(fm, values):
@@ -656,7 +657,7 @@ def lint_wiki(wiki_root, check_remotes=False, check_shrink_flag=False):
         return 1
 
     # Entity-Modell pro Wiki laden (Config oder Infra-Default)
-    required_fields, valid_types, references, values, supersede = load_schema(wiki_root)
+    required_fields, valid_types, references, values, supersede, min_links = load_schema(wiki_root)
 
     # Bekannte Ziele für [[<präfix>:<slug>]]-Pointer: erst die lokalen
     # Geschwister-Wikis, dann die Remotes.
@@ -753,8 +754,10 @@ def lint_wiki(wiki_root, check_remotes=False, check_shrink_flag=False):
         for link_target in links:
             incoming_links[link_target].add(slug)
 
-        if len(links) < MIN_WIKILINKS:
-            warnings.append(f"{prefix}: Nur {len(links)} Wikilinks (Minimum: {MIN_WIKILINKS})")
+        # Eindeutige Ziele: ein Link in betrifft und im Text zählt einmal
+        minimum = min_links.get(entity_type, MIN_WIKILINKS)
+        if len(set(links)) < minimum:
+            warnings.append(f"{prefix}: Nur {len(set(links))} verlinkte Ziele (Minimum: {minimum})")
 
         # Datum in Überschriften — Logbuch statt Artikel
         for heading, hit in find_dated_headings(body):

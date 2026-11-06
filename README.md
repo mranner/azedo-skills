@@ -827,10 +827,13 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.75.4
+### 1.75.5
 
-- **wetter: Hinweis bei veraltetem Modelllauf.** `forecast` meldet oben
-  `Achtung: Modelllauf ist N h alt …` samt Ende der Vorhersage, sobald der
-  Lauf älter als 12 h ist (im `--json` als `hinweis`). Auslöser: GeoSphere
-  lieferte zwei Tage lang keinen neuen AROME-Lauf, die Ausgabe zeigte nur
-  noch den laufenden Tag, ohne dass erkennbar war, warum.
+- **wiki: Aufnahmefilter bei `supersede`, Linkzählung.** Für Typen unter
+  `supersede` entfällt die Frage „Gilt es in drei Monaten noch?": eine
+  zeitgebundene Festlegung bleibt als Nachweis. `lint` zählt für die
+  Mindestanzahl jetzt verschiedene Linkziele statt aller Links - ein Ziel in
+  `betrifft` und im Text zählt einmal - und das Minimum ist je Typ über
+  `min_links` in der `wiki-schema.json` einstellbar. Auslöser: in einem
+  Projekt-Wiki mit Entscheidungen fielen zeitgebundene Festlegungen durch den
+  Filter, und 25 Warnungen zur Linkzahl hatten keine Aussage.

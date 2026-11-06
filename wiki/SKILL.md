@@ -122,7 +122,9 @@ sortiert, landet ein angehängter Eintrag unter dem ältesten Tag.
 Vier Fragen, **alle** müssen mit Ja beantwortet sein:
 
 1. **Gilt es in drei Monaten noch?** Ein Zwischenstand, ein „aktuell läuft noch"
-   oder ein Vorhaben gehört ins Ticket, nicht in einen Artikel.
+   oder ein Vorhaben gehört ins Ticket, nicht in einen Artikel. Entfällt für
+   Typen unter `supersede` in der `wiki-schema.json`: eine zeitgebundene
+   Festlegung bleibt als Nachweis, auch wenn ihr Zeitraum vorbei ist.
 2. **Kostet es jemanden Zeit, der es nicht weiß?** Wenn niemand darüber
    stolpern kann, ist es keine Erkenntnis, sondern eine Notiz.
 3. **Lässt es sich *nicht* in einer halben Minute am Gegenstand selbst
