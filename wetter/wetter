@@ -4,7 +4,7 @@
 # Kurzfristvorhersage (AROME, stuendlich ~60 h), Nowcast (15-min, ~3 h)
 # und amtliche Wetterwarnungen fuer Oesterreich.
 # stdlib only, keine pip-Abhaengigkeiten, keine Authentifizierung noetig.
-# version 1.75.3
+# version 1.75.4
 
 import argparse
 import json
@@ -36,6 +36,10 @@ NOMINATIM = "https://nominatim.openstreetmap.org/search"
 FAV_PATH = os.path.expanduser("~/.claude/wetter-favorites.json")
 CONFIG_PATH = os.path.expanduser("~/.claude/wetter.json")
 FRESH_MAX_SEC = 2 * 3600
+
+# AROME rechnet alle 3 h; ein aelterer Lauf heisst, GeoSphere liefert nicht nach
+
+RUN_MAX_SEC = 12 * 3600
 
 
 def build_user_agent():
@@ -388,6 +392,7 @@ def cmd_forecast(args):
 
     # aktueller Messwert der naechsten Favoritenstation (best effort)
     messwert = station_measurement(lat, lon, load_favorites())
+    hinweis = stale_note(reftime, ts[-1] if ts else None) if reftime else None
 
     if args.json:
         out = []
@@ -396,7 +401,8 @@ def cmd_forecast(args):
             rr["local"] = r["local"].isoformat()
             out.append(rr)
         print(json.dumps({"ort": label, "lat": lat, "lon": lon,
-                          "reftime": reftime, "messwert": messwert,
+                          "reftime": reftime, "hinweis": hinweis,
+                          "messwert": messwert,
                           "stunden": out},
                          ensure_ascii=False, indent=2))
         return
@@ -404,6 +410,8 @@ def cmd_forecast(args):
     print("Vorhersage fuer %s (%.4f, %.4f) — GeoSphere AROME%s\n"
           % (label, lat, lon,
              ", Lauf %s" % _fmt_ref(reftime) if reftime else ""))
+    if hinweis:
+        print(hinweis + "\n")
     hdr = messwert_header(messwert)
     if hdr:
         print(hdr + "\n")
@@ -436,6 +444,19 @@ def cmd_forecast(args):
                      "%.0f" % r["t2m"] if r["t2m"] is not None else "?",
                      feuchte, cond, wind))
         print()
+
+
+def stale_note(reftime, last_ts):
+    """Hinweis, wenn der Modelllauf aelter als RUN_MAX_SEC ist, sonst None."""
+    try:
+        age = (datetime.now(timezone.utc) - to_local(reftime)).total_seconds()
+    except Exception:
+        return None
+    if age <= RUN_MAX_SEC:
+        return None
+    end = to_local(last_ts).strftime("%d.%m. %H:%M") if last_ts else "?"
+    return ("Achtung: Modelllauf ist %.0f h alt, GeoSphere liefert keinen neueren. "
+            "Vorhersage reicht nur bis %s." % (age / 3600, end))
 
 
 def _fmt_ref(reftime):

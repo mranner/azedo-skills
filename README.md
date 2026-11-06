@@ -827,11 +827,10 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.75.3
+### 1.75.4
 
-- **wiki: Begriff Kundendaten geschärft.** Kundendaten sind Inhalte über den
-  Kunden (Ansprechpartner, Verträge, Preise, Daten seiner eigenen Kunden,
-  Geschäftsinterna). Die Nennung als Bezug - `kunde:`, Hostname, Domain,
-  Jail, eine einzelne Vorgangsnummer als Beleg - fällt nicht darunter.
-  Auslöser: der bisher unbestimmte Begriff ließ sich auch auf die Bezüge
-  lesen, auf denen das Infra-Wiki aufgebaut ist.
+- **wetter: Hinweis bei veraltetem Modelllauf.** `forecast` meldet oben
+  `Achtung: Modelllauf ist N h alt …` samt Ende der Vorhersage, sobald der
+  Lauf älter als 12 h ist (im `--json` als `hinweis`). Auslöser: GeoSphere
+  lieferte zwei Tage lang keinen neuen AROME-Lauf, die Ausgabe zeigte nur
+  noch den laufenden Tag, ohne dass erkennbar war, warum.

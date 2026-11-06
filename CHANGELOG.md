@@ -3,6 +3,14 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.75.4
+
+- **wetter: Hinweis bei veraltetem Modelllauf.** `forecast` meldet oben
+  `Achtung: Modelllauf ist N h alt …` samt Ende der Vorhersage, sobald der
+  Lauf älter als 12 h ist (im `--json` als `hinweis`). Auslöser: GeoSphere
+  lieferte zwei Tage lang keinen neuen AROME-Lauf, die Ausgabe zeigte nur
+  noch den laufenden Tag, ohne dass erkennbar war, warum.
+
 ### 1.75.3
 
 - **wiki: Begriff Kundendaten geschärft.** Kundendaten sind Inhalte über den

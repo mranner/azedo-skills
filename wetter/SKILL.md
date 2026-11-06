@@ -48,6 +48,11 @@ Oben wird — wie im Nowcast — ein **aktueller Messwert** der naechsten
 Favoritenstation angezeigt (echter Stationswert, siehe Nowcast-Abschnitt und
 Hinweise). Im `--json` als `messwert`-Block.
 
+Ist der Modelllauf aelter als 12 h, steht oben ein `Achtung:`-Hinweis mit dem
+Ende der Vorhersage (im `--json` als `hinweis`). Dann liefert GeoSphere keinen
+neueren Lauf nach (`last_forecast_reftime` in den Metadaten) - den Hinweis an
+den User weitergeben, statt fehlende Tage als ruhiges Wetter zu lesen.
+
 ### Nowcast (~3 h, 15-Minuten-Schritte)
 
 ```bash
