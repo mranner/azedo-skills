@@ -13,7 +13,7 @@ Muss der User einen Befehl selbst per `!` ausführen, bekommt er statt eines
 langen oder mehrzeiligen Blocks nur:
 
 ```
-! sh .tmp/bang-<slug>-<hex>.sh
+! sh ~/<projekt>/.tmp/bang-<slug>-<hex>.sh
 ```
 
 Der eigentliche Inhalt steht im Script.
@@ -33,14 +33,17 @@ Permission-Denial; wird ein Weg blockiert, entscheidet der User, ob er ihn per
 
 ## Ablage
 
-- Pfad: `.tmp/bang-<slug>-<hex>.sh` im Projekt-Arbeitsverzeichnis.
+- Pfad: `.tmp/bang-<slug>-<hex>.sh` im Projekt-Arbeitsverzeichnis, im Aufruf
+  und in der `rm`-Zeile **absolut**, mit `~/` gekürzt. Das Arbeitsverzeichnis
+  der Shell wandert mit jedem `cd` im Bash-Tool; ein relativer Pfad greift dann
+  ins Leere (`No such file or directory`).
   - `<slug>`: 1-3 Wörter kebab-case, was das Script tut (`cron-update`,
     `dev-artikel-loeschen`).
   - `<hex>`: 4 zufällige Hex-Zeichen, damit parallele Sessions sich nicht
     überschreiben.
 - Fehlt `.tmp/`: `mkdir -m 700 .tmp`. Nie `/tmp`.
-- Der ganze Aufruf `! sh .tmp/bang-….sh` bleibt unter 80 Zeichen; sonst den
-  Slug kürzen.
+- Der ganze Aufruf `! sh ~/<projekt>/.tmp/bang-….sh` bleibt unter 80 Zeichen;
+  sonst den Slug kürzen.
 
 ## Aufbau
 
@@ -52,7 +55,7 @@ Scriptnamen ersetzt Claude Code beim Laden dieser Datei durch das
 Skill-Argument.
 
 ```sh
-rm -f -- .tmp/bang-<slug>-<hex>.sh
+rm -f -- ~/<projekt>/.tmp/bang-<slug>-<hex>.sh
 sudo ssh -C root@host.example.org sh <<'SCRIPT'
 set -e
 sed -i~ 's/^daily_clean_tmps_enable=.*/daily_clean_tmps_enable="YES"/' /etc/periodic.conf

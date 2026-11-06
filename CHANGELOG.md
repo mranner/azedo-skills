@@ -3,6 +3,14 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.75.1
+
+- **bang: absoluter Pfad im Einzeiler.** Aufruf und Selbstlösch-Zeile nennen
+  das Script jetzt absolut, mit `~/` gekürzt. Nach einem `cd` im Bash-Tool
+  stand die Shell in einem Unterverzeichnis, der relative Aufruf endete mit
+  `No such file or directory`, und die `rm`-Zeile hätte das Script liegen
+  lassen.
+
 ### 1.75.0
 
 - **wiki: Kundendaten, Ablösung, erlaubte Feldwerte - alles nur auf Freigabe

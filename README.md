@@ -827,15 +827,10 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.75.0
+### 1.75.1
 
-- **wiki: Kundendaten, Ablösung, erlaubte Feldwerte - alles nur auf Freigabe
-  des Wikis.** Ein Wiki nimmt Kundendaten auf, wenn seine `CLAUDE.md` die
-  Zeile `Kundendaten: aufgenommen` trägt. Typen unter `supersede` in der
-  `wiki-schema.json` werden abgelöst statt überschrieben: neue Entity, die alte
-  bekommt Ablöse-Status und Link auf die Nachfolgerin; `query` zitiert die
-  Nachfolgerin, `refactor` baut die alte nicht um. Der Lint prüft dazu den
-  Link und, mit `values` im Schema, die erlaubten Werte je Feld. Ohne diese
-  Einträge bleibt alles wie bisher; Lint-Ausgabe der bestehenden Wikis
-  unverändert. Auslöser: ein Projekt-Wiki, dessen Gegenstand Kunden und
-  nachvollziehbare Entscheidungen sind.
+- **bang: absoluter Pfad im Einzeiler.** Aufruf und Selbstlösch-Zeile nennen
+  das Script jetzt absolut, mit `~/` gekürzt. Nach einem `cd` im Bash-Tool
+  stand die Shell in einem Unterverzeichnis, der relative Aufruf endete mit
+  `No such file or directory`, und die `rm`-Zeile hätte das Script liegen
+  lassen.
