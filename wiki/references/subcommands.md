@@ -211,6 +211,9 @@ Prüft:
   ein alter Eintrag darf auf einen aufgelösten Artikel zeigen)
 - **Missing frontmatter**: Fehlende Pflichtfelder laut Wiki-Schema (Infra: type, kunde, date, status; Projekt-Wikis abweichend)
 - **Missing index entries**: Artikel die nicht in index.md gelistet sind
+- **Sortierung von `log.md`**: Tagesabschnitte `## YYYY-MM-DD` gegen die Richtung
+  aus dem Kopf der Datei („älteste zuerst" bzw. „aufsteigend", sonst neueste
+  zuerst) - Fehler mit Zeilennummer. Fängt den ans Ende gehängten Eintrag ab
 - **Naming violations**: Dateinamen die nicht der Konvention entsprechen
 - **Low connectivity**: Artikel mit weniger als 3 Wikilinks
 - **Abschnittsverweise**: `[[x]], Abschnitt Y`, `[[x]], Abschnitt „Y"` und

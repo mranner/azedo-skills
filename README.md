@@ -827,10 +827,11 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.75.1
+### 1.75.2
 
-- **bang: absoluter Pfad im Einzeiler.** Aufruf und Selbstlösch-Zeile nennen
-  das Script jetzt absolut, mit `~/` gekürzt. Nach einem `cd` im Bash-Tool
-  stand die Shell in einem Unterverzeichnis, der relative Aufruf endete mit
-  `No such file or directory`, und die `rm`-Zeile hätte das Script liegen
-  lassen.
+- **wiki: `lint` prüft die Sortierung von `log.md`.** Die Tagesabschnitte
+  `## YYYY-MM-DD` müssen der Richtung aus dem Kopf der Datei folgen
+  („älteste zuerst" bzw. „aufsteigend", sonst neueste zuerst); ein Verstoß ist
+  ein Fehler mit Zeilennummer und dem Datum, das aus der Reihe fällt.
+  Auslöser: Einträge wurden trotz der Regel im Skill wiederholt ans Ende
+  eines absteigend sortierten Logs gehängt, und `lint` meldete nichts.

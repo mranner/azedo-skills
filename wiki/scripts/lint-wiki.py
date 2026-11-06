@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # stdlib only, no pip dependencies
-# version 1.75.1
+# version 1.75.2
 
 """
 lint-wiki.py — Strukturprüfung für LLM Wikis (Infra + Projekt-Doku).
@@ -13,6 +13,8 @@ Prüft:
 - Namenskonventionen (nur Kleinbuchstaben, Ziffern, Bindestriche)
 - Verwaiste Seiten (kein anderer Artikel verlinkt hierher; index.md und log.md zählen nicht)
 - Datumsangaben in Überschriften (Logbuch-Muster, siehe Schreibregeln)
+- Sortierung der Tagesabschnitte (## YYYY-MM-DD) in log.md in der Richtung,
+  die der Kopf nennt ("älteste zuerst"/"aufsteigend", sonst neueste zuerst)
 - Optionale Vertrauensfelder verified/stale_after (Format, Ablauf)
 - Aussagen zum Patch-Stand ohne stale_after
 - Optional: Frontmatter-Verweise (z.B. tests, config) gegen ihre Prüfqülle,
@@ -324,6 +326,40 @@ def find_dated_headings(text):
         m = DATED_HEADING_PATTERN.match(line)
         if m:
             hits.append((line.strip(), m.group(1)))
+    return hits
+
+
+LOG_DAY_PATTERN = re.compile(r"^##\s+(\d{4}-\d{2}-\d{2})\s*$")
+LOG_ASCENDING_PATTERN = re.compile(r"(?:älteste|aelteste)\s+zuerst|aufsteigend|oldest\s+first", re.I)
+
+
+def check_log_order(text):
+    """Tagesabschnitte in log.md, die gegen die Richtung aus dem Kopf verstoßen.
+
+    Der Kopf ist alles vor dem ersten Tagesabschnitt. Ohne Angabe gilt
+    "neueste zuerst". Gibt eine Liste (zeilennummer, meldung) zurück.
+    """
+    hits = []
+    head = []
+    days = []
+    in_fence = False
+    for lineno, line in enumerate(text.splitlines(), 1):
+        if line.lstrip().startswith(("```", "~~~")):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        m = LOG_DAY_PATTERN.match(line)
+        if m:
+            days.append((lineno, m.group(1)))
+        elif not days:
+            head.append(line)
+
+    ascending = bool(LOG_ASCENDING_PATTERN.search("\n".join(head)))
+    order = "älteste zuerst" if ascending else "neueste zuerst"
+    for (_, prev), (lineno, day) in zip(days, days[1:]):
+        if (day < prev) if ascending else (day > prev):
+            hits.append((lineno, f"## {day} steht nach ## {prev}, das Log ist {order} sortiert"))
     return hits
 
 
@@ -793,6 +829,13 @@ def lint_wiki(wiki_root, check_remotes=False, check_shrink_flag=False):
             if rp and rp[0] in remotes:
                 continue
             warnings.append(f"{extra_file.name}: Toter Wikilink [[{target}]] — Ziel existiert nicht")
+
+    # Sortierung von log.md: ein ans Ende gehängter Eintrag fällt sonst erst auf,
+    # wenn jemand das Log von oben liest und ihn vermisst.
+    log_file = wiki_root / "log.md"
+    if log_file.exists():
+        for lineno, msg in check_log_order(log_file.read_text(encoding="utf-8")):
+            errors.append(f"log.md:{lineno}: {msg}")
 
     # Optional: Remote-Pointer-Ziele per SSH verifizieren
     if check_remotes and remote_pointers:

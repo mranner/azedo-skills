@@ -6,7 +6,8 @@
 test-lint-wiki.py — Testfälle für die Präfix-Auflösung, die
 Frontmatter-Verweise (references), die Abschnittsverweise, die verwaisten
 Seiten, Aussagen zum Patch-Stand, die erlaubten Feldwerte (values), die
-Ablösung (supersede) und den Schrumpf-Guard (umgehängte Links) in lint-wiki.py.
+Ablösung (supersede), den Schrumpf-Guard (umgehängte Links) und die Sortierung
+von log.md in lint-wiki.py.
 
 Baut ein Wegwerf-Projekt mit zwei Geschwister-Wikis, einem Verzeichnis ohne
 wiki/-Unterordner und einer wiki-remotes.json, lässt lint-wiki.py darauf laufen
@@ -122,7 +123,11 @@ def build(root, home):
     write(root / "wiki/physik/wiki/ohne-schema.md",
           "---\ntype: entscheidung\nstatus: abgelöst\nherkunft: schaetzung\n---\n\nText.\n")
     write(root / "wiki/physik/index.md", "# Index\n\n- [[ohne-schema]]\n")
-    write(mathe / "log.md", "# Log\n\n- [[geschichte:gibt-es-nicht]]\n")
+    write(mathe / "log.md",
+          "# Log\n\nNeueste zuerst.\n\n- [[geschichte:gibt-es-nicht]]\n\n"
+          "## 2026-11-05\n\nA\n\n## 2026-10-01\n\nB\n\n## 2026-10-19\n\nC\n")
+    write(root / "wiki/physik/log.md",
+          "# Log\n\nÄlteste zuerst.\n\n## 2026-10-01\n\nA\n\n## 2026-10-19\n\nB\n")
     return mathe
 
 
@@ -157,6 +162,8 @@ CASES = [
     ("entscheidung-offen.md: Feld 'herkunft': Wert 'schaetzung' nicht erlaubt (erlaubt: benutzer, agent)", True),
     ("artikel-abgeloest.md: status", False),
     ("kein-update.md: Feld 'status'", False),
+    ("log.md:15: ## 2026-10-19 steht nach ## 2026-10-01, das Log ist neueste zuerst sortiert", True),
+    ("log.md:9:", False),
 ]
 
 # Zweiter Lauf, Wiki ohne values/supersede: keine der neuen Meldungen
@@ -164,6 +171,7 @@ CASES_OHNE = [
     ("Artikel gesamt: 1", True),
     ("ohne-schema.md: status", False),
     ("ohne-schema.md: Feld", False),
+    ("log.md:", False),
 ]
 
 
@@ -181,6 +189,12 @@ def shrink_cases():
     return [
         ("Schrumpf-Guard: umgehängter Link [[alt]] -> [[neu]] nicht gemeldet", "[[alt]]" not in out),
         ("Schrumpf-Guard: ersatzlos entfernter Link [[weg]] gemeldet", "[[weg]]" in out),
+        ("log.md: ohne Angabe im Kopf gilt neueste zuerst",
+         [n for n, _ in lint.check_log_order("# Log\n\n## 2026-01-01\n\n## 2026-02-01\n")] == [5]),
+        ("log.md: aufsteigend laut Kopf, richtig sortiert, still",
+         lint.check_log_order("# Log\n\nAufsteigend.\n\n## 2026-01-01\n\n## 2026-02-01\n") == []),
+        ("log.md: Tagesüberschrift im Code-Block zählt nicht",
+         lint.check_log_order("# Log\n\n## 2026-02-01\n\n```\n## 2026-03-01\n```\n") == []),
     ]
 
 

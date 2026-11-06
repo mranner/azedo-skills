@@ -3,6 +3,15 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.75.2
+
+- **wiki: `lint` prüft die Sortierung von `log.md`.** Die Tagesabschnitte
+  `## YYYY-MM-DD` müssen der Richtung aus dem Kopf der Datei folgen
+  („älteste zuerst" bzw. „aufsteigend", sonst neueste zuerst); ein Verstoß ist
+  ein Fehler mit Zeilennummer und dem Datum, das aus der Reihe fällt.
+  Auslöser: Einträge wurden trotz der Regel im Skill wiederholt ans Ende
+  eines absteigend sortierten Logs gehängt, und `lint` meldete nichts.
+
 ### 1.75.1
 
 - **bang: absoluter Pfad im Einzeiler.** Aufruf und Selbstlösch-Zeile nennen
