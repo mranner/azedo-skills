@@ -3,6 +3,15 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.75.3
+
+- **wiki: Begriff Kundendaten geschärft.** Kundendaten sind Inhalte über den
+  Kunden (Ansprechpartner, Verträge, Preise, Daten seiner eigenen Kunden,
+  Geschäftsinterna). Die Nennung als Bezug - `kunde:`, Hostname, Domain,
+  Jail, eine einzelne Vorgangsnummer als Beleg - fällt nicht darunter.
+  Auslöser: der bisher unbestimmte Begriff ließ sich auch auf die Bezüge
+  lesen, auf denen das Infra-Wiki aufgebaut ist.
+
 ### 1.75.2
 
 - **wiki: `lint` prüft die Sortierung von `log.md`.** Die Tagesabschnitte

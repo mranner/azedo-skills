@@ -145,6 +145,13 @@ aufgenommen. Ohne diese Zeile bleiben sie ausgeschlossen, auch wenn die
 `CLAUDE.md` Kunden sonst erwähnt. Die übrigen Ausschlüsse und die
 Sicherheitsregeln gelten auch mit Freigabe.
 
+**Kundendaten** sind Inhalte *über* den Kunden: Ansprechpartner und
+Kontaktdaten, Verträge, Preise und Konditionen, Daten seiner eigenen Kunden
+(Bestellungen, Adressen), Geschäftsinterna. Die **Nennung** des Kunden als
+Bezug ist keine Kundendaten-Aufnahme: `kunde:` im Frontmatter, Hostname,
+Domain, Jail, „läuft beim Kunden X", ebenso eine einzelne Vorgangsnummer
+(Bestell-, Belegnummer) als Beleg - sie zählt wie eine Datensatz-ID.
+
 Im Zweifel **fragen statt aufnehmen**. Ein zu voller Artikel kostet jeden
 späteren Leser Zeit; eine fehlende Erkenntnis kostet einmal eine Rückfrage.
 

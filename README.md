@@ -827,11 +827,11 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.75.2
+### 1.75.3
 
-- **wiki: `lint` prüft die Sortierung von `log.md`.** Die Tagesabschnitte
-  `## YYYY-MM-DD` müssen der Richtung aus dem Kopf der Datei folgen
-  („älteste zuerst" bzw. „aufsteigend", sonst neueste zuerst); ein Verstoß ist
-  ein Fehler mit Zeilennummer und dem Datum, das aus der Reihe fällt.
-  Auslöser: Einträge wurden trotz der Regel im Skill wiederholt ans Ende
-  eines absteigend sortierten Logs gehängt, und `lint` meldete nichts.
+- **wiki: Begriff Kundendaten geschärft.** Kundendaten sind Inhalte über den
+  Kunden (Ansprechpartner, Verträge, Preise, Daten seiner eigenen Kunden,
+  Geschäftsinterna). Die Nennung als Bezug - `kunde:`, Hostname, Domain,
+  Jail, eine einzelne Vorgangsnummer als Beleg - fällt nicht darunter.
+  Auslöser: der bisher unbestimmte Begriff ließ sich auch auf die Bezüge
+  lesen, auf denen das Infra-Wiki aufgebaut ist.
