@@ -76,7 +76,7 @@ node ~/.claude/skills/wp-project-triage/scripts/detect_wp_project.mjs
 - **Code-Stil:** PHP nach `php-formatting` (PSR-2 mit Tabs), nicht nach WPCS. Wo
   ein offizieller Skill `phpcs --standard=WordPress` verlangt, gilt das nicht.
 - **WP-CLI im Jail:** PHP-Code per `wp eval-file -` über stdin übergeben, nicht
-  per `wp eval '…'` - die Root-Shell ist tcsh und bricht das Quoting (`tcsh`).
+  per `wp eval '…'` - das Quoting über SSH und Jail zerlegt den Code sonst.
 - **WP-CLI als wwwuser, nie mit `--allow-root`:** `iocage exec -U <wwwuser>` bzw.
   `sudo -u <wwwuser>` (Begründung in `wp-cli`).
 - **Sprache vor Core-Updates prüfen:** `wp core update --locale=de_DE` stellt

@@ -74,7 +74,7 @@ Festgelegt 2026-10-14.
 ## Ausdünnen
 
 - **Eine Stelle pro Aussage.** Eine Verhaltensänderung ist dann eine Änderung an einer Stelle. Doppelungen kosten Pflege und Tokens und heben eine Aussage über ihren Rang.
-- **Ausnahme nur nach belegtem Versagen:** Eine Kopie zusätzlich zum Pointer ist erlaubt, wenn der geschärfte Pointer nachweislich nicht gegriffen hat. An der Kopie steht, wann und warum (Beispiel: csh-Kurzregeln in der Projekt-`CLAUDE.md` neben dem `@`-Include). Ohne diesen Beleg gilt die eine Stelle. Festgelegt 2026-10-14.
+- **Ausnahme nur nach belegtem Versagen:** Eine Kopie zusätzlich zum Pointer ist erlaubt, wenn der geschärfte Pointer nachweislich nicht gegriffen hat. An der Kopie steht, wann und warum. Ohne diesen Beleg gilt die eine Stelle. Festgelegt 2026-10-14.
 - **Die Umgebung ist auch eine Quelle.** Was Config, Verzeichnis oder `--help` mit einem Befehl liefern, nicht abschreiben - eine Kopie veraltet. Aufschreiben, was niemand nachschlagen kann: die ungeschriebene Konvention, den Grund einer Entscheidung, die Falle, die keine Config verrät. Infrastruktur steht im Wiki, nicht im Skill.
 - **Relevanz jeder Zeile prüfen.** Eine Zeile verliert sie, wenn sie nie auf die Aufgabe wirkt oder veraltet ist. Ohne Ausdünnen lagert sich Schicht auf Schicht ab, weil Hinzufügen sicher wirkt und Löschen riskant.
 - **No-ops Satz für Satz suchen:** eine Anweisung, die das Modell ohnehin befolgt. Prüffrage: Ändert der Satz das Verhalten gegenüber dem Default? Wenn nein, den ganzen Satz löschen, nicht kürzen. Ein zu schwaches Wort ist auch ein No-op (_gründlich_, wo der Agent schon gründlich ist) - dann ein stärkeres Wort, keine andere Technik.

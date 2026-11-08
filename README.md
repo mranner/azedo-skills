@@ -431,26 +431,13 @@ PHP-Code-Formatierung nach PSR-2 mit azedo-spezifischen Anpassungen. Kein eigene
 
 **Trigger:** `/php-formatting` oder natürliche Sprache wie "formatiere den PHP Code". Wird automatisch angewendet wenn PHP-Code erstellt oder geändert wird.
 
-### tcsh
-
-Referenz-Skill für tcsh — Remote-Administration auf FreeBSD-Servern. Root-Shell auf allen FreeBSD-Servern ist `tcsh`, Claude denkt aber in bash/sh. Kein eigenes Script, reine SKILL.md mit:
-
-- Entscheidungsmatrix: tcsh nativ vs. `sh -c` Wrapping
-- tcsh-Syntax-Kurzreferenz (Variablen, Redirects, Kontrollstrukturen, File-Tests)
-- Bash → tcsh Übersetzungstabelle (die häufigsten 20 Patterns)
-- FreeBSD-Admin-Patterns (service, pkg, jails, logs, firewall, ZFS)
-- Quoting-Regeln für SSH → tcsh und SSH → jexec/iocage → sh -c
-- Bekannte Fallen (Glob-Expansion, History-!, foreach, sed -i, Funktionen)
-
-**Trigger:** Wird automatisch angewendet bei SSH-Befehlen auf FreeBSD-Servern.
-
 ### wp-azedo
 
 Einstieg und Routing für jede WordPress-Aufgabe. Macht selbst keine WordPress-Arbeit, sondern klärt zwei Fragen und leitet weiter:
 
 - **Wo liegt die Site?** Umgebung, Zugang und Repo über das Infra-Wiki statt Host abklopfen
 - **Was ist die Aufgabe?** Routing-Tabelle: Code (Block-Theme, Blöcke, Patterns, Plugin, REST-Endpunkt, Performance) zu den offiziellen WordPress-Skills, Betrieb und Inhalte zu `wp-cli`, `wp-rest`, `wp-nf`, `wp-pys`, `wp-rcb`, `mainwp`, `novamira`; ersetzt `wordpress-router`
-- azedo-Regeln, die in den offiziellen Skills fehlen: kein Docker, `php-formatting` statt WPCS, `eval-file -` wegen tcsh, kein `--allow-root`, Locale vor Core-Updates, Code in Git und Inhalte in der DB
+- azedo-Regeln, die in den offiziellen Skills fehlen: kein Docker, `php-formatting` statt WPCS, `eval-file -` wegen des Quotings, kein `--allow-root`, Locale vor Core-Updates, Code in Git und Inhalte in der DB
 - `references/`: ACF (Local JSON, Blöcke, Lizenz), Abnahme-Checkliste für Block-Themes, Go-Live-Liste
 - **Voraussetzung:** die offiziellen Skills aus `https://github.com/WordPress/agent-skills`, geklont nach `~/.claude/vendor/wordpress-agent-skills` und je Skill nach `~/.claude/skills/` verlinkt (ohne `wordpress-router` und WooCommerce) - `install.sh` richtet sie nicht ein, meldet aber, wenn einer fehlt
 
@@ -774,7 +761,7 @@ Kurzer `!`-Einzeiler statt eines langen Befehlsblocks. Muss der User einen Befeh
 
 - Ablage `.tmp/bang-<slug>-<hex>.sh`, Aufruf `! sh .tmp/bang-….sh` unter 80 Zeichen
 - Erste Zeile `rm -f -- "$0"`: das Script läuft vollständig, die Datei ist trotzdem sofort weg, auch bei Fehler oder Ctrl-C; der Exit-Code kommt an
-- Remote-Befehle per STDIN-Heredoc an `sh` - keine csh- und Quoting-Fallen
+- Remote-Befehle per STDIN-Heredoc an `sh` - keine Quoting-Fallen
 - Inhalt steht vor dem Aufruf im Chat; nach einem Fehlschlag erst Zustand prüfen, dann ein neues Script nur mit den fehlenden Schritten
 - Kein Weg um Freigaben: gilt nur für Befehle, die ohnehin per `!` an den User gehen
 
@@ -827,13 +814,12 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.75.5
+### 1.75.6
 
-- **wiki: Aufnahmefilter bei `supersede`, Linkzählung.** Für Typen unter
-  `supersede` entfällt die Frage „Gilt es in drei Monaten noch?": eine
-  zeitgebundene Festlegung bleibt als Nachweis. `lint` zählt für die
-  Mindestanzahl jetzt verschiedene Linkziele statt aller Links - ein Ziel in
-  `betrifft` und im Text zählt einmal - und das Minimum ist je Typ über
-  `min_links` in der `wiki-schema.json` einstellbar. Auslöser: in einem
-  Projekt-Wiki mit Entscheidungen fielen zeitgebundene Festlegungen durch den
-  Filter, und 25 Warnungen zur Linkzahl hatten keine Aussage.
+- **tcsh entfernt.** Die Root-Shell ist auf den betreuten FreeBSD-Hosts und
+  Jails jetzt `/bin/sh`, der Skill wurde bei jedem SSH-Befehl geladen, ohne
+  noch etwas zu verhindern. Für die wenigen verbleibenden csh-Ausnahmen
+  stehen die Fallen im Infrastruktur-Wiki. Hinweise auf die
+  tcsh-Root-Shell in `wp-azedo`, `wp-nf`, `wp-rcb`, `bang`,
+  `writing-for-agents` und der `wiki`-Referenz für Remote-Wikis entfernt bzw.
+  auf das Quoting umgestellt; `install.sh` installiert `tcsh` nicht mehr.

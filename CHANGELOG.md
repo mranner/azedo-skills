@@ -3,6 +3,16 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.75.6
+
+- **tcsh entfernt.** Die Root-Shell ist auf den betreuten FreeBSD-Hosts und
+  Jails jetzt `/bin/sh`, der Skill wurde bei jedem SSH-Befehl geladen, ohne
+  noch etwas zu verhindern. Für die wenigen verbleibenden csh-Ausnahmen
+  stehen die Fallen im Infrastruktur-Wiki. Hinweise auf die
+  tcsh-Root-Shell in `wp-azedo`, `wp-nf`, `wp-rcb`, `bang`,
+  `writing-for-agents` und der `wiki`-Referenz für Remote-Wikis entfernt bzw.
+  auf das Quoting umgestellt; `install.sh` installiert `tcsh` nicht mehr.
+
 ### 1.75.5
 
 - **wiki: Aufnahmefilter bei `supersede`, Linkzählung.** Für Typen unter

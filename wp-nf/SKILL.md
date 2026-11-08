@@ -17,7 +17,7 @@ sorgfaeltige Operationen mit Backup + Cache-Invalidierung + Verify.
 
 Grenzt an zwei Nachbar-Skills und dupliziert deren Wissen bewusst **nicht**:
 
-- **[[wp-cli]]** — Jail-Zugriff, `wp eval-file`, csh-Quoting, DB-Ops. wp-nf setzt das
+- **[[wp-cli]]** — Jail-Zugriff, `wp eval-file`, Quoting, DB-Ops. wp-nf setzt das
   voraus und verweist darauf statt es zu wiederholen.
 - **[[wp-pys]]** — PixelYourSite-Event-/Trigger-Config. Die Verbindung ist das
   CSS-Click-Tracking: PYS liefert den **Selektor**, das NF-Feld die **Klasse**
@@ -47,8 +47,8 @@ daneben:
 ## 1. Zugriff
 
 Kein eigener Zugriffsweg — es gilt der aus **[[wp-cli]]** (Jail → `wp eval-file`).
-Bei komplexem Quoting das PHP-Script ins Jail legen und dort ausfuehren (csh-Fallstricke,
-siehe [[freebsd-shell-pitfalls]]).
+Bei komplexem Quoting das PHP-Script ins Jail legen und dort ausfuehren (Quoting-Fallstricke,
+siehe [[ssh-remote-quoting]]).
 
 Beispiel (Multisite; Form-IDs sind **subsite-spezifisch**):
 
@@ -341,7 +341,7 @@ nebeneinanderlegen.
 
 ## Cross-Links
 
-- **[[wp-cli]]** — Jail-Zugriff, `wp eval-file`, DB-Ops, csh-Quoting.
+- **[[wp-cli]]** — Jail-Zugriff, `wp eval-file`, DB-Ops, Quoting.
 - **[[wp-pys]]** — PYS-Event-/Trigger-Config; NF-ID-Lookup verweist hierher
   (`references/snippets-read.md`).
 - Wiki `wiki/acme/wiki/services/customer-multisite.md` — geloeste GA4-Notiz.

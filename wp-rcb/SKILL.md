@@ -43,7 +43,7 @@ python3 "$SKILL_DIR/rcb" php --input <datei> | sudo ssh -C root@<host> "… wp e
 Argumente sind Wörter oder `name=wert` (`revisions grep=office@ limit=5`) -
 WP-CLI nimmt `--optionen` hinter `eval-file` nicht an. Ein Wert mit
 Leerzeichen oder Sonderzeichen (`set-setting`, `set-code`, Zweck bei
-`set-cookie`) geht über `--input`, nie als Argument: SSH, tcsh und `sh -c`
+`set-cookie`) geht über `--input`, nie als Argument: SSH und `sh -c`
 zerlegen ihn sonst.
 
 PHP-Warnungen von Plugins landen auf stderr, das JSON auf stdout - beim

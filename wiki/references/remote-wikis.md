@@ -66,7 +66,7 @@ wie die Wikis unter `wiki/` auch.
 
 ### Lesen über SSH
 
-Die User-Shell auf den Zielhosts ist `bash` (nicht die `csh` der root-Shell), daher
+Die User-Shell auf den Zielhosts ist `bash`, daher
 normales Quoting — kein `sh -c`-Wrapping nötig. `~` **innerhalb** des
 remote-quotierten Strings lassen, damit die Remote-Shell expandiert; sonst expandiert
 die lokale Shell auf das falsche Home:

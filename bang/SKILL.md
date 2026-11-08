@@ -64,7 +64,7 @@ SCRIPT
 ```
 
 - **Remote immer per STDIN-Heredoc an `sh`**, mit `'SCRIPT'` in Quotes: keine
-  lokale Expansion, keine csh-Fallen der Root-Shell, kein Quoting über mehrere
+  lokale Expansion, kein Quoting über mehrere
   Ebenen. Gateway-Hops: `"ssh -T root@<intern> sh"` als Remote-Befehl.
 - Lokale Befehle direkt ins Script, ohne Heredoc.
 - `set -e` dort, wo ein späterer Schritt nur nach Erfolg des vorigen laufen darf.
