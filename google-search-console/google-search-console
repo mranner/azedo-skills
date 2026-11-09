@@ -2,7 +2,7 @@
 
 # Google Search Console REST API helper
 # stdlib + cryptography (fuer JWT RS256), keine weiteren pip-Dependencies
-# version 1.75.6
+# version 1.75.7
 
 import argparse
 import datetime
@@ -40,10 +40,9 @@ def cryptography_hint():
         return "  pkg install %s-cryptography" % version
 
     if sys.platform == "darwin":
-        return ("  python3 -m pip install --user cryptography\n"
-                "  Bricht das mit 'externally-managed-environment' ab (Homebrew-Python),\n"
-                "  ein venv anlegen und das Script daraus aufrufen:\n"
-                "    python3 -m venv ~/.claude/venv ; ~/.claude/venv/bin/pip install cryptography")
+        return ("  brew install cryptography\n"
+                "  Ohne Homebrew-Python geht auch:\n"
+                "    python3 -m pip install --user cryptography")
 
     return "  python3 -m pip install --user cryptography"
 

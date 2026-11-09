@@ -5,7 +5,7 @@
 # Die Verschluesselung passiert hier lokal (PrivateBin-Format v2: AES-256-GCM,
 # PBKDF2-HMAC-SHA256, raw deflate). Der Server sieht nur Chiffrat; der Schluessel
 # steht Base58-kodiert im URL-Fragment und verlaesst den Rechner nie ueber HTTP.
-# version 1.75.6
+# version 1.75.7
 
 import argparse
 import base64
@@ -31,9 +31,8 @@ def cryptography_hint():
         return "  pkg install %s-cryptography" % version
 
     if sys.platform == "darwin":
-        return ("  python3 -m venv ~/.claude/venv ; ~/.claude/venv/bin/pip install cryptography\n"
-                "  und das Script mit ~/.claude/venv/bin/python3 aufrufen.\n"
-                "  Ohne Homebrew-Python (dort sperrt PEP 668 pip --user) geht auch:\n"
+        return ("  brew install cryptography\n"
+                "  Ohne Homebrew-Python geht auch:\n"
                 "    python3 -m pip install --user cryptography")
 
     return "  python3 -m pip install --user cryptography"

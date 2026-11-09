@@ -705,7 +705,7 @@ PrivateBin-Anbindung — teilt Text, Logausschnitte, Configs und ganze Dateien a
 
 Instanz-URL und optionale Basic-Auth-Zugangsdaten in `~/.claude/privatebin.json` (Vorlage `privatebin/privatebin.json.example`), mehrere Instanzen möglich.
 
-**Voraussetzungen:** Python >= 3.9 und `cryptography` (AES-256-GCM gibt es in der stdlib nicht). FreeBSD: `pkg install py3XY-cryptography` passend zur laufenden Python-Version; macOS: `python3 -m pip install --user cryptography`, bei Homebrew-Python stattdessen ein venv (`python3 -m venv ~/.claude/venv`). Fehlt das Modul, nennt das Script den passenden Weg.
+**Voraussetzungen:** Python >= 3.9 und `cryptography` (AES-256-GCM gibt es in der stdlib nicht). FreeBSD: `pkg install py3XY-cryptography` passend zur laufenden Python-Version; macOS: `brew install cryptography`, ohne Homebrew-Python `python3 -m pip install --user cryptography`. Fehlt das Modul, nennt das Script den passenden Weg.
 
 **Trigger:** `/privatebin` oder natürliche Sprache wie "teil das per PrivateBin", "mach einen Paste draus", "schick mir das als Link", "gib mir den Inhalt von dieser Paste-URL".
 
@@ -814,12 +814,9 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.75.6
+### 1.75.7
 
-- **tcsh entfernt.** Die Root-Shell ist auf den betreuten FreeBSD-Hosts und
-  Jails jetzt `/bin/sh`, der Skill wurde bei jedem SSH-Befehl geladen, ohne
-  noch etwas zu verhindern. Für die wenigen verbleibenden csh-Ausnahmen
-  stehen die Fallen im Infrastruktur-Wiki. Hinweise auf die
-  tcsh-Root-Shell in `wp-azedo`, `wp-nf`, `wp-rcb`, `bang`,
-  `writing-for-agents` und der `wiki`-Referenz für Remote-Wikis entfernt bzw.
-  auf das Quoting umgestellt; `install.sh` installiert `tcsh` nicht mehr.
+- **cryptography am Mac per Homebrew.** `privatebin`, `google-analytics` und
+  `google-search-console` nennen bei fehlendem Modul am Mac jetzt
+  `brew install cryptography` statt eines eigenen venv unter `~/.claude/venv`,
+  aus dem das Script aufgerufen werden musste.

@@ -3,6 +3,13 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.75.7
+
+- **cryptography am Mac per Homebrew.** `privatebin`, `google-analytics` und
+  `google-search-console` nennen bei fehlendem Modul am Mac jetzt
+  `brew install cryptography` statt eines eigenen venv unter `~/.claude/venv`,
+  aus dem das Script aufgerufen werden musste.
+
 ### 1.75.6
 
 - **tcsh entfernt.** Die Root-Shell ist auf den betreuten FreeBSD-Hosts und
