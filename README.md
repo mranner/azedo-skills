@@ -428,6 +428,7 @@ PHP-Code-Formatierung nach PSR-2 mit azedo-spezifischen Anpassungen. Kein eigene
 - Leerzeilen um Kontrollstrukturen (`if`, `for`, `foreach`, etc.)
 - Leerzeilen um Kommentarblöcke und DocBlocks
 - Leerzeilen nach Methoden-/Funktionsdeklarationen
+- Neue Methoden alphabetisch zwischen die Nachbarn, Hook-Registrierungen nach Hook-Namen sortiert
 
 **Trigger:** `/php-formatting` oder natürliche Sprache wie "formatiere den PHP Code". Wird automatisch angewendet wenn PHP-Code erstellt oder geändert wird.
 
@@ -814,9 +815,9 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.75.7
+### 1.75.8
 
-- **cryptography am Mac per Homebrew.** `privatebin`, `google-analytics` und
-  `google-search-console` nennen bei fehlendem Modul am Mac jetzt
-  `brew install cryptography` statt eines eigenen venv unter `~/.claude/venv`,
-  aus dem das Script aufgerufen werden musste.
+- **php-formatting: Reihenfolge von Methoden und Hooks.** Neue Methoden
+  kommen alphabetisch zwischen die bestehenden Nachbarn, ohne vorhandene zu
+  verschieben; `add_action`/`add_filter` im Konstruktor sind nach Hook-Namen
+  sortiert. Der Skill schreibt jetzt echte Umlaute statt ae/oe/ue.

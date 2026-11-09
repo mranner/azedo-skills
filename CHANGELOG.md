@@ -3,6 +3,13 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.75.8
+
+- **php-formatting: Reihenfolge von Methoden und Hooks.** Neue Methoden
+  kommen alphabetisch zwischen die bestehenden Nachbarn, ohne vorhandene zu
+  verschieben; `add_action`/`add_filter` im Konstruktor sind nach Hook-Namen
+  sortiert. Der Skill schreibt jetzt echte Umlaute statt ae/oe/ue.
+
 ### 1.75.7
 
 - **cryptography am Mac per Homebrew.** `privatebin`, `google-analytics` und
