@@ -60,13 +60,24 @@ top = git("rev-parse", "--show-toplevel").strip()
 if os.path.basename(top) != "azedo-skills":
     sys.exit(0)
 
+# Ein Diff nur aus `# version`-Zeilen ist der Release-Bump, keine Skill-Änderung
+
+KOPF = re.compile(r"^[-+]# version \d+\.\d+\.\d+$")
+
+
+def nur_versionskopf(pfad):
+    diff = git("diff", "HEAD", "--unified=0", "--", os.path.join(top, pfad)).splitlines()
+    zeilen = [z for z in diff if z[:1] in "+-" and not z.startswith(("+++", "---"))]
+    return bool(zeilen) and all(KOPF.match(z) for z in zeilen)
+
+
 # Alle Änderungen, auch noch nicht gestagte - oft steht das git add im selben Befehl
 
 skills = set()
 for zeile in git("status", "--porcelain").splitlines():
     pfad = zeile[3:].split(" -> ")[-1].strip('"')
     erstes = pfad.split("/", 1)[0]
-    if "/" in pfad and os.path.isfile(os.path.join(top, erstes, "SKILL.md")):
+    if "/" in pfad and os.path.isfile(os.path.join(top, erstes, "SKILL.md")) and not nur_versionskopf(pfad):
         skills.add(erstes)
 
 if not skills:

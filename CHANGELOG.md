@@ -3,6 +3,14 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.75.10
+
+- **Release per Script, Guard ohne Versions-Bump.** `scripts/release.py
+  --entry <datei> [--minor]` zählt `VERSION` hoch, setzt den Eintrag in
+  CHANGELOG und README und zieht die `# version`-Zeilen der Scripts nach.
+  `skills-review-guard.py` verlangt die Regel-Prüfung nicht mehr für Skills,
+  deren Diff nur aus diesen Zeilen besteht.
+
 ### 1.75.9
 
 - **install.sh räumt verwaiste Links auf.** Symlinks in `~/.claude/skills`,

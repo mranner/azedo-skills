@@ -57,12 +57,17 @@ laesst sich ohnehin nicht mehr bereinigen, und ihre Treffer verdecken sonst die 
 
 ## Release-Workflow
 
-Änderungen sind erst dann fertig, wenn sie beim Konsumenten ankommen. Zu jedem
-Release gehören drei Dateien gemeinsam:
+Änderungen sind erst dann fertig, wenn sie beim Konsumenten ankommen. Jedes
+Release läuft über ein Script, mit dem Eintragstext (nur die Aufzählung, ohne
+Überschrift) in einer Datei:
 
-- `VERSION` — hochzählen (semver)
-- `CHANGELOG.md` — neuer Abschnitt oben, absteigend nach Version
-- `README.md` — führt nur die *aktuelle* Version, kein Verlauf
+```bash
+python3 scripts/release.py --entry <datei> [--minor]
+```
+
+Es zählt `VERSION` hoch (Patch, mit `--minor` Minor), setzt den Eintrag oben in
+`CHANGELOG.md`, ersetzt den Changelog-Abschnitt im `README.md` (dort nur die
+aktuelle Version) und zieht die `# version`-Zeilen der Scripts nach.
 
 **Die Version steht ausschliesslich in `VERSION`.** Kein Skill fuehrt sie
 zusaetzlich im Frontmatter: eine zweite Stelle wird bei Releases vergessen und
@@ -79,20 +84,9 @@ ein `# version <x.y.z>` - die `.py`-Scripts in `wiki`, `swaks`, `mail-as-me` und
 Das ist bewusst so entschieden (2026-09-17) und **gehoert zu jedem Release
 mitgezogen**, sonst faellt es in dieselbe Luecke wie das frueher dort gefuehrte
 Frontmatter-Feld - vor der Angleichung stand `audit-wiki.py` auf 1.51.6 und die
-Scripts von `einfache-sprache` auf 1.37.0, waehrend `VERSION` bei 1.59.2 lag:
-
-```bash
-grep -rlIE '^# version [0-9]+\.[0-9]+\.[0-9]+$' --exclude-dir=.git . \
-  | xargs sed -i~ -E 's/^# version [0-9]+\.[0-9]+\.[0-9]+$/# version <neue Version>/'
-find . -name '*~' -not -path './.git/*' -delete
-```
-
-Der `grep` filtert bewusst nicht nach Endung: ein Filter auf `*.py`/`*.sh`
-uebersah die Scripts ohne Endung, die dadurch auf Staenden bis 1.11.1 liegen
-blieben. Das Muster verlangt dagegen die ganze Zeile als Versionsnummer: ein
-lockeres `^# version .*` traf auch eine Kommentarzeile, die mit dem Wort
-"version" begann, und ersetzte ihren Text. Der `find` raeumt die
-`sed`-Sicherungen weg, damit sie nicht im Commit landen.
+Scripts von `einfache-sprache` auf 1.37.0, waehrend `VERSION` bei 1.59.2 lag.
+`release.py` erledigt das; `skills-review-guard.py` zaehlt einen Skill, dessen
+Diff nur aus diesen Zeilen besteht, nicht als geaendert.
 
 Commit-Konvention: `CR<id>: <skill> - <was geändert wurde> (<version>)`, das
 Präfix `CR<id>: ` nur bei aktivem CR-Kontext, sonst ohne Präfix.

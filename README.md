@@ -816,9 +816,10 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.75.9
+### 1.75.10
 
-- **install.sh räumt verwaiste Links auf.** Symlinks in `~/.claude/skills`,
-  die ins Repo zeigen und deren Ziel fehlt (Skill entfernt), werden gelöscht
-  und als `unlink` gemeldet; Links auf andere Ziele bleiben. `--help`
-  beschreibt den Installer nur, statt ihn auszuführen.
+- **Release per Script, Guard ohne Versions-Bump.** `scripts/release.py
+  --entry <datei> [--minor]` zählt `VERSION` hoch, setzt den Eintrag in
+  CHANGELOG und README und zieht die `# version`-Zeilen der Scripts nach.
+  `skills-review-guard.py` verlangt die Regel-Prüfung nicht mehr für Skills,
+  deren Diff nur aus diesen Zeilen besteht.
