@@ -3,6 +3,13 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.75.9
+
+- **install.sh räumt verwaiste Links auf.** Symlinks in `~/.claude/skills`,
+  die ins Repo zeigen und deren Ziel fehlt (Skill entfernt), werden gelöscht
+  und als `unlink` gemeldet; Links auf andere Ziele bleiben. `--help`
+  beschreibt den Installer nur, statt ihn auszuführen.
+
 ### 1.75.8
 
 - **php-formatting: Reihenfolge von Methoden und Hooks.** Neue Methoden

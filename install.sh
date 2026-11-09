@@ -5,6 +5,21 @@
 
 set -e
 
+case "$1" in
+    -h|--help)
+        cat <<'EOF'
+Aufruf: install.sh
+
+Verlinkt die Skills dieses Repos nach ~/.claude/skills und entfernt dort
+verwaiste Links ins Repo, installiert die Git-Hooks (post-merge,
+post-rewrite, pre-commit) und trägt Permissions und den Review-Hook in
+~/.claude/settings.json ein. Keine Optionen; ein wiederholter Lauf ist
+gefahrlos.
+EOF
+        exit 0
+        ;;
+esac
+
 REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKILLS_DIR="$HOME/.claude/skills"
 SETTINGS="$HOME/.claude/settings.json"
@@ -38,6 +53,19 @@ for skill in bang bridge cloudns einfache-sprache envato forgejo google-analytic
             echo "  link  $skill"
         fi
     fi
+done
+
+# Verwaiste Symlinks ins Repo entfernen (Skill aus dem Repo gelöscht)
+for target in "$SKILLS_DIR"/*; do
+    [ -L "$target" ] || continue
+    case "$(readlink "$target")" in
+        "$REPO_DIR"/*)
+            if [ ! -e "$target" ]; then
+                rm "$target"
+                echo "  unlink  $(basename "$target") (Ziel fehlt)"
+            fi
+            ;;
+    esac
 done
 
 # Git-Hook installieren: verlinkt neue Skills automatisch nach 'git pull'

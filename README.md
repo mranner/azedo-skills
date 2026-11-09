@@ -18,7 +18,8 @@ cd ~/.claude/azedo-skills && git pull
 ```
 
 `install.sh` richtet beim ersten Lauf einen Git-Hook ein, der neue Skills nach
-jedem `git pull` **automatisch** verlinkt — man muss `install.sh` nach einem
+jedem `git pull` **automatisch** verlinkt und Links auf entfernte Skills
+löscht — man muss `install.sh` nach einem
 Update also nicht erneut aufrufen.
 
 **Ältere Installationen ohne Hook:** einmalig `sh install.sh` ausführen,
@@ -815,9 +816,9 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.75.8
+### 1.75.9
 
-- **php-formatting: Reihenfolge von Methoden und Hooks.** Neue Methoden
-  kommen alphabetisch zwischen die bestehenden Nachbarn, ohne vorhandene zu
-  verschieben; `add_action`/`add_filter` im Konstruktor sind nach Hook-Namen
-  sortiert. Der Skill schreibt jetzt echte Umlaute statt ae/oe/ue.
+- **install.sh räumt verwaiste Links auf.** Symlinks in `~/.claude/skills`,
+  die ins Repo zeigen und deren Ziel fehlt (Skill entfernt), werden gelöscht
+  und als `unlink` gemeldet; Links auf andere Ziele bleiben. `--help`
+  beschreibt den Installer nur, statt ihn auszuführen.
