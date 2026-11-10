@@ -3,6 +3,12 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.75.11
+
+- **swaks: prozentkodierter SMTP-User.** `build_mail.py` dekodiert den
+  Benutzer aus `smtp_url` (`user%40domain` → `user@domain`); bisher ging er
+  kodiert an den Relay, der die Anmeldung mit 535/454 ablehnte.
+
 ### 1.75.10
 
 - **Release per Script, Guard ohne Versions-Bump.** `scripts/release.py

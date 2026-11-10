@@ -6,7 +6,7 @@
 # um das alternative-Part gelegt. Bei einer Antwort kommt der Zitatblock aus
 # `imap quote` unter Body und Signatur (Top-Posting), die Threading-Header
 # In-Reply-To und References haengen die Antwort an den bestehenden Thread.
-# version 1.75.10
+# version 1.75.11
 
 import argparse
 import hashlib
@@ -28,6 +28,7 @@ from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formatdate, getaddresses, make_msgid
+from urllib.parse import unquote
 
 
 def read(path):
@@ -240,7 +241,9 @@ def resolve_route(cfg, muttrc_path=DEFAULT_MUTTRC):
 
     tls = "wrapper" if m.group("scheme") == "smtps" else "starttls"
 
-    user = m.group("user")
+    # mutt erwartet das @ im Benutzer prozentkodiert (user%40domain)
+
+    user = unquote(m.group("user")) if m.group("user") else None
 
     # Passwort: erst smtp_pass, sonst das imap_pass desselben Hosts. Beide sind
     # in der Praxis dasselbe Konto — der Fallback erspart eine zweite Kopie.

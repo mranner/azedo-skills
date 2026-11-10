@@ -816,10 +816,8 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.75.10
+### 1.75.11
 
-- **Release per Script, Guard ohne Versions-Bump.** `scripts/release.py
-  --entry <datei> [--minor]` zählt `VERSION` hoch, setzt den Eintrag in
-  CHANGELOG und README und zieht die `# version`-Zeilen der Scripts nach.
-  `skills-review-guard.py` verlangt die Regel-Prüfung nicht mehr für Skills,
-  deren Diff nur aus diesen Zeilen besteht.
+- **swaks: prozentkodierter SMTP-User.** `build_mail.py` dekodiert den
+  Benutzer aus `smtp_url` (`user%40domain` → `user@domain`); bisher ging er
+  kodiert an den Relay, der die Anmeldung mit 535/454 ablehnte.
