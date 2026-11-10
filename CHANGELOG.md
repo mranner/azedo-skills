@@ -3,6 +3,12 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.75.14
+
+- **mainwp: Update-Historie einer Site.** Neuer Abschnitt: Abfrage über
+  `wp_mainwp_wp_logs` in der Dashboard-DB, da keine Ability existiert;
+  `created` in Mikrosekunden.
+
 ### 1.75.13
 
 - **swaks: Passwort-Dekodierung zurückgenommen.** Das Passwort aus

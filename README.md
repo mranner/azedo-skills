@@ -816,8 +816,8 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.75.13
+### 1.75.14
 
-- **swaks: Passwort-Dekodierung zurückgenommen.** Das Passwort aus
-  `smtp_url` geht wieder unverändert an den Relay; dekodiert wird nur der
-  Benutzer (1.75.11).
+- **mainwp: Update-Historie einer Site.** Neuer Abschnitt: Abfrage über
+  `wp_mainwp_wp_logs` in der Dashboard-DB, da keine Ability existiert;
+  `created` in Mikrosekunden.

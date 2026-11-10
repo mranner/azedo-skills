@@ -2,11 +2,12 @@
 name: mainwp
 description: >
   MainWP Dashboard: WordPress-Sites netzwerkuebergreifend
-  verwalten. Sites auflisten, Updates pruefen und installieren, Plugins und
-  Themes verwalten, Clients und Tags organisieren. Generischer Abilities-
+  verwalten. Sites auflisten, Updates pruefen, installieren und ihre Historie
+  abfragen, Plugins und Themes verwalten, Clients und Tags organisieren. Generischer Abilities-
   Executor — kann dynamisch alle verfuegbaren MainWP-Abilities ausfuehren.
   Nutze diesen Skill wenn der User WordPress-Sites uebergreifend verwalten,
-  Updates einspielen oder Site-Informationen abrufen will.
+  Updates einspielen oder Site-Informationen abrufen will. Auch bei
+  "wann wurde das Plugin auf Site X aktualisiert".
   Trigger: /mainwp.
 ---
 
@@ -332,6 +333,20 @@ Pro Plugin kommen `slug`, `name`, `version`, `active` und `update_version`.
 - **Fehlgeschlagene Sites stehen in der `.err`-Datei**, die `.json` ist dann
   leer. Typisch ist `400 mainwp_child_outdated` bei einer getrennten Site mit
   altem Child-Plugin -- deren Plugins sind ueber MainWP nicht abfragbar.
+
+### Update-Historie einer Site
+
+Wann welches Update auf einer Site lief, liefert keine Ability; es steht nur in
+der Dashboard-DB, abgefragt per WP-CLI `eval-file` auf dem Dashboard-Host.
+Die Logs auf der Site selbst reichen nicht:
+das Changes-Log von MainWP Child haelt 7 Tage, Stream sieht keine Updates ueber
+MainWP.
+
+- `wp_mainwp_wp_logs` (`site_id` aus `wp_mainwp_wp`, `connector = 'installer'`,
+  `context` `plugin`/`theme`/`core`), Name und Version in
+  `wp_mainwp_wp_logs_meta` (`meta_log_id`, Keys `name`, `version`)
+- `created` steht in **Mikrosekunden** - ein Vergleich mit `strtotime()`
+  liefert still null Treffer, Grenzen also mit `* 1000000` rechnen
 
 ### Tags verwalten (REST API v2)
 
