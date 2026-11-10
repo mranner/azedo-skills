@@ -816,8 +816,9 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.75.15
+### 1.75.16
 
-- **wp-azedo: Site lokalisieren.** Schritt 1 verweist für Host, Jail,
-  wwwuser und Docroot auf den Lokalisierungs-Ablauf des Infra-Wikis, statt
-  fehlende Angaben zu erfragen und ins Wiki einzutragen.
+- **imap: Inline-Bilder auffindbar.** `attachments --json` nennt bei
+  ausgeblendeten Inline-Teilen im Feld `hint` den Schalter
+  `--include-inline`; die Befehlstabelle in SKILL.md erwähnt ihn für
+  eingebettete Bilder.

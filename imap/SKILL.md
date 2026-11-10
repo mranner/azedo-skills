@@ -38,7 +38,7 @@ ohne `--account` alle Konten ab. Einrichtung, Keystore und Kontonamen im Detail:
 | `contacts <uid> -a <konto>` | alle Adressen eines Threads sammeln (folgt der References-Kette) |
 | `read <uid> --headers` | alle Rohheader statt der Kopfzeilen-Auswahl |
 | `read <uid> --raw` | komplette unbearbeitete Nachricht (Header + Body) |
-| `attachments <uid> -a <konto>` | Anhänge auflisten (Index, Name, Typ, Größe) |
+| `attachments <uid> -a <konto>` | Anhänge auflisten (Index, Name, Typ, Größe); eingebettete Bilder (`cid:image001.png`) erst mit `--include-inline` |
 | `save-attachment <uid> -a <konto>` | Anhang herausschreiben |
 
 ```

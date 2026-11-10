@@ -3,6 +3,13 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.75.16
+
+- **imap: Inline-Bilder auffindbar.** `attachments --json` nennt bei
+  ausgeblendeten Inline-Teilen im Feld `hint` den Schalter
+  `--include-inline`; die Befehlstabelle in SKILL.md erwähnt ihn für
+  eingebettete Bilder.
+
 ### 1.75.15
 
 - **wp-azedo: Site lokalisieren.** Schritt 1 verweist für Host, Jail,

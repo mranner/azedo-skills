@@ -3,7 +3,7 @@
 # IMAP-Helper für Posteingang-Triage
 # Liest Zugangsdaten aus muttrc, arbeitet gegen mehrere Konten.
 # stdlib only, keine pip-Abhängigkeiten. Lauffähig auf macOS + FreeBSD.
-# version 1.75.15
+# version 1.75.16
 
 import argparse
 import datetime
@@ -2028,13 +2028,16 @@ def cmd_attachments(args, accounts):
         parts = [p for p in parts if not p["inline"]]
 
     if args.json:
-        out_json({
+        result = {
             "account": acc["alias"],
             "folder": args.folder,
             "uid": args.uid,
             "attachments": public_parts(parts),
             "inline_hidden": hidden,
-        })
+        }
+        if hidden:
+            result["hint"] = "--include-inline zeigt die Inline-Teile, save-attachment --index schreibt sie heraus"
+        out_json(result)
         return
 
     if not parts:
