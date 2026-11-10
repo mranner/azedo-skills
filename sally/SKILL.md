@@ -37,7 +37,7 @@ Fehlt die Datei oder ein Schlüssel, bricht das Script mit Meldung ab.
 | `recordings [--since D] [--until D] [--limit N]` | Zeit, Dauer, Transkript-Status, ID, Name; neueste zuerst |
 | `summary <aufnahme> [--lang de] [--format md\|txt\|pdf\|docx\|odt]` | Zusammenfassung als Dokument, Default Markdown auf stdout |
 | `transcript <aufnahme> [--lang de] [--format md\|txt\|pdf\|docx\|xlsx\|vtt\|srt]` | Transkript als Dokument |
-| `download <aufnahme> [--to DIR] [--json]` | Zusammenfassung und Transkript (md) als Dateien, Default `./.tmp/` (Modus 700) |
+| `download <aufnahme> [--to DIR] [--json]` | Zusammenfassung und Transkript (md) als Dateien, Default `./.tmp/` (Modus 700, Dateien 600; warnt, wenn ein bestehendes Verzeichnis offener ist) |
 | `search "<text>" [--limit N]` | Treffer in Zusammenfassungen mit Ausschnitt |
 
 - `<aufnahme>` ist die ID oder ein eindeutiger Teil des Namens; bei mehreren
@@ -87,6 +87,9 @@ weil es Kundennamen enthält; Vorlage `sally-glossar.md.example`.
 - Ein Name, der im Kontext erkennbar falsch ist, aber nicht im Glossar steht:
   nicht stillschweigend korrigieren, sondern als Vermutung kennzeichnen und die
   Aufnahme ins Glossar vorschlagen.
+- **Vor dem Eintragen** den Tabellenkopf gegen die Vorlage prüfen und fehlende
+  Spalten ergänzen: eine ältere Datei kann hinter der Vorlage zurückliegen,
+  ein `nur bei`-Eintrag hätte dann keine Spalte.
 - **Sprecherzuordnung ist unzuverlässig.** Eine Person kann auf mehrere
   `Speaker` verteilt sein, zwei Personen auf einen. Aussagen nur dann einer
   Person zuschreiben, wenn der Inhalt es trägt (Anrede, Rolle, Bezug), sonst

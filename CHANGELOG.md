@@ -3,6 +3,19 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.75.18
+
+- **sally: Review schrittweise je Gruppe, Sicherung am Task.** `review.md`:
+  Gruppieren legt nur die Liste und die Stand-Datei an, Aufbereiten und
+  Entscheiden laufen je Gruppe mit Okay des Users; ein aktiver CR ist nur
+  Kandidat; „Ziel klären" entfällt, Fragen zu Protokoll und Mails kommen
+  einzeln in Schritt 7; Kanboard wird erst nach Textfreigabe beschrieben,
+  bei überholtem Task wird ein Folgetask angeboten; neuer Schritt 9 hängt das
+  Review-Dokument an den Task. Dazu Hinweise zu Bildschirm-Namen, Sprechern in
+  der dritten Person und einer Kimai-Buchung bei Gesamtdauer. SKILL.md: Glossar
+  vor dem Eintragen gegen die Vorlage prüfen. `download` schreibt Dateien mit
+  Modus 600 und warnt bei offenerem Zielverzeichnis.
+
 ### 1.75.17
 
 - **mail-as-me: nachgefragtes Register merken.** `write` Schritt 2 bietet

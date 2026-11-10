@@ -816,8 +816,15 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.75.17
+### 1.75.18
 
-- **mail-as-me: nachgefragtes Register merken.** `write` Schritt 2 bietet
-  nach dem Nachfragen an, die Domain mit dem gewählten Register in die
-  `register_map` einzutragen (spezifische Domain vor passendem Wildcard).
+- **sally: Review schrittweise je Gruppe, Sicherung am Task.** `review.md`:
+  Gruppieren legt nur die Liste und die Stand-Datei an, Aufbereiten und
+  Entscheiden laufen je Gruppe mit Okay des Users; ein aktiver CR ist nur
+  Kandidat; „Ziel klären" entfällt, Fragen zu Protokoll und Mails kommen
+  einzeln in Schritt 7; Kanboard wird erst nach Textfreigabe beschrieben,
+  bei überholtem Task wird ein Folgetask angeboten; neuer Schritt 9 hängt das
+  Review-Dokument an den Task. Dazu Hinweise zu Bildschirm-Namen, Sprechern in
+  der dritten Person und einer Kimai-Buchung bei Gesamtdauer. SKILL.md: Glossar
+  vor dem Eintragen gegen die Vorlage prüfen. `download` schreibt Dateien mit
+  Modus 600 und warnt bei offenerem Zielverzeichnis.
