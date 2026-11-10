@@ -2,7 +2,8 @@
 
 `/kanboard compact <task_id>` fasst Beschreibung und Handoff eines Tasks knapper
 neu. Hat der Task mehr als 5 Kommentare, werden auch die Kommentare
-zusammengefasst. Erst kommt der Vorschlag, geschrieben wird nach dem OK des Users.
+zusammengefasst. Erst kommt der Vorschlag, geschrieben wird nach dem OK des Users;
+das Löschen der Original-Kommentare braucht ein zweites, eigenes OK.
 
 ## 1. Lesen und sichern
 
@@ -40,7 +41,7 @@ aufräumen, wenn der User die neue Fassung gesehen hat.
 Was die Aufgabe oder den Stand betrifft, wandert in Beschreibung bzw. Handoff.
 Der Rest wird **ein** Zusammenfassungs-Kommentar, je Punkt mit Autor und Datum
 des Originals. Die Original-Kommentare werden danach gelöscht, auch die anderer
-User.
+User - aber erst nach eigener Freigabe (Schritt 6).
 
 ## 4. Vorschlag zeigen und warten
 
@@ -53,9 +54,10 @@ User.
 - Pfad der Sicherung, mit dem Hinweis, dass gelöschte Kommentare nur dort
   erhalten bleiben
 
-Nichts schreiben ohne OK.
+Nichts schreiben ohne OK. Dieses OK gilt nur für Schritt 5, nicht für das
+Löschen.
 
-## 5. Schreiben
+## 5. Eindampfen
 
 Jeden Aufruf einzeln absetzen und das Ergebnis prüfen, bevor der nächste folgt:
 
@@ -63,8 +65,20 @@ Jeden Aufruf einzeln absetzen und das Ergebnis prüfen, bevor der nächste folgt
 python3 "$SKILL_DIR/kanboard" update-task <task_id> --description-file <datei>
 python3 "$SKILL_DIR/kanboard" set-handoff <task_id> --file <datei>
 python3 "$SKILL_DIR/kanboard" add-comment <task_id> --file <datei>
+```
+
+Danach Längen und Task-URL melden. Der User sieht sich die neue Fassung im Task
+an, bevor Schritt 6 gefragt wird.
+
+## 6. Kommentare löschen (eigene Freigabe)
+
+Erneut fragen, mit der Liste der zu löschenden Kommentare (`K<n> Autor, Datum:
+"Anfang…" (id)`) und dem Pfad der Sicherung - nach dem Löschen die einzige Kopie.
+Nur nach ausdrücklichem OK, und nur wenn der Zusammenfassungs-Kommentar aus
+Schritt 5 angelegt ist:
+
+```bash
 python3 "$SKILL_DIR/kanboard" remove-comment <comment_id>
 ```
 
-`remove-comment` kommt zuletzt und nur, wenn der Zusammenfassungs-Kommentar
-angelegt ist. Danach Längen, Task-URL und Pfad der Sicherung melden.
+Ohne OK bleiben die Originale stehen; das Eindampfen gilt trotzdem.

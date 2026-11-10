@@ -816,9 +816,8 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.75.26
+### 1.75.27
 
-- **kanboard: `compact` behält Rückfallebenen.** Verworfene Alternativen samt
-  Bewertungskriterien bleiben, wenn sie beim Scheitern des gewählten Wegs
-  wieder gebraucht werden; ein Verweis ersetzt Inhalt nur, wenn das Ziel ihn
-  nachweislich enthält.
+- **kanboard: `compact` fragt das Löschen der Kommentare getrennt ab.**
+  Eindampfen (Beschreibung, Handoff, Zusammenfassungs-Kommentar) und das
+  Löschen der Original-Kommentare brauchen je ein eigenes OK.
