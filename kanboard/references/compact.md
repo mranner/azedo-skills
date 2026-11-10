@@ -1,7 +1,7 @@
 # compact - Task eindampfen
 
 `/kanboard compact <task_id>` fasst Beschreibung und Handoff eines Tasks knapper
-neu. Hat der Task mehr als 5 Kommentare, werden auch die Kommentare
+neu. Hat der Task mehr als 10 Kommentare, werden auch die Kommentare
 zusammengefasst. Erst kommt der Vorschlag, geschrieben wird nach dem OK des Users;
 das Löschen der Original-Kommentare braucht ein zweites, eigenes OK.
 
@@ -36,7 +36,7 @@ aufräumen, wenn der User die neue Fassung gesehen hat.
 - Kürzen statt umschreiben: keine neuen Inhalte, keine zusätzlichen
   Überschriften, der Ton der Vorlage bleibt.
 
-## 3. Kommentare (nur bei mehr als 5)
+## 3. Kommentare (nur bei mehr als 10)
 
 Was die Aufgabe oder den Stand betrifft, wandert in Beschreibung bzw. Handoff.
 Der Rest wird **ein** Zusammenfassungs-Kommentar, je Punkt mit Autor und Datum

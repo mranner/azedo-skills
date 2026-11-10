@@ -816,8 +816,8 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.75.27
+### 1.75.28
 
-- **kanboard: `compact` fragt das Löschen der Kommentare getrennt ab.**
-  Eindampfen (Beschreibung, Handoff, Zusammenfassungs-Kommentar) und das
-  Löschen der Original-Kommentare brauchen je ein eigenes OK.
+- **kanboard: `compact` fasst Kommentare erst ab 11 zusammen.** Die Schwelle
+  für den Hinweis aus `cr` und für das Zusammenfassen der Kommentare liegt
+  jetzt bei mehr als 10 statt mehr als 5 Kommentaren.

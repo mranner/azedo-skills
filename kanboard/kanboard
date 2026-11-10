@@ -2,7 +2,7 @@
 
 # Kanboard JSON-RPC 2.0 API helper
 # stdlib only, no pip dependencies
-# version 1.75.27
+# version 1.75.28
 
 import argparse
 import base64
@@ -1507,7 +1507,7 @@ def cmd_cr(args):
                 entry[f"{field}_file"] = path
                 entry[f"{field}_length"] = len(text)
 
-        if sum(len(v) for v in texts.values()) > CR_COMPACT_HINT_LIMIT or entry.get("comments", 0) > 5:
+        if sum(len(v) for v in texts.values()) > CR_COMPACT_HINT_LIMIT or entry.get("comments", 0) > 10:
             entry["hint"] = f"grosser Task - /kanboard compact {task_id} vorschlagen"
 
         results.append(entry)

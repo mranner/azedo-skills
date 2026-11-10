@@ -175,12 +175,12 @@ z.B. `/kanboard neu dagmar@azedo Text` oder `/kanboard neu dagmar@ Text`:
 ## Kurzform: `compact`
 
 `/kanboard compact <task_id>` dampft einen Task ein: Beschreibung und Handoff
-knapper, bei mehr als 5 Kommentaren auch diese zu einem zusammengefasst. Erst
+knapper, bei mehr als 10 Kommentaren auch diese zu einem zusammengefasst. Erst
 Vorschlag, Schreiben nach OK; das Löschen der Original-Kommentare braucht ein
 zweites, eigenes OK. Ablauf: `references/compact.md`.
 
 Liefert `cr` ein Feld `hint` (Beschreibung und Handoff über 15.000 Zeichen oder
-mehr als 5 Kommentare), dem User `compact` vorschlagen.
+mehr als 10 Kommentare), dem User `compact` vorschlagen.
 
 ## Workflow
 

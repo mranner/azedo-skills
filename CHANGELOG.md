@@ -3,6 +3,12 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.75.28
+
+- **kanboard: `compact` fasst Kommentare erst ab 11 zusammen.** Die Schwelle
+  für den Hinweis aus `cr` und für das Zusammenfassen der Kommentare liegt
+  jetzt bei mehr als 10 statt mehr als 5 Kommentaren.
+
 ### 1.75.27
 
 - **kanboard: `compact` fragt das Löschen der Kommentare getrennt ab.**
