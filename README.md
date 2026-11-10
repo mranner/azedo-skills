@@ -816,8 +816,8 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.75.11
+### 1.75.12
 
-- **swaks: prozentkodierter SMTP-User.** `build_mail.py` dekodiert den
-  Benutzer aus `smtp_url` (`user%40domain` → `user@domain`); bisher ging er
-  kodiert an den Relay, der die Anmeldung mit 535/454 ablehnte.
+- **swaks: prozentkodiertes SMTP-Passwort.** `build_mail.py` dekodiert
+  jetzt auch das Passwort aus `smtp_url`. `smtp_pass` bleibt
+  unverändert.

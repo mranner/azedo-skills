@@ -3,6 +3,12 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.75.12
+
+- **swaks: prozentkodiertes SMTP-Passwort.** `build_mail.py` dekodiert
+  jetzt auch das Passwort aus `smtp_url`. `smtp_pass` bleibt
+  unverändert.
+
 ### 1.75.11
 
 - **swaks: prozentkodierter SMTP-User.** `build_mail.py` dekodiert den
