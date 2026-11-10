@@ -39,7 +39,9 @@ User.
 ## 4. Vorschlag zeigen und warten
 
 - Länge vorher/nachher je Feld
-- neue Beschreibung, neuer Handoff, Zusammenfassungs-Kommentar im Wortlaut
+- neue Beschreibung, neuer Handoff, Zusammenfassungs-Kommentar im Wortlaut -
+  ab zusammen 3.000 Zeichen stattdessen die Pfade der Dateien in
+  `.tmp/compact/cr<task_id>/`, damit der Vorschlag im Chat lesbar bleibt
 - was gestrichen wurde, in Stichworten
 - die zu löschenden Kommentare als `K<n> Autor, Datum: "Anfang…" (id)`
 - Pfad der Sicherung, mit dem Hinweis, dass gelöschte Kommentare nur dort

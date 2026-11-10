@@ -4,7 +4,7 @@
 # Nominalstil, Funktionsverbgefuege, Amtsdeutsch, Fremdwoerter, Floskeln,
 # lange Komposita, nicht eingefuehrte Abkuerzungen und Begriffsvarianten.
 # Ersatzvorschlaege stammen aus data/wortlisten.json und sind Vorschlaege.
-# version 1.75.23
+# version 1.75.24
 
 import argparse
 import re

@@ -3,6 +3,12 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.75.24
+
+- **kanboard: `compact` zeigt große Neufassungen als Dateipfad.** Ab
+  3.000 Zeichen nennt der Vorschlag die Dateien in `.tmp/compact/cr<id>/`
+  statt des Wortlauts im Chat.
+
 ### 1.75.23
 
 - **kanboard: `compact` dampft einen Task ein.** `/kanboard compact <id>`
