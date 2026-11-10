@@ -3,6 +3,13 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.75.22
+
+- **kanboard: `cr` lagert große Tasks in Dateien aus.** Über 8.000 Zeichen
+  Beschreibung und Handoff schreibt `cr` beides nach `.tmp/cr<id>/` und meldet
+  Pfad und Länge statt des Texts; `--output <dir>` lagert immer aus.
+  Metadaten bleiben inline.
+
 ### 1.75.21
 
 - **kanboard: `--brief` für `search`, `my-tasks` und `list-tasks`.** Eine

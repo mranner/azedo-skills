@@ -230,12 +230,18 @@ den *Inhalt* des Tasks mit — nicht nur die Metadaten:
 |---|---|
 | `title`, `column`, `owner`, `project_name` | immer |
 | `modified` | immer — Änderungszeitpunkt, lesbar (`YYYY-MM-DD HH:MM`) |
-| `description` | **immer, Volltext** — enthält i.d.R. die menschlich verfasste Ausgangslage (Zusammenfassung, Mail-Auszug). Ohne sie sieht ein voller Task fälschlich leer aus. |
+| `description` | **immer, Volltext** — enthält i.d.R. die menschlich verfasste Ausgangslage (Zusammenfassung, Mail-Auszug). Ohne sie sieht ein voller Task fälschlich leer aus. Ausgelagert siehe unten. |
 | `handoff` | nur wenn befüllt (TaskHandoff-Plugin) |
 | `tags` | nur wenn vorhanden — Liste der Tag-Namen |
 | `kimai` | nur wenn ein Tag `kimai:<shortcut>` gesetzt ist (siehe Kimai-Präfix) |
 | `jira` | nur wenn ein Tag `jira:<KEY>` gesetzt ist — verknüpftes Jira-Issue (siehe Jira-Verknüpfung) |
 | `comments`, `attachments` | Zähler, nur wenn > 0 |
+
+Sind Beschreibung und Handoff zusammen über 8.000 Zeichen, schreibt `cr` sie nach
+`.tmp/cr<id>/description.md` bzw. `handoff.md` und meldet statt des Texts
+`description_file`/`handoff_file` mit Länge (`--output <dir>` lagert immer aus,
+nach `<dir>/cr<id>/`). Die Dateien dann gleich per Read lesen - sie sind die
+Arbeitsgrundlage.
 
 `description` und `handoff` sind **nicht** redundant: Description = *was ist die
 Aufgabe* (von Menschen gesetzt), Handoff = *wo stehen wir / wie geht es weiter*

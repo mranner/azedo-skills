@@ -2,7 +2,7 @@
 
 # Kanboard JSON-RPC 2.0 API helper
 # stdlib only, no pip dependencies
-# version 1.75.21
+# version 1.75.22
 
 import argparse
 import base64
@@ -1391,6 +1391,9 @@ def parse_cr_id(raw):
     return int(s)
 
 
+CR_INLINE_LIMIT = 8000
+
+
 def cmd_cr(args):
     """Load one or more tasks as CR context.
 
@@ -1488,6 +1491,21 @@ def cmd_cr(args):
         if files:
             entry["attachments"] = len(files)
 
+        # Ab CR_INLINE_LIMIT Zeichen lagert Claude Code die Ausgabe selbst aus und
+        # braucht dann zwei Aufrufe mehr - daher Beschreibung und Handoff in Dateien.
+        texts = {f: entry[f] for f in ("description", "handoff") if entry.get(f)}
+        if texts and (args.output or sum(len(v) for v in texts.values()) > CR_INLINE_LIMIT):
+            base = os.path.abspath(args.output) if args.output else os.path.join(os.getcwd(), ".tmp")
+            outdir = os.path.join(base, f"cr{task_id}")
+            os.makedirs(outdir, mode=0o700, exist_ok=True)
+            for field, text in texts.items():
+                path = os.path.join(outdir, f"{field}.md")
+                with open(path, "w", encoding="utf-8") as f:
+                    f.write(text)
+                del entry[field]
+                entry[f"{field}_file"] = path
+                entry[f"{field}_length"] = len(text)
+
         results.append(entry)
 
     output(results if len(results) > 1 else results[0])
@@ -1578,6 +1596,7 @@ def main():
     # cr (context)
     p = sub.add_parser("cr")
     p.add_argument("task_ids", nargs="+")
+    p.add_argument("--output", help="Beschreibung und Handoff immer nach <dir>/cr<id>/ schreiben (Default: erst ab 8000 Zeichen, nach .tmp/cr<id>/)")
     p.set_defaults(func=cmd_cr)
 
     # setup
