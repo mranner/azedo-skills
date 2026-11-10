@@ -62,10 +62,11 @@ python3 "$SKILL_DIR/kanboard" list-files <task_id>
 ### Anhang herunterladen
 
 ```bash
-python3 "$SKILL_DIR/kanboard" download-file <file_id> [--output /pfad/zur/datei]
+python3 "$SKILL_DIR/kanboard" download-file <file_id> [--output /pfad/zur/datei | /pfad/zum/verzeichnis]
 ```
 
-Ohne `--output` wird die Datei unter `.tmp/` gespeichert.
+Ohne `--output` wird die Datei unter `.tmp/` gespeichert. Ist `--output` ein
+Verzeichnis, landet sie dort unter dem Dateinamen des Anhangs.
 
 ### Anhang loeschen
 

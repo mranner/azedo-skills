@@ -3,6 +3,12 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.75.19
+
+- **kanboard: `download-file --output` nimmt ein Verzeichnis.** Die Datei
+  landet dort unter dem Dateinamen des Anhangs, statt mit
+  `IsADirectoryError` abzubrechen.
+
 ### 1.75.18
 
 - **sally: Review schrittweise je Gruppe, Sicherung am Task.** `review.md`:

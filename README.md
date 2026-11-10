@@ -816,15 +816,8 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.75.18
+### 1.75.19
 
-- **sally: Review schrittweise je Gruppe, Sicherung am Task.** `review.md`:
-  Gruppieren legt nur die Liste und die Stand-Datei an, Aufbereiten und
-  Entscheiden laufen je Gruppe mit Okay des Users; ein aktiver CR ist nur
-  Kandidat; „Ziel klären" entfällt, Fragen zu Protokoll und Mails kommen
-  einzeln in Schritt 7; Kanboard wird erst nach Textfreigabe beschrieben,
-  bei überholtem Task wird ein Folgetask angeboten; neuer Schritt 9 hängt das
-  Review-Dokument an den Task. Dazu Hinweise zu Bildschirm-Namen, Sprechern in
-  der dritten Person und einer Kimai-Buchung bei Gesamtdauer. SKILL.md: Glossar
-  vor dem Eintragen gegen die Vorlage prüfen. `download` schreibt Dateien mit
-  Modus 600 und warnt bei offenerem Zielverzeichnis.
+- **kanboard: `download-file --output` nimmt ein Verzeichnis.** Die Datei
+  landet dort unter dem Dateinamen des Anhangs, statt mit
+  `IsADirectoryError` abzubrechen.

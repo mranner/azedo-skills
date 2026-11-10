@@ -2,7 +2,7 @@
 
 # Kanboard JSON-RPC 2.0 API helper
 # stdlib only, no pip dependencies
-# version 1.75.18
+# version 1.75.19
 
 import argparse
 import base64
@@ -1183,6 +1183,9 @@ def cmd_download_file(args):
 
     if args.output:
         outpath = os.path.abspath(args.output)
+        if os.path.isdir(outpath):
+            info = rpc_call("getTaskFile", {"file_id": int(args.file_id)})
+            outpath = os.path.join(outpath, os.path.basename(info["name"]))
     else:
         tmpdir = os.path.join(os.getcwd(), ".tmp")
         os.makedirs(tmpdir, mode=0o700, exist_ok=True)
@@ -1744,7 +1747,7 @@ def main():
     # download-file
     p = sub.add_parser("download-file")
     p.add_argument("file_id")
-    p.add_argument("--output")
+    p.add_argument("--output", help="Zieldatei oder Verzeichnis (dann mit Dateinamen des Anhangs)")
     p.set_defaults(func=cmd_download_file)
 
     # list-subtasks
