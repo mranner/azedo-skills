@@ -69,6 +69,11 @@ Es zählt `VERSION` hoch (Patch, mit `--minor` Minor), setzt den Eintrag oben in
 `CHANGELOG.md`, ersetzt den Changelog-Abschnitt im `README.md` (dort nur die
 aktuelle Version) und zieht die `# version`-Zeilen der Scripts nach.
 
+`VERSION` nie von Hand setzen, auch nicht vorab: das Script zählt vom Stand
+im Arbeitsverzeichnis weiter, ein vorgezogenes 1.75.16 wurde so zu 1.75.17.
+Auch `git checkout VERSION` hilft dann nicht, solange die Datei noch gestaged
+ist - es stellt den gestagten Stand wieder her, nicht den letzten Commit.
+
 **Die Version steht ausschliesslich in `VERSION`.** Kein Skill fuehrt sie
 zusaetzlich im Frontmatter: eine zweite Stelle wird bei Releases vergessen und
 steht danach falsch da - genau so waren `einfache-sprache`, `humanizer-de` und
