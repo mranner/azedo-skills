@@ -6,7 +6,7 @@
 # um das alternative-Part gelegt. Bei einer Antwort kommt der Zitatblock aus
 # `imap quote` unter Body und Signatur (Top-Posting), die Threading-Header
 # In-Reply-To und References haengen die Antwort an den bestehenden Thread.
-# version 1.75.12
+# version 1.75.13
 
 import argparse
 import hashlib
@@ -241,15 +241,14 @@ def resolve_route(cfg, muttrc_path=DEFAULT_MUTTRC):
 
     tls = "wrapper" if m.group("scheme") == "smtps" else "starttls"
 
-    # mutt erwartet Sonderzeichen in User und Passwort prozentkodiert (user%40domain)
+    # mutt erwartet das @ im Benutzer prozentkodiert (user%40domain)
 
     user = unquote(m.group("user")) if m.group("user") else None
-    url_password = unquote(m.group("password")) if m.group("password") else None
 
     # Passwort: erst smtp_pass, sonst das imap_pass desselben Hosts. Beide sind
     # in der Praxis dasselbe Konto — der Fallback erspart eine zweite Kopie.
 
-    password = url_password or globals_.get("smtp_pass") or per_host.get(host)
+    password = m.group("password") or globals_.get("smtp_pass") or per_host.get(host)
 
     if user and not password:
         sys.exit(f"build_mail.py: Fehler — smtp_url in {muttrc_path} nennt den "

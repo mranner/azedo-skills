@@ -3,6 +3,12 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.75.13
+
+- **swaks: Passwort-Dekodierung zurückgenommen.** Das Passwort aus
+  `smtp_url` geht wieder unverändert an den Relay; dekodiert wird nur der
+  Benutzer (1.75.11).
+
 ### 1.75.12
 
 - **swaks: prozentkodiertes SMTP-Passwort.** `build_mail.py` dekodiert
