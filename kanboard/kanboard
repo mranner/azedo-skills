@@ -2,7 +2,7 @@
 
 # Kanboard JSON-RPC 2.0 API helper
 # stdlib only, no pip dependencies
-# version 1.75.20
+# version 1.75.21
 
 import argparse
 import base64
@@ -252,6 +252,14 @@ def resolve_link(link):
 def output(data):
     """Print result as formatted JSON"""
     print(json.dumps(data, indent=2, ensure_ascii=False))
+
+
+def output_brief(rows, fields):
+    """Print one tab-separated line per task: #id, given fields, offen/geschlossen, title"""
+    for r in rows:
+        state = "offen" if str(r.get("is_active")) == "1" else "geschlossen"
+        cols = ["#%s" % r["id"]] + [str(r.get(f, "")) for f in fields] + [state, r["title"]]
+        print("\t".join(cols))
 
 
 def add_refs(items, prefix):
@@ -708,7 +716,10 @@ def cmd_list_tasks(args):
             "date_due": format_ts(t.get("date_due")),
             "is_active": t.get("is_active", "")
         })
-    output(summary)
+    if args.brief:
+        output_brief(summary, ("column_name",))
+    else:
+        output(summary)
 
 
 def _accessible_projects():
@@ -798,7 +809,10 @@ def cmd_search(args):
         results = []
         for pid, pname in projects.items():
             results.extend(_search_summary(pid, pname, args.query, active_only=active_only))
-        output(results)
+        if args.brief:
+            output_brief(results, ("project_name", "column"))
+        else:
+            output(results)
         return
 
     # Feld-uebergreifend: pro Feld eine Query, Union nach id (matched_in merkt sich das Feld)
@@ -813,7 +827,11 @@ def cmd_search(args):
                     order.append(rid)
                 if field not in by_id[rid]["matched_in"]:
                     by_id[rid]["matched_in"].append(field)
-    output([by_id[i] for i in order])
+    results = [by_id[i] for i in order]
+    if args.brief:
+        output_brief(results, ("project_name", "column"))
+    else:
+        output(results)
 
 
 def cmd_my_tasks(args):
@@ -827,7 +845,10 @@ def cmd_my_tasks(args):
     results = []
     for pid, pname in _accessible_projects().items():
         results.extend(_search_summary(pid, pname, query, active_only=True))
-    output(results)
+    if args.brief:
+        output_brief(results, ("project_name", "column"))
+    else:
+        output(results)
 
 
 def cmd_list_projects(args):
@@ -1678,6 +1699,7 @@ def main():
     p.add_argument("--project", required=True)
     p.add_argument("--column")
     p.add_argument("--closed", action="store_true")
+    p.add_argument("--brief", action="store_true", help="eine Zeile pro Task statt JSON (Tab-getrennt)")
     p.set_defaults(func=cmd_list_tasks)
 
     # search (Tasks per Stichwort/Query finden)
@@ -1689,11 +1711,13 @@ def main():
                    help="query als reinen Begriff in Titel+Beschreibung+Kommentar suchen (Union); Kurzform fuer --in title,description,comment")
     p.add_argument("--in", dest="in_fields", metavar="FELDER",
                    help="Felder komma-separiert (title,description,comment); query wird als reiner Begriff behandelt")
+    p.add_argument("--brief", action="store_true", help="eine Zeile pro Task statt JSON (Tab-getrennt)")
     p.set_defaults(func=cmd_search)
 
     # my-tasks (offene Tasks eines Users projektuebergreifend)
     p = sub.add_parser("my-tasks")
     p.add_argument("--user", help="Username (Default: default_user aus instance.json)")
+    p.add_argument("--brief", action="store_true", help="eine Zeile pro Task statt JSON (Tab-getrennt)")
     p.set_defaults(func=cmd_my_tasks)
 
     # list-projects

@@ -3,6 +3,13 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.75.21
+
+- **kanboard: `--brief` für `search`, `my-tasks` und `list-tasks`.** Eine
+  Zeile pro Task statt JSON, Tab-getrennt: ID, Projekt (nicht bei
+  `list-tasks`), Spalte, offen/geschlossen, Titel. Das Suchbeispiel in
+  SKILL.md nutzt die Option.
+
 ### 1.75.20
 
 - **kanboard: `create-task` meldet die Spalte.** Die Rückgabe enthält

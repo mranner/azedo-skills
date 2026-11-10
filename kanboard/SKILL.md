@@ -71,7 +71,7 @@ python3 "$SKILL_DIR/kanboard" update-task <task_id> [--due YYYY-MM-DD] [--start 
 python3 "$SKILL_DIR/kanboard" move-project <task_id> --project <name|id> [--column <name>]
 
 # irgendwo suchen (Titel + Beschreibung + Kommentare)
-python3 "$SKILL_DIR/kanboard" search "<stichwort>" --all --in description,comment
+python3 "$SKILL_DIR/kanboard" search "<stichwort>" --all --in description,comment --brief
 
 # eigene offene Tasks über alle Projekte
 python3 "$SKILL_DIR/kanboard" my-tasks

@@ -816,8 +816,9 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.75.20
+### 1.75.21
 
-- **kanboard: `create-task` meldet die Spalte.** Die Rückgabe enthält
-  `column_title`; `references/tasks.md` nennt den Default ohne `--column`
-  (erste Spalte des Projekts).
+- **kanboard: `--brief` für `search`, `my-tasks` und `list-tasks`.** Eine
+  Zeile pro Task statt JSON, Tab-getrennt: ID, Projekt (nicht bei
+  `list-tasks`), Spalte, offen/geschlossen, Titel. Das Suchbeispiel in
+  SKILL.md nutzt die Option.

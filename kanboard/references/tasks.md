@@ -141,13 +141,17 @@ wird **nie** geloescht, nur weil er fertig ist.
 ### Tasks auflisten
 
 ```bash
-python3 "$SKILL_DIR/kanboard" list-tasks --project <name|id> [--column <name>] [--closed]
+python3 "$SKILL_DIR/kanboard" list-tasks --project <name|id> [--column <name>] [--closed] [--brief]
 ```
+
+`--brief` gibt statt JSON eine Zeile pro Task aus, Tab-getrennt: `#<id>`, Spalte,
+`offen`/`geschlossen`, Titel. `search` und `my-tasks` kennen die Option ebenso,
+dort mit dem Projekt vor der Spalte.
 
 ### Tasks suchen (Stichwort/Query)
 
 ```bash
-python3 "$SKILL_DIR/kanboard" search "<text>" [--project <name|id>] [--all] [--anywhere | --in <felder>]
+python3 "$SKILL_DIR/kanboard" search "<text>" [--project <name|id>] [--all] [--anywhere | --in <felder>] [--brief]
 ```
 
 Findet Tasks per Stichwort — praktisch, wenn die Task-ID unbekannt ist. Ohne
@@ -211,7 +215,7 @@ Gezielte Filter-Query (Status, Assignee, ein bestimmtes Feld) → klassischer Mo
 ### Eigene Tasks (projektuebergreifend)
 
 ```bash
-python3 "$SKILL_DIR/kanboard" my-tasks [--user <username>]
+python3 "$SKILL_DIR/kanboard" my-tasks [--user <username>] [--brief]
 ```
 
 Listet **offene** Tasks, die einem User zugewiesen sind, ueber alle Projekte hinweg.
