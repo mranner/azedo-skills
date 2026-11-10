@@ -3,6 +3,12 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.75.15
+
+- **wp-azedo: Site lokalisieren.** Schritt 1 verweist für Host, Jail,
+  wwwuser und Docroot auf den Lokalisierungs-Ablauf des Infra-Wikis, statt
+  fehlende Angaben zu erfragen und ins Wiki einzutragen.
+
 ### 1.75.14
 
 - **mainwp: Update-Historie einer Site.** Neuer Abschnitt: Abfrage über

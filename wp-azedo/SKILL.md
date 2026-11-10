@@ -17,15 +17,16 @@ azedo-Regeln unten zusätzlich zum Fach-Skill.
 
 ## 1. Wo liegt die Site?
 
-Nicht raten und nicht den Host abklopfen: zuerst das Infra-Wiki fragen
-(`/wiki query "<site oder domain>"`). Zu klären:
+Nicht raten: zuerst das Infra-Wiki fragen (`/wiki query "<site oder domain>"`).
+Einzelne Sites führt es meist nicht als eigenen Eintrag; Host, Jail, wwwuser und
+Docroot liefert dann sein Ablauf zum Lokalisieren einer Site. Zu klären:
 
 - **Umgebung:** DEV oder Live, welcher Host, welcher Jail, Docroot.
 - **Zugang:** WP-CLI im Jail (`wp-cli`), REST mit Application Password (`wp-rest`),
   MainWP (`mainwp`) oder Novamira (`novamira`).
 - **Repo:** Liegt Theme oder Plugin in Git, wo ist die Arbeitskopie?
 
-Fehlt etwas davon im Wiki, nachfragen und das Ergebnis danach ins Wiki eintragen.
+Was danach noch fehlt (Zugang, Repo), nachfragen.
 
 ## 2. Was ist die Aufgabe?
 

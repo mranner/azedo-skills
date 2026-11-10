@@ -816,8 +816,8 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.75.14
+### 1.75.15
 
-- **mainwp: Update-Historie einer Site.** Neuer Abschnitt: Abfrage über
-  `wp_mainwp_wp_logs` in der Dashboard-DB, da keine Ability existiert;
-  `created` in Mikrosekunden.
+- **wp-azedo: Site lokalisieren.** Schritt 1 verweist für Host, Jail,
+  wwwuser und Docroot auf den Lokalisierungs-Ablauf des Infra-Wikis, statt
+  fehlende Angaben zu erfragen und ins Wiki einzutragen.
