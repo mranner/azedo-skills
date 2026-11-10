@@ -816,9 +816,8 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.75.16
+### 1.75.17
 
-- **imap: Inline-Bilder auffindbar.** `attachments --json` nennt bei
-  ausgeblendeten Inline-Teilen im Feld `hint` den Schalter
-  `--include-inline`; die Befehlstabelle in SKILL.md erwähnt ihn für
-  eingebettete Bilder.
+- **mail-as-me: nachgefragtes Register merken.** `write` Schritt 2 bietet
+  nach dem Nachfragen an, die Domain mit dem gewählten Register in die
+  `register_map` einzutragen (spezifische Domain vor passendem Wildcard).

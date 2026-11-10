@@ -70,6 +70,11 @@ Eingabe: Empfänger und Thema, oder eine Mail, auf die geantwortet wird. Ablauf:
    plausibel aussieht - sie fällt weder beim Bau noch beim Versand auf, sondern
    erst beim Bounce oder beim falschen Empfänger.
 2. **Register** aus `config.json.register_map` bestimmen (Domain), sonst nachfragen.
+   Nach dem Nachfragen anbieten, die Domain mit dem gewählten Register in die
+   `register_map` einzutragen, damit die Frage nur einmal kommt. Nicht still
+   eintragen: ein Register, das nur für eine Person gilt, gehört nicht domainweit
+   in die Map. Der erste passende Eintrag gewinnt, eine spezifische Domain steht
+   deshalb vor einem passenden Wildcard (`a.gv.at` vor `*.gv.at`).
 3. **Profil laden:** `referenz.md` und 1-2 Beispiele desselben Registers aus
    `corpus/clean/`.
 4. **Faktencheck vor dem Schreiben.** Welche Tatsachenbehauptung und welche

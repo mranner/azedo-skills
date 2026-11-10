@@ -3,6 +3,12 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.75.17
+
+- **mail-as-me: nachgefragtes Register merken.** `write` Schritt 2 bietet
+  nach dem Nachfragen an, die Domain mit dem gewählten Register in die
+  `register_map` einzutragen (spezifische Domain vor passendem Wildcard).
+
 ### 1.75.16
 
 - **imap: Inline-Bilder auffindbar.** `attachments --json` nennt bei
