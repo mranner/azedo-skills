@@ -3,6 +3,13 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.75.26
+
+- **kanboard: `compact` behält Rückfallebenen.** Verworfene Alternativen samt
+  Bewertungskriterien bleiben, wenn sie beim Scheitern des gewählten Wegs
+  wieder gebraucht werden; ein Verweis ersetzt Inhalt nur, wenn das Ziel ihn
+  nachweislich enthält.
+
 ### 1.75.25
 
 - **kanboard: `compact`-Hinweis erst ab 15.000 Zeichen.** `cr` lagert weiter

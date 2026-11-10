@@ -13,7 +13,7 @@ Nutzung:
   extract.py --analyze <datei>        # nur anzeigen, nichts schreiben
 """
 
-# version 1.75.25
+# version 1.75.26
 
 import argparse
 import email

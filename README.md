@@ -816,8 +816,9 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.75.25
+### 1.75.26
 
-- **kanboard: `compact`-Hinweis erst ab 15.000 Zeichen.** `cr` lagert weiter
-  ab 8.000 Zeichen aus, schlägt `compact` aber erst ab 15.000 Zeichen oder
-  mehr als 5 Kommentaren vor - ein eingedampfter Task löst ihn nicht erneut aus.
+- **kanboard: `compact` behält Rückfallebenen.** Verworfene Alternativen samt
+  Bewertungskriterien bleiben, wenn sie beim Scheitern des gewählten Wegs
+  wieder gebraucht werden; ein Verweis ersetzt Inhalt nur, wenn das Ziel ihn
+  nachweislich enthält.

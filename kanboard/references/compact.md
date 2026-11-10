@@ -26,6 +26,12 @@ aufräumen, wenn der User die neue Fassung gesehen hat.
 - **Bleibt:** Entscheidungen mit Begründung, offene Punkte, Verweise (Commits,
   Wiki, Tickets), Zahlen, Namen, Fristen. Erledigte Checkbox-Punkte bleiben als
   `[x]` mit Kurzverweis.
+- **Bleibt auch:** Rückfallebenen und Auswege - verworfene oder zurückgestellte
+  Alternativen samt Bewertungskriterien, die wieder gebraucht werden, wenn der
+  gewählte Weg scheitert. "Nicht gewählt" heißt nicht "überholt".
+- **Verweis statt Inhalt** nur, wenn das Ziel (anderer Task, Doku-Datei) den
+  gestrichenen Inhalt nachweislich enthält - Abschnitt für Abschnitt prüfen,
+  nicht per Stichwort. Ist das Ziel nicht lesbar, bleibt eine Kurzfassung.
 - Kürzen statt umschreiben: keine neuen Inhalte, keine zusätzlichen
   Überschriften, der Ton der Vorlage bleibt.
 
