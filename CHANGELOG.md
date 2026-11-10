@@ -3,6 +3,12 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.75.25
+
+- **kanboard: `compact`-Hinweis erst ab 15.000 Zeichen.** `cr` lagert weiter
+  ab 8.000 Zeichen aus, schlägt `compact` aber erst ab 15.000 Zeichen oder
+  mehr als 5 Kommentaren vor - ein eingedampfter Task löst ihn nicht erneut aus.
+
 ### 1.75.24
 
 - **kanboard: `compact` zeigt große Neufassungen als Dateipfad.** Ab

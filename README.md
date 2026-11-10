@@ -816,8 +816,8 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.75.24
+### 1.75.25
 
-- **kanboard: `compact` zeigt große Neufassungen als Dateipfad.** Ab
-  3.000 Zeichen nennt der Vorschlag die Dateien in `.tmp/compact/cr<id>/`
-  statt des Wortlauts im Chat.
+- **kanboard: `compact`-Hinweis erst ab 15.000 Zeichen.** `cr` lagert weiter
+  ab 8.000 Zeichen aus, schlägt `compact` aber erst ab 15.000 Zeichen oder
+  mehr als 5 Kommentaren vor - ein eingedampfter Task löst ihn nicht erneut aus.

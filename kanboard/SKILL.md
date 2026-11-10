@@ -178,7 +178,7 @@ z.B. `/kanboard neu dagmar@azedo Text` oder `/kanboard neu dagmar@ Text`:
 knapper, bei mehr als 5 Kommentaren auch diese zu einem zusammengefasst. Erst
 Vorschlag, Schreiben nach OK. Ablauf: `references/compact.md`.
 
-Liefert `cr` ein Feld `hint` (Beschreibung und Handoff über 8.000 Zeichen oder
+Liefert `cr` ein Feld `hint` (Beschreibung und Handoff über 15.000 Zeichen oder
 mehr als 5 Kommentare), dem User `compact` vorschlagen.
 
 ## Workflow
