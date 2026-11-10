@@ -3,6 +3,13 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.75.23
+
+- **kanboard: `compact` dampft einen Task ein.** `/kanboard compact <id>`
+  kürzt Beschreibung und Handoff, fasst ab 6 Kommentaren diese zu einem
+  zusammen; Vorschlag zuerst, Sicherung in `.tmp/`, Schreiben nach OK
+  (`references/compact.md`). `cr` meldet bei großen Tasks ein Feld `hint`.
+
 ### 1.75.22
 
 - **kanboard: `cr` lagert große Tasks in Dateien aus.** Über 8.000 Zeichen

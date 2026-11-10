@@ -4,7 +4,8 @@ description: >
   Kanboard via JSON-RPC: Tasks anlegen, verschieben, kommentieren, Subtasks,
   Tags, Handoff, Dateien; Projekte und Mitglieder. Auch bei "leg mir ein
   Ticket an" und sobald eine CR-Nummer fällt ("CR4326"), auch bei Commit oder
-  Zeiterfassung - der Skill legt das Präfix fest. Trigger: /kanboard.
+  Zeiterfassung - der Skill legt das Präfix fest. Auch bei "dampf den Task
+  ein". Trigger: /kanboard.
 ---
 
 # kanboard -- Kanboard Task-Verwaltung
@@ -43,6 +44,7 @@ vollständige Referenz liegt daneben und wird bei Bedarf gelesen:
 | `references/task-inhalte.md` | Kommentare, Anhänge, Teilaufgaben, Verknüpfungen, Tags, Handoff-Feld |
 | `references/projekte.md` | Projekte anlegen und löschen, Mitglieder und Rollen, Gruppen, Spalten und User auflisten |
 | `references/setup.md` | Config-Quelle (`.env`), Schema von `instance.json` |
+| `references/compact.md` | Task eindampfen: Beschreibung, Handoff und Kommentare kürzen |
 
 `python3 "$SKILL_DIR/kanboard" <subcommand> --help` listet die Optionen eines
 Subcommands direkt aus dem Script - schneller als Nachschlagen, und nie veraltet.
@@ -169,6 +171,15 @@ z.B. `/kanboard neu dagmar@azedo Text` oder `/kanboard neu dagmar@ Text`:
   eine Handlung erkennbar, direkt anlegen, ohne Rückfrage zu Titel oder
   Beschreibung, dann die URL melden; Korrekturen danach per `update-task`.
   Ist keine Handlung erkennbar, nachfragen statt anlegen.
+
+## Kurzform: `compact`
+
+`/kanboard compact <task_id>` dampft einen Task ein: Beschreibung und Handoff
+knapper, bei mehr als 5 Kommentaren auch diese zu einem zusammengefasst. Erst
+Vorschlag, Schreiben nach OK. Ablauf: `references/compact.md`.
+
+Liefert `cr` ein Feld `hint` (Beschreibung und Handoff über 8.000 Zeichen oder
+mehr als 5 Kommentare), dem User `compact` vorschlagen.
 
 ## Workflow
 

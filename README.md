@@ -816,9 +816,9 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.75.22
+### 1.75.23
 
-- **kanboard: `cr` lagert große Tasks in Dateien aus.** Über 8.000 Zeichen
-  Beschreibung und Handoff schreibt `cr` beides nach `.tmp/cr<id>/` und meldet
-  Pfad und Länge statt des Texts; `--output <dir>` lagert immer aus.
-  Metadaten bleiben inline.
+- **kanboard: `compact` dampft einen Task ein.** `/kanboard compact <id>`
+  kürzt Beschreibung und Handoff, fasst ab 6 Kommentaren diese zu einem
+  zusammen; Vorschlag zuerst, Sicherung in `.tmp/`, Schreiben nach OK
+  (`references/compact.md`). `cr` meldet bei großen Tasks ein Feld `hint`.
