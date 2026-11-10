@@ -2,7 +2,7 @@
 
 # Kanboard JSON-RPC 2.0 API helper
 # stdlib only, no pip dependencies
-# version 1.75.19
+# version 1.75.20
 
 import argparse
 import base64
@@ -327,7 +327,9 @@ def cmd_create_task(args):
     if not task_id:
         print("Error: task creation failed", file=sys.stderr)
         sys.exit(1)
-    output({"task_id": task_id, "project_id": project_id})
+    task = enrich_task(rpc_call("getTask", {"task_id": task_id}))
+    output({"task_id": task_id, "project_id": project_id,
+            "column_title": task.get("column_title")})
 
 
 def enrich_task(task):

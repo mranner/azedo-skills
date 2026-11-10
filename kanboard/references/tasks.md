@@ -22,6 +22,9 @@ Backticks, `$` und Anfuehrungszeichen ausgewertet werden.
 Ohne `--owner` wird der Task dem `default_user` aus `instance.json` zugewiesen (wie
 bei `add-comment`). Ist dort kein `default_user` gesetzt, bleibt der Task unassigned.
 
+Ohne `--column` legt Kanboard den Task in der ersten Spalte des Projekts an (nach
+`position`). Die Rückgabe nennt die tatsächliche Spalte im Feld `column_title`.
+
 `--due` setzt das Faelligkeits-, `--start` das Startdatum — siehe **Datumsfelder**
 weiter unten.
 

@@ -816,8 +816,8 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.75.19
+### 1.75.20
 
-- **kanboard: `download-file --output` nimmt ein Verzeichnis.** Die Datei
-  landet dort unter dem Dateinamen des Anhangs, statt mit
-  `IsADirectoryError` abzubrechen.
+- **kanboard: `create-task` meldet die Spalte.** Die Rückgabe enthält
+  `column_title`; `references/tasks.md` nennt den Default ohne `--column`
+  (erste Spalte des Projekts).

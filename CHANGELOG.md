@@ -3,6 +3,12 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.75.20
+
+- **kanboard: `create-task` meldet die Spalte.** Die Rückgabe enthält
+  `column_title`; `references/tasks.md` nennt den Default ohne `--column`
+  (erste Spalte des Projekts).
+
 ### 1.75.19
 
 - **kanboard: `download-file --output` nimmt ein Verzeichnis.** Die Datei
