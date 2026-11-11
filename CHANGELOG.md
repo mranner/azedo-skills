@@ -3,6 +3,15 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.76.0
+
+- **bookstack: neuer Skill für BookStack über die REST-API.** Regale, Bücher,
+  Kapitel und Seiten suchen, lesen, anlegen, ändern, verschieben und exportieren,
+  Seiteninhalt als Markdown per Datei; Anhänge, Content-Rechte, Rollen, User,
+  Audit-Log und Papierkorb. Seltene Endpunkte über `docs` (API-Referenz der
+  laufenden Instanz) und `api`. `delete` zeigt ohne `--force` nur das Ziel. Nur per
+  `/bookstack` aufrufbar, andere Skills rufen das Script direkt auf.
+
 ### 1.75.28
 
 - **kanboard: `compact` fasst Kommentare erst ab 11 zusammen.** Die Schwelle

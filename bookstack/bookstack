@@ -1,0 +1,527 @@
+#!/usr/bin/env python3
+
+# BookStack REST API helper
+# stdlib only, no pip dependencies
+# version 1.76.0
+
+import argparse
+import base64
+import json
+import mimetypes
+import os
+import sys
+import urllib.error
+import urllib.parse
+import urllib.request
+import uuid
+
+# identifies this client in the BookStack server's access log
+USER_AGENT = "azedo-skills bookstack"
+
+# singular type -> API path
+TYPES = {
+    "shelf": "shelves",
+    "book": "books",
+    "chapter": "chapters",
+    "page": "pages",
+    "attachment": "attachments",
+    "comment": "comments",
+    "user": "users",
+    "role": "roles",
+    "import": "imports",
+    "image": "image-gallery",
+}
+
+LISTABLE = sorted(set(TYPES.values()) | {"audit-log", "recycle-bin"})
+
+EXPORT_FORMATS = ("markdown", "html", "pdf", "plaintext", "zip")
+
+BRIEF_FIELDS = (
+    "id", "type", "name", "display_name", "email", "slug", "book_id",
+    "chapter_id", "uploaded_to", "deletable_type", "deletable_id",
+    "loggable_type", "loggable_id", "detail", "user_id", "updated_at",
+    "created_at", "url",
+)
+
+
+def _env_has_bookstack(path):
+    """Check if .env file contains any BOOKSTACK_* key"""
+    try:
+        with open(path) as f:
+            for line in f:
+                if line.strip().startswith("BOOKSTACK_"):
+                    return True
+    except OSError:
+        pass
+    return False
+
+
+def _find_env():
+    override = os.environ.get("BOOKSTACK_ENV")
+    if override:
+        return override
+    cwd_env = os.path.join(os.getcwd(), ".env")
+    if os.path.exists(cwd_env) and _env_has_bookstack(cwd_env):
+        return cwd_env
+    return os.path.join(os.path.expanduser("~"), ".env")
+
+
+ENV_FILE = _find_env()
+_config = None
+
+
+def load_env():
+    """Read BOOKSTACK_URL, BOOKSTACK_TOKEN_ID, BOOKSTACK_TOKEN_SECRET (cached)"""
+    global _config
+    if _config is not None:
+        return _config
+    if not os.path.exists(ENV_FILE):
+        die(f"{ENV_FILE} not found")
+    config = {}
+    with open(ENV_FILE) as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, val = line.split("=", 1)
+            config[key.strip()] = val.strip()
+    for key in ("BOOKSTACK_URL", "BOOKSTACK_TOKEN_ID", "BOOKSTACK_TOKEN_SECRET"):
+        if not config.get(key):
+            die(f"{key} not set in {ENV_FILE}")
+    config["BOOKSTACK_URL"] = config["BOOKSTACK_URL"].rstrip("/")
+    _config = config
+    return config
+
+
+def die(msg):
+    print(f"Error: {msg}", file=sys.stderr)
+    sys.exit(1)
+
+
+def out(data):
+    print(json.dumps(data, indent=2, ensure_ascii=False))
+
+
+def request(method, path, query=None, body=None, multipart=None, raw=False):
+    """Call the API. Returns parsed JSON, or bytes with raw=True."""
+    cfg = load_env()
+    url = f"{cfg['BOOKSTACK_URL']}/api/{path.lstrip('/')}"
+    if query:
+        url += "?" + urllib.parse.urlencode(query, doseq=True)
+    headers = {
+        "Authorization": f"Token {cfg['BOOKSTACK_TOKEN_ID']}:{cfg['BOOKSTACK_TOKEN_SECRET']}",
+        "User-Agent": USER_AGENT,
+        "Accept": "application/json",
+    }
+    data = None
+    if multipart is not None:
+        data, ctype = encode_multipart(*multipart)
+        headers["Content-Type"] = ctype
+    elif body is not None:
+        data = json.dumps(body).encode()
+        headers["Content-Type"] = "application/json"
+    req = urllib.request.Request(url, data=data, headers=headers, method=method)
+    try:
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            content = resp.read()
+    except urllib.error.HTTPError as e:
+        detail = e.read().decode(errors="replace")
+        try:
+            detail = json.loads(detail).get("error", detail)
+        except (ValueError, AttributeError):
+            detail = detail[:500]
+        print(json.dumps({"status": e.code, "method": method, "path": path,
+                          "error": detail}, indent=2, ensure_ascii=False),
+              file=sys.stderr)
+        sys.exit(1)
+    except urllib.error.URLError as e:
+        die(f"{url}: {e.reason}")
+    if raw:
+        return content
+    if not content:
+        return {"success": True}
+    return json.loads(content)
+
+
+def encode_multipart(fields, file_field, file_path):
+    boundary = uuid.uuid4().hex
+    parts = []
+    for key, val in fields.items():
+        parts.append(f'--{boundary}\r\nContent-Disposition: form-data; name="{key}"\r\n\r\n{val}\r\n'.encode())
+    if file_path:
+        name = os.path.basename(file_path)
+        ctype = mimetypes.guess_type(name)[0] or "application/octet-stream"
+        with open(file_path, "rb") as f:
+            payload = f.read()
+        parts.append(f'--{boundary}\r\nContent-Disposition: form-data; name="{file_field}"; filename="{name}"\r\nContent-Type: {ctype}\r\n\r\n'.encode())
+        parts.append(payload + b"\r\n")
+    parts.append(f"--{boundary}--\r\n".encode())
+    return b"".join(parts), f"multipart/form-data; boundary={boundary}"
+
+
+def brief(items):
+    return [{k: i[k] for k in BRIEF_FIELDS if k in i} for i in items]
+
+
+def parse_kv(pairs, what):
+    result = []
+    for p in pairs or []:
+        if "=" not in p:
+            die(f"{what} expects name=value, got '{p}'")
+        k, v = p.split("=", 1)
+        result.append((k, v))
+    return result
+
+
+def tags_body(pairs):
+    return [{"name": k, "value": v} for k, v in parse_kv(pairs, "--tag")]
+
+
+def read_file(path):
+    with open(path, encoding="utf-8") as f:
+        return f.read()
+
+
+def content_fields(args, body):
+    """Shared fields for create/update of shelves, books, chapters, pages"""
+    if args.name:
+        body["name"] = args.name
+    if getattr(args, "description", None) is not None:
+        body["description"] = args.description
+    if getattr(args, "markdown_file", None):
+        body["markdown"] = read_file(args.markdown_file)
+    if getattr(args, "html_file", None):
+        body["html"] = read_file(args.html_file)
+    if args.tag:
+        body["tags"] = tags_body(args.tag)
+    elif getattr(args, "clear_tags", False):
+        body["tags"] = []
+    return body
+
+
+# --- commands -----------------------------------------------------------------
+
+def cmd_docs(args):
+    docs = request("GET", "docs.json")
+    if not args.group:
+        out({g: [f"{e['method']} {e['uri']}  ({e['name']})" for e in eps]
+             for g, eps in docs.items() if g != "docs"})
+        return
+    if args.group not in docs:
+        die(f"unknown group '{args.group}', available: {', '.join(g for g in docs if g != 'docs')}")
+    result = []
+    for e in docs[args.group]:
+        if args.endpoint and args.endpoint not in (e["name"], e["controller_method_kebab"]):
+            continue
+        item = {k: e[k] for k in ("name", "method", "uri", "description", "body_params") if e.get(k)}
+        if args.example and e.get("example_request"):
+            item["example_request"] = e["example_request"]
+        result.append(item)
+    out(result)
+
+
+def cmd_api(args):
+    if args.method == "DELETE" and not args.force:
+        die("DELETE via api needs --force; prefer 'delete <type> <id>' which shows the target first")
+    body = json.loads(read_file(args.file)) if args.file else None
+    query = parse_kv(args.query, "--query")
+    data = request(args.method, args.path, query=query, body=body, raw=bool(args.output))
+    if args.output:
+        with open(args.output, "wb") as f:
+            f.write(data)
+        out({"path": os.path.abspath(args.output), "bytes": len(data)})
+    else:
+        out(data)
+
+
+def cmd_system(args):
+    out(request("GET", "system"))
+
+
+def cmd_search(args):
+    query = args.query
+    if args.type:
+        query += " {type:" + args.type + "}"
+    for k, v in parse_kv(args.tag, "--tag"):
+        query += f" [{k}={v}]"
+    data = request("GET", "search", query={"query": query, "count": args.count, "page": args.page})
+    if args.brief:
+        data["data"] = brief(data["data"])
+    out(data)
+
+
+def cmd_list(args):
+    query = [("count", args.count), ("offset", args.offset)]
+    if args.sort:
+        query.append(("sort", args.sort))
+    for k, v in parse_kv(args.filter, "--filter"):
+        query.append((f"filter[{k}]", v))
+    data = request("GET", args.type, query=query)
+    if args.all:
+        items = data["data"]
+        while len(items) < data["total"]:
+            query[1] = ("offset", args.offset + len(items))
+            more = request("GET", args.type, query=query)["data"]
+            if not more:
+                break
+            items += more
+        data["data"] = items
+    if args.brief:
+        data["data"] = brief(data["data"])
+    out(data)
+
+
+def cmd_get(args):
+    data = request("GET", f"{TYPES[args.type]}/{args.id}")
+    if args.type == "page" and data.get("markdown") and not args.html:
+        data.pop("html", None)
+    if args.type == "attachment" and args.output and not data.get("external"):
+        payload = base64.b64decode(data.get("content", ""))
+        with open(args.output, "wb") as f:
+            f.write(payload)
+        data.pop("content", None)
+        data["saved_to"] = os.path.abspath(args.output)
+    out(data)
+
+
+def cmd_create(args):
+    body = content_fields(args, {})
+    if args.type == "chapter":
+        if not args.book:
+            die("create chapter needs --book")
+        body["book_id"] = args.book
+    if args.type == "page":
+        if not (args.book or args.chapter):
+            die("create page needs --book or --chapter")
+        if not (args.markdown_file or args.html_file):
+            die("create page needs --markdown-file or --html-file")
+        if args.chapter:
+            body["chapter_id"] = args.chapter
+        else:
+            body["book_id"] = args.book
+    if args.type == "shelf" and args.books:
+        body["books"] = args.books
+    data = request("POST", TYPES[args.type], body=body)
+    if args.type == "book" and args.shelf:
+        shelf_add(args.shelf, data["id"])
+        data["added_to_shelf"] = args.shelf
+    data.pop("html", None)
+    out(data)
+
+
+def cmd_update(args):
+    body = content_fields(args, {})
+    if args.book:
+        body["book_id"] = args.book
+    if args.chapter:
+        body["chapter_id"] = args.chapter
+    if args.type == "shelf" and args.books is not None:
+        body["books"] = args.books
+    if not body:
+        die("nothing to update")
+    data = request("PUT", f"{TYPES[args.type]}/{args.id}", body=body)
+    data.pop("html", None)
+    out(data)
+
+
+def shelf_add(shelf_id, book_id):
+    """Books of a shelf can only be replaced as a whole - read, append, write"""
+    shelf = request("GET", f"shelves/{shelf_id}")
+    ids = [b["id"] for b in shelf.get("books", [])]
+    if book_id not in ids:
+        request("PUT", f"shelves/{shelf_id}", body={"books": ids + [book_id]})
+
+
+def cmd_shelve(args):
+    shelf_add(args.shelf, args.book)
+    out({"shelf": args.shelf, "book": args.book, "success": True})
+
+
+def cmd_delete(args):
+    if args.type == "recycle-bin":
+        path = f"recycle-bin/{args.id}"
+        target = next((d for d in request("GET", "recycle-bin", query={"count": 500})["data"]
+                       if d["id"] == args.id), None)
+        if target is None:
+            die(f"recycle-bin entry {args.id} not found")
+        effect = "permanent, cannot be restored"
+    else:
+        path = f"{TYPES[args.type]}/{args.id}"
+        target = request("GET", path)
+        effect = ("moves to recycle bin, restorable with 'restore'"
+                  if args.type in ("shelf", "book", "chapter", "page") else "permanent")
+    if not args.force:
+        info = {k: target[k] for k in ("id", "name", "display_name", "email",
+                                       "deletable_type", "deletable_id") if k in target}
+        if args.type == "book":
+            info["contents"] = len(target.get("contents", []))
+        print(json.dumps({"would_delete": args.type, "target": info, "effect": effect,
+                          "hint": "repeat with --force to delete"}, indent=2, ensure_ascii=False))
+        sys.exit(1)
+    query = {"migrate_ownership_id": args.migrate_ownership_id} if args.migrate_ownership_id else None
+    request("DELETE", path, query=query)
+    out({"deleted": args.type, "id": args.id, "effect": effect})
+
+
+def cmd_restore(args):
+    out(request("PUT", f"recycle-bin/{args.id}"))
+
+
+def cmd_export(args):
+    if args.type not in ("book", "chapter", "page"):
+        die("export works for book, chapter, page")
+    data = request("GET", f"{TYPES[args.type]}/{args.id}/export/{args.format}", raw=True)
+    if args.output:
+        with open(args.output, "wb") as f:
+            f.write(data)
+        out({"path": os.path.abspath(args.output), "bytes": len(data)})
+    elif args.format in ("pdf", "zip"):
+        die(f"{args.format} is binary, use --output <file>")
+    else:
+        text = data.decode("utf-8")
+        sys.stdout.write(text if text.endswith("\n") else text + "\n")
+
+
+def cmd_attach(args):
+    fields = {"uploaded_to": args.page}
+    if args.link:
+        if not args.name:
+            die("--link needs --name")
+        fields.update(name=args.name, link=args.link)
+        data = request("POST", "attachments", body=fields)
+    else:
+        if not args.file:
+            die("attach needs a file or --link")
+        fields["name"] = args.name or os.path.basename(args.file)
+        data = request("POST", "attachments", multipart=(fields, "file", args.file))
+    out(data)
+
+
+def cmd_permissions(args):
+    path = f"content-permissions/{args.type}/{args.id}"
+    if args.file:
+        out(request("PUT", path, body=json.loads(read_file(args.file))))
+    else:
+        out(request("GET", path))
+
+
+# --- cli ------------------------------------------------------------------------
+
+def add_content_args(p, create):
+    p.add_argument("--name", required=create)
+    p.add_argument("--description")
+    p.add_argument("--markdown-file", help="page content as Markdown file")
+    p.add_argument("--html-file", help="page content as HTML file")
+    p.add_argument("--tag", action="append", metavar="NAME=VALUE",
+                   help="repeatable; on update replaces all tags")
+    p.add_argument("--book", type=int)
+    p.add_argument("--chapter", type=int)
+    p.add_argument("--books", type=lambda s: [int(x) for x in s.split(",") if x],
+                   help="shelf only: comma-separated book IDs (update replaces the list)")
+
+
+def main():
+    parser = argparse.ArgumentParser(description="BookStack REST API helper")
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    p = sub.add_parser("docs", help="API reference from the instance (docs.json)")
+    p.add_argument("group", nargs="?", help="e.g. roles, users, content-permissions")
+    p.add_argument("--endpoint", help="e.g. create, roles-create")
+    p.add_argument("--example", action="store_true", help="include example_request")
+    p.set_defaults(func=cmd_docs)
+
+    p = sub.add_parser("api", help="raw API call")
+    p.add_argument("method", type=str.upper, choices=("GET", "POST", "PUT", "DELETE"))
+    p.add_argument("path", help="relative to /api, e.g. roles/3")
+    p.add_argument("--file", help="JSON request body")
+    p.add_argument("--query", action="append", metavar="NAME=VALUE")
+    p.add_argument("--output", help="write raw response to file")
+    p.add_argument("--force", action="store_true")
+    p.set_defaults(func=cmd_api)
+
+    p = sub.add_parser("system", help="instance version and name")
+    p.set_defaults(func=cmd_system)
+
+    p = sub.add_parser("search", help="full-text search")
+    p.add_argument("query")
+    p.add_argument("--type", help="page, chapter, book, bookshelf (comma-separated)")
+    p.add_argument("--tag", action="append", metavar="NAME=VALUE")
+    p.add_argument("--count", type=int, default=20)
+    p.add_argument("--page", type=int, default=1)
+    p.add_argument("--brief", action="store_true")
+    p.set_defaults(func=cmd_search)
+
+    p = sub.add_parser("list", help="list items of a type")
+    p.add_argument("type", choices=LISTABLE)
+    p.add_argument("--count", type=int, default=100)
+    p.add_argument("--offset", type=int, default=0)
+    p.add_argument("--sort", help="field; descending with '=' and '-', e.g. --sort=-updated_at")
+    p.add_argument("--filter", action="append", metavar="FIELD=VALUE",
+                   help="e.g. book_id=3, name:like=%%Protokoll%%")
+    p.add_argument("--all", action="store_true", help="page through all results")
+    p.add_argument("--brief", action="store_true")
+    p.set_defaults(func=cmd_list)
+
+    p = sub.add_parser("get", help="read one item")
+    p.add_argument("type", choices=sorted(TYPES))
+    p.add_argument("id", type=int)
+    p.add_argument("--html", action="store_true", help="page: keep html next to markdown")
+    p.add_argument("--output", help="attachment: save file content here")
+    p.set_defaults(func=cmd_get)
+
+    p = sub.add_parser("create", help="create shelf, book, chapter or page")
+    p.add_argument("type", choices=("shelf", "book", "chapter", "page"))
+    add_content_args(p, True)
+    p.add_argument("--shelf", type=int, help="book: also put it on this shelf")
+    p.set_defaults(func=cmd_create)
+
+    p = sub.add_parser("update", help="update shelf, book, chapter or page; --book/--chapter moves")
+    p.add_argument("type", choices=("shelf", "book", "chapter", "page"))
+    p.add_argument("id", type=int)
+    add_content_args(p, False)
+    p.add_argument("--clear-tags", action="store_true")
+    p.set_defaults(func=cmd_update)
+
+    p = sub.add_parser("shelve", help="put a book on a shelf")
+    p.add_argument("shelf", type=int)
+    p.add_argument("book", type=int)
+    p.set_defaults(func=cmd_shelve)
+
+    p = sub.add_parser("delete", help="delete an item; without --force only shows the target")
+    p.add_argument("type", choices=sorted(TYPES) + ["recycle-bin"])
+    p.add_argument("id", type=int)
+    p.add_argument("--force", action="store_true")
+    p.add_argument("--migrate-ownership-id", type=int,
+                   help="user: hand owned content to this user")
+    p.set_defaults(func=cmd_delete)
+
+    p = sub.add_parser("restore", help="restore a recycle-bin entry")
+    p.add_argument("id", type=int, help="deletion ID from 'list recycle-bin'")
+    p.set_defaults(func=cmd_restore)
+
+    p = sub.add_parser("export", help="export book, chapter or page")
+    p.add_argument("type", choices=("book", "chapter", "page"))
+    p.add_argument("id", type=int)
+    p.add_argument("--format", choices=EXPORT_FORMATS, default="markdown")
+    p.add_argument("--output")
+    p.set_defaults(func=cmd_export)
+
+    p = sub.add_parser("attach", help="upload a file or link to a page")
+    p.add_argument("page", type=int)
+    p.add_argument("file", nargs="?")
+    p.add_argument("--name")
+    p.add_argument("--link")
+    p.set_defaults(func=cmd_attach)
+
+    p = sub.add_parser("permissions", help="read or set (--file) content permissions")
+    p.add_argument("type", choices=("bookshelf", "book", "chapter", "page"))
+    p.add_argument("id", type=int)
+    p.add_argument("--file", help="JSON body, see 'docs content-permissions --example'")
+    p.set_defaults(func=cmd_permissions)
+
+    args = parser.parse_args()
+    args.func(args)
+
+
+if __name__ == "__main__":
+    main()

@@ -812,12 +812,29 @@ Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
 
 **Trigger:** nur per `/sally`, optional mit Frage oder Aufnahme-Name; lädt sich nicht von selbst.
 
+### bookstack
+
+BookStack über die REST-API:
+
+- Inhalt - `search`, `list`, `get`, `create`/`update` für Regale, Bücher, Kapitel und Seiten (Markdown per Datei, Tags), `shelve`, `export` (Markdown, PDF, HTML, ZIP), Anhänge per `attach`
+- Admin - `permissions` (Content-Rechte), User, Rollen, Audit-Log, Papierkorb (`restore`); seltene Endpunkte über `docs` (API-Referenz der Instanz) und `api`
+- `delete` zeigt ohne `--force` nur das Ziel
+
+**Setup:** `BOOKSTACK_URL`, `BOOKSTACK_TOKEN_ID`, `BOOKSTACK_TOKEN_SECRET` in `~/.env` (oder `.env` im Arbeitsverzeichnis, anderer Pfad über `BOOKSTACK_ENV`). Token in BookStack unter Profil bearbeiten → API-Tokens; Admin-Befehle brauchen ein Token mit Admin-Rolle.
+
+**Voraussetzungen:** Python >= 3.11 (stdlib only).
+
+**Trigger:** nur per `/bookstack`; lädt sich nicht von selbst. Andere Skills rufen das Script direkt auf.
+
 ## Changelog
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.75.28
+### 1.76.0
 
-- **kanboard: `compact` fasst Kommentare erst ab 11 zusammen.** Die Schwelle
-  für den Hinweis aus `cr` und für das Zusammenfassen der Kommentare liegt
-  jetzt bei mehr als 10 statt mehr als 5 Kommentaren.
+- **bookstack: neuer Skill für BookStack über die REST-API.** Regale, Bücher,
+  Kapitel und Seiten suchen, lesen, anlegen, ändern, verschieben und exportieren,
+  Seiteninhalt als Markdown per Datei; Anhänge, Content-Rechte, Rollen, User,
+  Audit-Log und Papierkorb. Seltene Endpunkte über `docs` (API-Referenz der
+  laufenden Instanz) und `api`. `delete` zeigt ohne `--force` nur das Ziel. Nur per
+  `/bookstack` aufrufbar, andere Skills rufen das Script direkt auf.
