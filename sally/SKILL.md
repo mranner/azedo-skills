@@ -79,9 +79,10 @@ abarbeiten.
 ## Archiv nach BookStack
 
 Bei `/sally archive <aufnahme>` und in Schritt 9 der Review. `archive` legt im
-Buch des Kunden zwei Seiten an: „JJJJ-MM-TT Titel“ im Kapitel „Besprechungen“
-(Datum, Dauer, Link aufs Transkript, Zusammenfassung) und „… - Transkript“ im
-Kapitel „Transkripte“, beide mit den Tags `kunde`, `datum`, `typ`, `sally-id`.
+Kapitel „Besprechungen“ des Kunden-Buchs zwei Seiten an: „JJJJ-MM-TT Titel“
+(Datum, Dauer, Link aufs Transkript, Zusammenfassung) und direkt darunter
+„… - Transkript“, nur für die Admin-Rolle sichtbar; beide mit den Tags `kunde`,
+`datum`, `typ`, `sally-id`.
 Es braucht den Skill `bookstack` mit seiner Config.
 
 - `--kunde` ist der Kundenname **wie in Kimai** (`list-customers` im Skill kimai).
@@ -89,8 +90,8 @@ Es braucht den Skill `bookstack` mit seiner Config.
   vornehmen und sie per `--summary-file`/`--transcript-file` übergeben; ohne die
   Optionen archiviert `archive` den Text frisch aus Sally.
 - **Fehlt das Buch des Kunden**, bricht `archive` ab. Ob es angelegt wird,
-  entscheidet der User; angelegt wird es dann mit `/bookstack`, mit beiden
-  Kapiteln und „Transkripte“ nur für Admin.
+  entscheidet der User; angelegt wird es dann mit `/bookstack`, mit dem Kapitel
+  „Besprechungen“.
 - **Schon archiviert** (Seite mit derselben `sally-id`): `archive` bricht mit den
   Links ab - die vorhandenen Seiten melden.
 

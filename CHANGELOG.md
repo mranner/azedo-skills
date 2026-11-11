@@ -3,6 +3,16 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.76.2
+
+- **sally: `archive` legt das Transkript unter die Besprechung.** Beide Seiten
+  stehen im Kapitel „Besprechungen“, das Transkript direkt nach der Besprechung;
+  ein eigenes Kapitel „Transkripte“ braucht es nicht mehr. Das Transkript wird
+  leer angelegt, für alle außer der Admin-Rolle gesperrt und erst dann gefüllt,
+  sodass es zu keinem Zeitpunkt offen steht.
+- **bookstack: `update --priority`** setzt die Position einer Seite oder eines
+  Kapitels.
+
 ### 1.76.1
 
 - **sally: `archive` legt eine Aufnahme in BookStack ab.** Zwei Seiten im Buch

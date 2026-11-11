@@ -4,7 +4,7 @@
 # Aufnahmen auflisten, Zusammenfassung und Transkript holen, Zusammenfassungen durchsuchen,
 # Aufnahme nach BookStack archivieren (ueber das Script des Skills bookstack).
 # stdlib only, keine pip-Abhaengigkeiten.
-# version 1.76.1
+# version 1.76.2
 
 import argparse
 import datetime
@@ -28,7 +28,7 @@ SUMMARY_FORMATS = ["md", "txt", "pdf", "docx", "odt"]
 LANGUAGES = ["de-DE", "en-US", "es-ES", "fr-FR", "it-IT", "nl-NL", "pl-PL"]
 MAX_RETRIES = 3
 BOOKSTACK = os.environ.get("BOOKSTACK_SCRIPT") or os.path.expanduser("~/.claude/skills/bookstack/bookstack")
-ARCHIVE_CHAPTERS = ("Besprechungen", "Transkripte")
+ARCHIVE_CHAPTER = "Besprechungen"
 
 
 def die(msg, code=1):
@@ -343,12 +343,14 @@ def cmd_archive(args):
              if b["name"] == book_name]
     if len(books) != 1:
         die("Kein Buch '%s' in BookStack. Kunden-Buecher werden nur auf Anweisung angelegt, "
-            "mit den Kapiteln %s und %s." % (book_name, ARCHIVE_CHAPTERS[0], ARCHIVE_CHAPTERS[1]))
-    chapters = {c["name"]: c["id"] for c in bookstack("get", "book", books[0]["id"])["contents"]
-                if c.get("type") == "chapter"}
-    missing = [c for c in ARCHIVE_CHAPTERS if c not in chapters]
-    if missing:
-        die("Im Buch '%s' fehlt das Kapitel %s." % (book_name, ", ".join(missing)))
+            "mit dem Kapitel %s." % (book_name, ARCHIVE_CHAPTER))
+    chapter = next((c["id"] for c in bookstack("get", "book", books[0]["id"])["contents"]
+                    if c.get("type") == "chapter" and c["name"] == ARCHIVE_CHAPTER), None)
+    if chapter is None:
+        die("Im Buch '%s' fehlt das Kapitel %s." % (book_name, ARCHIVE_CHAPTER))
+    admin = next((r["id"] for r in bookstack("list", "roles")["data"] if r.get("system_name") == "admin"), None)
+    if admin is None:
+        die("Keine Admin-Rolle (system_name admin) in BookStack - das Transkript liesse sich nicht sperren.")
 
     summary = read_or_fetch(args.summary_file, lambda: summary_document(rec, args.lang, "md"))
     transcript = read_or_fetch(args.transcript_file, lambda: transcript_document(rec, args.lang, "md"))
@@ -360,24 +362,36 @@ def cmd_archive(args):
     tmpdir = os.path.join(os.getcwd(), ".tmp")
     os.makedirs(tmpdir, mode=0o700, exist_ok=True)
     with tempfile.TemporaryDirectory(dir=tmpdir) as work:
+        # Transkript erst leer anlegen und sperren, dann fuellen - so ist es zu keinem Zeitpunkt offen
         tfile = os.path.join(work, "transkript.md")
         with open(tfile, "w", encoding="utf-8") as f:
-            f.write(transcript)
-        tpage = bookstack("create", "page", "--chapter", chapters[ARCHIVE_CHAPTERS[1]], "--name", title + " - Transkript",
+            f.write("*Transkript wird archiviert.*\n")
+        tpage = bookstack("create", "page", "--chapter", chapter, "--name", title + " - Transkript",
                           "--markdown-file", tfile, "--tag", "typ=transkript", *tags)
+        lock = os.path.join(work, "lock.json")
+        with open(lock, "w") as f:
+            json.dump({"role_permissions": [{"role_id": admin, "view": True, "create": True, "update": True,
+                                             "delete": True}],
+                       "fallback_permissions": {"inheriting": False, "view": False, "create": False,
+                                                "update": False, "delete": False}}, f)
+        bookstack("permissions", "page", tpage["id"], "--file", lock)
+        with open(tfile, "w", encoding="utf-8") as f:
+            f.write(transcript)
+        bookstack("update", "page", tpage["id"], "--markdown-file", tfile)
         turl = "%s/link/%s" % (base, tpage["id"])
 
         sfile = os.path.join(work, "zusammenfassung.md")
         with open(sfile, "w", encoding="utf-8") as f:
             f.write("**Aufnahme:** %s, Dauer %s - [Transkript](%s)\n\n%s" % (
                 start, duration(rec.get("durationInSeconds")), turl, summary))
-        r = subprocess.run([sys.executable, BOOKSTACK, "create", "page", "--chapter", str(chapters[ARCHIVE_CHAPTERS[0]]),
+        r = subprocess.run([sys.executable, BOOKSTACK, "create", "page", "--chapter", str(chapter),
                             "--name", title, "--markdown-file", sfile, "--tag", "typ=besprechung"] + tags,
                            capture_output=True, text=True)
         if r.returncode:
             die("Zusammenfassung nicht angelegt (%s). Die Transkript-Seite steht schon: %s"
                 % ((r.stderr or r.stdout).strip(), turl))
         spage = json.loads(r.stdout)
+        bookstack("update", "page", tpage["id"], "--priority", spage["priority"] + 1)
 
     print(json.dumps({"buch": book_name, "zusammenfassung": "%s/link/%s" % (base, spage["id"]),
                       "transkript": turl}, indent=2, ensure_ascii=False))

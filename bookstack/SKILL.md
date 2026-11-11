@@ -39,7 +39,7 @@ unten brauchen ein Token mit Admin-Rolle.
 | Lesen | `get page <id>` (Markdown; `--html` zusätzlich HTML) |
 | Anlegen | `create page --book <id>\|--chapter <id> --name "…" --markdown-file <pfad> [--tag k=v]` |
 | Ändern | `update page <id> [--markdown-file <pfad>] [--name …]` |
-| Verschieben | `update page <id> --book <id>` bzw. `--chapter <id>` |
+| Verschieben | `update page <id> --book <id>` bzw. `--chapter <id>`; Reihenfolge mit `--priority <n>` |
 | Regal | neues Buch: `create book --name … --shelf <id>`, vorhandenes: `shelve <shelf> <book>` |
 | Export | `export page\|chapter\|book <id> --format markdown\|pdf\|html\|zip [--output <datei>]` |
 | Anhang | `attach <page_id> <datei> [--name …]`, `attach <page_id> --link <url> --name …`, `get attachment <id> --output <datei>` |

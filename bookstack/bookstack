@@ -2,7 +2,7 @@
 
 # BookStack REST API helper
 # stdlib only, no pip dependencies
-# version 1.76.1
+# version 1.76.2
 
 import argparse
 import base64
@@ -315,6 +315,8 @@ def cmd_update(args):
         body["book_id"] = args.book
     if args.chapter:
         body["chapter_id"] = args.chapter
+    if args.priority is not None:
+        body["priority"] = args.priority
     if args.type == "shelf" and args.books is not None:
         body["books"] = args.books
     if not body:
@@ -480,6 +482,7 @@ def main():
     p.add_argument("id", type=int)
     add_content_args(p, False)
     p.add_argument("--clear-tags", action="store_true")
+    p.add_argument("--priority", type=int, help="position within book or chapter, ascending")
     p.set_defaults(func=cmd_update)
 
     p = sub.add_parser("shelve", help="put a book on a shelf")

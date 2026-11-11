@@ -831,12 +831,12 @@ BookStack über die REST-API:
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.76.1
+### 1.76.2
 
-- **sally: `archive` legt eine Aufnahme in BookStack ab.** Zwei Seiten im Buch
-  des Kunden (Kundenname wie in Kimai): Zusammenfassung mit Datum, Dauer und Link
-  im Kapitel „Besprechungen“, Transkript im Kapitel „Transkripte“, beide mit den
-  Tags `kunde`, `datum`, `typ`, `sally-id`. Bricht ab, wenn das Buch fehlt oder die
-  Aufnahme schon archiviert ist; Kunden-Bücher legt es nicht an. Review-Schritt 9
-  archiviert vor dem Hinweis, dass die Aufnahme in Sally gelöscht werden kann.
-  Abweichende Buchnamen über `archive.books` in `sally.json`.
+- **sally: `archive` legt das Transkript unter die Besprechung.** Beide Seiten
+  stehen im Kapitel „Besprechungen“, das Transkript direkt nach der Besprechung;
+  ein eigenes Kapitel „Transkripte“ braucht es nicht mehr. Das Transkript wird
+  leer angelegt, für alle außer der Admin-Rolle gesperrt und erst dann gefüllt,
+  sodass es zu keinem Zeitpunkt offen steht.
+- **bookstack: `update --priority`** setzt die Position einer Seite oder eines
+  Kapitels.
