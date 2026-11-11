@@ -137,8 +137,9 @@ Die Stand-Datei wird zum Review-Dokument: unten einen leeren Abschnitt
 an den Task hängen; betrifft der Call mehrere Tasks, fragen, an welchen.
 Spätere Nachträge aktualisieren den Anhang per `replace-file`.
 
-Danach die Aufnahme archivieren: `archive` mit Kunde und Projekt aus Schritt 8
-und den beiden Dateien aus Schritt 2, Glossar angewendet (Abschnitt „Archiv nach
+Danach die Aufnahme archivieren: `archive` mit Kunde und Projekt aus Schritt 8,
+dem Titel aus den Hauptthemen der Gruppenliste (Schritt 4) und den beiden
+Dateien aus Schritt 2, Glossar angewendet (Abschnitt „Archiv nach
 BookStack" in der SKILL.md). Erst dann dem User melden, dass die Aufnahme in
 Sally gelöscht werden kann - löschen tut er selbst.
 

@@ -831,8 +831,6 @@ BookStack über die REST-API:
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.76.3
+### 1.76.4
 
-- **sally: `archive --projekt`** setzt den Tag `projekt` (Projektname wie in Kimai)
-  auf Besprechung und Transkript, mehrfach möglich. In der Review kommt das
-  Projekt aus Schritt 8.
+- sally: `archive --titel` setzt Seitentitel und Überschrift aus den Hauptthemen statt aus dem Aufnahmenamen; SKILL.md und Review-Schritt 9 schlagen den Titel vor (Themen, keine Personen)

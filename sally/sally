@@ -4,7 +4,7 @@
 # Aufnahmen auflisten, Zusammenfassung und Transkript holen, Zusammenfassungen durchsuchen,
 # Aufnahme nach BookStack archivieren (ueber das Script des Skills bookstack).
 # stdlib only, keine pip-Abhaengigkeiten.
-# version 1.76.3
+# version 1.76.4
 
 import argparse
 import datetime
@@ -355,8 +355,13 @@ def cmd_archive(args):
     summary = read_or_fetch(args.summary_file, lambda: summary_document(rec, args.lang, "md"))
     transcript = read_or_fetch(args.transcript_file, lambda: transcript_document(rec, args.lang, "md"))
 
+    if args.titel:
+        heading = "# Aufzeichnung: %s" % args.titel
+        summary = re.sub(r"^# Aufzeichnung: .*$", lambda m: heading, summary, count=1, flags=re.M)
+        transcript = re.sub(r"^# Aufzeichnung: .*$", lambda m: heading, transcript, count=1, flags=re.M)
+
     start = local_time(rec.get("createdOn"))
-    title = "%s %s" % (start[:10], rec.get("name") or "Aufnahme")
+    title = "%s %s" % (start[:10], args.titel or rec.get("name") or "Aufnahme")
     tags = ["--tag", "kunde=%s" % args.kunde, "--tag", "datum=%s" % start[:10], "--tag", "sally-id=%s" % rid]
     for projekt in args.projekt or []:
         tags += ["--tag", "projekt=%s" % projekt]
@@ -451,6 +456,7 @@ def main():
     s.add_argument("recording", help="Aufnahme-ID oder eindeutiger Namensteil")
     s.add_argument("--kunde", required=True, help="Kundenname wie in Kimai")
     s.add_argument("--projekt", action="append", help="Projektname wie in Kimai, mehrfach moeglich")
+    s.add_argument("--titel", help="Seitentitel und Ueberschrift statt des Namens aus Sally")
     s.add_argument("--summary-file", help="Zusammenfassung (md) statt frisch aus Sally")
     s.add_argument("--transcript-file", help="Transkript (md) statt frisch aus Sally")
     s.add_argument("--lang", help="Sprache, z.B. de oder en-US")

@@ -3,6 +3,10 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.76.4
+
+- sally: `archive --titel` setzt Seitentitel und Überschrift aus den Hauptthemen statt aus dem Aufnahmenamen; SKILL.md und Review-Schritt 9 schlagen den Titel vor (Themen, keine Personen)
+
 ### 1.76.3
 
 - **sally: `archive --projekt`** setzt den Tag `projekt` (Projektname wie in Kimai)

@@ -43,7 +43,7 @@ Fehlt die Datei oder ein Schlüssel, bricht das Script mit Meldung ab.
 | `transcript <aufnahme> [--lang de] [--format md\|txt\|pdf\|docx\|xlsx\|vtt\|srt]` | Transkript als Dokument |
 | `download <aufnahme> [--to DIR] [--json]` | Zusammenfassung und Transkript (md) als Dateien, Default `./.tmp/` (Modus 700, Dateien 600; warnt, wenn ein bestehendes Verzeichnis offener ist) |
 | `search "<text>" [--limit N]` | Treffer in Zusammenfassungen mit Ausschnitt |
-| `archive <aufnahme> --kunde <name> [--projekt <name> …] [--summary-file f --transcript-file f]` | zwei Seiten in BookStack, gibt beide Links aus |
+| `archive <aufnahme> --kunde <name> [--projekt <name> …] [--titel <text>] [--summary-file f --transcript-file f]` | zwei Seiten in BookStack, gibt beide Links aus |
 
 - `<aufnahme>` ist die ID oder ein eindeutiger Teil des Namens; bei mehreren
   Treffern listet das Script sie auf.
@@ -85,6 +85,11 @@ Kapitel „Besprechungen“ des Kunden-Buchs zwei Seiten an: „JJJJ-MM-TT Titel
 `datum`, `typ`, `sally-id` und je Projekt `projekt`.
 Es braucht den Skill `bookstack` mit seiner Config.
 
+- **Titel aus den Hauptthemen:** zwei bis vier Hauptthemen der Besprechung als
+  Titel vorschlagen, nach Bestätigung per `--titel` übergeben. Er ersetzt im
+  Seitennamen und in der Überschrift `# Aufzeichnung: …` den Namen aus Sally.
+  Der Titel nennt Themen, keine Personen - den Kunden trägt schon das Buch.
+  Beispiel: „Serverumzug, Backup und Druckerfreigabe“.
 - `--kunde` und `--projekt` tragen die Namen **wie in Kimai** (`list-customers`,
   `list-projects` im Skill kimai). Betrifft der Call mehrere Projekte, `--projekt`
   je Projekt; ist das Projekt offen, nachfragen statt raten.
