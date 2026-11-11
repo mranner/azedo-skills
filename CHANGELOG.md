@@ -3,6 +3,12 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.76.3
+
+- **sally: `archive --projekt`** setzt den Tag `projekt` (Projektname wie in Kimai)
+  auf Besprechung und Transkript, mehrfach möglich. In der Review kommt das
+  Projekt aus Schritt 8.
+
 ### 1.76.2
 
 - **sally: `archive` legt das Transkript unter die Besprechung.** Beide Seiten

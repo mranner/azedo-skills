@@ -831,12 +831,8 @@ BookStack über die REST-API:
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.76.2
+### 1.76.3
 
-- **sally: `archive` legt das Transkript unter die Besprechung.** Beide Seiten
-  stehen im Kapitel „Besprechungen“, das Transkript direkt nach der Besprechung;
-  ein eigenes Kapitel „Transkripte“ braucht es nicht mehr. Das Transkript wird
-  leer angelegt, für alle außer der Admin-Rolle gesperrt und erst dann gefüllt,
-  sodass es zu keinem Zeitpunkt offen steht.
-- **bookstack: `update --priority`** setzt die Position einer Seite oder eines
-  Kapitels.
+- **sally: `archive --projekt`** setzt den Tag `projekt` (Projektname wie in Kimai)
+  auf Besprechung und Transkript, mehrfach möglich. In der Review kommt das
+  Projekt aus Schritt 8.

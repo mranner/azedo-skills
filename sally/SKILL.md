@@ -43,7 +43,7 @@ Fehlt die Datei oder ein Schlüssel, bricht das Script mit Meldung ab.
 | `transcript <aufnahme> [--lang de] [--format md\|txt\|pdf\|docx\|xlsx\|vtt\|srt]` | Transkript als Dokument |
 | `download <aufnahme> [--to DIR] [--json]` | Zusammenfassung und Transkript (md) als Dateien, Default `./.tmp/` (Modus 700, Dateien 600; warnt, wenn ein bestehendes Verzeichnis offener ist) |
 | `search "<text>" [--limit N]` | Treffer in Zusammenfassungen mit Ausschnitt |
-| `archive <aufnahme> --kunde <name> [--summary-file f --transcript-file f]` | zwei Seiten in BookStack, gibt beide Links aus |
+| `archive <aufnahme> --kunde <name> [--projekt <name> …] [--summary-file f --transcript-file f]` | zwei Seiten in BookStack, gibt beide Links aus |
 
 - `<aufnahme>` ist die ID oder ein eindeutiger Teil des Namens; bei mehreren
   Treffern listet das Script sie auf.
@@ -82,10 +82,12 @@ Bei `/sally archive <aufnahme>` und in Schritt 9 der Review. `archive` legt im
 Kapitel „Besprechungen“ des Kunden-Buchs zwei Seiten an: „JJJJ-MM-TT Titel“
 (Datum, Dauer, Link aufs Transkript, Zusammenfassung) und direkt darunter
 „… - Transkript“, nur für die Admin-Rolle sichtbar; beide mit den Tags `kunde`,
-`datum`, `typ`, `sally-id`.
+`datum`, `typ`, `sally-id` und je Projekt `projekt`.
 Es braucht den Skill `bookstack` mit seiner Config.
 
-- `--kunde` ist der Kundenname **wie in Kimai** (`list-customers` im Skill kimai).
+- `--kunde` und `--projekt` tragen die Namen **wie in Kimai** (`list-customers`,
+  `list-projects` im Skill kimai). Betrifft der Call mehrere Projekte, `--projekt`
+  je Projekt; ist das Projekt offen, nachfragen statt raten.
 - **Mit Glossar archivieren:** die Ersetzungen in den Dateien aus `download`
   vornehmen und sie per `--summary-file`/`--transcript-file` übergeben; ohne die
   Optionen archiviert `archive` den Text frisch aus Sally.

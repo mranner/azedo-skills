@@ -4,7 +4,7 @@
 # Aufnahmen auflisten, Zusammenfassung und Transkript holen, Zusammenfassungen durchsuchen,
 # Aufnahme nach BookStack archivieren (ueber das Script des Skills bookstack).
 # stdlib only, keine pip-Abhaengigkeiten.
-# version 1.76.2
+# version 1.76.3
 
 import argparse
 import datetime
@@ -358,6 +358,8 @@ def cmd_archive(args):
     start = local_time(rec.get("createdOn"))
     title = "%s %s" % (start[:10], rec.get("name") or "Aufnahme")
     tags = ["--tag", "kunde=%s" % args.kunde, "--tag", "datum=%s" % start[:10], "--tag", "sally-id=%s" % rid]
+    for projekt in args.projekt or []:
+        tags += ["--tag", "projekt=%s" % projekt]
 
     tmpdir = os.path.join(os.getcwd(), ".tmp")
     os.makedirs(tmpdir, mode=0o700, exist_ok=True)
@@ -448,6 +450,7 @@ def main():
     s = sub.add_parser("archive", help="Aufnahme als zwei Seiten ins Kunden-Buch in BookStack")
     s.add_argument("recording", help="Aufnahme-ID oder eindeutiger Namensteil")
     s.add_argument("--kunde", required=True, help="Kundenname wie in Kimai")
+    s.add_argument("--projekt", action="append", help="Projektname wie in Kimai, mehrfach moeglich")
     s.add_argument("--summary-file", help="Zusammenfassung (md) statt frisch aus Sally")
     s.add_argument("--transcript-file", help="Transkript (md) statt frisch aus Sally")
     s.add_argument("--lang", help="Sprache, z.B. de oder en-US")
