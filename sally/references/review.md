@@ -7,7 +7,7 @@ nur die Aufnahme; Tasks laufen über `kanboard`, Mails über `mail-as-me` und
 (*Fertig:*), erst dann folgt der nächste.
 
 Inhalt: Rahmen prüfen, Lesen, Sprecher zuordnen, Gruppieren, Gruppe
-aufbereiten, Entscheiden, Protokoll und Mails, Kimai, Review-Dokument sichern,
+aufbereiten, Entscheiden, Protokoll und Mails, Kimai, Review-Dokument und Archiv sichern,
 Abschluss, Übergabe an eine andere Session.
 
 ## 1. Rahmen prüfen
@@ -130,15 +130,20 @@ es eine Buchung.
 
 *Fertig:* die vereinbarten Einträge sind gebucht.
 
-## 9. Review-Dokument sichern
+## 9. Review-Dokument und Archiv sichern
 
 Die Stand-Datei wird zum Review-Dokument: unten einen leeren Abschnitt
 „Nachträge" für spätere Präzisierungen anfügen, dann per `kanboard attach-file`
 an den Task hängen; betrifft der Call mehrere Tasks, fragen, an welchen.
-Spätere Nachträge aktualisieren den Anhang per `replace-file`. Dem User melden,
-dass die Aufnahme in Sally jetzt gelöscht werden kann - löschen tut er selbst.
+Spätere Nachträge aktualisieren den Anhang per `replace-file`.
 
-*Fertig:* Review-Dokument hängt am Task.
+Danach die Aufnahme archivieren: `archive` mit dem Kunden aus Kimai und den
+beiden Dateien aus Schritt 2, Glossar angewendet (Abschnitt „Archiv nach
+BookStack" in der SKILL.md). Erst dann dem User melden, dass die Aufnahme in
+Sally gelöscht werden kann - löschen tut er selbst.
+
+*Fertig:* Review-Dokument hängt am Task, beide Archiv-Seiten sind angelegt und
+verlinkt - oder der User hat entschieden, dass der Call nicht archiviert wird.
 
 ## 10. Abschluss
 

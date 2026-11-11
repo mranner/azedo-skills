@@ -1,4 +1,7 @@
 {
   "token": "",
-  "directory-id": ""
+  "directory-id": "",
+  "archive": {
+    "books": {}
+  }
 }

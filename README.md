@@ -799,12 +799,13 @@ Retrospektive einer Session: schlägt Verbesserungen an der Umgebung des Agents 
 
 ### sally
 
-Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (nur lesend):
+Meeting-Aufnahmen aus Sally AI lesen, über die Public API v1.0 (in Sally nur lesend), und nach BookStack archivieren:
 
 - `recordings` - Aufnahmen mit Dauer und Transkript-Status, Filter `--since`/`--until` in lokaler Zeit
 - `summary` / `transcript` - Zusammenfassung bzw. Transkript als Dokument (`md`, `txt`, `pdf`, `docx` u.a.) oder mit `--json` strukturiert; Aufnahme per ID oder eindeutigem Namensteil, Sprache per `--lang`
 - `download` - beides als Markdown nach `./.tmp/` (Modus 700) oder `--to DIR`
 - `search` - Zusammenfassungen durchsuchen, mit Ausschnitt je Treffer
+- `archive` - Aufnahme als zwei Seiten (Zusammenfassung, Transkript) ins Kunden-Buch in BookStack, über das Script des Skills `bookstack`; bricht ab, wenn das Buch fehlt oder die Aufnahme schon archiviert ist
 
 **Setup:** `~/.claude/sally.json` (Modus 600) nach der Vorlage `sally/sally.json.example` mit `token` (Personal Access Token aus der Sally-App) und `directory-id` (`sally directories` listet sie); anderer Pfad über `SALLY_CONFIG`. Optional `~/.claude/sally-glossar.md` nach der Vorlage `sally/sally-glossar.md.example`: bekannte Fehlerkennungen von Eigennamen, die beim Auswerten aufgelöst werden.
 
@@ -830,11 +831,12 @@ BookStack über die REST-API:
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.76.0
+### 1.76.1
 
-- **bookstack: neuer Skill für BookStack über die REST-API.** Regale, Bücher,
-  Kapitel und Seiten suchen, lesen, anlegen, ändern, verschieben und exportieren,
-  Seiteninhalt als Markdown per Datei; Anhänge, Content-Rechte, Rollen, User,
-  Audit-Log und Papierkorb. Seltene Endpunkte über `docs` (API-Referenz der
-  laufenden Instanz) und `api`. `delete` zeigt ohne `--force` nur das Ziel. Nur per
-  `/bookstack` aufrufbar, andere Skills rufen das Script direkt auf.
+- **sally: `archive` legt eine Aufnahme in BookStack ab.** Zwei Seiten im Buch
+  des Kunden (Kundenname wie in Kimai): Zusammenfassung mit Datum, Dauer und Link
+  im Kapitel „Besprechungen“, Transkript im Kapitel „Transkripte“, beide mit den
+  Tags `kunde`, `datum`, `typ`, `sally-id`. Bricht ab, wenn das Buch fehlt oder die
+  Aufnahme schon archiviert ist; Kunden-Bücher legt es nicht an. Review-Schritt 9
+  archiviert vor dem Hinweis, dass die Aufnahme in Sally gelöscht werden kann.
+  Abweichende Buchnamen über `archive.books` in `sally.json`.

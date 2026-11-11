@@ -3,6 +3,16 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.76.1
+
+- **sally: `archive` legt eine Aufnahme in BookStack ab.** Zwei Seiten im Buch
+  des Kunden (Kundenname wie in Kimai): Zusammenfassung mit Datum, Dauer und Link
+  im Kapitel „Besprechungen“, Transkript im Kapitel „Transkripte“, beide mit den
+  Tags `kunde`, `datum`, `typ`, `sally-id`. Bricht ab, wenn das Buch fehlt oder die
+  Aufnahme schon archiviert ist; Kunden-Bücher legt es nicht an. Review-Schritt 9
+  archiviert vor dem Hinweis, dass die Aufnahme in Sally gelöscht werden kann.
+  Abweichende Buchnamen über `archive.books` in `sally.json`.
+
 ### 1.76.0
 
 - **bookstack: neuer Skill für BookStack über die REST-API.** Regale, Bücher,

@@ -2,16 +2,18 @@
 name: sally
 description: >
   Sally AI: Meeting-Aufnahmen auflisten, Zusammenfassung und Transkript holen,
-  Zusammenfassungen durchsuchen (nur lesend), Review nach einem Call. Trigger: /sally.
+  Zusammenfassungen durchsuchen, Review nach einem Call, Aufnahme nach BookStack
+  archivieren. Trigger: /sally.
 disable-model-invocation: true
-argument-hint: "review <aufnahme>, Frage zu einem Meeting, Aufnahme-Name oder Suchbegriff (optional)"
+argument-hint: "review <aufnahme>, archive <aufnahme>, Frage zu einem Meeting, Aufnahme-Name oder Suchbegriff (optional)"
 ---
 
 # sally -- Meeting-Aufnahmen aus Sally AI
 
 Alles läuft über das gebündelte Script `sally` (Python >= 3.11, stdlib) gegen
-die Sally Public API v1.0. Der Skill **liest nur**: Aufgaben, Tags, Ordner,
-Upload und Webhooks sind nicht eingebaut.
+die Sally Public API v1.0. In Sally **liest** der Skill nur: Aufgaben, Tags, Ordner,
+Upload und Webhooks sind nicht eingebaut. Geschrieben wird nur mit `archive`, und
+zwar nach BookStack.
 
 **Aufruf:** `python3 "$SKILL_DIR/sally" <subcommand> [options]`
 
@@ -27,6 +29,8 @@ per `SALLY_CONFIG`:
   dessen Aufnahmen.
 - `directory-id` - das Sally-Firmenkonto; `sally directories` listet die
   Kandidaten, `sally me` prüft den Zugang.
+- `archive.books` (optional) - Kunde → Buchname, wo das Buch in BookStack
+  anders heißt als der Kunde in Kimai.
 
 Fehlt die Datei oder ein Schlüssel, bricht das Script mit Meldung ab.
 
@@ -39,6 +43,7 @@ Fehlt die Datei oder ein Schlüssel, bricht das Script mit Meldung ab.
 | `transcript <aufnahme> [--lang de] [--format md\|txt\|pdf\|docx\|xlsx\|vtt\|srt]` | Transkript als Dokument |
 | `download <aufnahme> [--to DIR] [--json]` | Zusammenfassung und Transkript (md) als Dateien, Default `./.tmp/` (Modus 700, Dateien 600; warnt, wenn ein bestehendes Verzeichnis offener ist) |
 | `search "<text>" [--limit N]` | Treffer in Zusammenfassungen mit Ausschnitt |
+| `archive <aufnahme> --kunde <name> [--summary-file f --transcript-file f]` | zwei Seiten in BookStack, gibt beide Links aus |
 
 - `<aufnahme>` ist die ID oder ein eindeutiger Teil des Namens; bei mehreren
   Treffern listet das Script sie auf.
@@ -70,6 +75,24 @@ Fehlt die Datei oder ein Schlüssel, bricht das Script mit Meldung ab.
 Bei `/sally review <aufnahme>` oder "lass uns den Call durchgehen":
 [references/review.md](references/review.md) lesen und Schritt für Schritt
 abarbeiten.
+
+## Archiv nach BookStack
+
+Bei `/sally archive <aufnahme>` und in Schritt 9 der Review. `archive` legt im
+Buch des Kunden zwei Seiten an: „JJJJ-MM-TT Titel“ im Kapitel „Besprechungen“
+(Datum, Dauer, Link aufs Transkript, Zusammenfassung) und „… - Transkript“ im
+Kapitel „Transkripte“, beide mit den Tags `kunde`, `datum`, `typ`, `sally-id`.
+Es braucht den Skill `bookstack` mit seiner Config.
+
+- `--kunde` ist der Kundenname **wie in Kimai** (`list-customers` im Skill kimai).
+- **Mit Glossar archivieren:** die Ersetzungen in den Dateien aus `download`
+  vornehmen und sie per `--summary-file`/`--transcript-file` übergeben; ohne die
+  Optionen archiviert `archive` den Text frisch aus Sally.
+- **Fehlt das Buch des Kunden**, bricht `archive` ab. Ob es angelegt wird,
+  entscheidet der User; angelegt wird es dann mit `/bookstack`, mit beiden
+  Kapiteln und „Transkripte“ nur für Admin.
+- **Schon archiviert** (Seite mit derselben `sally-id`): `archive` bricht mit den
+  Links ab - die vorhandenen Seiten melden.
 
 ## Glossar (`~/.claude/sally-glossar.md`)
 
