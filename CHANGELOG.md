@@ -3,6 +3,10 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.76.6
+
+- sally: `archive` sortiert das Kapitel „Besprechungen“ nach dem Besprechungsdatum im Seitennamen, die jüngste oben, das Transkript direkt unter seiner Besprechung
+
 ### 1.76.5
 
 - sally: `archive` stellt die neue Besprechung samt Transkript an den Anfang des Kapitels „Besprechungen“, die neueste steht oben

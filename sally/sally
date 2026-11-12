@@ -4,7 +4,7 @@
 # Aufnahmen auflisten, Zusammenfassung und Transkript holen, Zusammenfassungen durchsuchen,
 # Aufnahme nach BookStack archivieren (ueber das Script des Skills bookstack).
 # stdlib only, keine pip-Abhaengigkeiten.
-# version 1.76.5
+# version 1.76.6
 
 import argparse
 import datetime
@@ -398,11 +398,13 @@ def cmd_archive(args):
             die("Zusammenfassung nicht angelegt (%s). Die Transkript-Seite steht schon: %s"
                 % ((r.stderr or r.stdout).strip(), turl))
         spage = json.loads(r.stdout)
-        # Neueste Besprechung oben: beide Seiten vor die bisher oberste im Kapitel
-        top = min((p["priority"] for p in bookstack("get", "chapter", chapter)["pages"]
-                   if p["id"] not in (spage["id"], tpage["id"])), default=2)
-        bookstack("update", "page", spage["id"], "--priority", top - 2)
-        bookstack("update", "page", tpage["id"], "--priority", top - 1)
+        # Kapitel nach Besprechungsdatum absteigend, Transkript direkt unter seiner Besprechung
+        pages = bookstack("get", "chapter", chapter)["pages"]
+        pages.sort(key=lambda p: (p["name"].removesuffix(" - Transkript"), p["name"].endswith(" - Transkript")))
+        pages.sort(key=lambda p: p["name"][:10], reverse=True)
+        for i, p in enumerate(pages):
+            if p["priority"] != i:
+                bookstack("update", "page", p["id"], "--priority", i)
 
     print(json.dumps({"buch": book_name, "zusammenfassung": "%s/link/%s" % (base, spage["id"]),
                       "transkript": turl}, indent=2, ensure_ascii=False))

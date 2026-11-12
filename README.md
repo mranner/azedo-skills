@@ -831,6 +831,6 @@ BookStack über die REST-API:
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.76.5
+### 1.76.6
 
-- sally: `archive` stellt die neue Besprechung samt Transkript an den Anfang des Kapitels „Besprechungen“, die neueste steht oben
+- sally: `archive` sortiert das Kapitel „Besprechungen“ nach dem Besprechungsdatum im Seitennamen, die jüngste oben, das Transkript direkt unter seiner Besprechung
