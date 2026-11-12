@@ -831,6 +831,6 @@ BookStack über die REST-API:
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.76.6
+### 1.76.7
 
-- sally: `archive` sortiert das Kapitel „Besprechungen“ nach dem Besprechungsdatum im Seitennamen, die jüngste oben, das Transkript direkt unter seiner Besprechung
+- wp-rcb: `services` und `blockers` liefern ein JSON-Array; Posts im Papierkorb fehlen in beiden Listen, Prüfung per `wp post list --post_status=trash`

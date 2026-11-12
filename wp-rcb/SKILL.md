@@ -48,6 +48,7 @@ zerlegen ihn sonst.
 
 PHP-Warnungen von Plugins landen auf stderr, das JSON auf stdout - beim
 Weiterverarbeiten nur stdout lesen (`2>/dev/null` oder in eine Datei).
+`services` und `blockers` liefern ein JSON-Array, kein Objekt.
 
 ## Befehle (rcb.php, auf dem Server)
 
@@ -185,6 +186,9 @@ Hauptsprache; RCB löst die Übersetzung über WPML selbst auf.
   behoben mit `wp term recount rcb-cookie-group` und `clear-cache`.
 - **`blockers` leer** ist kein Fehler, wenn die Sperre über die
   PixelYourSite-Kopplung läuft (siehe `wp-pys-rcb-integration`).
+- **Papierkorb fehlt:** `services` und `blockers` zeigen Entwürfe, aber keine
+  Posts im Papierkorb (`post_status=any`). Ob ein Dienst je angelegt war, zeigt
+  `wp post list --post_type=rcb-cookie --post_status=trash`.
 - **`frontend` braucht einen normalen User-Agent** - Headless-Browsern zeigt RCB
   keinen Banner. Das Script setzt ihn; mit `curl` von Hand ebenso.
 - Ausgelieferter Code steht im HTML als `base64-encoded:…`; `rcb frontend`
