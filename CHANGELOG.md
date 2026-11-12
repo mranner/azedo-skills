@@ -3,6 +3,10 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.76.5
+
+- sally: `archive` stellt die neue Besprechung samt Transkript an den Anfang des Kapitels „Besprechungen“, die neueste steht oben
+
 ### 1.76.4
 
 - sally: `archive --titel` setzt Seitentitel und Überschrift aus den Hauptthemen statt aus dem Aufnahmenamen; SKILL.md und Review-Schritt 9 schlagen den Titel vor (Themen, keine Personen)

@@ -79,7 +79,7 @@ abarbeiten.
 ## Archiv nach BookStack
 
 Bei `/sally archive <aufnahme>` und in Schritt 9 der Review. `archive` legt im
-Kapitel „Besprechungen“ des Kunden-Buchs zwei Seiten an: „JJJJ-MM-TT Titel“
+Kapitel „Besprechungen“ des Kunden-Buchs ganz oben zwei Seiten an: „JJJJ-MM-TT Titel“
 (Datum, Dauer, Link aufs Transkript, Zusammenfassung) und direkt darunter
 „… - Transkript“, nur für die Admin-Rolle sichtbar; beide mit den Tags `kunde`,
 `datum`, `typ`, `sally-id` und je Projekt `projekt`.

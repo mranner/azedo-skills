@@ -831,6 +831,6 @@ BookStack über die REST-API:
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.76.4
+### 1.76.5
 
-- sally: `archive --titel` setzt Seitentitel und Überschrift aus den Hauptthemen statt aus dem Aufnahmenamen; SKILL.md und Review-Schritt 9 schlagen den Titel vor (Themen, keine Personen)
+- sally: `archive` stellt die neue Besprechung samt Transkript an den Anfang des Kapitels „Besprechungen“, die neueste steht oben

@@ -4,7 +4,7 @@
 # Aufnahmen auflisten, Zusammenfassung und Transkript holen, Zusammenfassungen durchsuchen,
 # Aufnahme nach BookStack archivieren (ueber das Script des Skills bookstack).
 # stdlib only, keine pip-Abhaengigkeiten.
-# version 1.76.4
+# version 1.76.5
 
 import argparse
 import datetime
@@ -398,7 +398,11 @@ def cmd_archive(args):
             die("Zusammenfassung nicht angelegt (%s). Die Transkript-Seite steht schon: %s"
                 % ((r.stderr or r.stdout).strip(), turl))
         spage = json.loads(r.stdout)
-        bookstack("update", "page", tpage["id"], "--priority", spage["priority"] + 1)
+        # Neueste Besprechung oben: beide Seiten vor die bisher oberste im Kapitel
+        top = min((p["priority"] for p in bookstack("get", "chapter", chapter)["pages"]
+                   if p["id"] not in (spage["id"], tpage["id"])), default=2)
+        bookstack("update", "page", spage["id"], "--priority", top - 2)
+        bookstack("update", "page", tpage["id"], "--priority", top - 1)
 
     print(json.dumps({"buch": book_name, "zusammenfassung": "%s/link/%s" % (base, spage["id"]),
                       "transkript": turl}, indent=2, ensure_ascii=False))
