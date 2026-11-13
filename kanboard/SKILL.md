@@ -160,13 +160,20 @@ z.B. `/kanboard neu dagmar@azedo Text` oder `/kanboard neu dagmar@ Text`:
   Leeres Projekt nach dem `@` (`dagmar@`) heißt Projekt aus dem CR-Kontext.
   Ohne Präfix gilt der `default_user`.
 - **Titel und Beschreibung:** Titel als Handlung aus dem Text ableiten (Regeln
-  unter Workflow). Ist der Text eine Mail (Kopfzeilen wie `Von:`, `Betreff:`,
-  `Message-ID:` oder Anrede und Grußformel), wird die Beschreibung ein
-  **Arbeitsauftrag** mit den Abschnitten **Ziel** (worum es geht, 1-3 Sätze),
-  **Offen** (was fehlt bzw. vom Absender kommt), **Umsetzung** (Schritte, Verweis
-  auf einen vorhandenen Wiki-Ablauf) und **Rückmeldung** (an wen), dazu die
-  Herkunft in einem Satz (Absender, Datum). Signatur, Disclaimer und Social-Links
-  fallen weg. Jeder andere Text geht unverändert in die Beschreibung.
+  unter Workflow). Die Beschreibung wird ein **Arbeitsauftrag** mit den
+  Abschnitten **Ziel** (worum es geht, 1-3 Sätze), **Offen** (was fehlt bzw.
+  vom Absender kommt), **Umsetzung** (Schritte, Verweis auf einen vorhandenen
+  Wiki-Ablauf) und **Rückmeldung** (an wen), sobald es Material dafür gibt:
+  - **Mail im Text** (Kopfzeilen wie `Von:`, `Betreff:`, `Message-ID:` oder
+    Anrede und Grußformel): dazu die Herkunft in einem Satz (Absender, Datum).
+    Signatur, Disclaimer und Social-Links fallen weg.
+  - **Session-Kontext zum Thema** (vorangegangene Analyse, Befund,
+    Mailverlauf): der eingegebene Text wird das Ziel, dazu **Anlass** (Fall,
+    Herkunft, Datum) und **Befunde** mit Beleg (Code-Stelle, Datensatz,
+    Log-Zeile); die Umsetzung nennt je Schritt die Prüfung.
+
+  Unverändert in die Beschreibung geht nur Text ohne Mail und ohne Bezug zur
+  Session.
 - **Workflow-Schritt 0 gilt auch hier**, als stille Prüfung: Ist aus dem Text
   eine Handlung erkennbar, direkt anlegen, ohne Rückfrage zu Titel oder
   Beschreibung, dann die URL melden; Korrekturen danach per `update-task`.
