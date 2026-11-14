@@ -831,6 +831,6 @@ BookStack über die REST-API:
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.76.8
+### 1.76.9
 
-- kanboard: `new` übernimmt Session-Kontext (Analyse, Befund, Mailverlauf) als Arbeitsauftrag mit Anlass und Befunden; unverändert bleibt nur Text ohne Bezug zur Session
+- wp-rcb: `create-service <vorlage> <feld>=<wert>` legt einen Dienst aus einer RCB-Vorlage an (Felder geprüft, Gruppe aus dem Vorlagentyp, Platzhalter-Host `main+subdomains` auf die Site-Domain), läuft über den Import mit Vorschau und `backup`

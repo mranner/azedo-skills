@@ -4,7 +4,7 @@
 # Aufnahmen auflisten, Zusammenfassung und Transkript holen, Zusammenfassungen durchsuchen,
 # Aufnahme nach BookStack archivieren (ueber das Script des Skills bookstack).
 # stdlib only, keine pip-Abhaengigkeiten.
-# version 1.76.8
+# version 1.76.9
 
 import argparse
 import datetime

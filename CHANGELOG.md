@@ -3,6 +3,10 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.76.9
+
+- wp-rcb: `create-service <vorlage> <feld>=<wert>` legt einen Dienst aus einer RCB-Vorlage an (Felder geprüft, Gruppe aus dem Vorlagentyp, Platzhalter-Host `main+subdomains` auf die Site-Domain), läuft über den Import mit Vorschau und `backup`
+
 ### 1.76.8
 
 - kanboard: `new` übernimmt Session-Kontext (Analyse, Befund, Mailverlauf) als Arbeitsauftrag mit Anlass und Befunden; unverändert bleibt nur Text ohne Bezug zur Session

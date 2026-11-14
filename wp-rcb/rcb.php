@@ -612,6 +612,104 @@ function rcb_cmd_create_blocker($title, $opts, $input)
 	return ['blocker' => $json['blocker'][0]] + rcb_cmd_import($json, $opts);
 }
 
+const RCB_SERVICE_METAS = [
+	'providerContact', 'isProviderCurrentWebsite', 'provider', 'isEmbeddingOnlyExternalResources', 'legalBasis',
+	'dataProcessingInCountries', 'dataProcessingInCountriesSpecialTreatments', 'technicalDefinitions',
+	'providerPrivacyPolicyUrl', 'providerLegalNoticeUrl', 'tagManagerOptInEventName', 'tagManagerOptOutEventName',
+	'googleConsentModeConsentTypes', 'executePriority', 'codeOptIn', 'executeCodeOptInWhenNoTagManagerConsentIsGiven',
+	'codeOptOut', 'executeCodeOptOutWhenNoTagManagerConsentIsGiven', 'deleteTechnicalDefinitionsAfterOptOut', 'codeOnPageLoad',
+];
+
+// Vorlagen-Gruppen sind Typen, die Gruppen-Slugs der Site sind übersetzt
+
+const RCB_GROUP_SLUGS = ['essential' => 'essenziell', 'functional' => 'funktional', 'statistics' => 'statistik', 'marketing' => 'marketing'];
+
+// Die Oberfläche füllt Vorlagen im Browser aus - hier dasselbe aus wp_rcb_template, angelegt über den Import
+
+function rcb_cmd_create_service($identifier, $opts)
+{
+	global $wpdb;
+
+	$row = $wpdb->get_row($wpdb->prepare(
+		"SELECT * FROM {$wpdb->prefix}rcb_template WHERE identifier = %s AND type = 'service' ORDER BY context = %s DESC, CAST(version AS UNSIGNED) DESC LIMIT 1",
+		$identifier,
+		get_locale()
+	), ARRAY_A);
+
+	if (!$row) {
+		rcb_fail("keine Dienst-Vorlage '$identifier' in {$wpdb->prefix}rcb_template");
+	}
+
+	$tpl = json_decode($row['after_middleware'] ?: $row['before_middleware'], true);
+	$dynamics = [];
+
+	foreach ((array) $tpl['dynamicFields'] as $field) {
+		$name = $field['name'];
+
+		if (!isset($opts[$name]) || $opts[$name] === true) {
+			rcb_fail("Feld fehlt: $name=<wert> ({$field['label']}, z. B. {$field['example']})");
+		}
+
+		if (!empty($field['expression']) && !preg_match('/' . str_replace('/', '\/', $field['expression']) . '/', $opts[$name])) {
+			rcb_fail("$name='{$opts[$name]}' passt nicht zu {$field['expression']}: {$field['invalidMessage']}");
+		}
+
+		$dynamics[$name] = $opts[$name];
+	}
+
+	$groups = Export::instance()->appendCookieGroups()->finish()['cookieGroups'];
+	$slugs = array_column($groups, 'slug');
+	$group = $opts['group'] ?? (in_array($tpl['group'], $slugs, true) ? $tpl['group'] : (RCB_GROUP_SLUGS[$tpl['group']] ?? null));
+
+	if (!in_array($group, $slugs, true)) {
+		rcb_fail("Gruppe zu '{$tpl['group']}' nicht gefunden, group=<slug> angeben: " . implode(', ', $slugs));
+	}
+
+	// Platzhalter-Host der Vorlage, sonst setzt RCB ihn beim Anlegen im Browser
+
+	$host = rcb_bare_host(home_url());
+	$defs = [];
+
+	foreach ((array) $tpl['technicalDefinitions'] as $i => $def) {
+		$def = array_intersect_key($def, array_flip(['language', 'purpose', 'type', 'name', 'host', 'duration', 'durationUnit', 'isSessionDuration']));
+		$def['host'] = $def['host'] === 'main+subdomains' ? ".$host" : $def['host'];
+		$def['orderPosition'] = $i;
+		$defs[] = $def;
+	}
+
+	$metas = array_intersect_key($tpl, array_flip(RCB_SERVICE_METAS));
+	$metas = array_merge($metas, [
+		'uniqueName' => $identifier,
+		'technicalDefinitions' => $defs,
+		'codeDynamics' => (object) $dynamics,
+		'presetId' => $identifier,
+		'presetVersion' => (string) $tpl['version'],
+	]);
+	$json = [
+		'_meta' => rcb_info(),
+		'cookieGroups' => array_values(array_filter($groups, function ($g) use ($group) {
+			return $g['slug'] === $group;
+		})),
+		'cookies' => [[
+			'group' => $group,
+			'post_name' => sanitize_title($tpl['name']),
+			'post_content' => $tpl['purpose'],
+			'post_status' => 'publish',
+			'post_title' => $tpl['name'],
+			'metas' => $metas,
+		]],
+	];
+	$service = [
+		'template' => "$identifier v{$tpl['version']} ({$row['context']})",
+		'title' => $tpl['name'],
+		'group' => $group,
+		'codeDynamics' => $dynamics,
+		'hosts' => array_values(array_unique(array_column($defs, 'host'))),
+	];
+
+	return ['service' => $service] + rcb_cmd_import($json, $opts);
+}
+
 // RCB liefert eine nicht-essenzielle Gruppe mit Term-count 0 nicht aus (CookieGroup::getOrdered)
 
 function rcb_cmd_check_groups()
@@ -876,6 +974,9 @@ switch ($cmd) {
 	case 'create-blocker':
 		rcb_out(rcb_cmd_create_blocker($pos[0] ?? rcb_fail('create-blocker <titel> services=<post_name,…>'), $opts, $rcb_input));
 		break;
+	case 'create-service':
+		rcb_out(rcb_cmd_create_service($pos[0] ?? rcb_fail('create-service <vorlage> <feld>=<wert> [group=<slug>]'), $opts));
+		break;
 	case 'check-groups':
 		rcb_out(rcb_cmd_check_groups());
 		break;
@@ -892,5 +993,5 @@ switch ($cmd) {
 		rcb_out(rcb_cmd_clear_cache());
 		break;
 	default:
-		rcb_fail('Befehl: info, services, service, blockers, banner-links, settings, revisions, check-groups, export, import, create-blocker, set-code, set-cookie, set-legal-basis, set-setting, clear-cache');
+		rcb_fail('Befehl: info, services, service, blockers, banner-links, settings, revisions, check-groups, export, import, create-service, create-blocker, set-code, set-cookie, set-legal-basis, set-setting, clear-cache');
 }

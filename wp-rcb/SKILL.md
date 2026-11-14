@@ -64,6 +64,7 @@ Weiterverarbeiten nur stdout lesen (`2>/dev/null` oder in eine Datei).
 | `check-groups` | je Gruppe Term-`count` gegen die veröffentlichten Dienste; Abweichung siehe Fallstricke |
 | `export` | komplette Einrichtung samt `_meta` (Version, Home-URL) |
 | `import [yes] [group=<slug>]` | Export einspielen; ohne `yes` nur Vorschau |
+| `create-service <vorlage> <feld>=<wert>… [group=<slug>] [yes]` | Dienst aus einer RCB-Vorlage (`wp_rcb_template`) anlegen, die Felder der Vorlage (z. B. `gaMeasurementId=`) als Argumente; läuft über den Import |
 | `create-blocker <titel> services=<post_name,…> [yes]` | Content Blocker anlegen, Regeln zeilenweise per `--input`; läuft über den Import |
 | `set-code <dienst> <feld> [empty] [yes]` | `codeOptIn`, `codeOptOut` oder `codeOnPageLoad` setzen bzw. leeren |
 | `set-cookie <dienst> <name> [host=…] [type=…] [duration=<n>] [unit=s\|m\|h\|d\|mo\|y] [session[=0]] [purpose=…] [remove] [yes]` | Cookie-Definition (`technicalDefinitions`) eines Dienstes anlegen, ändern oder entfernen |
@@ -134,6 +135,13 @@ Eintrag. Geändert werden nur die angegebenen Felder. Der Zweck kommt über
 RCB kopiert die Definitionen unter WPML auf die übrigen Sprachversionen.
 `posts` in der Ausgabe zeigt das Cookie je Sprach-Post - nach `yes` muss es
 überall stehen.
+
+**`create-service`:** Die Vorlage nennt einen Gruppentyp (`statistics`), die Site
+übersetzte Slugs (`statistik`); passt keiner, `group=` angeben. RCB vergibt den
+Slug aus dem Titel, nicht aus dem Vorlagennamen - danach `service <titel>`. Im
+Code bleibt `{{feld}}` stehen, RCB setzt den Wert aus `codeDynamics` erst im
+Browser ein. Den passenden Content Blocker legt der Befehl nicht an
+(`create-blocker`).
 
 Schreibbefehle verlangen **keine** neue Einwilligung der Besucher. RCB rechnet
 die Revision neu und zeigt im Admin einen Hinweis; ob neu eingewilligt werden
