@@ -133,18 +133,24 @@ es eine Buchung.
 ## 9. Review-Dokument und Archiv sichern
 
 Die Stand-Datei wird zum Review-Dokument: unten einen leeren Abschnitt
-„Nachträge" für spätere Präzisierungen anfügen, dann per `kanboard attach-file`
-an den Task hängen; betrifft der Call mehrere Tasks, fragen, an welchen.
-Spätere Nachträge aktualisieren den Anhang per `replace-file`.
+„Nachträge" für spätere Präzisierungen anfügen. Den Ablageort fragen:
+
+- **am Task:** per `kanboard attach-file`; betrifft der Call mehrere Tasks,
+  fragen, an welchen. Spätere Nachträge aktualisieren den Anhang per
+  `replace-file`.
+- **in BookStack:** per `archive --review-file` als Seite „… - Review" beim
+  Archiv. Spätere Nachträge: `archive` erneut, nur mit `--review-file`.
 
 Danach die Aufnahme archivieren: `archive` mit Kunde und Projekt aus Schritt 8,
 dem Titel aus den Hauptthemen der Gruppenliste (Schritt 4) und den beiden
 Dateien aus Schritt 2, Glossar angewendet (Abschnitt „Archiv nach
-BookStack" in der SKILL.md). Erst dann dem User melden, dass die Aufnahme in
-Sally gelöscht werden kann - löschen tut er selbst.
+BookStack" in der SKILL.md); bei Ablage in BookStack mit `--review-file`. Erst
+dann dem User melden, dass die Aufnahme in Sally gelöscht werden kann - löschen
+tut er selbst.
 
-*Fertig:* Review-Dokument hängt am Task, beide Archiv-Seiten sind angelegt und
-verlinkt - oder der User hat entschieden, dass der Call nicht archiviert wird.
+*Fertig:* Review-Dokument hängt am Task oder liegt als Review-Seite in
+BookStack, die Archiv-Seiten sind angelegt und verlinkt - oder der User hat
+entschieden, dass der Call nicht archiviert wird.
 
 ## 10. Abschluss
 

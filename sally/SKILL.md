@@ -43,7 +43,7 @@ Fehlt die Datei oder ein Schlüssel, bricht das Script mit Meldung ab.
 | `transcript <aufnahme> [--lang de] [--format md\|txt\|pdf\|docx\|xlsx\|vtt\|srt]` | Transkript als Dokument |
 | `download <aufnahme> [--to DIR] [--json]` | Zusammenfassung und Transkript (md) als Dateien, Default `./.tmp/` (Modus 700, Dateien 600; warnt, wenn ein bestehendes Verzeichnis offener ist) |
 | `search "<text>" [--limit N]` | Treffer in Zusammenfassungen mit Ausschnitt |
-| `archive <aufnahme> --kunde <name> [--projekt <name> …] [--titel <text>] [--summary-file f --transcript-file f]` | zwei Seiten in BookStack, gibt beide Links aus |
+| `archive <aufnahme> --kunde <name> [--projekt <name> …] [--titel <text>] [--summary-file f --transcript-file f] [--review-file f]` | zwei Seiten in BookStack, mit `--review-file` drei, gibt die Links aus |
 
 - `<aufnahme>` ist die ID oder ein eindeutiger Teil des Namens; bei mehreren
   Treffern listet das Script sie auf.
@@ -81,7 +81,8 @@ abarbeiten.
 Bei `/sally archive <aufnahme>` und in Schritt 9 der Review. `archive` legt im
 Kapitel „Besprechungen“ des Kunden-Buchs zwei Seiten an: „JJJJ-MM-TT Titel“
 (Datum, Dauer, Link aufs Transkript, Zusammenfassung) und direkt darunter
-„… - Transkript“, nur für die Admin-Rolle sichtbar; beide mit den Tags `kunde`,
+„… - Transkript“, nur für die Admin-Rolle sichtbar; mit `--review-file` darunter
+noch „… - Review“, ebenfalls nur für Admins. Alle mit den Tags `kunde`,
 `datum`, `typ`, `sally-id` und je Projekt `projekt`. Danach sortiert es das
 Kapitel nach dem Datum im Seitennamen, die jüngste Besprechung oben.
 Es braucht den Skill `bookstack` mit seiner Config.
@@ -101,7 +102,10 @@ Es braucht den Skill `bookstack` mit seiner Config.
   entscheidet der User; angelegt wird es dann mit `/bookstack`, mit dem Kapitel
   „Besprechungen“.
 - **Schon archiviert** (Seite mit derselben `sally-id`): `archive` bricht mit den
-  Links ab - die vorhandenen Seiten melden.
+  Links ab - die vorhandenen Seiten melden. Ausnahme: nur `--review-file`, ohne
+  `--summary-file`/`--transcript-file`. Dann legt `archive` die Review-Seite an
+  (Name und Tags von der Besprechungsseite) oder aktualisiert die vorhandene
+  (`typ=review`) - so laufen Nachträge zum Review-Dokument.
 
 ## Glossar (`~/.claude/sally-glossar.md`)
 

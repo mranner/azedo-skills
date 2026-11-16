@@ -4,7 +4,7 @@
 # Aufnahmen auflisten, Zusammenfassung und Transkript holen, Zusammenfassungen durchsuchen,
 # Aufnahme nach BookStack archivieren (ueber das Script des Skills bookstack).
 # stdlib only, keine pip-Abhaengigkeiten.
-# version 1.76.11
+# version 1.76.12
 
 import argparse
 import datetime
@@ -29,6 +29,7 @@ LANGUAGES = ["de-DE", "en-US", "es-ES", "fr-FR", "it-IT", "nl-NL", "pl-PL"]
 MAX_RETRIES = 3
 BOOKSTACK = os.environ.get("BOOKSTACK_SCRIPT") or os.path.expanduser("~/.claude/skills/bookstack/bookstack")
 ARCHIVE_CHAPTER = "Besprechungen"
+PAGE_SUFFIXES = (" - Transkript", " - Review")
 
 
 def die(msg, code=1):
@@ -328,12 +329,87 @@ def read_or_fetch(path, fetch):
     return fetch()[0].decode("utf-8")
 
 
+def admin_role():
+    admin = next((r["id"] for r in bookstack("list", "roles")["data"] if r.get("system_name") == "admin"), None)
+    if admin is None:
+        die("Keine Admin-Rolle (system_name admin) in BookStack - Transkript und Review liessen sich nicht sperren.")
+    return admin
+
+
+def locked_page(work, chapter, name, content, admin, tags):
+    """Seite erst leer anlegen und sperren, dann fuellen - so ist sie zu keinem Zeitpunkt offen"""
+    path = os.path.join(work, "seite.md")
+    with open(path, "w", encoding="utf-8") as f:
+        f.write("*Seite wird archiviert.*\n")
+    page = bookstack("create", "page", "--chapter", chapter, "--name", name, "--markdown-file", path, *tags)
+    lock = os.path.join(work, "lock.json")
+    with open(lock, "w") as f:
+        json.dump({"role_permissions": [{"role_id": admin, "view": True, "create": True, "update": True,
+                                         "delete": True}],
+                   "fallback_permissions": {"inheriting": False, "view": False, "create": False,
+                                            "update": False, "delete": False}}, f)
+    bookstack("permissions", "page", page["id"], "--file", lock)
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(content)
+    bookstack("update", "page", page["id"], "--markdown-file", path)
+    return page
+
+
+def sort_chapter(chapter):
+    """Kapitel nach Besprechungsdatum absteigend, Transkript und Review direkt unter ihrer Besprechung"""
+    def key(p):
+        for i, suffix in enumerate(PAGE_SUFFIXES, 1):
+            if p["name"].endswith(suffix):
+                return p["name"].removesuffix(suffix), i
+        return p["name"], 0
+    pages = sorted(bookstack("get", "chapter", chapter)["pages"], key=key)
+    pages.sort(key=lambda p: p["name"][:10], reverse=True)
+    for i, p in enumerate(pages):
+        if p["priority"] != i:
+            bookstack("update", "page", p["id"], "--priority", i)
+
+
+def archive_review(args, found, base):
+    """Review-Seite zu einer schon archivierten Aufnahme anlegen oder aktualisieren"""
+    typ = lambda p: next((t["value"] for t in p.get("tags") or [] if t["name"] == "typ"), None)
+    with open(args.review_file, encoding="utf-8") as f:
+        review = f.read()
+    tmpdir = os.path.join(os.getcwd(), ".tmp")
+    os.makedirs(tmpdir, mode=0o700, exist_ok=True)
+    existing = next((p for p in found if typ(p) == "review"), None)
+    if existing:
+        with tempfile.TemporaryDirectory(dir=tmpdir) as work:
+            path = os.path.join(work, "review.md")
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(review)
+            bookstack("update", "page", existing["id"], "--markdown-file", path)
+        print(json.dumps({"review": "%s/link/%s" % (base, existing["id"]), "aktualisiert": True},
+                         indent=2, ensure_ascii=False))
+        return
+    spage = next((p for p in found if typ(p) == "besprechung"), None)
+    if spage is None:
+        die("Zur Aufnahme gibt es keine Seite mit typ=besprechung:\n%s" % "\n".join(
+            "  %s/link/%s  %s" % (base, p["id"], p["name"]) for p in found))
+    tags = ["--tag", "typ=review"]
+    for t in spage["tags"]:
+        if t["name"] != "typ":
+            tags += ["--tag", "%s=%s" % (t["name"], t["value"])]
+    with tempfile.TemporaryDirectory(dir=tmpdir) as work:
+        rpage = locked_page(work, spage["chapter_id"], spage["name"] + " - Review", review, admin_role(), tags)
+    sort_chapter(spage["chapter_id"])
+    print(json.dumps({"review": "%s/link/%s" % (base, rpage["id"]), "aktualisiert": False},
+                     indent=2, ensure_ascii=False))
+
+
 def cmd_archive(args):
     rec = resolve_recording(args.recording)
     rid = rec["recordingId"]
     base = bookstack("system")["base_url"]
 
     found = bookstack("search", "", "--tag", "sally-id=%s" % rid, "--type", "page")["data"]
+    if found and args.review_file and not (args.summary_file or args.transcript_file):
+        archive_review(args, found, base)
+        return
     if found:
         die("Aufnahme ist schon archiviert:\n%s" % "\n".join(
             "  %s/link/%s  %s" % (base, p["id"], p["name"]) for p in found))
@@ -348,12 +424,11 @@ def cmd_archive(args):
                     if c.get("type") == "chapter" and c["name"] == ARCHIVE_CHAPTER), None)
     if chapter is None:
         die("Im Buch '%s' fehlt das Kapitel %s." % (book_name, ARCHIVE_CHAPTER))
-    admin = next((r["id"] for r in bookstack("list", "roles")["data"] if r.get("system_name") == "admin"), None)
-    if admin is None:
-        die("Keine Admin-Rolle (system_name admin) in BookStack - das Transkript liesse sich nicht sperren.")
+    admin = admin_role()
 
     summary = read_or_fetch(args.summary_file, lambda: summary_document(rec, args.lang, "md"))
     transcript = read_or_fetch(args.transcript_file, lambda: transcript_document(rec, args.lang, "md"))
+    review = read_or_fetch(args.review_file, None) if args.review_file else None
 
     if args.titel:
         heading = "# Aufzeichnung: %s" % args.titel
@@ -369,23 +444,10 @@ def cmd_archive(args):
     tmpdir = os.path.join(os.getcwd(), ".tmp")
     os.makedirs(tmpdir, mode=0o700, exist_ok=True)
     with tempfile.TemporaryDirectory(dir=tmpdir) as work:
-        # Transkript erst leer anlegen und sperren, dann fuellen - so ist es zu keinem Zeitpunkt offen
-        tfile = os.path.join(work, "transkript.md")
-        with open(tfile, "w", encoding="utf-8") as f:
-            f.write("*Transkript wird archiviert.*\n")
-        tpage = bookstack("create", "page", "--chapter", chapter, "--name", title + " - Transkript",
-                          "--markdown-file", tfile, "--tag", "typ=transkript", *tags)
-        lock = os.path.join(work, "lock.json")
-        with open(lock, "w") as f:
-            json.dump({"role_permissions": [{"role_id": admin, "view": True, "create": True, "update": True,
-                                             "delete": True}],
-                       "fallback_permissions": {"inheriting": False, "view": False, "create": False,
-                                                "update": False, "delete": False}}, f)
-        bookstack("permissions", "page", tpage["id"], "--file", lock)
-        with open(tfile, "w", encoding="utf-8") as f:
-            f.write(transcript)
-        bookstack("update", "page", tpage["id"], "--markdown-file", tfile)
+        tpage = locked_page(work, chapter, title + " - Transkript", transcript, admin, ["--tag", "typ=transkript"] + tags)
         turl = "%s/link/%s" % (base, tpage["id"])
+        if review is not None:
+            rpage = locked_page(work, chapter, title + " - Review", review, admin, ["--tag", "typ=review"] + tags)
 
         sfile = os.path.join(work, "zusammenfassung.md")
         with open(sfile, "w", encoding="utf-8") as f:
@@ -398,16 +460,12 @@ def cmd_archive(args):
             die("Zusammenfassung nicht angelegt (%s). Die Transkript-Seite steht schon: %s"
                 % ((r.stderr or r.stdout).strip(), turl))
         spage = json.loads(r.stdout)
-        # Kapitel nach Besprechungsdatum absteigend, Transkript direkt unter seiner Besprechung
-        pages = bookstack("get", "chapter", chapter)["pages"]
-        pages.sort(key=lambda p: (p["name"].removesuffix(" - Transkript"), p["name"].endswith(" - Transkript")))
-        pages.sort(key=lambda p: p["name"][:10], reverse=True)
-        for i, p in enumerate(pages):
-            if p["priority"] != i:
-                bookstack("update", "page", p["id"], "--priority", i)
+        sort_chapter(chapter)
 
-    print(json.dumps({"buch": book_name, "zusammenfassung": "%s/link/%s" % (base, spage["id"]),
-                      "transkript": turl}, indent=2, ensure_ascii=False))
+    result = {"buch": book_name, "zusammenfassung": "%s/link/%s" % (base, spage["id"]), "transkript": turl}
+    if review is not None:
+        result["review"] = "%s/link/%s" % (base, rpage["id"])
+    print(json.dumps(result, indent=2, ensure_ascii=False))
 
 
 def cmd_search(args):
@@ -465,6 +523,8 @@ def main():
     s.add_argument("--titel", help="Seitentitel und Ueberschrift statt des Namens aus Sally")
     s.add_argument("--summary-file", help="Zusammenfassung (md) statt frisch aus Sally")
     s.add_argument("--transcript-file", help="Transkript (md) statt frisch aus Sally")
+    s.add_argument("--review-file", help="Review-Dokument (md) als dritte Seite; schon archiviert: nur diese "
+                                         "Seite anlegen oder aktualisieren")
     s.add_argument("--lang", help="Sprache, z.B. de oder en-US")
     s.set_defaults(func=cmd_archive)
 

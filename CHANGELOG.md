@@ -3,6 +3,10 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.76.12
+
+- sally: `archive --review-file` legt das Review-Dokument als dritte Seite „… - Review" an (nur Admin-Rolle, gleiche Tags, unter Zusammenfassung und Transkript einsortiert); bei schon archivierter Aufnahme legt nur `--review-file` die Seite nach oder aktualisiert sie. `references/review.md` Schritt 9: Ablage am Task oder in BookStack
+
 ### 1.76.11
 
 - imap: `quote --json` belegt `reply.to` bei der Antwort auf die eigene Mail (Absender in `--me`) mit deren To-Empfängern statt leer; mail-as-me: Fall in `references/antworten.md` beschrieben, leeres `TO` ist Abbruchgrund vor dem Bau
