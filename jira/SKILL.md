@@ -70,9 +70,10 @@ python3 "$SKILL_DIR/jira" instances
 Die Ziel-Instanz wird in dieser Reihenfolge bestimmt:
 
 1. **`--instance <name>`** (bzw. `-i`) — expliziter Override, gewinnt immer.
-2. **Projekt-Routing** — aus dem Issue-Key (`PROJ-1000` -> `PROJ`) bzw. aus `project = X`
-   in der JQL wird das Projekt abgeleitet und die Instanz gewaehlt, deren `projects`-Liste es
-   enthaelt.
+2. **Projekt-Routing** — aus dem Issue-Key (`PROJ-1000` -> `PROJ`) bzw. aus `key = PROJ-1`,
+   `key in (...)` oder `project = X` in der JQL wird das Projekt abgeleitet und die Instanz
+   gewaehlt, deren `projects`-Liste es enthaelt. Gehoeren die Keys in `key in (...)` zu
+   verschiedenen Instanzen, bricht `search` ab - je Instanz eine eigene Query.
 3. **`default`** aus der Config, wenn nichts passt.
 
 ```

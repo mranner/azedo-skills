@@ -3,6 +3,10 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.76.10
+
+- jira: `search` routet auch über `key = PROJ-1` und `key in (...)` in der JQL zur Instanz des Projekts; Keys aus verschiedenen Instanzen brechen mit Fehler ab statt still an die Default-Instanz zu gehen
+
 ### 1.76.9
 
 - wp-rcb: `create-service <vorlage> <feld>=<wert>` legt einen Dienst aus einer RCB-Vorlage an (Felder geprüft, Gruppe aus dem Vorlagentyp, Platzhalter-Host `main+subdomains` auf die Site-Domain), läuft über den Import mit Vorschau und `backup`

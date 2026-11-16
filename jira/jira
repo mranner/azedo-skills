@@ -3,7 +3,7 @@
 # Jira REST API helper (multi-instance): Data Center/Server (v2, Bearer-PAT)
 # und Cloud (*.atlassian.net, v3, Basic email:token, ADF-Bodies)
 # stdlib only, no pip dependencies
-# version 1.76.9
+# version 1.76.10
 
 import argparse
 import base64
@@ -80,6 +80,24 @@ def _project_of_jql(jql):
         re.IGNORECASE,
     )
     return m.group(1).upper() if m else None
+
+
+def _instance_of_jql_keys(jql):
+    """Route by issue keys in 'key = X-1' / 'key in (X-1, Y-2)'; abort if they span instances"""
+    m = re.search(r"\bkey\s*(?:=|in)\s*(\([^)]*\)|\S+)", jql or "", re.IGNORECASE)
+    if not m:
+        return None
+    cfg = load_config()
+    projects = {p.upper() for p in re.findall(r"([A-Za-z][A-Za-z0-9_]+)-\d+", m.group(1))}
+    names = {_instance_for_project(cfg, p) for p in projects} - {None}
+    if len(names) > 1:
+        print(
+            f"Error: Keys aus mehreren Instanzen ({', '.join(sorted(names))}), "
+            "Query je Instanz getrennt absetzen oder -i angeben",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    return names.pop() if names else None
 
 
 def _instance_for_project(cfg, project):
@@ -538,7 +556,9 @@ def cmd_instances(args):
 
 
 def cmd_search(args):
-    inst = resolve_instance(args.instance, _project_of_jql(args.jql))
+    inst = resolve_instance(
+        args.instance or _instance_of_jql_keys(args.jql), _project_of_jql(args.jql)
+    )
 
     if inst.is_cloud:
         # Cloud: /search/jql loest den 2025 entfernten /search-Endpoint ab.
