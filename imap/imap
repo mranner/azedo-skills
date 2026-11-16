@@ -3,7 +3,7 @@
 # IMAP-Helper für Posteingang-Triage
 # Liest Zugangsdaten aus muttrc, arbeitet gegen mehrere Konten.
 # stdlib only, keine pip-Abhängigkeiten. Lauffähig auf macOS + FreeBSD.
-# version 1.76.10
+# version 1.76.11
 
 import argparse
 import datetime
@@ -1642,10 +1642,11 @@ def cmd_quote(args, accounts):
     reply_subject = subject if re.match(r"(re|aw)\s*:", subject, re.I) else "Re: " + subject
 
     # Empfänger: 'to' = Absender, 'all' = Reply-All aus From, To und Cc ohne
-    # die eigenen Adressen (--me) und ohne Doubletten
+    # die eigenen Adressen (--me) und ohne Doubletten. Antwort auf die eigene
+    # Mail (Nachfassen): 'to' = deren To-Empfänger, sonst bliebe es leer
 
     me = {m.lower() for m in args.me}
-    sender, everyone = [], []
+    sender, recipients, everyone = [], [], []
     for role in ("From", "To", "Cc"):
         # Ungefaltet übergeben: ein Umbruch innerhalb eines Anzeigenamens in
         # Anführungszeichen ("Ing.\r\n Max Muster") lässt getaddresses() sonst
@@ -1654,11 +1655,16 @@ def cmd_quote(args, accounts):
         values = [unfold_header(v) for v in msg.get_all(role, [])]
         for _, addr in email.utils.getaddresses(values):
             addr = addr.lower()
+            if role == "To" and addr and addr not in me and addr not in recipients:
+                recipients.append(addr)
             if not addr or addr in me or addr in everyone:
                 continue
             everyone.append(addr)
             if role == "From":
                 sender.append(addr)
+
+    if not sender:
+        sender = recipients
 
     out_json({
         "account": acc["alias"],

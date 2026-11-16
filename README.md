@@ -831,6 +831,6 @@ BookStack über die REST-API:
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.76.10
+### 1.76.11
 
-- jira: `search` routet auch über `key = PROJ-1` und `key in (...)` in der JQL zur Instanz des Projekts; Keys aus verschiedenen Instanzen brechen mit Fehler ab statt still an die Default-Instanz zu gehen
+- imap: `quote --json` belegt `reply.to` bei der Antwort auf die eigene Mail (Absender in `--me`) mit deren To-Empfängern statt leer; mail-as-me: Fall in `references/antworten.md` beschrieben, leeres `TO` ist Abbruchgrund vor dem Bau

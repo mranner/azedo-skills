@@ -20,6 +20,9 @@ und nicht aus dem Auftrag rekonstruiert:
 - **Empfänger** = `reply.to` (Absender), bei Reply-All `reply.all` (From, To und Cc
   ohne die eigene Adresse aus `--me`). Aus dem Auftrag kommt höchstens eine
   ausdrückliche Abweichung ("nur an X"), nicht die Standardbesetzung.
+  Bei der Antwort auf die **eigene** Mail (Nachfassen im selben Thread) trägt
+  `reply.to` deren To-Empfänger - vorausgesetzt, `--me` nennt die Absenderadresse.
+  Ist `TO` vor dem Bau leer, abbrechen und `--me` prüfen.
 
 Wer die Empfänger aus dem Auftrag statt aus den Kopfdaten nimmt, verliert still den
 Mitleser im `Cc` -- für den Absender sieht die Antwort vollständig aus.

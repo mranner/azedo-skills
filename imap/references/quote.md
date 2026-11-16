@@ -132,7 +132,9 @@ ein `Re:` oder `AW:` dran. `Fwd:`/`WG:` zählen nicht, die Antwort auf eine
 Weiterleitung heißt `Re: Fwd: ...`. `reply.to` ist der Absender, `reply.all`
 die Reply-All-Besetzung aus From, To und Cc, beide ohne Doubletten und ohne die
 eigenen Adressen aus `--me` (mehrfach angebbar). Ohne `--me` steht die eigene
-Adresse in `reply.all` mit drin.
+Adresse in `reply.all` mit drin. Ist der Absender eine Adresse aus `--me`
+(Nachfassen auf die eigene Mail aus `Sent`), trägt `reply.to` die To-Empfänger
+der Originalmail, wie "Antworten" in Thunderbird.
 
 `message_id`, `in_reply_to` und `references` sind die Header der **Originalmail**;
 `reply` enthält die Werte für die **Antwort** -- `In-Reply-To` ist deren
