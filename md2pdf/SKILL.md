@@ -72,6 +72,32 @@ es wird eine Warnung ausgegeben (kein Abbruch).
 Die erste Tabellenspalte bricht nie um (`td:first-child { white-space: nowrap; }`
 im eingebauten CSS) - Zeilentitel bleiben einzeilig.
 
+## Seitenumbrüche steuern
+
+Was auf einer Seite zusammenbleiben muss (Frage und Antwortkasten auf einem
+Arbeitsblatt, Überschrift und Inhalt), gemeinsam in ein `<div class="q">`
+packen. Das eingebaute CSS setzt dafür `.q { break-inside: avoid; }`; mit
+`--css` die Regel ins eigene Stylesheet übernehmen.
+
+```markdown
+<div class="q">
+
+**3.** Wie viele Seiten hat ein Würfel?
+
+<div class="box"></div>
+
+</div>
+```
+
+- Die Leerzeilen innerhalb des `div` sind nötig, sonst liest pandoc den Inhalt
+  nicht mehr als Markdown.
+- `break-inside: avoid` nur am Antwortkasten reicht nicht: Chrome trennt dann
+  zwischen Frage und Kasten.
+- `break-after: avoid` an `p`, `table` oder `h2` wirkt im Druck von headless
+  Chrome nicht.
+- Nur kleine Einheiten gruppieren, je Teilaufgabe. Eine ganze Aufgabe in einem
+  `.q` lässt halbleere Seiten zurück und macht das PDF länger.
+
 ## Env-Overrides
 
 | Variable        | Zweck                                                       |

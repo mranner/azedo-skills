@@ -3,6 +3,10 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.76.13
+
+- md2pdf: eingebautes CSS kennt `.q { break-inside: avoid }`; neuer Abschnitt „Seitenumbrüche steuern“ in der SKILL.md: Frage und Antwortkasten gemeinsam in `<div class="q">` (mit Leerzeilen für pandoc), was nicht wirkt (`break-inside` nur am Kasten, `break-after: avoid`), nur je Teilaufgabe gruppieren
+
 ### 1.76.12
 
 - sally: `archive --review-file` legt das Review-Dokument als dritte Seite „… - Review" an (nur Admin-Rolle, gleiche Tags, unter Zusammenfassung und Transkript einsortiert); bei schon archivierter Aufnahme legt nur `--review-file` die Seite nach oder aktualisiert sie. `references/review.md` Schritt 9: Ablage am Task oder in BookStack
