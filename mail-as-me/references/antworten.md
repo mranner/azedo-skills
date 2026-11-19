@@ -18,7 +18,8 @@ und nicht aus dem Auftrag rekonstruiert:
   eine Ticketnummer in eckigen Klammern, ein `AW:` der Gegenseite, ein Umlaut aus
   einer RFC-2047-Kodierung.
 - **Empfänger** = `reply.to` (Absender), bei Reply-All `reply.all` (From, To und Cc
-  ohne die eigene Adresse aus `--me`). Aus dem Auftrag kommt höchstens eine
+  ohne die eigene Adresse aus `--me`). Ein `Reply-To` der Originalmail ersetzt
+  dabei From, etwa bei Mails aus einem Kontaktformular. Aus dem Auftrag kommt höchstens eine
   ausdrückliche Abweichung ("nur an X"), nicht die Standardbesetzung.
   Bei der Antwort auf die **eigene** Mail (Nachfassen im selben Thread) trägt
   `reply.to` deren To-Empfänger - vorausgesetzt, `--me` nennt die Absenderadresse.

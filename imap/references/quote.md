@@ -130,7 +130,9 @@ stehen die Kopfdaten der Originalmail und ein fertiges `reply`-Objekt:
 `reply.subject` ist der Betreff der Antwort: `Re: ` davor, außer es steht schon
 ein `Re:` oder `AW:` dran. `Fwd:`/`WG:` zählen nicht, die Antwort auf eine
 Weiterleitung heißt `Re: Fwd: ...`. `reply.to` ist der Absender, `reply.all`
-die Reply-All-Besetzung aus From, To und Cc, beide ohne Doubletten und ohne die
+die Reply-All-Besetzung aus From, To und Cc. Trägt die Mail einen `Reply-To`,
+tritt er in beiden an die Stelle von From - so geht die Antwort auf eine
+Kontaktformular-Mail an die anfragende Person statt an das Formular. Beide ohne Doubletten und ohne die
 eigenen Adressen aus `--me` (mehrfach angebbar). Ohne `--me` steht die eigene
 Adresse in `reply.all` mit drin. Ist der Absender eine Adresse aus `--me`
 (Nachfassen auf die eigene Mail aus `Sent`), trägt `reply.to` die To-Empfänger

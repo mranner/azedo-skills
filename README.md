@@ -831,6 +831,6 @@ BookStack über die REST-API:
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.76.13
+### 1.76.14
 
-- md2pdf: eingebautes CSS kennt `.q { break-inside: avoid }`; neuer Abschnitt „Seitenumbrüche steuern“ in der SKILL.md: Frage und Antwortkasten gemeinsam in `<div class="q">` (mit Leerzeilen für pandoc), was nicht wirkt (`break-inside` nur am Kasten, `break-after: avoid`), nur je Teilaufgabe gruppieren
+- imap: `quote --json` nimmt `reply.to` und `reply.all` aus `Reply-To` statt aus `From`, wenn die Mail den Header trägt (RFC 5322 3.6.2) - Antworten auf Kontaktformular-Mails gehen an die anfragende Person statt an die Formularadresse; `references/quote.md` und mail-as-me `references/antworten.md` nachgezogen
