@@ -81,6 +81,11 @@ python3 "$SKILL_DIR/envato" download --item-id <id> --wp-theme -o /pfad/theme.zi
 python3 "$SKILL_DIR/envato" item-details <item_id>
 ```
 
+Bei WordPress-Themes steht die aktuell ausgelieferte Version in
+`wordpress_theme_metadata.version`, das letzte Update in `updated_at`. Gegen die
+`Version:` in der `style.css` der Site gehalten, beantwortet das „gibt es ein
+neueres Theme?" ohne Kauf-Download.
+
 ### Items suchen
 
 ```bash

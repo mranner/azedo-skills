@@ -831,6 +831,6 @@ BookStack über die REST-API:
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.76.14
+### 1.76.15
 
-- imap: `quote --json` nimmt `reply.to` und `reply.all` aus `Reply-To` statt aus `From`, wenn die Mail den Header trägt (RFC 5322 3.6.2) - Antworten auf Kontaktformular-Mails gehen an die anfragende Person statt an die Formularadresse; `references/quote.md` und mail-as-me `references/antworten.md` nachgezogen
+- envato: `item-details` liefert bei WordPress-Themes die aktuelle Version (`wordpress_theme_metadata.version`) und das letzte Update (`updated_at`) - Hinweis in der SKILL.md, wie damit gegen die installierte Theme-Version geprüft wird
