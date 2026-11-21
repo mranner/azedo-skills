@@ -3,6 +3,10 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.76.16
+
+- wp-azedo: Routing-Zeile für ThemeForest-/CodeCanyon-Themes und -Plugins (neuere Version prüfen, Paket laden) auf `envato`; weil der Skill nicht per Skill-Tool aufrufbar ist, SKILL.md lesen und das Script direkt ausführen
+
 ### 1.76.15
 
 - envato: `item-details` liefert bei WordPress-Themes die aktuelle Version (`wordpress_theme_metadata.version`) und das letzte Update (`updated_at`) - Hinweis in der SKILL.md, wie damit gegen die installierte Theme-Version geprüft wird

@@ -49,8 +49,12 @@ Was danach noch fehlt (Zugang, Repo), nachfragen.
 | Viele Sites: Updates, Plugins, Clients | `mainwp` |
 | Site mit Novamira | `novamira` |
 | Plugins/Themes zwischen Live und DEV abgleichen | `/wp-sync-dev` (nur manuell) |
+| Theme oder Plugin von ThemeForest/CodeCanyon: neuere Version prüfen, Paket laden | `envato` ² |
 
 ¹ Projekt-Skill, nur im Infra-Projekt verfügbar, nicht Teil dieses Repos.
+
+² Per Skill-Tool nicht aufrufbar (`disable-model-invocation`): `~/.claude/skills/envato/SKILL.md`
+lesen und das Script nach den Angaben dort direkt ausführen.
 
 `wordpress-router` nicht zusätzlich laden - diese Tabelle ersetzt ihn.
 
