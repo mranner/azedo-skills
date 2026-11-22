@@ -831,6 +831,6 @@ BookStack über die REST-API:
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.76.16
+### 1.76.17
 
-- wp-azedo: Routing-Zeile für ThemeForest-/CodeCanyon-Themes und -Plugins (neuere Version prüfen, Paket laden) auf `envato`; weil der Skill nicht per Skill-Tool aufrufbar ist, SKILL.md lesen und das Script direkt ausführen
+- tmux (neu): interaktive Programme über eine private tmux-Session fernsteuern - `tmx` mit start/send/keys/wait/show/list/kill; `wait` prüft nur Ausgabe seit der letzten Eingabe, eine beendete Sitzung bleibt lesbar; für Dialoge ohne Batch-Modus und Claude als Hintergrund-Session (`/loop` als Start-Argument). Idee nach mitsuhiko/agent-stuff, neu in POSIX-sh

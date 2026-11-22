@@ -1,0 +1,88 @@
+#!/usr/bin/env sh
+# tmx - interaktive Programme in tmux steuern (privater Socket)
+
+set -u
+
+DIR="${CLAUDE_TMUX_DIR:-${TMPDIR:-/tmp}/claude-tmux-$(id -u)}"
+SOCK="$DIR/claude.sock"
+T() { tmux -f /dev/null -S "$SOCK" "$@"; }
+
+usage() {
+    cat <<'EOF'
+Usage: tmx <befehl> [argumente]
+
+  start <name> <befehl...>     Session im Hintergrund starten (200x50, aktuelles Verzeichnis)
+  send  <name> <text>          Text wörtlich senden, danach Enter
+  keys  <name> <taste...>      Tasten senden (Tab, Space, Enter, Escape, Up, Down, C-c, y ...)
+  wait  <name> <regex> [sek]   warten, bis <regex> nach der letzten Eingabe erscheint (Default 30 s)
+  show  <name> [zeilen]        Bildschirm ausgeben, mit [zeilen] zusätzlich die History
+  list                         Sessions mit Startzeit und Zustand
+  kill  <name>                 Session beenden
+EOF
+    exit 1
+}
+
+# Merkt die Position vor einer Eingabe, damit wait nur neue Ausgabe prüft
+mark() {
+    T display -p -t "$1" '#{history_size} #{cursor_y}' | awk '{print $1 + $2}' > "$DIR/$1.mark"
+}
+
+[ $# -ge 1 ] || usage
+cmd=$1; shift
+
+case $cmd in
+start)
+    [ $# -ge 2 ] || usage
+    n=$1; shift
+    mkdir -p -m 700 "$DIR"
+    T new-session -d -s "$n" -x 200 -y 50 -c "$PWD" "$@" \; set-option -w -t "$n" remain-on-exit on || exit 1
+    echo 0 > "$DIR/$n.mark"
+    echo "Session $n läuft. Zusehen: tmux -S $SOCK attach -t $n (lösen mit Ctrl-b d)"
+    ;;
+send)
+    [ $# -eq 2 ] || usage
+    mark "$1"
+    T send-keys -t "$1" -l -- "$2" && sleep 0.2 && T send-keys -t "$1" Enter
+    ;;
+keys)
+    [ $# -ge 2 ] || usage
+    n=$1; shift
+    mark "$n"
+    T send-keys -t "$n" "$@"
+    ;;
+wait)
+    [ $# -ge 2 ] || usage
+    n=$1; re=$2; to=${3:-30}
+    m=$(cat "$DIR/$n.mark" 2>/dev/null || echo 0)
+    end=$(( $(date +%s) + to ))
+    while :; do
+        set -- $(T display -p -t "$n" '#{history_size} #{alternate_on} #{pane_dead}') || exit 1
+        # Vollbild-Programme zeichnen ohne History: dann zählt der ganze Bildschirm
+        if [ "$2" = 1 ]; then s=0; else s=$(( m - $1 )); fi
+        out=$(T capture-pane -p -J -t "$n" -S "$s")
+        printf '%s\n' "$out" | grep -Eq -- "$re" && exit 0
+        if [ "$3" = 1 ] || [ "$(date +%s)" -ge "$end" ]; then
+            [ "$3" = 1 ] && echo "Programm in $n beendet, ohne dass /$re/ erschien" >&2 \
+                || echo "Timeout nach ${to}s, /$re/ nicht gefunden" >&2
+            printf '%s\n' "$out" | awk 'NF { p = NR } { l[NR] = $0 } END { for (i = 1; i <= p; i++) print l[i] }' | tail -40 >&2
+            exit 1
+        fi
+        sleep 0.5
+    done
+    ;;
+show)
+    [ $# -ge 1 ] || usage
+    T capture-pane -p -J -t "$1" -S "-${2:-0}"
+    ;;
+list)
+    T list-sessions -F '#{session_name}  gestartet #{t:session_created}  #{?session_attached,attached,detached}#{?pane_dead,  BEENDET,}' 2>/dev/null \
+        || echo "keine Sessions"
+    ;;
+kill)
+    [ $# -eq 1 ] || usage
+    T kill-session -t "$1" && rm -f "$DIR/$1.mark"
+    ;;
+*)
+    usage
+    ;;
+esac
