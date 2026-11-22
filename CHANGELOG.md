@@ -3,6 +3,10 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.76.19
+
+- tmux: `tmx attach <name>` verbindet den User im eigenen Terminal mit einer Session, ohne den Socket-Pfad zu tippen
+
 ### 1.76.18
 
 - tmux: `tmx stop <name> <eingabe>` beendet ein Programm mit seinem eigenen Befehl (`exit`, bei Claude `/exit`), wartet bis 60 s auf das Ende und räumt erst dann die Session ab; `kill` nur noch ohne Beenden-Befehl

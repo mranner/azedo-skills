@@ -17,6 +17,7 @@ Usage: tmx <befehl> [argumente]
   wait  <name> <regex> [sek]   warten, bis <regex> nach der letzten Eingabe erscheint (Default 30 s)
   show  <name> [zeilen]        Bildschirm ausgeben, mit [zeilen] zusätzlich die History
   list                         Sessions mit Startzeit und Zustand
+  attach <name>                für den User im Terminal: verbinden (lösen mit Ctrl-b d)
   stop  <name> <eingabe>       Programm mit <eingabe> beenden (z.B. exit, /exit), bis 60 s warten, dann kill
   kill  <name>                 Session beenden
 EOF
@@ -39,6 +40,10 @@ start)
     T new-session -d -s "$n" -x 200 -y 50 -c "$PWD" "$@" \; set-option -w -t "$n" remain-on-exit on || exit 1
     echo 0 > "$DIR/$n.mark"
     echo "Session $n läuft. Zusehen: tmux -S $SOCK attach -t $n (lösen mit Ctrl-b d)"
+    ;;
+attach)
+    [ $# -eq 1 ] || usage
+    exec tmux -S "$SOCK" attach -t "$1"
     ;;
 send)
     [ $# -eq 2 ] || usage
