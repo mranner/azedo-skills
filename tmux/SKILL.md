@@ -40,7 +40,10 @@ getrennt vom tmux des Users.
    Zeilen-Programmen prüft `wait` nur Ausgabe seit der letzten Eingabe; bei
    Vollbild-Programmen (Dialoge, `top`) den ganzen Bildschirm - dort trifft ein
    Muster, das schon vorher sichtbar war, sofort. Kein `sleep` als Ersatz.
-5. **Beenden:** `tmx kill <name>`, danach zeigt `tmx list` keine eigene Session
+5. **Beenden:** `tmx stop <name> <eingabe>` mit dem Beenden-Befehl des Programms
+   (`exit`, `quit`, bei Claude `/exit`); es wartet bis 60 s auf das Programmende
+   und räumt dann die Session ab. `tmx kill <name>` nur, wenn das Programm
+   keinen Beenden-Befehl hat. Danach zeigt `tmx list` keine eigene Session
    mehr. Ausnahme sind Sessions, die bewusst weiterlaufen (ein `/loop` über
    Nacht) - für sie bekommt der User den `attach`-Befehl.
 

@@ -3,6 +3,10 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.76.18
+
+- tmux: `tmx stop <name> <eingabe>` beendet ein Programm mit seinem eigenen Befehl (`exit`, bei Claude `/exit`), wartet bis 60 s auf das Ende und räumt erst dann die Session ab; `kill` nur noch ohne Beenden-Befehl
+
 ### 1.76.17
 
 - tmux (neu): interaktive Programme über eine private tmux-Session fernsteuern - `tmx` mit start/send/keys/wait/show/list/kill; `wait` prüft nur Ausgabe seit der letzten Eingabe, eine beendete Sitzung bleibt lesbar; für Dialoge ohne Batch-Modus und Claude als Hintergrund-Session (`/loop` als Start-Argument). Idee nach mitsuhiko/agent-stuff, neu in POSIX-sh

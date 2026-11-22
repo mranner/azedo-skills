@@ -17,6 +17,7 @@ Usage: tmx <befehl> [argumente]
   wait  <name> <regex> [sek]   warten, bis <regex> nach der letzten Eingabe erscheint (Default 30 s)
   show  <name> [zeilen]        Bildschirm ausgeben, mit [zeilen] zusätzlich die History
   list                         Sessions mit Startzeit und Zustand
+  stop  <name> <eingabe>       Programm mit <eingabe> beenden (z.B. exit, /exit), bis 60 s warten, dann kill
   kill  <name>                 Session beenden
 EOF
     exit 1
@@ -77,6 +78,16 @@ show)
 list)
     T list-sessions -F '#{session_name}  gestartet #{t:session_created}  #{?session_attached,attached,detached}#{?pane_dead,  BEENDET,}' 2>/dev/null \
         || echo "keine Sessions"
+    ;;
+stop)
+    [ $# -eq 2 ] || usage
+    T send-keys -t "$1" -l -- "$2" && sleep 0.2 && T send-keys -t "$1" Enter || exit 1
+    i=0
+    while [ $i -lt 60 ] && [ "$(T display -p -t "$1" '#{pane_dead}')" != 1 ]; do
+        sleep 1; i=$((i + 1))
+    done
+    [ $i -ge 60 ] && echo "$1 nach 60 s nicht beendet, kill" >&2
+    T kill-session -t "$1" && rm -f "$DIR/$1.mark"
     ;;
 kill)
     [ $# -eq 1 ] || usage
