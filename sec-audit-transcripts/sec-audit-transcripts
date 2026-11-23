@@ -39,6 +39,8 @@ SHORT = 12
 
 TRIVIAL = {'true', 'false', 'yes', 'no', 'none', 'null', 'localhost', 'changeme'}
 
+JSON_SKIP_ROOTS = {'skillOverrides'}
+
 DEFAULT_SOURCES = [
     '~/.muttrc',
     '~/.env',
@@ -84,6 +86,16 @@ PATTERNS = [
 PATTERN_NOISE = re.compile(
     r'(?i)(<[a-z_-]+>|\byour[_\-]|\bexample\b|\bplaceholder\b|\bredacted\b|'
     r'\bdummy\b|\bxxx+\b|\*{3,}|\bchangeme\b|\benv\.|\bos\.environ\b)')
+
+# Die Signatur eines Denkschritts ist ein langer Base64-Blob, in dem AIza... und
+# aehnliche Praefixe zufaellig vorkommen.
+
+SIGNATURE = re.compile(r'"signature"\s*:\s*"[^"]*"')
+
+# Ein JWT als Query-Parameter ist meist ein Abmelde- oder Tracking-Link in einer
+# eingefuegten Mail, kein Zugang - eigenes Label, damit er schnell bewertet ist.
+
+LINK_PARAM = re.compile(r'[?&][A-Za-z_]+=$')
 
 
 def now():
@@ -211,7 +223,12 @@ class Secrets:
                 # einem Schluessel wie "dailyModelTokens" dessen "token" und die
                 # Datumsangaben darunter landen im Suchsatz.
 
+                # Ein *_env-Feld nennt nur die Umgebungsvariable, und unter
+                # skillOverrides steht der Skillname als Schluessel (wp-rest-api).
+
                 leaf = path.rsplit('.', 1)[-1]
+                if leaf.lower().endswith('_env') or path.split('.')[0] in JSON_SKIP_ROOTS:
+                    return
                 if re.search(r'pass|secret', leaf, re.I):
                     self.add('%s:%s' % (p.name, path), o, explicit=True)
                 elif re.search(r'token|key|api', leaf, re.I):
@@ -400,16 +417,20 @@ def scan(secrets, targets, key, with_patterns=True, with_context=False):
                     context=window(line, v) if with_context else None))
             if not patterned:
                 continue
+            text = SIGNATURE.sub('"signature":""', line) if is_jsonl else line
             for rule, rx in PATTERNS:
-                for m in rx.finditer(line):
+                for m in rx.finditer(text):
                     hit = m.group(1) if m.groups() else m.group(0)
                     if PATTERN_NOISE.search(hit) or any(hit == v for v, _ in present):
                         continue
+                    label = rule
+                    if rule == 'jwt' and LINK_PARAM.search(text[max(0, m.start() - 32):m.start()]):
+                        label = 'jwt-link'
                     if ctx is None:
                         ctx = describe(line, hit) if is_jsonl else {}
                     keep(_finding(
-                        'pattern', hit, None, rule, where, n, ctx, key,
-                        context=mask(hit)))
+                        'pattern', hit, None, label, where, n, ctx, key,
+                        context=window(text, hit) if with_context else mask(hit)))
 
     return findings, scanned, errors
 

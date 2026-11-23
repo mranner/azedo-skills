@@ -3,6 +3,10 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.76.20
+
+- sec-audit-transcripts: weniger Fehlalarme - JSON-Felder `*_env` und `skillOverrides` sind keine Geheimnisquelle mehr, das `signature`-Feld von Denkschritten fällt aus der Mustersuche; JWTs in Query-Parametern heißen `jwt-link`; `--context` zeigt auch bei Mustertreffern das geschwärzte Umfeld
+
 ### 1.76.19
 
 - tmux: `tmx attach <name>` verbindet den User im eigenen Terminal mit einer Session, ohne den Socket-Pfad zu tippen
