@@ -3,6 +3,10 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.76.21
+
+- imap: Uhrzeiten aus dem Date-Header (oft GMT, etwa bei monit-Alerts) vor jeder Ausgabe in Ortszeit umrechnen
+
 ### 1.76.20
 
 - sec-audit-transcripts: weniger Fehlalarme - JSON-Felder `*_env` und `skillOverrides` sind keine Geheimnisquelle mehr, das `signature`-Feld von Denkschritten fällt aus der Mustersuche; JWTs in Query-Parametern heißen `jwt-link`; `--context` zeigt auch bei Mustertreffern das geschwärzte Umfeld

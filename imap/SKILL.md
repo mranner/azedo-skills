@@ -260,6 +260,12 @@ ok / einzeln anpassen?
   Date-Header und Zeitzone. `list -n 1` taugt dafür nicht: es liefert die
   höchste *vorhandene* UID, bei leerem Ordner keine und nach dem Löschen
   eine zu niedrige.
+- **Uhrzeiten in Ortszeit ausgeben.** `date` kommt so, wie der Absender den
+  Header schrieb: monit und viele Alert-Systeme schreiben GMT
+  (`Tue, 24 Nov 2026 05:47:46 GMT`). Vor jeder Ausgabe (Triage-Bericht,
+  Zusammenfassung, Ausfallzeiten) in die Zeitzone des Systems umrechnen
+  (`date`). Sonst sind Alarm-Zeiten im Bericht um die UTC-Abweichung verschoben
+  und passen nicht zu Logs und Erinnerung.
 - **Zitate nie selbst tippen.** Für eine Antwort immer `quote` aufrufen. Ein
   von Hand gesetztes `> ` sieht auf den ersten Blick gleich aus, weicht aber bei
   jeder Mail leicht ab und ignoriert `format=flowed` und die Threading-Header.
