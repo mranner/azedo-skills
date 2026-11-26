@@ -831,6 +831,6 @@ BookStack über die REST-API:
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.76.21
+### 1.76.22
 
-- imap: Uhrzeiten aus dem Date-Header (oft GMT, etwa bei monit-Alerts) vor jeder Ausgabe in Ortszeit umrechnen
+- sally: `archive` nennt bei fehlendem Kapitel Besprechungen die Rechte, die nach dem Anlegen am Kapitel zu setzen sind (Admin und Mitarbeiter, sonst niemand)

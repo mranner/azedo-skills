@@ -3,6 +3,10 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.76.22
+
+- sally: `archive` nennt bei fehlendem Kapitel Besprechungen die Rechte, die nach dem Anlegen am Kapitel zu setzen sind (Admin und Mitarbeiter, sonst niemand)
+
 ### 1.76.21
 
 - imap: Uhrzeiten aus dem Date-Header (oft GMT, etwa bei monit-Alerts) vor jeder Ausgabe in Ortszeit umrechnen

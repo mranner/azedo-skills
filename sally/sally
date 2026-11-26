@@ -4,7 +4,7 @@
 # Aufnahmen auflisten, Zusammenfassung und Transkript holen, Zusammenfassungen durchsuchen,
 # Aufnahme nach BookStack archivieren (ueber das Script des Skills bookstack).
 # stdlib only, keine pip-Abhaengigkeiten.
-# version 1.76.21
+# version 1.76.22
 
 import argparse
 import datetime
@@ -423,7 +423,13 @@ def cmd_archive(args):
     chapter = next((c["id"] for c in bookstack("get", "book", books[0]["id"])["contents"]
                     if c.get("type") == "chapter" and c["name"] == ARCHIVE_CHAPTER), None)
     if chapter is None:
-        die("Im Buch '%s' fehlt das Kapitel %s." % (book_name, ARCHIVE_CHAPTER))
+        die("Im Buch '%s' fehlt das Kapitel %s. Nach dem Anlegen die Rechte am Kapitel setzen, sonst "
+            "sieht jede Rolle mit Leserecht die Zusammenfassungen:\n"
+            "  bookstack permissions chapter <id> --file <json>\n"
+            "  role_permissions: Admin und Mitarbeiter mit view/create/update/delete true "
+            "(IDs aus 'bookstack list roles --brief')\n"
+            "  fallback_permissions: inheriting/view/create/update/delete false"
+            % (book_name, ARCHIVE_CHAPTER))
     admin = admin_role()
 
     summary = read_or_fetch(args.summary_file, lambda: summary_document(rec, args.lang, "md"))
