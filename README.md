@@ -831,6 +831,6 @@ BookStack über die REST-API:
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.76.22
+### 1.76.23
 
-- sally: `archive` nennt bei fehlendem Kapitel Besprechungen die Rechte, die nach dem Anlegen am Kapitel zu setzen sind (Admin und Mitarbeiter, sonst niemand)
+- sally: `archive` warnt, wenn das Kapitel Besprechungen keine eigenen Rechte hat (die Zusammenfassung erbt sie vom Kapitel); SKILL.md beschreibt die Kapitelsperre

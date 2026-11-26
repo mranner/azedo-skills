@@ -3,6 +3,10 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.76.23
+
+- sally: `archive` warnt, wenn das Kapitel Besprechungen keine eigenen Rechte hat (die Zusammenfassung erbt sie vom Kapitel); SKILL.md beschreibt die Kapitelsperre
+
 ### 1.76.22
 
 - sally: `archive` nennt bei fehlendem Kapitel Besprechungen die Rechte, die nach dem Anlegen am Kapitel zu setzen sind (Admin und Mitarbeiter, sonst niemand)

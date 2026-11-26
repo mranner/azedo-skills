@@ -101,6 +101,11 @@ Es braucht den Skill `bookstack` mit seiner Config.
 - **Fehlt das Buch des Kunden**, bricht `archive` ab. Ob es angelegt wird,
   entscheidet der User; angelegt wird es dann mit `/bookstack`, mit dem Kapitel
   „Besprechungen“.
+- **Kapitelsperre:** Die Zusammenfassung erbt ihre Rechte vom Kapitel
+  „Besprechungen“. Das Kapitel bekommt beim Anlegen eigene Rechte: Admin und
+  Mitarbeiter alles, alle anderen Rollen nichts - die Werte nennt die Meldung von
+  `archive` bei fehlendem Kapitel. Hat das Kapitel keine eigenen Rechte, archiviert
+  `archive` trotzdem und warnt; dann die Rechte setzen und dem User melden.
 - **Schon archiviert** (Seite mit derselben `sally-id`): `archive` bricht mit den
   Links ab - die vorhandenen Seiten melden. Ausnahme: nur `--review-file`, ohne
   `--summary-file`/`--transcript-file`. Dann legt `archive` die Review-Seite an
