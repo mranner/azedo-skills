@@ -93,7 +93,7 @@ Entity-Templates (Infra-Modell; für Projekt-Wikis gilt deren `<WIKI_ROOT>/CLAUD
 ### harvest
 
 Aus der laufenden Arbeit die Erkenntnisse herausziehen, die ins Wiki gehören -
-**als Vorlage, ohne zu schreiben**.
+**als Vorlage, ohne zu schreiben**. Einzige Ausnahme ist der direkte Auftrag, siehe unten.
 
 ```
 /wiki harvest                 # alles aus dieser Sitzung
@@ -104,6 +104,15 @@ Das ist der Subcommand für „gibt es relevante Erkenntnisse fürs Wiki",
 „aktualisiere das Wiki", „trag das ins Wiki ein". Diese Sätze landeten früher
 ungeführt in `compile` - das ist aber für Quellen aus `raw/` gedacht und hat
 keinen Aufnahmefilter. Die Folge war stilles, ungefiltertes Anreichern.
+
+**Ein direkter Auftrag ist die Freigabe.** Nennt der Auftrag den Befund selbst
+(„trag ins Wiki ein, dass …", „trag das ins Wiki ein" zu einem eben besprochenen
+Befund), entfällt die Vorlage für genau diesen Befund. Aufnahmefilter (Schritt 3)
+und Zielbestimmung (Schritt 4) laufen trotzdem: besteht er, wird nach Schritt 6
+geschrieben; fällt er durch, den Grund melden und nichts schreiben. Weitere
+Erkenntnisse der Sitzung deckt der Auftrag nicht, die gehen in die Vorlage. Eine
+offene Frage („gibt es Erkenntnisse", „aktualisiere das Wiki") nennt keinen Befund
+und bleibt immer bei der Vorlage.
 
 Workflow:
 

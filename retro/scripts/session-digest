@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# version 1.76.29
+# version 1.76.30
 """Kurzfassung eines Session-Logs fuer die Retrospektive.
 
 Aufruf: session-digest [<session-id> | <stichwort>]

@@ -831,6 +831,6 @@ BookStack über die REST-API:
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.76.29
+### 1.76.30
 
-- wiki: Eval 4 angepasst - ein direkter Auftrag „trag ins Wiki ein, dass …" gilt als Freigabe für diesen Befund, der Aufnahmefilter läuft trotzdem davor
+- wiki: `harvest` - ein direkter Auftrag, der den Befund nennt („trag ins Wiki ein, dass …"), gilt als Freigabe für diesen Befund; der Aufnahmefilter läuft davor, offene Fragen bleiben bei der Vorlage
