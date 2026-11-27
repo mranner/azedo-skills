@@ -831,6 +831,6 @@ BookStack über die REST-API:
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.76.25
+### 1.76.26
 
-- wiki: `rotate-log.py` lagert abgeschlossene Monate aus `log.md` nach `log/YYYY-MM.md` aus; `lint` meldet sie, sobald ein Wiki ein Verzeichnis `log/` hat
+- wiki: Schreibregeln aus der `SKILL.md` nach `references/schreibregeln.md` ausgelagert, Pflichtlektüre vor jedem Schreiben; `query`, `lint` und `audit` laden sie nicht mehr mit

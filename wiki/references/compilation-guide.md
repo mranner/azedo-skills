@@ -106,7 +106,7 @@ entstanden zwei Journale in einer Datei - 19 Tage nur im oberen Lauf, 9 nur im
 unteren, sieben Tage in beiden mit **verschiedenen** Einträgen. Wer nur ein Ende
 las, sah die halbe Historie. Zusammengeführt am 2026-09-06.
 
-Für `log.md` gelten die [Schreibregeln der SKILL.md](../SKILL.md#schreibregeln)
+Für `log.md` gelten die Schreibregeln (Referenz laut SKILL.md)
 genauso wie für Artikel - insbesondere das Dichtegebot. Ein Eintrag beantwortet
 drei Fragen und hört dann auf:
 

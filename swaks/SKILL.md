@@ -169,7 +169,7 @@ Die Prüfung am Ende ist **kein Beiwerk** – ohne sie geht ein Reject als Erfol
 
 Hinweise:
 - `--to`/`--from` bei **beiden** (Helper *und* swaks) angeben: der Helper setzt die Header, swaks den SMTP-Envelope.
-- **Cc und Bcc:** `--cc` / `--bcc` gehören an **beide** Aufrufe — beim Bau für den Header, beim `--send` für den Envelope. `--cc` setzt den sichtbaren `Cc:`-Header, `--bcc` setzt **bewusst keinen** Header (sonst wären die stillen Empfänger sichtbar). Zugestellt wird beides nur über den Envelope, den `--send` aus `--to`, `--cc` und `--bcc` zusammensetzt (doppelte Adressen fallen dabei raus):
+- **Cc und Bcc:** `--cc` / `--bcc` gehören an **beide** Aufrufe — beim Bau für den Header, beim `--send` für den Envelope. `--cc` setzt den sichtbaren `Cc:`-Header, `--bcc` setzt **bewusst keinen** Header (sonst wären die stillen Empfänger sichtbar). Zugestellt wird beides nur über den Envelope, den `--send` aus `--to`, `--cc` und `--bcc` zusammensetzt (doppelte Adressen fallen dabei raus). Mehrere Adressen gehen kommasepariert oder als wiederholtes Flag (`--cc a@x --cc b@x`), beides wird zusammengeführt:
 
 ```bash
 python3 $B --subject … --to a@x --cc cc@x --bcc bcc@x … > $M/mail.eml

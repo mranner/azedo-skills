@@ -83,7 +83,7 @@ Workflow:
 7. Bei aktualisierten Artikeln (Schritt 2b) den [Schrumpf-Guard](#schrumpf-guard---check-shrink)
    laufen lassen und jede Meldung einzeln beantworten, bevor committet wird
 
-**Vor Schritt 2 gelten die [Schreibregeln](../SKILL.md#schreibregeln)** - Aufnahmefilter
+**Vor Schritt 2 die Schreibregeln lesen** (Referenz laut SKILL.md) - Aufnahmefilter
 (gehört es überhaupt hinein), Dichtegebot und „aktualisieren heißt ersetzen".
 
 Detaillierte Compile-Regeln (Cross-Referencing, Compile-Checkliste): Compile-Referenz laut SKILL.md
@@ -110,8 +110,8 @@ Workflow:
 1. `<WIKI_ROOT>/CLAUDE.md` lesen (Entity-Modell). Den Bestand klärt Schritt 4 per grep.
 2. Kandidaten sammeln: jede Erkenntnis der Sitzung, die nicht offensichtlich
    schon dokumentiert ist.
-3. **Jeden Kandidaten durch den [Aufnahmefilter](../SKILL.md#aufnahmefilter-gehört-das-überhaupt-hinein)
-   schicken.** Wer durchfällt, wird verworfen - aber **mit Grund und sichtbar**,
+3. **Jeden Kandidaten durch den Aufnahmefilter schicken** (Schreibregeln, Referenz laut SKILL.md) - vorher lesen,
+   nicht aus dem Gedächtnis anwenden. Wer durchfällt, wird verworfen - aber **mit Grund und sichtbar**,
    nicht stillschweigend. Beschreibt ein Kandidat einen Zustand, den die Sitzung
    selbst verändert hat, wird er gegen den Stand nach der Änderung formuliert,
    nicht gegen den Befund davor.
@@ -144,7 +144,7 @@ Die verworfene Liste ist kein Beiwerk, sondern der Zweck: sie macht den Filter
 überprüfbar. Ohne sie ist nicht erkennbar, ob etwas geprüft und aussortiert oder
 schlicht übersehen wurde.
 
-Für die Einträge selbst gelten die [Schreibregeln](../SKILL.md#schreibregeln) - vor allem
+Für die Einträge selbst gelten die Schreibregeln (Referenz laut SKILL.md) - vor allem
 das Dichtegebot. Eine Erkenntnis, die in der Vorlage einen Satz braucht, wird im
 Artikel nicht zu einem Absatz.
 
@@ -272,7 +272,7 @@ Prüft:
   ```
 
 - **Ablösung** (optional): Nur mit `supersede` in der `wiki-schema.json`, Regel
-  unter „Aktualisieren heißt ersetzen" in der SKILL.md. Trägt eine Entity eines der
+  unter „Aktualisieren heißt ersetzen" (Schreibregeln, Referenz laut SKILL.md). Trägt eine Entity eines der
   genannten Typen den Ablöse-Status, muss das Link-Feld einen Wikilink enthalten,
   sonst Fehler; zeigt er ins Leere, greift die Regel für tote Links:
 
@@ -299,7 +299,7 @@ neuer Link, gilt `[[a]]` als ersetzt. Beim Zerlegen eines Artikels kämen sonst
 Dutzende Warnungen, die alle Absicht sind.
 
 Gemeint ist **nicht** die Länge - Verdichten ist erwünscht, siehe
-[Schreibregeln](../SKILL.md#kürzen-heißt-wörter-streichen-nicht-sachverhalte).
+„Kürzen heißt Wörter streichen, nicht Sachverhalte" (Schreibregeln, Referenz laut SKILL.md).
 Gemeint ist, was sich aufzählen lässt: dass ein Artikel beim Ueberschreiben
 seine Beziehung zu einer anderen Entity oder einen ganzen Abschnitt verliert,
 fällt beim Durchlesen des neuen Textes niemandem auf - dem Diff schon.

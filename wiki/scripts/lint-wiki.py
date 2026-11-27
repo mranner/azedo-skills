@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # stdlib only, no pip dependencies
-# version 1.76.25
+# version 1.76.26
 
 """
 lint-wiki.py — Strukturprüfung für LLM Wikis (Infra + Projekt-Doku).
@@ -227,7 +227,7 @@ ISO_DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 # eine Sitzung, die jemand mitgeschrieben hat. Diese Abschnitte wachsen monoton,
 # weil die nächste Sitzung den nächsten anlegt, statt den alten zu ersetzen.
 # Ein Datum im Fließtext ("seit 2026-08-15") ist unbedenklich und wird nicht
-# geprüft. Siehe SKILL.md, Abschnitt Schreibregeln.
+# geprüft. Siehe references/schreibregeln.md.
 #
 # Erkannt werden ISO (2026-08-15) und die deutsche Schreibweise (15.08.2026).
 # Letztere verlangt ein vierstelliges Jahr, damit Versionsnummern ("8.2.33")
@@ -240,7 +240,7 @@ DATED_HEADING_PATTERN = re.compile(
 
 # Aussage zum Patch- oder Sicherheitsstand ("kein Patch", "nur Mitigation",
 # "Backport nur bei X") - der Hersteller überholt sie ohne Ankündigung. Ein
-# Artikel damit braucht stale_after, siehe SKILL.md, Schreibregeln. Bewusst eng:
+# Artikel damit braucht stale_after, siehe references/schreibregeln.md. Bewusst eng:
 # "kein Update" oder "kein Fix" stehen oft für etwas anderes (Lizenzproblem,
 # untaugliche Maßnahme) und bleiben draußen.
 PATCH_STATE_PATTERN = re.compile(

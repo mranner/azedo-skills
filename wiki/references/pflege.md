@@ -134,7 +134,7 @@ auffindbar.
 1. Er beschreibt einen **anderen Gegenstand** als der Artikeltitel verspricht -
    nicht eine Facette desselben.
 2. Jemand würde ihn suchen, **ohne den Artikel zu kennen** (die Prüffrage aus
-   [Ein Befund gehört an genau eine Stelle](../SKILL.md#ein-befund-gehört-an-genau-eine-stelle)).
+   „Ein Befund gehört an genau eine Stelle", Schreibregeln, Referenz laut SKILL.md).
 3. Er trägt allein: Behauptung, Folge und Beleg stehen im Abschnitt selbst, er
    braucht den Rahmen des Quellartikels nicht.
 
@@ -190,7 +190,7 @@ Rat, sondern als Ersetzung, die man freigeben oder ablehnen kann:
 
 Die Grenze nach unten: gekürzt wird der **Weg zur Aussage**, nie die Aussage.
 Bleiben müssen Behauptung, Folge und Beleg (das
-[Dichtegebot](../SKILL.md#dichtegebot-behauptung-folge-beleg)) - ein Artikel, aus dem man
+Dichtegebot, Schreibregeln, Referenz laut SKILL.md) - ein Artikel, aus dem man
 den Prüfbefehl herausgekürzt hat, ist nicht dichter, sondern unbrauchbar.
 
 **Was dieser Durchgang nicht leistet:** er räumt keinen `LANG`-Befund ab, und er
@@ -245,7 +245,7 @@ aufgeschrieben oder umformuliert wurde. Bestehende Einträge bleiben stehen, der
 neue kommt dazu; die Liste ist eine Historie, kein einzelner Stand.
 
 `stale_after` nur dort setzen, wo ein Ablauf absehbar ist (Paketversion,
-Zertifikatslaufzeit, geplante Migration, Patch-Stand laut Schreibregeln in SKILL.md). Meldet der Lint eine Entity als
+Zertifikatslaufzeit, geplante Migration, Patch-Stand laut Schreibregeln, Referenz laut SKILL.md). Meldet der Lint eine Entity als
 überfällig: Inhalt prüfen, dann entweder das Datum neu setzen oder das Feld
 entfernen, wenn der Bezug weggefallen ist. Das bloße Hochsetzen ohne Prüfung
 macht das Feld wertlos.

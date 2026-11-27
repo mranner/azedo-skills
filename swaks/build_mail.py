@@ -6,7 +6,7 @@
 # um das alternative-Part gelegt. Bei einer Antwort kommt der Zitatblock aus
 # `imap quote` unter Body und Signatur (Top-Posting), die Threading-Header
 # In-Reply-To und References haengen die Antwort an den bestehenden Thread.
-# version 1.76.25
+# version 1.76.26
 
 import argparse
 import hashlib
@@ -359,6 +359,18 @@ def envelope_recipients(*groups):
 
     return ",".join(out)
 
+
+def join_repeated(args, *names):
+    """Mehrfach angegebene --to/--cc/--bcc zusammenfuehren. Ohne action="append"
+    behielte argparse nur den letzten Wert, die uebrigen Empfaenger fielen still
+    weg (CR5054)."""
+
+    for n in names:
+        values = getattr(args, n)
+
+        if values:
+            setattr(args, n, ", ".join(values))
+
 def send_eml(path, recipient, sender):
     """Fertige .eml versenden und das Ergebnis pruefen. Liefert (report, fehler)."""
     if not os.path.isfile(path):
@@ -674,14 +686,17 @@ if "--send" in sys.argv[1:]:
                          "swaks aufrufen, Ergebnis pruefen (Exit-Code, "
                          "Queue-ID, abgelehnte Empfaenger). Exit != 0 bei "
                          "jedem Befund.")
-    sp.add_argument("--to", help="Envelope-Empfaenger (kommasepariert). Ohne "
+    sp.add_argument("--to", action="append",
+                    help="Envelope-Empfaenger (kommasepariert, mehrfach angebbar). Ohne "
                                  "Angabe gilt 'to' aus swaks.json. Cc und Bcc "
                                  "gehoeren nicht hier hinein, sondern in --cc "
                                  "bzw. --bcc.")
-    sp.add_argument("--cc", help="Empfaenger der sichtbaren Kopie (kommasepariert). "
+    sp.add_argument("--cc", action="append",
+                    help="Empfaenger der sichtbaren Kopie (kommasepariert, mehrfach angebbar). "
                                  "Kommt in den Envelope; der Cc:-Header steht "
                                  "bereits in der .eml und wird hier nicht gesetzt.")
-    sp.add_argument("--bcc", help="Empfaenger der stillen Kopie (kommasepariert). "
+    sp.add_argument("--bcc", action="append",
+                    help="Empfaenger der stillen Kopie (kommasepariert, mehrfach angebbar). "
                                   "Kommt nur in den Envelope — bewusst kein "
                                   "Header, sonst waeren die Empfaenger sichtbar.")
     sp.add_argument("--from", dest="sender",
@@ -696,6 +711,7 @@ if "--send" in sys.argv[1:]:
     # auftaucht — die Mail geht ja raus (CR4623).
 
     sargs = sp.parse_args()
+    join_repeated(sargs, "to", "cc", "bcc")
 
     to = sargs.to or config.get("to")
     frm = sargs.sender or config.get("from")
@@ -826,9 +842,9 @@ parser.add_argument("--swaks-env", action="store_true",
                          "ausgeben und beenden — Passwort maskiert. Nie per "
                          "eval an swaks geben; versendet wird nur mit --send.")
 parser.add_argument("--subject", required=True)
-parser.add_argument("--to", help="Empfaenger. Ohne Angabe gilt 'to' aus swaks.json.")
-parser.add_argument("--cc", help="Sichtbarer Cc:-Header (kommasepariert). Fuer die Zustellung dasselbe --cc beim --send-Aufruf wiederholen.")
-parser.add_argument("--bcc", help="Bcc-Empfaenger (kommasepariert). Setzt bewusst KEINEN Header (sonst waeren die Empfaenger sichtbar) — fuer die Zustellung dasselbe --bcc beim --send-Aufruf wiederholen.")
+parser.add_argument("--to", action="append", help="Empfaenger (kommasepariert, mehrfach angebbar). Ohne Angabe gilt 'to' aus swaks.json.")
+parser.add_argument("--cc", action="append", help="Sichtbarer Cc:-Header (kommasepariert, mehrfach angebbar). Fuer die Zustellung dasselbe --cc beim --send-Aufruf wiederholen.")
+parser.add_argument("--bcc", action="append", help="Bcc-Empfaenger (kommasepariert, mehrfach angebbar). Setzt bewusst KEINEN Header (sonst waeren die Empfaenger sichtbar) — fuer die Zustellung dasselbe --bcc beim --send-Aufruf wiederholen.")
 parser.add_argument("--from", dest="sender",
                     help="Absender. Ohne Angabe gilt 'from' aus swaks.json.")
 parser.add_argument("--for-draft", action="store_true",
@@ -867,6 +883,7 @@ parser.add_argument("--sha-file",
                          "swaks-Aufruf.")
 parser.add_argument("--attach", action="append", default=[])
 args = parser.parse_args()
+join_repeated(args, "to", "cc", "bcc")
 
 # Empfaenger und Absender: Kommandozeile hat Vorrang, sonst swaks.json.
 

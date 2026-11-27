@@ -3,6 +3,10 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.76.26
+
+- wiki: Schreibregeln aus der `SKILL.md` nach `references/schreibregeln.md` ausgelagert, Pflichtlektüre vor jedem Schreiben; `query`, `lint` und `audit` laden sie nicht mehr mit
+
 ### 1.76.25
 
 - wiki: `rotate-log.py` lagert abgeschlossene Monate aus `log.md` nach `log/YYYY-MM.md` aus; `lint` meldet sie, sobald ein Wiki ein Verzeichnis `log/` hat
