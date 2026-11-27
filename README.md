@@ -831,6 +831,6 @@ BookStack über die REST-API:
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.76.24
+### 1.76.25
 
-- wiki: Lint akzeptiert neben `index.md` jede `index-*.md` als Index und prüft mit `index_desc_max` die Länge der Index-Einträge; `query` greppt zuerst und liest den Index nur für den Überblick
+- wiki: `rotate-log.py` lagert abgeschlossene Monate aus `log.md` nach `log/YYYY-MM.md` aus; `lint` meldet sie, sobald ein Wiki ein Verzeichnis `log/` hat

@@ -3,6 +3,10 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.76.25
+
+- wiki: `rotate-log.py` lagert abgeschlossene Monate aus `log.md` nach `log/YYYY-MM.md` aus; `lint` meldet sie, sobald ein Wiki ein Verzeichnis `log/` hat
+
 ### 1.76.24
 
 - wiki: Lint akzeptiert neben `index.md` jede `index-*.md` als Index und prüft mit `index_desc_max` die Länge der Index-Einträge; `query` greppt zuerst und liest den Index nur für den Überblick

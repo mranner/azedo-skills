@@ -227,6 +227,10 @@ Prüft:
 - **Sortierung von `log.md`**: Tagesabschnitte `## YYYY-MM-DD` gegen die Richtung
   aus dem Kopf der Datei („älteste zuerst" bzw. „aufsteigend", sonst neueste
   zuerst) - Fehler mit Zeilennummer. Fängt den ans Ende gehängten Eintrag ab
+- **Abgeschlossene Monate in `log.md`**: nur wenn es `<WIKI_ROOT>/log/` gibt, das Wiki sein
+  Log also rotiert. Warnung, sobald `log.md` Tagesabschnitte aus einem früheren Monat
+  enthält; `python3 "$SKILL_DIR/scripts/rotate-log.py" <WIKI_ROOT>` verschiebt sie nach
+  `log/YYYY-MM.md`. Der erste Lauf des Scripts legt `log/` an und schaltet die Rotation ein
 - **Naming violations**: Dateinamen die nicht der Konvention entsprechen
 - **Low connectivity**: Artikel mit weniger als 3 verschiedenen Linkzielen
   (Frontmatter und Text zusammen, Wiederholungen zählen einmal); das Minimum

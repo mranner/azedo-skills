@@ -133,6 +133,8 @@ def build(root, home):
     write(mathe / "log.md",
           "# Log\n\nNeueste zuerst.\n\n- [[geschichte:gibt-es-nicht]]\n\n"
           "## 2026-11-05\n\nA\n\n## 2026-10-01\n\nB\n\n## 2026-10-19\n\nC\n")
+    # log/ vorhanden: das Wiki rotiert, alte Monate in log.md sind eine Warnung
+    write(root / "wiki/physik/log/2026-09.md", "# Log 2026-09\n")
     write(root / "wiki/physik/log.md",
           "# Log\n\nÄlteste zuerst.\n\n## 2026-10-01\n\nA\n\n## 2026-10-19\n\nB\n")
     return mathe
@@ -178,6 +180,7 @@ CASES = [
     ("entscheidung-offen.md: Nur 0 verlinkte Ziele (Minimum: 1)", True),
     ("log.md:15: ## 2026-10-19 steht nach ## 2026-10-01, das Log ist neueste zuerst sortiert", True),
     ("log.md:9:", False),
+    ("log.md: Abschnitte aus", False),
 ]
 
 # Zweiter Lauf, Wiki ohne values/supersede: keine der neuen Meldungen
@@ -186,7 +189,8 @@ CASES_OHNE = [
     ("ohne-schema.md: status", False),
     ("ohne-schema.md: Feld", False),
     ("ohne-schema.md: Nur 0 verlinkte Ziele (Minimum: 3)", True),
-    ("log.md:", False),
+    ("das Log ist", False),
+    ("log.md: Abschnitte aus 2026-10 — mit rotate-log.py nach log/ auslagern", True),
 ]
 
 

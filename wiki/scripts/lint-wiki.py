@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # stdlib only, no pip dependencies
-# version 1.76.24
+# version 1.76.25
 
 """
 lint-wiki.py — Strukturprüfung für LLM Wikis (Infra + Projekt-Doku).
@@ -18,6 +18,7 @@ Prüft:
 - Datumsangaben in Überschriften (Logbuch-Muster, siehe Schreibregeln)
 - Sortierung der Tagesabschnitte (## YYYY-MM-DD) in log.md in der Richtung,
   die der Kopf nennt ("älteste zuerst"/"aufsteigend", sonst neueste zuerst)
+- Abgeschlossene Monate in log.md, wenn das Wiki rotiert (Verzeichnis log/)
 - Optionale Vertrauensfelder verified/stale_after (Format, Ablauf)
 - Aussagen zum Patch-Stand ohne stale_after
 - Optional: Frontmatter-Verweise (z.B. tests, config) gegen ihre Prüfqülle,
@@ -845,6 +846,13 @@ def lint_wiki(wiki_root, check_remotes=False, check_shrink_flag=False):
     if log_file.exists():
         for lineno, msg in check_log_order(log_file.read_text(encoding="utf-8")):
             errors.append(f"log.md:{lineno}: {msg}")
+        # Rotierendes Log: log/ gibt es erst nach dem ersten Lauf von rotate-log.py
+        if (wiki_root / "log").is_dir():
+            current = date.today().strftime("%Y-%m")
+            months = re.findall(r"^## (\d{4}-\d{2})-\d{2}", log_file.read_text(encoding="utf-8"), re.M)
+            old = sorted(set(months) - {current})
+            if old:
+                warnings.append(f"log.md: Abschnitte aus {', '.join(old)} — mit rotate-log.py nach log/ auslagern")
 
     # Optional: Remote-Pointer-Ziele per SSH verifizieren
     if check_remotes and remote_pointers:

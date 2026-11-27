@@ -91,7 +91,7 @@ Kandidaten filtern, vorlegen, erst nach Freigabe schreiben):
 Beide führt das Modell selbst aus, es gibt dafür **kein Script**: `query` greppt
 nach den Begriffen der Frage, liest den Index nur für den Überblick und folgt Backlinks; `harvest` sammelt Kandidaten,
 schickt sie durch den Aufnahmefilter und legt sie vor. Der Ablauf steht in
-`references/subcommands.md`. Scripts gibt es nur für `lint` und `audit` -
+`references/subcommands.md`. Scripts gibt es für `lint` und `audit` -
 `python3 "$SKILL_DIR/scripts/lint-wiki.py" <WIKI_ROOT>` und
 `python3 "$SKILL_DIR/scripts/audit-wiki.py" <WIKI_ROOT>` - sowie für die
 Remote-Config (`scripts/wiki_remotes.py list` / `add`, siehe
@@ -115,7 +115,9 @@ Modul, eine Schnittstelle, ein Ablauf.
 
 **Wohin ein Eintrag in `log.md` gehört, steht im Kopf der Datei** - vor dem
 Schreiben lesen, nicht blind ans Ende hängen. Ist das Log „neueste zuerst"
-sortiert, landet ein angehängter Eintrag unter dem ältesten Tag.
+sortiert, landet ein angehängter Eintrag unter dem ältesten Tag. Rotiert das Wiki
+sein Log (Verzeichnis `<WIKI_ROOT>/log/`), meldet `lint` abgeschlossene Monate;
+dann `python3 "$SKILL_DIR/scripts/rotate-log.py" <WIKI_ROOT>` laufen lassen.
 
 ### Aufnahmefilter: gehört das überhaupt hinein?
 
