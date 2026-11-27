@@ -3,7 +3,7 @@
 # Struktur-Linter fuer Einfache Sprache:
 # Absatzlaenge, Ueberschriften, Listenkandidaten, Datums- und Zahlformate,
 # Anrede-Konsistenz, unaufgeloeste Verweise und Auszeichnungen.
-# version 1.76.35
+# version 1.76.36
 
 import argparse
 import re

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # stdlib only, no pip dependencies
-# version 1.76.35
+# version 1.76.36
 
 """
 rotate-log.py — lagert abgeschlossene Monate aus log.md nach log/YYYY-MM.md aus.

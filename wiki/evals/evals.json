@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "Deploy die fertige PWA nach /www/virtual/example.at/html5/infoscreen auf <dev-host>. Welcher Jail ist das und wie heisst der vhost?",
-      "expected_output": "Ohne Nennung des Wortes 'Wiki' wird das Wiki abgefragt - ueber den Skill oder direkt per grep, wie die Projekt-CLAUDE.md es vorgibt - und Jail, vhost-Muster und Config-Pfad daraus beantwortet, statt den Host abzuklopfen.",
+      "expected_output": "Ohne Nennung des Wortes 'Wiki' wird das Wiki abgefragt - ueber den Skill oder direkt per grep - und Jail, vhost-Muster und Config-Pfad daraus beantwortet, statt den Host abzuklopfen.",
       "files": [],
       "expectations": [
         "Das Wiki wird abgefragt (wiki-Skill oder direkter grep auf die Entities), obwohl der Prompt weder 'Wiki' noch 'query' enthaelt",
