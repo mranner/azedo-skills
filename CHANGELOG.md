@@ -3,6 +3,10 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.76.37
+
+- wiki: `harvest` Schritt 6 gilt auch ohne git - Status lesen und committen nur unter Versionskontrolle (git oder SVN), sonst ist der Harvest mit fehlerfreiem `lint` fertig
+
 ### 1.76.36
 
 - wiki: Eval 1 ohne Bezug auf eine Projekt-CLAUDE.md
