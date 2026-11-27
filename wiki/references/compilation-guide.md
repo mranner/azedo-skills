@@ -100,11 +100,9 @@ Nach jedem Compile-Lauf:
 Tagesabschnitts, ein neuer Tag ganz nach oben unter den Dateikopf. Bestehende
 Einträge bleiben, wie sie sind.
 
-Die Richtung ist keine Geschmacksfrage: im azedo-Wiki wurde von Juli bis
-September an beiden Enden geschrieben, weil sie nirgends festgelegt war. Es
-entstanden zwei Journale in einer Datei - 19 Tage nur im oberen Lauf, 9 nur im
-unteren, sieben Tage in beiden mit **verschiedenen** Einträgen. Wer nur ein Ende
-las, sah die halbe Historie. Zusammengeführt am 2026-09-06.
+Die Richtung ist keine Geschmacksfrage: Wird an beiden Enden geschrieben,
+entstehen zwei Journale in einer Datei, an manchen Tagen mit **verschiedenen**
+Einträgen in beiden. Wer nur ein Ende liest, sieht die halbe Historie.
 
 Für `log.md` gelten die Schreibregeln (Referenz laut SKILL.md)
 genauso wie für Artikel - insbesondere das Dichtegebot. Ein Eintrag beantwortet

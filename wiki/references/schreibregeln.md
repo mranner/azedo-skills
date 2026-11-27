@@ -4,7 +4,7 @@ Was ins Wiki gehört und wie es dort steht. Vor jedem Schreiben vollständig les
 
 **Inhalt:** Fertig heißt committet · Aufnahmefilter · Dichtegebot · Kürzen · Aktualisieren heißt ersetzen (Ablösung) · Patch-Stand mit `stale_after` · `verified` · ein Befund, eine Stelle
 
-Gelten für **jedes** Schreiben ins Wiki (`compile`, `refactor`) und für `log.md`,
+Gelten für **jedes** Schreiben ins Wiki (`harvest`, `compile`, `refactor`) und für `log.md`,
 in jedem Wiki. „Gegenstand" ist das, was der Artikel beschreibt - ein Server, ein
 Modul, eine Schnittstelle, ein Ablauf.
 

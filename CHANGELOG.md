@@ -3,6 +3,10 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.76.39
+
+- wiki: Doppelung in der `SKILL.md` gestrichen (Abschnitt Schreibregeln zählt den Inhalt der Referenz nicht mehr auf, das tut die Tabelle), `schreibregeln.md` nennt `harvest` beim Geltungsbereich, `compilation-guide.md` begründet „neueste zuerst" ohne datierte Vorgeschichte
+
 ### 1.76.38
 
 - wiki: Fertigkriterium (Status vorab lesen, `lint`, Commit, leerer Status) aus `harvest` Schritt 6 in `references/schreibregeln.md` verschoben, gilt damit für jedes Schreiben; der Schreibauftrag schließt den Commit ohne Rückfrage ein. Anlass: Opus liest `subcommands.md` beim Schreiben nicht und committete deshalb nie

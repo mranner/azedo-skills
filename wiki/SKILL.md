@@ -115,9 +115,7 @@ Vollständige Referenz daneben, bei Bedarf lesen:
 
 Vor **jedem** Schreiben `references/schreibregeln.md` vollständig lesen - bei `compile`,
 `refactor` und vor einem Eintrag in `log.md`, bei `harvest` schon vor dem Filtern der
-Kandidaten, in jedem Wiki. Dort stehen der
-Aufnahmefilter (gehört es überhaupt hinein), das Dichtegebot und „aktualisieren heißt
-ersetzen". Geschrieben wird erst, wenn die Datei in dieser Sitzung gelesen ist; `query`,
+Kandidaten, in jedem Wiki. Geschrieben wird erst, wenn die Datei in dieser Sitzung gelesen ist; `query`,
 `lint`, `audit` und `status` brauchen sie nicht.
 
 ## Sicherheitsregeln
