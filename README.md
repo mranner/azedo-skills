@@ -831,6 +831,6 @@ BookStack über die REST-API:
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.76.32
+### 1.76.33
 
-- wiki: Description nennt die Subcommands `harvest` und `query` an ihren Beispielsätzen, weil die Aufruf-Argumente vor dem Lesen der `SKILL.md` entstehen (Fall S rief `ingest` auf); ein beim Aufruf mitgegebener Subcommand gilt nur als Vorschlag, maßgeblich ist der Anlass
+- wiki: Evals 4 und 8 prüfen, dass der Skill-Aufruf `harvest` als Subcommand nennt, nicht `ingest` oder `compile`

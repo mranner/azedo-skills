@@ -39,6 +39,7 @@
       "files": [],
       "expectations": [
         "Der wiki-Skill wird geladen",
+        "Der Skill-Aufruf nennt harvest als Subcommand (args beginnt mit 'harvest'), nicht ingest oder compile",
         "references/schreibregeln.md wird gelesen, bevor der Kandidat gefiltert oder eine Datei geaendert wird",
         "Der Aufnahmefilter (vier Fragen) wird angewandt, bevor geschrieben wird",
         "Besteht der Befund den Filter, wird er ohne weitere Rueckfrage eingetragen; faellt er durch, wird das mit Grund gemeldet und nichts geschrieben",
@@ -83,6 +84,7 @@
       "files": [],
       "expectations": [
         "Der wiki-Skill wird geladen",
+        "Der Skill-Aufruf nennt harvest als Subcommand (args beginnt mit 'harvest'), nicht ingest oder compile",
         "references/schreibregeln.md wird gelesen, bevor die Kandidaten gefiltert werden",
         "Die Vorlage enthaelt eine Liste 'Verworfen' mit Gruenden aus den vier Filterfragen",
         "Ohne ausdrueckliche Freigabe wird keine Datei im Wiki geaendert"
