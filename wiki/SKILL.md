@@ -3,9 +3,9 @@ name: wiki
 description: >
   LLM Wiki für Server-Infra und Projekt-Doku. Vor jedem Schreiben ins Wiki und
   vor jeder Antwort auf die Frage, ob etwas ins Wiki gehört, diesen Skill laden -
-  er führt Aufnahmefilter und Vorlage ("gibt es relevante Erkenntnisse fürs
-  Wiki", "trag das ins Wiki ein"). Vor jedem Eingriff an Server oder Service
-  zuerst nachschlagen ("was steht im Wiki zu X"). Außerdem validieren,
+  er führt Aufnahmefilter und Vorlage (`harvest`: "gibt es relevante Erkenntnisse
+  fürs Wiki", "trag das ins Wiki ein"). Vor jedem Eingriff an Server oder Service
+  zuerst nachschlagen (`query`: "was steht im Wiki zu X"). Außerdem validieren,
   entflechten und Wikis anderer Hosts read-only per SSH abfragen. Trigger: /wiki.
 ---
 
@@ -81,7 +81,8 @@ Nachbar-Wiki unter `wiki/` wie auf ein Remote-Wiki - siehe
 
 ## Subcommands
 
-Der Anlass bestimmt den Subcommand:
+Der Anlass bestimmt den Subcommand. Ein beim Aufruf mitgegebener Subcommand ist nur
+ein Vorschlag, maßgeblich ist der Anlass laut Tabelle:
 
 | Anlass | Subcommand |
 |---|---|

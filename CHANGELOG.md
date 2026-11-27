@@ -3,6 +3,10 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.76.32
+
+- wiki: Description nennt die Subcommands `harvest` und `query` an ihren Beispielsätzen, weil die Aufruf-Argumente vor dem Lesen der `SKILL.md` entstehen (Fall S rief `ingest` auf); ein beim Aufruf mitgegebener Subcommand gilt nur als Vorschlag, maßgeblich ist der Anlass
+
 ### 1.76.31
 
 - wiki: Description verlangt den Skill vor jedem Schreiben und vor jeder Antwort auf „gehört das ins Wiki"; `SKILL.md` ordnet den Anlass dem Subcommand zu (`harvest` statt `ingest` für „trag ins Wiki ein"); Schreibregeln legen fest, wann `verified` einen Menschen nennt

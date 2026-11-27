@@ -831,6 +831,6 @@ BookStack über die REST-API:
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.76.31
+### 1.76.32
 
-- wiki: Description verlangt den Skill vor jedem Schreiben und vor jeder Antwort auf „gehört das ins Wiki"; `SKILL.md` ordnet den Anlass dem Subcommand zu (`harvest` statt `ingest` für „trag ins Wiki ein"); Schreibregeln legen fest, wann `verified` einen Menschen nennt
+- wiki: Description nennt die Subcommands `harvest` und `query` an ihren Beispielsätzen, weil die Aufruf-Argumente vor dem Lesen der `SKILL.md` entstehen (Fall S rief `ingest` auf); ein beim Aufruf mitgegebener Subcommand gilt nur als Vorschlag, maßgeblich ist der Anlass
