@@ -40,6 +40,7 @@ SCHEMA = {
     "values": {"status": ["aktiv", "abgelöst"], "herkunft": ["benutzer", "agent"]},
     "supersede": {"types": ["entscheidung"], "status": "abgelöst", "field": "abgelöst_durch"},
     "min_links": {"entscheidung": 1},
+    "index_desc_max": 40,
 }
 
 
@@ -119,6 +120,9 @@ def build(root, home):
     write(mathe / "wiki/artikel-abgeloest.md",
           "---\ntype: artikel\nstatus: abgelöst\n---\n\nText.\n")
     write(mathe / "index.md", "# Index\n\n- [[schriftliches-dividieren]]\n- [[grenzwert]]\n")
+    # Zweite Index-Datei: zählt als Index, ihre Beschreibungen gegen index_desc_max
+    write(mathe / "index-ablaeufe.md",
+          "# Abläufe\n\n- [[wiederholt]] - kurz\n- [[patch-offen]] - " + "x" * 41 + "\n")
 
     # Wiki ohne values/supersede: dieselben Frontmatter-Werte bleiben still
     write(root / "wiki/physik/wiki-schema.json",
@@ -155,6 +159,10 @@ CASES = [
     ("Abschnittsverweis [[grenzwert]] \"zu", False),
     ("schriftliches-dividieren.md: Verwaiste Seite — kein anderer Artikel verlinkt hierher (nur aus index.md)", True),
     ("grenzwert.md: Verwaiste Seite", False),
+    ("wiederholt.md: Nicht in", False),
+    ("kein-update.md: Nicht in index.md, index-ablaeufe.md gelistet", True),
+    ("index-ablaeufe.md:4: Beschreibung hat 41 Zeichen (Maximum: 40)", True),
+    ("index-ablaeufe.md:3: Beschreibung", False),
     ("patch-offen.md: Aussage zum Patch-Stand (\"kein Patch\") ohne stale_after", True),
     ("patch-mit-ablauf.md: Aussage zum Patch-Stand", False),
     ("kein-update.md: Aussage zum Patch-Stand", False),

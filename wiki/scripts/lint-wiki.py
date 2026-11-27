@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # stdlib only, no pip dependencies
-# version 1.76.23
+# version 1.76.24
 
 """
 lint-wiki.py — Strukturprüfung für LLM Wikis (Infra + Projekt-Doku).
@@ -10,7 +10,9 @@ Prüft:
 - Frontmatter-Pflichtfelder pro Entity-Typ
 - Wikilinks (tote Links, niedrige Konnektivität: eindeutige Ziele, Minimum
   je Typ über "min_links" in wiki-schema.json)
-- Index-Einträge (fehlende Artikel im Index)
+- Index-Einträge (fehlende Artikel im Index; als Index zählen index.md und
+  jede weitere index-*.md im Wiki-Root), optional die Länge der Beschreibung
+  je Eintrag ("index_desc_max" in wiki-schema.json)
 - Namenskonventionen (nur Kleinbuchstaben, Ziffern, Bindestriche)
 - Verwaiste Seiten (kein anderer Artikel verlinkt hierher; index.md und log.md zählen nicht)
 - Datumsangaben in Überschriften (Logbuch-Muster, siehe Schreibregeln)
@@ -77,7 +79,8 @@ def load_schema(wiki_root):
 
     Fällt auf DEFAULT_SCHEMA (Infra-Modell) zurück, wenn keine Config existiert.
     Gibt (required_fields_pro_typ, set_der_gueltigen_typen, references, values,
-    supersede, min_links) zurück; die letzten vier sind {} ohne Eintrag im Schema.
+    supersede, min_links, index_desc_max) zurück; references bis min_links sind
+    {} ohne Eintrag im Schema, index_desc_max ist dann None.
     """
     schema_file = Path(wiki_root) / "wiki-schema.json"
     if schema_file.exists():
@@ -88,7 +91,8 @@ def load_schema(wiki_root):
     common = data.get("required_common", [])
     required = {t: common + extra for t, extra in data["types"].items()}
     return (required, set(required.keys()), data.get("references", {}),
-            data.get("values", {}), data.get("supersede", {}), data.get("min_links", {}))
+            data.get("values", {}), data.get("supersede", {}), data.get("min_links", {}),
+            data.get("index_desc_max"))
 
 
 def check_values(fm, values):
@@ -657,7 +661,9 @@ def lint_wiki(wiki_root, check_remotes=False, check_shrink_flag=False):
         return 1
 
     # Entity-Modell pro Wiki laden (Config oder Infra-Default)
-    required_fields, valid_types, references, values, supersede, min_links = load_schema(wiki_root)
+    (required_fields, valid_types, references, values, supersede, min_links,
+     index_desc_max) = load_schema(wiki_root)
+    index_files = [index_file] + sorted(wiki_root.glob("index-*.md"))
 
     # Bekannte Ziele für [[<präfix>:<slug>]]-Pointer: erst die lokalen
     # Geschwister-Wikis, dann die Remotes.
@@ -816,7 +822,7 @@ def lint_wiki(wiki_root, check_remotes=False, check_shrink_flag=False):
     # log.md historisch ist — ein alter Eintrag darf auf einen seither
     # aufgelösten Artikel zeigen, ohne dass der Lauf fehlschlägt.
     extra_incoming = defaultdict(list)
-    for extra_file in (wiki_root / "log.md", index_file):
+    for extra_file in (wiki_root / "log.md", *index_files):
         if not extra_file.exists():
             continue
         for target in sorted(set(find_wikilinks(extra_file.read_text(encoding="utf-8")))):
@@ -858,10 +864,21 @@ def lint_wiki(wiki_root, check_remotes=False, check_shrink_flag=False):
     if index_file.exists():
         # Gleiche Regel wie bei den Wikilinks: ein [[slug]] in einem Code-Block
         # des Index ist ein Beispiel, kein Index-Eintrag.
-        index_text = strip_code(index_file.read_text(encoding="utf-8"))
+        index_text = "\n".join(strip_code(f.read_text(encoding="utf-8")) for f in index_files)
+        index_names = ", ".join(f.name for f in index_files)
         for slug in all_slugs:
             if f"[[{slug}]]" not in index_text:
-                warnings.append(f"{articles[slug]['rel_path']}: Nicht in index.md gelistet")
+                warnings.append(f"{articles[slug]['rel_path']}: Nicht in {index_names} gelistet")
+        # Ein Index-Eintrag nennt den Artikel, er fasst ihn nicht zusammen.
+        if index_desc_max:
+            for f in index_files:
+                for lineno, line in enumerate(f.read_text(encoding="utf-8").splitlines(), 1):
+                    m = re.match(r"- \[\[[^\]]+\]\]\s*[-—–]\s*(.*)$", line)
+                    if m and len(m.group(1)) > index_desc_max:
+                        warnings.append(
+                            f"{f.name}:{lineno}: Beschreibung hat {len(m.group(1))} Zeichen "
+                            f"(Maximum: {index_desc_max}) — kürzen, Details stehen im Artikel"
+                        )
     else:
         errors.append("index.md nicht gefunden")
 

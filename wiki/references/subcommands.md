@@ -76,7 +76,8 @@ Workflow:
    b. Wenn ja: bestehenden Artikel lesen, dann aktualisieren
    c. Wenn nein: neuen Artikel mit vollständigem Frontmatter anlegen
 3. Minimum 3 Wikilinks pro Artikel setzen
-4. `index.md` aktualisieren (Entity in die passende Sektion des Wikis eintragen)
+4. Index aktualisieren: Entity in die passende Sektion von `index.md` eintragen bzw. in die
+   `index-*.md`, die ihren Typ führt (steht im Kopf von `index.md`)
 5. Backlink-Audit: bestehende Artikel durchsuchen, die den neuen Entity erwähnen sollten
 6. Eintrag in `log.md`: `COMPILE: <quelle> → <entity1>, <entity2>, ...`
 7. Bei aktualisierten Artikeln (Schritt 2b) den [Schrumpf-Guard](#schrumpf-guard---check-shrink)
@@ -106,7 +107,7 @@ keinen Aufnahmefilter. Die Folge war stilles, ungefiltertes Anreichern.
 
 Workflow:
 
-1. `<WIKI_ROOT>/CLAUDE.md` und `index.md` lesen (Entity-Modell und Bestand).
+1. `<WIKI_ROOT>/CLAUDE.md` lesen (Entity-Modell). Den Bestand klärt Schritt 4 per grep.
 2. Kandidaten sammeln: jede Erkenntnis der Sitzung, die nicht offensichtlich
    schon dokumentiert ist.
 3. **Jeden Kandidaten durch den [Aufnahmefilter](../SKILL.md#aufnahmefilter-gehört-das-überhaupt-hinein)
@@ -135,7 +136,7 @@ Workflow:
    lesen: Liegen dort schon uncommittete Änderungen, diese melden und getrennt
    committen lassen, bevor der Harvest dieselben Dateien anfasst - sonst
    vermischen sich fremde und eigene Änderungen in einem Commit. Dann
-   vollständig schreiben: Artikel, Wikilinks, `index.md`, Frontmatter-Datum,
+   vollständig schreiben: Artikel, Wikilinks, Index, Frontmatter-Datum,
    `log.md`, danach `lint`. Fertig ist der Harvest, wenn `lint` ohne Fehler
    durchläuft, committet ist und `git status --short -- <WIKI_ROOT>` leer ist.
 
@@ -158,8 +159,11 @@ Frage gegen das Wiki beantworten.
 ```
 
 Workflow:
-1. `index.md` lesen für Ueberblick
-2. Relevante Entities per Frontmatter-grep identifizieren (z.B. `grep -r "type: server" wiki/` im Infra-Wiki bzw. `grep -r "type: concept" wiki/` in einem Projekt-Wiki)
+1. Begriffe der Frage greppen (Hostname, Dienst, Fehlermeldung):
+   `grep -rli '<begriff>' <WIKI_ROOT>/wiki/`. Den Index nur lesen, wenn die Frage einen
+   Überblick verlangt („welche Server hat Kunde X") oder grep nichts trifft: `index.md`,
+   von den `index-*.md` nur die, die laut Kopf von `index.md` den gesuchten Typ führt
+2. Bei einer Frage nach Typ oder Kunde per Frontmatter-grep eingrenzen (z.B. `grep -r "type: server" wiki/` im Infra-Wiki bzw. `grep -r "type: concept" wiki/` in einem Projekt-Wiki)
 3. Gefundene Artikel lesen
 4. Backlinks in Artikeln folgen für verwandte Informationen
 5. Antwort mit Wikilink-Zitaten formulieren (`[[entity-slug]]`). Eine abgelöste
@@ -210,7 +214,16 @@ Prüft:
   `wiki/` und zählen nur als Quelle, nicht als Ziel; `log.md` ist historisch,
   ein alter Eintrag darf auf einen aufgelösten Artikel zeigen)
 - **Missing frontmatter**: Fehlende Pflichtfelder laut Wiki-Schema (Infra: type, kunde, date, status; Projekt-Wikis abweichend)
-- **Missing index entries**: Artikel die nicht in index.md gelistet sind
+- **Missing index entries**: Artikel, die in keiner Index-Datei gelistet sind. Als Index
+  zählen `index.md` und jede `index-*.md` im Wiki-Root; `index.md` muss es geben
+- **Länge der Index-Einträge** (optional): Nur mit `index_desc_max` in der
+  `wiki-schema.json`. Ist die Beschreibung hinter `- [[slug]] - ` länger, Warnung mit
+  Datei und Zeile. Ein Index-Eintrag nennt den Artikel, er fasst ihn nicht zusammen -
+  ohne Grenze wächst der Index zur Zweitfassung, die bei jeder Abfrage mitgelesen wird:
+
+  ```json
+  "index_desc_max": 100
+  ```
 - **Sortierung von `log.md`**: Tagesabschnitte `## YYYY-MM-DD` gegen die Richtung
   aus dem Kopf der Datei („älteste zuerst" bzw. „aufsteigend", sonst neueste
   zuerst) - Fehler mit Zeilennummer. Fängt den ans Ende gehängten Eintrag ab

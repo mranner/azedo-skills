@@ -831,6 +831,6 @@ BookStack über die REST-API:
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.76.23
+### 1.76.24
 
-- sally: `archive` warnt, wenn das Kapitel Besprechungen keine eigenen Rechte hat (die Zusammenfassung erbt sie vom Kapitel); SKILL.md beschreibt die Kapitelsperre
+- wiki: Lint akzeptiert neben `index.md` jede `index-*.md` als Index und prüft mit `index_desc_max` die Länge der Index-Einträge; `query` greppt zuerst und liest den Index nur für den Überblick

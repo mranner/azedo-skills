@@ -77,9 +77,9 @@ Wenn eine neue Quelle bestehenden Wiki-Inhalten widerspricht:
 
 Nach jedem Compile-Lauf:
 
-1. `index.md` öffnen
-2. Neuen Entity in die passende Kunden-Sektion eintragen
-3. Format: `- [[slug]] — <Kurzbeschreibung> (YYYY-MM-DD)`
+1. `index.md` öffnen bzw. die `index-*.md`, die den Typ führt (steht im Kopf von `index.md`)
+2. Neuen Entity in die passende Sektion eintragen
+3. Format laut `<WIKI_ROOT>/CLAUDE.md`; ohne Vorgabe dort `- [[slug]] - <Kurzbeschreibung> (YYYY-MM-DD)`
 4. Alphabetisch innerhalb der Sektion sortieren
 
 ## Compile-Checkliste
@@ -91,7 +91,7 @@ Nach jedem Compile-Lauf:
 - [ ] Minimum 3 Wikilinks pro Artikel
 - [ ] Secrets entfernt
 - [ ] Backlink-Audit durchgeführt
-- [ ] index.md aktualisiert
+- [ ] Index aktualisiert
 - [ ] log.md Eintrag geschrieben
 
 ## Einträge in `log.md`

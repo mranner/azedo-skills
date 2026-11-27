@@ -88,8 +88,8 @@ Kandidaten filtern, vorlegen, erst nach Freigabe schreiben):
 /wiki harvest [thema]
 ```
 
-Beide führt das Modell selbst aus, es gibt dafür **kein Script**: `query` liest
-`index.md`, greppt Frontmatter und folgt Backlinks; `harvest` sammelt Kandidaten,
+Beide führt das Modell selbst aus, es gibt dafür **kein Script**: `query` greppt
+nach den Begriffen der Frage, liest den Index nur für den Überblick und folgt Backlinks; `harvest` sammelt Kandidaten,
 schickt sie durch den Aufnahmefilter und legt sie vor. Der Ablauf steht in
 `references/subcommands.md`. Scripts gibt es nur für `lint` und `audit` -
 `python3 "$SKILL_DIR/scripts/lint-wiki.py" <WIKI_ROOT>` und

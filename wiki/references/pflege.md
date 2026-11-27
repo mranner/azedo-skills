@@ -113,7 +113,7 @@ Ablauf:
 6. Vorschlag als Tabelle im Chat ausgeben, mit Zeilenumfang je Abschnitt und der
    erwarteten Restlänge. Nichts schreiben.
 7. Erst **nach Freigabe** umsetzen, und dann vollständig: Zielartikel anlegen
-   bzw. ergänzen, Wikilink im Restartikel setzen, `index.md` ergänzen,
+   bzw. ergänzen, Wikilink im Restartikel setzen, Index ergänzen,
    Frontmatter-Datum aktualisieren, Zeile in `log.md`, danach `/wiki lint`.
 8. **Gestrichene und geänderte Kernbegriffe wiki-weit greppen** - nicht nur
    beim Zerlegen. Wer eine Konstante, eine Schwelle oder einen offenen Punkt
@@ -163,7 +163,7 @@ Beim Umsetzen kommt zu Schritt 7 dazu:
   ausgelagerten Thema bestehen bleibt.
 - **Ein Name, ein Versprechen.** Der Rumpf behält seinen Slug nur, wenn er
   danach wirklich das beschreibt, was der Name sagt. Sonst gehört er
-  umbenannt - mit Eintrag in `index.md` und den Verweisen hinterher.
+  umbenannt - mit Eintrag im Index und den Verweisen hinterher.
 - **Nicht in einem Durchgang mit dem Verdichten.** Erst teilen, `lint`, dann in
   einem zweiten Aufruf je Artikel verdichten. Sonst steht ein Vorschlag im
   Chat, den niemand mehr prüfen kann.
