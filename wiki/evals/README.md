@@ -8,6 +8,8 @@ Skill geladen wird, wenn er gebraucht wird - und ob er wegbleibt, wenn nicht.
   Server, ohne dass das Wort „Wiki" faellt. Genau der Fall, der bis 1.59.0 nicht
   ausgeloest hat.
 - **3, 4, 5** — die klassischen Wege: fragen, eintragen, Remote-Config.
+- **8** — Harvest nach einer Live-Prüfung: wird `references/schreibregeln.md` gelesen, bevor
+  gefiltert wird? Dieselbe Erwartung trägt Fall 4 für das direkte Eintragen.
 - **6, 7** — Negativfaelle. Ein Skill, der auf jede Dateiaenderung anspringt, ist
   so unbrauchbar wie einer, der nie anspringt.
 

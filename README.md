@@ -831,6 +831,6 @@ BookStack über die REST-API:
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.76.27
+### 1.76.28
 
-- swaks: mehrfaches `--to`/`--cc`/`--bcc` wird zusammengeführt statt still auf den letzten Wert reduziert, beim Bau wie bei `--send` (CR5054)
+- wiki: Evals prüfen, ob `references/schreibregeln.md` vor dem Filtern bzw. Schreiben gelesen wird (Fall 4 erweitert, neuer Harvest-Fall 8)

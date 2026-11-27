@@ -3,6 +3,10 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.76.28
+
+- wiki: Evals prüfen, ob `references/schreibregeln.md` vor dem Filtern bzw. Schreiben gelesen wird (Fall 4 erweitert, neuer Harvest-Fall 8)
+
 ### 1.76.27
 
 - swaks: mehrfaches `--to`/`--cc`/`--bcc` wird zusammengeführt statt still auf den letzten Wert reduziert, beim Bau wie bei `--send` (CR5054)

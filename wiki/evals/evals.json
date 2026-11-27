@@ -39,6 +39,7 @@
       "files": [],
       "expectations": [
         "Der wiki-Skill wird geladen",
+        "references/schreibregeln.md wird gelesen, bevor der Kandidat gefiltert oder eine Datei geaendert wird",
         "Der Aufnahmefilter (vier Fragen) wird angewandt, bevor geschrieben wird",
         "Ohne ausdrueckliche Freigabe wird keine Datei im Wiki geaendert"
       ]
@@ -72,6 +73,18 @@
       "files": [],
       "expectations": [
         "Der wiki-Skill wird NICHT geladen"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "Pruef live, welche FreeBSD- und welche OpenVPN-Version auf <gateway-host> laufen. Danach: gibt es relevante Erkenntnisse fuers Wiki?",
+      "expected_output": "Harvest: die Kandidaten aus der Pruefung laufen durch den Aufnahmefilter; die Vorlage nennt Aufzunehmendes und Verworfenes mit Grund, geschrieben wird nichts.",
+      "files": [],
+      "expectations": [
+        "Der wiki-Skill wird geladen",
+        "references/schreibregeln.md wird gelesen, bevor die Kandidaten gefiltert werden",
+        "Die Vorlage enthaelt eine Liste 'Verworfen' mit Gruenden aus den vier Filterfragen",
+        "Ohne ausdrueckliche Freigabe wird keine Datei im Wiki geaendert"
       ]
     }
   ]
