@@ -3,6 +3,10 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.76.31
+
+- wiki: Description verlangt den Skill vor jedem Schreiben und vor jeder Antwort auf „gehört das ins Wiki"; `SKILL.md` ordnet den Anlass dem Subcommand zu (`harvest` statt `ingest` für „trag ins Wiki ein"); Schreibregeln legen fest, wann `verified` einen Menschen nennt
+
 ### 1.76.30
 
 - wiki: `harvest` - ein direkter Auftrag, der den Befund nennt („trag ins Wiki ein, dass …"), gilt als Freigabe für diesen Befund; der Aufnahmefilter läuft davor, offene Fragen bleiben bei der Vorlage

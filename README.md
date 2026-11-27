@@ -831,6 +831,6 @@ BookStack über die REST-API:
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.76.30
+### 1.76.31
 
-- wiki: `harvest` - ein direkter Auftrag, der den Befund nennt („trag ins Wiki ein, dass …"), gilt als Freigabe für diesen Befund; der Aufnahmefilter läuft davor, offene Fragen bleiben bei der Vorlage
+- wiki: Description verlangt den Skill vor jedem Schreiben und vor jeder Antwort auf „gehört das ins Wiki"; `SKILL.md` ordnet den Anlass dem Subcommand zu (`harvest` statt `ingest` für „trag ins Wiki ein"); Schreibregeln legen fest, wann `verified` einen Menschen nennt

@@ -233,7 +233,9 @@ verified: ["human:mranner@2026-09-06", "claude-opus-5@2026-09-14"]
 Format je Eintrag: `<akteur>@<YYYY-MM-DD>`. Akteur ist `human:<kuerzel>` für
 einen Menschen, `process:<name>` für einen automatisierten Lauf, sonst der
 Modell- bzw. Werkzeugname. Der Unterschied trägt die Aussage: was ein Mensch
-bestätigt hat, wiegt schwerer als was ein Agent behauptet.
+bestätigt hat, wiegt schwerer als was ein Agent behauptet. Wann welcher Akteur
+steht und wann das Feld wegbleibt: „`verified` nennt, wer wirklich geprüft hat"
+(Schreibregeln, Referenz laut SKILL.md).
 
 ```
 grep -rl "verified:.*human:" wiki/       # menschlich geprüft

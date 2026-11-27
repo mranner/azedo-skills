@@ -2,7 +2,7 @@
 
 Was ins Wiki gehört und wie es dort steht. Vor jedem Schreiben vollständig lesen.
 
-**Inhalt:** Aufnahmefilter · Dichtegebot · Kürzen · Aktualisieren heißt ersetzen (Ablösung) · Patch-Stand mit `stale_after` · ein Befund, eine Stelle
+**Inhalt:** Aufnahmefilter · Dichtegebot · Kürzen · Aktualisieren heißt ersetzen (Ablösung) · Patch-Stand mit `stale_after` · `verified` · ein Befund, eine Stelle
 
 Gelten für **jedes** Schreiben ins Wiki (`compile`, `refactor`) und für `log.md`,
 in jedem Wiki. „Gegenstand" ist das, was der Artikel beschreibt - ein Server, ein
@@ -119,6 +119,13 @@ sie enthält, bekommt `stale_after` auf das Prüfdatum plus vier Wochen; ist das
 Feld schon gesetzt, gilt das frühere Datum. Beim Ablauf wird die Aussage an der
 Quelle neu geprüft, wie unter „verified / stale_after setzen"
 (Pflege-Referenz laut SKILL.md).
+
+### `verified` nennt, wer wirklich geprüft hat
+
+`human:<kürzel>` nur, wenn der Mensch ausdrücklich sagt, dass er selbst geprüft
+hat. Prüft der Agent am System, steht der Modellname. Ist offen, wer geprüft hat,
+oder stützt sich der Eintrag nur auf eine Angabe im Auftrag, bleibt das Feld weg.
+Format und Vertrauensstufen: Frontmatter-Referenz laut SKILL.md.
 
 ### Ein Befund gehört an genau eine Stelle
 

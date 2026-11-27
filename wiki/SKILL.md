@@ -1,11 +1,12 @@
 ---
 name: wiki
 description: >
-  LLM Wiki: Wissensbasis über Server-Infra und Projekt-Doku abfragen,
-  eintragen, kompilieren, validieren, entflechten; Wikis anderer Hosts
-  read-only per SSH. Vor jedem Eingriff an Server oder Service zuerst "query".
-  Auch bei "trag das ins Wiki ein", "was steht im Wiki zu X", "gibt es
-  relevante Erkenntnisse fürs Wiki". Trigger: /wiki.
+  LLM Wiki für Server-Infra und Projekt-Doku. Vor jedem Schreiben ins Wiki und
+  vor jeder Antwort auf die Frage, ob etwas ins Wiki gehört, diesen Skill laden -
+  er führt Aufnahmefilter und Vorlage ("gibt es relevante Erkenntnisse fürs
+  Wiki", "trag das ins Wiki ein"). Vor jedem Eingriff an Server oder Service
+  zuerst nachschlagen ("was steht im Wiki zu X"). Außerdem validieren,
+  entflechten und Wikis anderer Hosts read-only per SSH abfragen. Trigger: /wiki.
 ---
 
 # wiki -- LLM Wiki Verwaltung
@@ -80,15 +81,16 @@ Nachbar-Wiki unter `wiki/` wie auf ein Remote-Wiki - siehe
 
 ## Subcommands
 
-Häufigster Fall ist `query` (nachschlagen) und `harvest` (Erkenntnisse aufnehmen -
-Kandidaten filtern, vorlegen, erst nach Freigabe schreiben):
+Der Anlass bestimmt den Subcommand:
 
-```
-/wiki query <frage>
-/wiki harvest [thema]
-```
+| Anlass | Subcommand |
+|---|---|
+| „was steht im Wiki zu X", vor einem Eingriff an Server oder Service | `query` |
+| „gibt es Erkenntnisse fürs Wiki", „aktualisiere das Wiki" | `harvest`: Kandidaten filtern, Vorlage ausgeben, schreiben erst nach Freigabe |
+| „trag ins Wiki ein, dass …" - der Auftrag nennt den Befund | `harvest` mit direktem Auftrag: der Auftrag ist die Freigabe, nach dem Aufnahmefilter schreiben, ohne Vorlage |
+| eine Datei oder Quelle wird übergeben | `ingest`, danach `compile` |
 
-Beide führt das Modell selbst aus, es gibt dafür **kein Script**: `query` greppt
+`query` und `harvest` führt das Modell selbst aus, es gibt dafür **kein Script**: `query` greppt
 nach den Begriffen der Frage, liest den Index nur für den Überblick und folgt Backlinks; `harvest` sammelt Kandidaten,
 schickt sie durch den Aufnahmefilter und legt sie vor. Der Ablauf steht in
 `references/subcommands.md`. Scripts gibt es für `lint` und `audit` -
