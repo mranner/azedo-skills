@@ -3,6 +3,10 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.76.35
+
+- wiki: Evals 1 und 2 verlangen die Wiki-Abfrage vor dem Host-Befehl statt das Laden des Skills - die Projekt-CLAUDE.md lässt direkt im Wiki greppen, und so beantworten die Läufe die Frage richtig
+
 ### 1.76.34
 
 - wiki: Eval 4 mit konkretem Befund (Dienst und Host als Platzhalter) statt eines Befunds ohne Dienst, auf den Opus nur mit Rückfrage antwortet

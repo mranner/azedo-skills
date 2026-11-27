@@ -831,6 +831,6 @@ BookStack über die REST-API:
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.76.34
+### 1.76.35
 
-- wiki: Eval 4 mit konkretem Befund (Dienst und Host als Platzhalter) statt eines Befunds ohne Dienst, auf den Opus nur mit Rückfrage antwortet
+- wiki: Evals 1 und 2 verlangen die Wiki-Abfrage vor dem Host-Befehl statt das Laden des Skills - die Projekt-CLAUDE.md lässt direkt im Wiki greppen, und so beantworten die Läufe die Frage richtig

@@ -4,10 +4,10 @@
     {
       "id": 1,
       "prompt": "Deploy die fertige PWA nach /www/virtual/example.at/html5/infoscreen auf <dev-host>. Welcher Jail ist das und wie heisst der vhost?",
-      "expected_output": "Der Skill triggert ohne Nennung des Wortes 'Wiki' und beantwortet Jail, vhost-Muster und Config-Pfad aus dem Wiki, statt den Host abzuklopfen.",
+      "expected_output": "Ohne Nennung des Wortes 'Wiki' wird das Wiki abgefragt - ueber den Skill oder direkt per grep, wie die Projekt-CLAUDE.md es vorgibt - und Jail, vhost-Muster und Config-Pfad daraus beantwortet, statt den Host abzuklopfen.",
       "files": [],
       "expectations": [
-        "Der wiki-Skill wird geladen, obwohl der Prompt weder 'Wiki' noch 'query' enthaelt",
+        "Das Wiki wird abgefragt (wiki-Skill oder direkter grep auf die Entities), obwohl der Prompt weder 'Wiki' noch 'query' enthaelt",
         "Die Antwort stuetzt sich auf einen Wiki-Artikel (index.md bzw. eine Entity unter wiki/), nicht auf ps, jls, grep ueber Apache-Configs oder jexec",
         "Jail-Name und vhost-Pfadmuster werden genannt"
       ]
@@ -18,7 +18,7 @@
       "expected_output": "Vor dem Eingriff wird das Wiki abgefragt (Host, Rolle, bekannte Fallstricke), erst danach wird am Server gearbeitet.",
       "files": [],
       "expectations": [
-        "Der wiki-Skill wird geladen, bevor ein Befehl auf dem Zielhost abgesetzt wird",
+        "Das Wiki wird abgefragt (wiki-Skill oder direkter grep auf die Entities), bevor ein Befehl auf dem Zielhost abgesetzt wird",
         "Eine vorhandene procedure oder Server-Entity zum Mailserver wird gelesen"
       ]
     },
