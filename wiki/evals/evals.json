@@ -34,7 +34,7 @@
     },
     {
       "id": 4,
-      "prompt": "Trag ins Wiki ein, dass der Reload des Dienstes die Konfiguration nur teilweise neu liest - ein voller restart ist noetig.",
+      "prompt": "Trag ins Wiki ein, dass pure-ftpd auf <ftp-host> ein neues Zertifikat nur beim restart laedt - ein reload genuegt nicht.",
       "expected_output": "Der genannte Befund laeuft durch den Aufnahmefilter. Besteht er, wird er eingetragen - der Auftrag ist die Freigabe. Faellt er durch, wird er mit Grund abgelehnt statt eingetragen.",
       "files": [],
       "expectations": [

@@ -3,6 +3,10 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.76.34
+
+- wiki: Eval 4 mit konkretem Befund (Dienst und Host als Platzhalter) statt eines Befunds ohne Dienst, auf den Opus nur mit Rückfrage antwortet
+
 ### 1.76.33
 
 - wiki: Evals 4 und 8 prüfen, dass der Skill-Aufruf `harvest` als Subcommand nennt, nicht `ingest` oder `compile`
