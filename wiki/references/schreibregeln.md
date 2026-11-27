@@ -2,7 +2,7 @@
 
 Was ins Wiki gehört und wie es dort steht. Vor jedem Schreiben vollständig lesen.
 
-**Inhalt:** Aufnahmefilter · Dichtegebot · Kürzen · Aktualisieren heißt ersetzen (Ablösung) · Patch-Stand mit `stale_after` · `verified` · ein Befund, eine Stelle
+**Inhalt:** Fertig heißt committet · Aufnahmefilter · Dichtegebot · Kürzen · Aktualisieren heißt ersetzen (Ablösung) · Patch-Stand mit `stale_after` · `verified` · ein Befund, eine Stelle
 
 Gelten für **jedes** Schreiben ins Wiki (`compile`, `refactor`) und für `log.md`,
 in jedem Wiki. „Gegenstand" ist das, was der Artikel beschreibt - ein Server, ein
@@ -13,6 +13,19 @@ Schreiben lesen, nicht blind ans Ende hängen. Ist das Log „neueste zuerst"
 sortiert, landet ein angehängter Eintrag unter dem ältesten Tag. Rotiert das Wiki
 sein Log (Verzeichnis `<WIKI_ROOT>/log/`), meldet `lint` abgeschlossene Monate;
 dann `python3 "$SKILL_DIR/scripts/rotate-log.py" <WIKI_ROOT>` laufen lassen.
+
+### Fertig heißt: `lint` fehlerfrei und committet
+
+Liegt das Wiki unter Versionskontrolle (git oder SVN), vor dem ersten Edit den
+Status lesen (`git status --short -- <WIKI_ROOT>` bzw. `svn status <WIKI_ROOT>`).
+Uncommittete Änderungen dort melden und getrennt committen lassen, bevor
+dieselben Dateien angefasst werden - sonst vermischen sich fremde und eigene
+Änderungen in einem Commit.
+
+Fertig ist das Schreiben, wenn `lint` ohne Fehler durchläuft; unter
+Versionskontrolle zusätzlich, wenn committet ist und der Status für
+`<WIKI_ROOT>` leer ist. Der Auftrag zum Schreiben schließt den Commit ein, er
+braucht keine eigene Rückfrage. Ohne Versionskontrolle genügt `lint`.
 
 ### Aufnahmefilter: gehört das überhaupt hinein?
 

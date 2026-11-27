@@ -141,15 +141,9 @@ Workflow:
    - <Erkenntnis> — steht bereits in [[slug]]
    ```
 
-6. Erst **nach Freigabe** schreiben. Liegt das Wiki unter Versionskontrolle
-   (git oder SVN), vorher den Status lesen (`git status --short -- <WIKI_ROOT>`
-   bzw. `svn status <WIKI_ROOT>`): Liegen dort schon uncommittete Änderungen,
-   diese melden und getrennt committen lassen, bevor der Harvest dieselben
-   Dateien anfasst - sonst vermischen sich fremde und eigene Änderungen in
-   einem Commit. Dann vollständig schreiben: Artikel, Wikilinks, Index,
-   Frontmatter-Datum, `log.md`, danach `lint`. Fertig ist der Harvest, wenn
-   `lint` ohne Fehler durchläuft; unter Versionskontrolle zusätzlich, wenn
-   committet ist und der Status für `<WIKI_ROOT>` leer ist.
+6. Erst **nach Freigabe** schreiben, vollständig: Artikel, Wikilinks, Index,
+   Frontmatter-Datum, `log.md`, danach `lint`. Status vorab und Fertigkriterium
+   (`lint`, Commit, leerer Status): Schreibregeln, Abschnitt „Fertig heißt".
 
 Die verworfene Liste ist kein Beiwerk, sondern der Zweck: sie macht den Filter
 überprüfbar. Ohne sie ist nicht erkennbar, ob etwas geprüft und aussortiert oder

@@ -108,7 +108,7 @@ Vollständige Referenz daneben, bei Bedarf lesen:
 | `references/pflege.md` | `audit` (aufgeblähte Artikel finden), `refactor` (Entity umbauen, verdichten statt verschieben), `status`, `handoff` |
 | `references/compilation-guide.md` | Compile-Regeln: Source-first, Entity-Extraktion, Duplikate, Cross-Referencing, Widersprüche, Compile-Checkliste |
 | `references/frontmatter-schemas.md` | Entity-Templates und Pflichtfelder je Typ (Infra-Modell), `verified`/`stale_after` |
-| `references/schreibregeln.md` | Aufnahmefilter, Dichtegebot, ersetzen statt anhängen, Ablösung, `stale_after` beim Patch-Stand, Ablage in `log.md` |
+| `references/schreibregeln.md` | Fertigkriterium (`lint`, Commit), Aufnahmefilter, Dichtegebot, ersetzen statt anhängen, Ablösung, `stale_after` beim Patch-Stand, Ablage in `log.md` |
 | `references/remote-wikis.md` | Wikis anderer Hosts read-only per SSH abfragen, Konfiguration, Hints auf Entities anderer Wikis (Nachbar-Wiki wie Remote) |
 
 ## Schreibregeln

@@ -831,6 +831,6 @@ BookStack über die REST-API:
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.76.37
+### 1.76.38
 
-- wiki: `harvest` Schritt 6 gilt auch ohne git - Status lesen und committen nur unter Versionskontrolle (git oder SVN), sonst ist der Harvest mit fehlerfreiem `lint` fertig
+- wiki: Fertigkriterium (Status vorab lesen, `lint`, Commit, leerer Status) aus `harvest` Schritt 6 in `references/schreibregeln.md` verschoben, gilt damit für jedes Schreiben; der Schreibauftrag schließt den Commit ohne Rückfrage ein. Anlass: Opus liest `subcommands.md` beim Schreiben nicht und committete deshalb nie

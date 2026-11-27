@@ -3,6 +3,10 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.76.38
+
+- wiki: Fertigkriterium (Status vorab lesen, `lint`, Commit, leerer Status) aus `harvest` Schritt 6 in `references/schreibregeln.md` verschoben, gilt damit für jedes Schreiben; der Schreibauftrag schließt den Commit ohne Rückfrage ein. Anlass: Opus liest `subcommands.md` beim Schreiben nicht und committete deshalb nie
+
 ### 1.76.37
 
 - wiki: `harvest` Schritt 6 gilt auch ohne git - Status lesen und committen nur unter Versionskontrolle (git oder SVN), sonst ist der Harvest mit fehlerfreiem `lint` fertig
