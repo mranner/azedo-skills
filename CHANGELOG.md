@@ -3,6 +3,10 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.76.27
+
+- swaks: mehrfaches `--to`/`--cc`/`--bcc` wird zusammengeführt statt still auf den letzten Wert reduziert, beim Bau wie bei `--send` (CR5054)
+
 ### 1.76.26
 
 - wiki: Schreibregeln aus der `SKILL.md` nach `references/schreibregeln.md` ausgelagert, Pflichtlektüre vor jedem Schreiben; `query`, `lint` und `audit` laden sie nicht mehr mit

@@ -831,6 +831,6 @@ BookStack über die REST-API:
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.76.26
+### 1.76.27
 
-- wiki: Schreibregeln aus der `SKILL.md` nach `references/schreibregeln.md` ausgelagert, Pflichtlektüre vor jedem Schreiben; `query`, `lint` und `audit` laden sie nicht mehr mit
+- swaks: mehrfaches `--to`/`--cc`/`--bcc` wird zusammengeführt statt still auf den letzten Wert reduziert, beim Bau wie bei `--send` (CR5054)
