@@ -3,6 +3,10 @@
 Alle Aenderungen an den azedo-skills, absteigend nach Version. Aktuelle Version steht auch im
 [README](README.md#changelog); der vollstaendige Verlauf lebt hier.
 
+### 1.76.29
+
+- wiki: Eval 4 angepasst - ein direkter Auftrag „trag ins Wiki ein, dass …" gilt als Freigabe für diesen Befund, der Aufnahmefilter läuft trotzdem davor
+
 ### 1.76.28
 
 - wiki: Evals prüfen, ob `references/schreibregeln.md` vor dem Filtern bzw. Schreiben gelesen wird (Fall 4 erweitert, neuer Harvest-Fall 8)

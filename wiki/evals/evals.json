@@ -35,13 +35,14 @@
     {
       "id": 4,
       "prompt": "Trag ins Wiki ein, dass der Reload des Dienstes die Konfiguration nur teilweise neu liest - ein voller restart ist noetig.",
-      "expected_output": "Der Kandidat laeuft durch den Aufnahmefilter und wird vorgelegt; geschrieben wird erst nach Freigabe.",
+      "expected_output": "Der genannte Befund laeuft durch den Aufnahmefilter. Besteht er, wird er eingetragen - der Auftrag ist die Freigabe. Faellt er durch, wird er mit Grund abgelehnt statt eingetragen.",
       "files": [],
       "expectations": [
         "Der wiki-Skill wird geladen",
         "references/schreibregeln.md wird gelesen, bevor der Kandidat gefiltert oder eine Datei geaendert wird",
         "Der Aufnahmefilter (vier Fragen) wird angewandt, bevor geschrieben wird",
-        "Ohne ausdrueckliche Freigabe wird keine Datei im Wiki geaendert"
+        "Besteht der Befund den Filter, wird er ohne weitere Rueckfrage eingetragen; faellt er durch, wird das mit Grund gemeldet und nichts geschrieben",
+        "Geschrieben wird nur der genannte Befund, keine weiteren Erkenntnisse aus der Sitzung"
       ]
     },
     {

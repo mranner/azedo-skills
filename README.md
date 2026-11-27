@@ -831,6 +831,6 @@ BookStack über die REST-API:
 
 Vollständiger Verlauf: **[CHANGELOG.md](CHANGELOG.md)**. Hier nur die aktuelle Version.
 
-### 1.76.28
+### 1.76.29
 
-- wiki: Evals prüfen, ob `references/schreibregeln.md` vor dem Filtern bzw. Schreiben gelesen wird (Fall 4 erweitert, neuer Harvest-Fall 8)
+- wiki: Eval 4 angepasst - ein direkter Auftrag „trag ins Wiki ein, dass …" gilt als Freigabe für diesen Befund, der Aufnahmefilter läuft trotzdem davor
